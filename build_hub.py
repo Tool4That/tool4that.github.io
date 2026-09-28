@@ -10,7 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 CFG_PATH = ROOT / "tools.json"
-cfg = json.loads(CFG_PATH.read_text())
+cfg = json.loads(CFG_PATH.read_text(encoding="utf-8"))
 SITE = cfg["site"].rstrip("/")
 TODAY = datetime.date.today().isoformat()
 e = html.escape
@@ -18,6 +18,9 @@ e = html.escape
 ICONS = {
     "check": '<path d="M9 16.5l4.6 4.6L23 11.4" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>',
     "wrench": '<path d="M20.5 7.5a5 5 0 0 0-6.3 6.3l-6.4 6.4a1.8 1.8 0 0 0 2.5 2.5l6.4-6.4a5 5 0 0 0 6.3-6.3l-3 3-2.6-.9-.9-2.6z" fill="#fff"/>',
+    "terminal": '<path d="M8.5 10.5l5.5 5.5-5.5 5.5" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M16.5 22h7.5" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
+    "search": '<circle cx="14" cy="14" r="6.5" fill="none" stroke="#fff" stroke-width="3"/><path d="M19 19l5.5 5.5" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/>',
+    "subnet": '<text x="16" y="20.5" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="12" fill="#fff">/24</text>',
 }
 def mark(icon="four", size=32):
     glyph = ICONS.get(icon) or '<text x="16" y="23.5" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="21" fill="#fff">4</text>'
@@ -43,6 +46,9 @@ a { color: var(--focus); }
 .points li::before { content: "\\2713  "; color: var(--go-2); font-weight: 700; }
 main { padding: 34px 0 20px; }
 h2 { font-size: 22px; margin: 0 0 14px; }
+.cat { font-size: 17px; margin: 26px 0 4px; color: var(--ink-2); }
+h2 + .cat { margin-top: 6px; }
+.cat-note { margin: 0 0 12px; font-size: 14px; color: var(--muted); max-width: 75ch; }
 .tools { list-style: none; margin: 0 0 34px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
 .tool { background: var(--sheet); border: 1px solid var(--rule); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
 .tool-head { display: flex; gap: 12px; align-items: center; }
@@ -118,9 +124,22 @@ def tool_card(t):
       </li>
 """
 
-cards = "".join(tool_card(t) for t in cfg["tools"])
+groups = []
+for t in cfg["tools"]:
+    c = t.get("category", "")
+    g = next((g for g in groups if g[0] == c), None)
+    if g is None:
+        groups.append((c, [t]))
+    else:
+        g[1].append(t)
+notes = cfg.get("category_notes", {})
+sections = ""
+for c, ts in groups:
+    if c:
+        sections += f'    <h3 class="cat">{e(c)}</h3>\n' + (f'    <p class="cat-note">{e(notes[c])}</p>\n' if notes.get(c) else "")
+    sections += '    <ul class="tools">\n' + "".join(tool_card(t) for t in ts) + "    </ul>\n"
 title = f"{cfg['name']}: free tools that run in your browser"
-desc = "Need a tool for that? Free single-file tools that run in your browser, with no sign-up and no tracking. Starting with Maxed & Matched, the military TSP calculator."
+desc = "Need a tool for that? Free single-file tools that run in your browser, with no sign-up and no tracking: military TSP planning and networking practice."
 index = head(title, desc, SITE + "/", SITE + "/og-image.png") + f"""<body>
 <header class="hero">
   <div class="wrap">
@@ -133,9 +152,7 @@ index = head(title, desc, SITE + "/", SITE + "/og-image.png") + f"""<body>
 <main class="wrap">
   <section aria-labelledby="h-tools">
     <h2 id="h-tools">Tools</h2>
-    <ul class="tools">
-{cards}      <li class="tool soon">More tools coming.</li>
-    </ul>
+{sections}
   </section>
   <section class="how" aria-labelledby="h-how">
     <h2 id="h-how">How these tools work</h2>
@@ -153,7 +170,7 @@ index = head(title, desc, SITE + "/", SITE + "/og-image.png") + f"""<body>
 </body>
 </html>
 """
-(ROOT / "index.html").write_text(index)
+(ROOT / "index.html").write_text(index, encoding="utf-8", newline="\n")
 
 notfound = head(f"Page not found | {cfg['name']}", "That page doesn't exist.", SITE + "/", SITE + "/og-image.png").replace('<link rel="canonical"', '<meta name="robots" content="noindex">\n<link rel="canonical"') + f"""<body>
 <header class="hero"><div class="wrap"><p class="logo">{mark(size=40)}<span>Tool<b>4</b>That</span></p><h1>That page isn't here.</h1>
@@ -161,13 +178,13 @@ notfound = head(f"Page not found | {cfg['name']}", "That page doesn't exist.", S
 </body>
 </html>
 """
-(ROOT / "404.html").write_text(notfound)
-(ROOT / "robots.txt").write_text(f"User-agent: *\nAllow: /\n\nSitemap: {SITE}/sitemap.xml\n")
+(ROOT / "404.html").write_text(notfound, encoding="utf-8", newline="\n")
+(ROOT / "robots.txt").write_text(f"User-agent: *\nAllow: /\n\nSitemap: {SITE}/sitemap.xml\n", encoding="utf-8", newline="\n")
 urls = [(SITE + "/", max([TODAY] + [t["updated"] for t in cfg["tools"]]))] + [(f"{SITE}/{t['slug']}/", t["updated"]) for t in cfg["tools"]]
 (ROOT / "sitemap.xml").write_text('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-    + "".join(f"  <url><loc>{u}</loc><lastmod>{d}</lastmod></url>\n" for u, d in urls) + "</urlset>\n")
+    + "".join(f"  <url><loc>{u}</loc><lastmod>{d}</lastmod></url>\n" for u, d in urls) + "</urlset>\n", encoding="utf-8", newline="\n")
 (ROOT / ".nojekyll").touch()
-CFG_PATH.write_text(json.dumps(cfg, indent=2) + "\n")
+CFG_PATH.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8", newline="\n")
 for t in cfg["tools"]:
     print(f"{t['slug']:<24} {t['updated']}  {t['sha256']}")
 print(f"hub rebuilt for {SITE}")
