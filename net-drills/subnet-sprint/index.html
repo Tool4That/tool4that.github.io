@@ -1,0 +1,798 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- tool4that:head -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-7xjGBn+qxN9G6YP+IxcvygXYBeiOBLfgU89HRTwvcM8='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="Work out the network, broadcast, and usable host range for any IPv4 address, then do it faster. Includes VLSM planning and IPv6 drills.">
+<link rel="canonical" href="https://tool4that.github.io/net-drills/subnet-sprint/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%94%A2%3C%2Ftext%3E%3C%2Fsvg%3E">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tool4That">
+<meta property="og:title" content="Subnet Sprint">
+<meta property="og:description" content="Work out the network, broadcast, and usable host range for any IPv4 address, then do it faster. Includes VLSM planning and IPv6 drills.">
+<meta property="og:url" content="https://tool4that.github.io/net-drills/subnet-sprint/">
+<meta property="og:image" content="https://tool4that.github.io/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<!-- /tool4that:head -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Subnet Sprint – Net Drills</title>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#E8ECF0;--face:#F7F9FA;--ink:#17212B;--muted:#55647A;--rule:#C6D0DA;
+  --orange:#C8561A;--green:#23794A;--blue:#1F5C9E;--brown:#6E4526;
+  --ok:#1E8A4C;--bad:#B8322A;--warn:#A86A12;--focus:#1F5C9E;
+  --accent:var(--orange);--on-accent:#FFFFFF;
+  --head:"Bahnschrift","DIN Alternate","Roboto Condensed","Avenir Next Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"Cascadia Mono","SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#111922;--face:#19242F;--ink:#E2E9F0;--muted:#98A8B9;--rule:#2E3D4C;
+    --orange:#F0874A;--green:#4DBB7F;--blue:#6AA5EA;--brown:#C08B63;
+    --ok:#4DBB7F;--bad:#F06A5E;--warn:#E3A83F;--focus:#8CC4F2;--on-accent:#111922;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111922;--face:#19242F;--ink:#E2E9F0;--muted:#98A8B9;--rule:#2E3D4C;
+  --orange:#F0874A;--green:#4DBB7F;--blue:#6AA5EA;--brown:#C08B63;
+  --ok:#4DBB7F;--bad:#F06A5E;--warn:#E3A83F;--focus:#8CC4F2;--on-accent:#111922;
+  color-scheme:dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--body)}
+.wrap{max-width:880px;margin:0 auto;padding:22px 18px 40px}
+button,input{font:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.series{display:flex;flex-wrap:wrap;gap:6px 16px;margin:0 0 18px;font:600 13px/1.2 var(--head);color:var(--muted)}
+.jack{display:inline-flex;align-items:center;gap:7px}
+.jack::before{content:"";width:15px;height:11px;border:2px solid var(--c);border-radius:2px 2px 4px 4px}
+.jack.on{color:var(--ink)}
+.jack.on::before{background:var(--c)}
+h1{font:700 clamp(38px,8vw,60px)/.95 var(--head);letter-spacing:-.01em;margin:0 0 10px}
+.lede{margin:0;max-width:60ch;color:var(--muted);font-size:17px}
+.tabs{display:flex;gap:2px;border-bottom:1.5px solid var(--rule);margin:26px 0 18px;overflow-x:auto}
+.tabs button{font:600 17px/1 var(--head);padding:12px 14px;border:0;background:none;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-1.5px;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+@media (max-width:560px){.tabs button{font-size:15px;padding:12px 10px}}
+.plan-req{margin:0 0 6px;padding-left:20px}
+.plan-req li{margin:2px 0}
+.prow{padding:10px 0;border-top:1px solid var(--rule)}
+.prow h4{margin:0 0 8px;font:700 16px/1.2 var(--head)}
+.prow .fs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 12px}
+@media (max-width:520px){.prow .fs{grid-template-columns:1fr 1fr}}
+.qtext.small{font-size:clamp(17px,4vw,20px)}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px}
+.between{justify-content:space-between}
+.seg{display:inline-flex;flex-wrap:wrap;border:1.5px solid var(--rule);border-radius:8px;overflow:hidden}
+.seg button{padding:8px 13px;border:0;background:var(--face);color:var(--muted);font-weight:600;font-size:14px;line-height:1.15;text-align:left}
+.seg button small{display:block;font-weight:500;font-size:12px}
+.seg button[aria-checked="true"],.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.check{display:inline-flex;align-items:center;gap:8px;font-size:15px;color:var(--muted)}
+.check input{width:18px;height:18px;accent-color:var(--accent)}
+.problem{margin:22px 0 6px;font:700 clamp(30px,8.5vw,54px)/1.05 var(--mono);letter-spacing:-.02em;word-break:break-all}
+.problem .pfx{color:var(--accent)}
+.bitbar{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0 6px}
+.oct{display:flex;flex-direction:column;gap:5px}
+.cells{display:grid;grid-template-columns:repeat(8,1fr);gap:2px}
+.b{aspect-ratio:3/4;display:grid;place-items:center;font:600 clamp(10px,1.9vw,15px)/1 var(--mono);border:1.5px solid var(--rule);border-radius:3px;color:var(--muted);background:var(--face)}
+.b.n{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.bitbar.nobits .b{color:transparent}
+.ov{font:600 14px/1 var(--mono);color:var(--muted);text-align:center}
+.cap{margin:4px 0 0;font-size:14px;color:var(--muted)}
+@media (max-width:560px){.bitbar{grid-template-columns:repeat(2,1fr)}}
+.fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:14px 20px;margin:22px 0 16px}
+.fld{display:grid;grid-template-columns:1fr auto;align-items:center;gap:5px 10px}
+.fld>span{grid-column:1/-1;font-size:14px;color:var(--muted)}
+input.t{font:500 17px/1.2 var(--mono);padding:10px 11px;border:1.5px solid var(--rule);border-radius:6px;background:var(--face);color:var(--ink);width:100%;min-width:0}
+input.t:focus{border-color:var(--accent)}
+input.t[aria-invalid="true"]{border-color:var(--bad)}
+input.t[aria-invalid="false"]{border-color:var(--ok)}
+.led{display:inline-block;flex:none;width:12px;height:12px;border-radius:50%;background:var(--rule)}
+.led.ok{background:var(--ok)}.led.bad{background:var(--bad)}.led.rev{background:var(--warn)}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0 0}
+.btn{min-height:44px;padding:10px 16px;border-radius:6px;border:1.5px solid var(--ink);background:transparent;color:var(--ink);font-weight:600;font-size:15px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.status{min-height:1.5em;margin:12px 0 0;font-weight:600}
+.work{margin:16px 0 0;padding:12px 16px 12px 18px;background:var(--face);border-left:4px solid var(--accent);border-radius:0 6px 6px 0}
+.work h3{margin:0 0 6px;font:700 18px/1.2 var(--head)}
+.work ol{margin:0;padding-left:20px}
+.work li{margin:3px 0}
+details.ref{margin:22px 0 0;border-top:1.5px solid var(--rule);padding-top:12px}
+details.ref summary{font:600 16px/1.3 var(--head);cursor:pointer}
+.tablewrap{overflow-x:auto;margin-top:10px}
+table{border-collapse:collapse;font-size:15px;min-width:420px}
+th,td{text-align:left;padding:6px 14px 6px 0;border-bottom:1px solid var(--rule)}
+th{font-weight:600;color:var(--muted)}
+td.m{font-family:var(--mono)}
+.stats{display:flex;flex-wrap:wrap;gap:10px 30px;margin:26px 0 0;padding-top:14px;border-top:1.5px solid var(--rule)}
+.stats div{display:flex;flex-direction:column-reverse}
+.stats dt{font-size:13px;color:var(--muted)}
+.stats dd{margin:0;font:700 28px/1 var(--head)}
+fieldset.topics{border:0;padding:0;margin:0 0 18px}
+fieldset.topics legend{font-size:14px;color:var(--muted);padding:0;margin-bottom:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:8px 12px;border-radius:999px;border:1.5px solid var(--rule);background:var(--face);color:var(--ink);font-size:14px;font-weight:600}
+.qtext{font:600 clamp(20px,4.4vw,26px)/1.3 var(--head);margin:6px 0 14px;max-width:34ch}
+.qrow{display:flex;gap:10px;align-items:center;max-width:520px}
+.qrow input.t{flex:1}
+.fb{min-height:3em;margin:12px 0 4px;max-width:62ch}
+.timer{height:6px;background:var(--rule);border-radius:3px;overflow:hidden;margin:14px 0 4px;max-width:520px}
+.timer span{display:block;height:100%;width:100%;background:var(--accent)}
+.clock{font:700 20px/1 var(--head)}
+.target{font:600 17px/1.2 var(--head);color:var(--muted);margin:4px 0 12px}
+.target strong{display:block;font:700 clamp(46px,12vw,72px)/1 var(--mono);color:var(--ink)}
+.bytes{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;max-width:600px}
+.bbtn{display:flex;flex-direction:column;align-items:center;gap:7px;padding:12px 0 10px;border:1.5px solid var(--rule);border-radius:6px;background:var(--face);color:var(--ink)}
+.bbtn .v{font:700 24px/1 var(--mono)}
+.bbtn .pv{font-size:12px;color:var(--muted)}
+.bbtn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.bbtn[aria-pressed="true"] .pv{color:inherit}
+.total{display:flex;align-items:center;gap:10px;font-size:17px;margin:14px 0 4px}
+.total strong{font:700 24px/1 var(--mono)}
+footer{margin-top:40px;font-size:13px;color:var(--muted)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (prefers-reduced-motion:no-preference){.led{transition:background-color .15s}}
+</style>
+<style>a.jack{color:inherit;text-decoration:none}a.jack:hover,a.jack:focus-visible{color:var(--ink);text-decoration:underline;text-underline-offset:3px}</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <p class="series" aria-label="Net Drills series">
+    <span class="jack on" style="--c:var(--orange)" aria-current="page">Subnet Sprint</span>
+    <a class="jack" style="--c:var(--green)" href="../ios-cli-lab/">IOS CLI Lab</a>
+    <a class="jack" style="--c:var(--blue)" href="../config-audit/">Config Audit</a>
+    <a class="jack" style="--c:var(--brown)" href="../trouble-tickets/">Trouble Tickets</a>
+  </p>
+  <h1>Subnet Sprint</h1>
+  <p class="lede">Work out the network, broadcast, and usable host range for any IPv4 address, then do it faster.</p>
+</header>
+
+<div class="tabs" role="tablist" aria-label="Practice mode">
+  <button role="tab" id="t-full" aria-controls="p-full" aria-selected="true">Breakdown</button>
+  <button role="tab" id="t-plan" aria-controls="p-plan" aria-selected="false">Plan</button>
+  <button role="tab" id="t-quick" aria-controls="p-quick" aria-selected="false">Quick fire</button>
+  <button role="tab" id="t-bin" aria-controls="p-bin" aria-selected="false">Binary</button>
+</div>
+
+<section id="p-full" role="tabpanel" aria-labelledby="t-full">
+  <div class="row between">
+    <div class="seg" role="radiogroup" aria-label="Difficulty">
+      <button role="radio" aria-checked="true" data-level="starter">Starter<small>/24 to /30</small></button>
+      <button role="radio" aria-checked="false" data-level="standard">Standard<small>/16 to /30</small></button>
+      <button role="radio" aria-checked="false" data-level="expert">Expert<small>/8 to /30</small></button>
+    </div>
+    <label class="check"><input type="checkbox" id="showbits" checked> Show bits</label>
+  </div>
+
+  <p class="problem" aria-live="polite"><span id="pip">0.0.0.0</span><span class="pfx" id="ppfx">/24</span></p>
+  <div id="bitbar" class="bitbar" aria-hidden="true"></div>
+  <p id="bitcap" class="cap"></p>
+
+  <form id="ff" autocomplete="off" novalidate>
+    <div class="fields">
+      <label class="fld"><span>Network address</span><input class="t" id="a-net" inputmode="decimal" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="x.x.x.x"><i class="led"></i></label>
+      <label class="fld"><span>First usable host</span><input class="t" id="a-first" inputmode="decimal" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="x.x.x.x"><i class="led"></i></label>
+      <label class="fld"><span>Last usable host</span><input class="t" id="a-last" inputmode="decimal" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="x.x.x.x"><i class="led"></i></label>
+      <label class="fld"><span>Broadcast address</span><input class="t" id="a-bc" inputmode="decimal" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="x.x.x.x"><i class="led"></i></label>
+      <label class="fld"><span>Usable hosts</span><input class="t" id="a-hosts" inputmode="numeric" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="number"><i class="led"></i></label>
+      <label class="fld"><span>Subnet mask</span><input class="t" id="a-mask" inputmode="decimal" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="x.x.x.x"><i class="led"></i></label>
+      <label class="fld"><span>Wildcard mask</span><input class="t" id="a-wild" inputmode="decimal" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="x.x.x.x"><i class="led"></i></label>
+    </div>
+    <div class="actions">
+      <button class="btn primary" type="submit" id="f-check">Check answers</button>
+      <button class="btn" type="button" id="f-reveal">Reveal</button>
+      <button class="btn" type="button" id="f-next">New address</button>
+    </div>
+  </form>
+  <p class="status" id="f-status" role="status"></p>
+  <div class="work" id="f-work" hidden></div>
+
+  <details class="ref">
+    <summary>Reference: the last-octet pattern</summary>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Prefix</th><th>Mask</th><th>Block size</th><th>Usable hosts</th></tr></thead>
+        <tbody>
+          <tr><td>/24</td><td class="m">255.255.255.0</td><td>256</td><td>254</td></tr>
+          <tr><td>/25</td><td class="m">255.255.255.128</td><td>128</td><td>126</td></tr>
+          <tr><td>/26</td><td class="m">255.255.255.192</td><td>64</td><td>62</td></tr>
+          <tr><td>/27</td><td class="m">255.255.255.224</td><td>32</td><td>30</td></tr>
+          <tr><td>/28</td><td class="m">255.255.255.240</td><td>16</td><td>14</td></tr>
+          <tr><td>/29</td><td class="m">255.255.255.248</td><td>8</td><td>6</td></tr>
+          <tr><td>/30</td><td class="m">255.255.255.252</td><td>4</td><td>2</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="cap">The same 128-192-224-240-248-252-254-255 pattern repeats one octet to the left for /16 to /23, and two octets left for /8 to /15.</p>
+  </details>
+
+  <dl class="stats">
+    <div><dt>Solved</dt><dd id="s-f-solved">0</dd></div>
+    <div><dt>First-try streak</dt><dd id="s-f-streak">0</dd></div>
+    <div><dt>Best streak</dt><dd id="s-f-best">0</dd></div>
+  </dl>
+</section>
+
+<section id="p-plan" role="tabpanel" aria-labelledby="t-plan" hidden>
+  <div class="row between">
+    <div class="seg" role="radiogroup" aria-label="Plan difficulty" id="pl-levels">
+      <button role="radio" aria-checked="true" data-level="starter">Starter<small>/24 block</small></button>
+      <button role="radio" aria-checked="false" data-level="standard">Standard<small>/22 block</small></button>
+      <button role="radio" aria-checked="false" data-level="expert">Expert<small>/16 block</small></button>
+    </div>
+    <div class="seg" role="radiogroup" aria-label="Plan type" id="pl-types">
+      <button role="radio" aria-checked="true" data-type="vlsm">VLSM plan</button>
+      <button role="radio" aria-checked="false" data-type="nth">Nth subnet</button>
+    </div>
+  </div>
+  <p class="qtext small" id="pl-text" aria-live="polite"></p>
+  <ul class="plan-req" id="pl-req"></ul>
+  <form id="plf" autocomplete="off" novalidate>
+    <div id="pl-rows"></div>
+    <div class="actions">
+      <button class="btn primary" type="submit">Check answers</button>
+      <button class="btn" type="button" id="pl-reveal">Reveal</button>
+      <button class="btn" type="button" id="pl-next">New plan</button>
+    </div>
+  </form>
+  <p class="status" id="pl-status" role="status"></p>
+  <div class="work" id="pl-work" hidden></div>
+  <dl class="stats">
+    <div><dt>Solved</dt><dd id="s-p-solved">0</dd></div>
+    <div><dt>First-try streak</dt><dd id="s-p-streak">0</dd></div>
+    <div><dt>Best streak</dt><dd id="s-p-best">0</dd></div>
+  </dl>
+</section>
+
+<section id="p-quick" role="tabpanel" aria-labelledby="t-quick" hidden>
+  <fieldset class="topics">
+    <legend>Topics in the mix</legend>
+    <div class="chips" id="chips">
+      <button class="chip" type="button" data-topic="hosts" aria-pressed="true">Hosts per prefix</button>
+      <button class="chip" type="button" data-topic="mask" aria-pressed="true">Prefix and mask</button>
+      <button class="chip" type="button" data-topic="netbc" aria-pressed="true">Network and broadcast</button>
+      <button class="chip" type="button" data-topic="wild" aria-pressed="true">Wildcard masks</button>
+      <button class="chip" type="button" data-topic="size" aria-pressed="true">Right-size a subnet</button>
+      <button class="chip" type="button" data-topic="bin" aria-pressed="true">Binary and decimal</button>
+      <button class="chip" type="button" data-topic="v6" aria-pressed="true">IPv6 compress and expand</button>
+    </div>
+  </fieldset>
+  <p class="qtext" id="q-text" aria-live="polite"></p>
+  <form class="qrow" id="qf" autocomplete="off" novalidate>
+    <label class="sr" for="q-in">Your answer</label>
+    <input class="t" id="q-in" autocapitalize="off" autocorrect="off" spellcheck="false">
+    <button class="btn primary" type="submit">Check</button>
+    <i class="led" id="q-led"></i>
+  </form>
+  <p class="fb" id="q-fb" role="status"></p>
+  <div class="timer" id="q-timer" hidden><span></span></div>
+  <div class="actions">
+    <button class="btn" type="button" id="q-next">Next question</button>
+    <button class="btn" type="button" id="q-sprint">Start 60-second sprint</button>
+    <span class="clock" id="q-clock" aria-live="off"></span>
+  </div>
+  <dl class="stats">
+    <div><dt>Correct</dt><dd id="s-q-correct">0</dd></div>
+    <div><dt>Answered</dt><dd id="s-q-total">0</dd></div>
+    <div><dt>Streak</dt><dd id="s-q-streak">0</dd></div>
+    <div><dt>Best streak</dt><dd id="s-q-best">0</dd></div>
+    <div><dt>Best sprint</dt><dd id="s-q-sprint">0</dd></div>
+  </dl>
+</section>
+
+<section id="p-bin" role="tabpanel" aria-labelledby="t-bin" hidden>
+  <p class="target">Build this number<strong id="b-target">0</strong></p>
+  <div class="bytes" id="b-bits">
+    <button class="bbtn" type="button" data-v="128" aria-pressed="false"><span class="v">0</span><span class="pv">128</span></button>
+    <button class="bbtn" type="button" data-v="64" aria-pressed="false"><span class="v">0</span><span class="pv">64</span></button>
+    <button class="bbtn" type="button" data-v="32" aria-pressed="false"><span class="v">0</span><span class="pv">32</span></button>
+    <button class="bbtn" type="button" data-v="16" aria-pressed="false"><span class="v">0</span><span class="pv">16</span></button>
+    <button class="bbtn" type="button" data-v="8" aria-pressed="false"><span class="v">0</span><span class="pv">8</span></button>
+    <button class="bbtn" type="button" data-v="4" aria-pressed="false"><span class="v">0</span><span class="pv">4</span></button>
+    <button class="bbtn" type="button" data-v="2" aria-pressed="false"><span class="v">0</span><span class="pv">2</span></button>
+    <button class="bbtn" type="button" data-v="1" aria-pressed="false"><span class="v">0</span><span class="pv">1</span></button>
+  </div>
+  <p class="total">Your total <strong id="b-total">0</strong><i class="led" id="b-led"></i></p>
+  <p class="status" id="b-msg" role="status"></p>
+  <div class="actions">
+    <button class="btn" type="button" id="b-clear">Clear bits</button>
+    <button class="btn" type="button" id="b-skip">New number</button>
+  </div>
+  <p class="cap">Tip: start at 128 and work right. If the target is at least the place value, turn that bit on and subtract.</p>
+  <dl class="stats">
+    <div><dt>Built</dt><dd id="s-b-built">0</dd></div>
+    <div><dt>Streak</dt><dd id="s-b-streak">0</dd></div>
+    <div><dt>Best streak</dt><dd id="s-b-best">0</dd></div>
+  </dl>
+</section>
+
+<footer>Unofficial practice for the Cisco NetAcad Network Technician path and the CyberPatriot Cisco challenge; not affiliated with either. Best scores stay in this browser only.</footer>
+</div>
+
+<script>
+(() => {
+'use strict';
+// ==PURE-START==
+const u32 = n => n >>> 0;
+const toStr = n => [n >>> 24, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.');
+function parseIP(s) {
+  const m = /^\s*(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\s*$/.exec(s || '');
+  if (!m) return null;
+  const o = m.slice(1).map(Number);
+  if (o.some(x => x > 255)) return null;
+  return u32(o[0] * 16777216 + o[1] * 65536 + o[2] * 256 + o[3]);
+}
+const maskOf = p => (p <= 0 ? 0 : u32(0xFFFFFFFF << (32 - p)));
+function prefixOf(m) {
+  let c = 0;
+  while (c < 32 && ((m >>> (31 - c)) & 1)) c++;
+  return maskOf(c) === m ? c : -1;
+}
+function calc(ip, p) {
+  const mask = maskOf(p), net = u32(ip & mask), bc = u32(net | u32(~mask));
+  return { net, bc, first: net + 1, last: bc - 1, hosts: 2 ** (32 - p) - 2, mask, wild: u32(~mask) };
+}
+const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const LEVELS = {
+  starter: { min: 24, max: 30, base: () => [192, 168, rnd(0, 255), rnd(0, 255)] },
+  standard: { min: 16, max: 30, base: () => [172, rnd(16, 31), rnd(0, 255), rnd(0, 255)] },
+  expert: { min: 8, max: 30, base: () => [10, rnd(0, 255), rnd(0, 255), rnd(0, 255)] }
+};
+function makeProblem(level) {
+  const L = LEVELS[level] || LEVELS.starter, p = rnd(L.min, L.max), b = L.base();
+  const seed = u32(b[0] * 16777216 + b[1] * 65536 + b[2] * 256 + b[3]);
+  const net = calc(seed, p).net, size = 2 ** (32 - p);
+  const ip = net + rnd(1, size - 2);
+  return { ip, p, r: calc(ip, p) };
+}
+const ORD = ['1st', '2nd', '3rd', '4th'];
+const fmt = n => n.toLocaleString('en-US');
+function steps(ip, p) {
+  const r = calc(ip, p), i = Math.min(3, Math.floor(p / 8)), sh = 24 - 8 * i;
+  const mo = (r.mask >>> sh) & 255, block = 256 - mo, io = (ip >>> sh) & 255;
+  const lo = Math.floor(io / block) * block, hi = lo + block - 1, hb = 32 - p;
+  return [
+    `/${p} = ${p} network bits + ${hb} host bits, so the mask is ${toStr(r.mask)}.`,
+    `The ${ORD[i]} octet is where the mask stops being 255 (there it is ${mo}). Block size = 256 − ${mo} = ${block}.`,
+    `This address's ${ORD[i]} octet is ${io}, which sits in the block ${lo}–${hi}.`,
+    `Network = ${toStr(r.net)} (all host bits 0). Broadcast = ${toStr(r.bc)} (all host bits 1).`,
+    `Usable range = ${toStr(r.first)} to ${toStr(r.last)}: 2^${hb} − 2 = ${fmt(r.hosts)} hosts.`,
+    `Wildcard = 255.255.255.255 − mask = ${toStr(r.wild)}.`
+  ];
+}
+function placeSum(d) {
+  const parts = [];
+  for (let v = 128; v >= 1; v >>= 1) if (d & v) parts.push(v);
+  return parts.length ? parts.join(' + ') : '0';
+}
+const bin8 = d => d.toString(2).padStart(8, '0');
+const spaced = b => b.slice(0, 4) + ' ' + b.slice(4);
+const GEN = {
+  hosts() {
+    const p = rnd(8, 30), h = 2 ** (32 - p) - 2;
+    return { q: `How many usable hosts fit in a /${p} subnet?`, a: h, kind: 'int',
+      why: `2^${32 - p} − 2 = ${fmt(h)}. Subtract 2 for the network and broadcast addresses.` };
+  },
+  mask() {
+    const p = rnd(8, 30), m = maskOf(p);
+    return Math.random() < 0.5
+      ? { q: `What is the subnet mask for /${p}?`, a: m, kind: 'ip', why: `${p} ones followed by ${32 - p} zeros = ${toStr(m)}.` }
+      : { q: `What prefix length is the mask ${toStr(m)}?`, a: p, kind: 'prefix', why: `Count the 1 bits in the mask: /${p}.` };
+  },
+  netbc() {
+    const pr = makeProblem(pick(['starter', 'standard', 'expert'])), isNet = Math.random() < 0.5, s = steps(pr.ip, pr.p);
+    return { q: `What is the ${isNet ? 'network' : 'broadcast'} address of ${toStr(pr.ip)}/${pr.p}?`,
+      a: isNet ? pr.r.net : pr.r.bc, kind: 'ip', why: `${s[1]} ${s[2]} ${s[3]}` };
+  },
+  wild() {
+    const p = rnd(8, 30), m = maskOf(p), w = u32(~m);
+    return { q: Math.random() < 0.5 ? `What wildcard mask matches a /${p}?` : `What wildcard mask pairs with the subnet mask ${toStr(m)}?`,
+      a: w, kind: 'ip', why: `255.255.255.255 − ${toStr(m)} = ${toStr(w)}. ACLs and OSPF use wildcard masks.` };
+  },
+  size() {
+    const n = pick([rnd(2, 14), rnd(15, 62), rnd(63, 254), rnd(255, 1022), rnd(1023, 4094)]);
+    const hb = Math.ceil(Math.log2(n + 2)), p = 32 - hb;
+    return { q: `You need ${fmt(n)} usable hosts. What is the longest prefix (smallest subnet) that fits?`, a: p, kind: 'prefix',
+      why: `${fmt(n)} hosts + 2 = ${fmt(n + 2)} addresses. The next power of 2 is 2^${hb} = ${fmt(2 ** hb)}, so ${hb} host bits: /${p} gives ${fmt(2 ** hb - 2)} usable.` };
+  },
+  v6() {
+    const g = v6Random(), full = g.join(':'), comp = v6Compress(g), k = rnd(0, 2);
+    if (k === 0) return { q: `Compress this IPv6 address: ${full}`, a: g, kind: 'v6', why: `Drop leading zeros in each group, then replace the longest run of all-zero groups (two or more) with :: once. Result: ${comp}` };
+    if (k === 1) return { q: `Write ${comp} out in full, all 8 groups.`, a: g, kind: 'v6e', why: `:: stands for as many 0000 groups as it takes to reach 8, and every group is padded to 4 hex digits: ${full}` };
+    const net = [...g.slice(0, 4), '0000', '0000', '0000', '0000'];
+    return { q: `What is the network prefix of ${comp}/64?`, a: net, kind: 'v6pfx', why: `A /64 keeps the first 4 groups (64 bits) and zeroes the rest: ${v6Compress(net)}/64` };
+  },
+  bin() {
+    const d = rnd(0, 255), b = bin8(d);
+    return Math.random() < 0.5
+      ? { q: `Convert ${d} to 8-bit binary.`, a: d, kind: 'bin', why: `${d} = ${placeSum(d)}, so the bits are ${spaced(b)}.` }
+      : { q: `Convert ${spaced(b)} to decimal.`, a: d, kind: 'int', why: `Add the place values of the 1 bits: ${placeSum(d)} = ${d}.` };
+  }
+};
+const NAMES = ['USERS', 'SERVERS', 'GUESTS', 'PRINTERS', 'VOICE', 'LAB', 'STAFF', 'WIFI', 'CAMERAS', 'ADMIN'];
+const PLAN_LEVELS = {
+  starter: { p: 24, lans: 3, wans: 1, base: () => [192, 168, rnd(0, 255), 0], hosts: [5, 10, 12, 20, 25, 28, 30, 45, 50, 60, 100, 120] },
+  standard: { p: 22, lans: 4, wans: 1, base: () => [172, rnd(16, 31), rnd(0, 63) * 4, 0], hosts: [30, 60, 100, 120, 200, 250, 300, 400, 500] },
+  expert: { p: 16, lans: 4, wans: 2, base: () => [10, rnd(0, 255), 0, 0], hosts: [500, 1000, 2000, 4000, 8000, 12000, 20000, 30000] }
+};
+const sizeFor = h => 2 ** Math.ceil(Math.log2(h + 2));
+function makePlan(level) {
+  const L = PLAN_LEVELS[level] || PLAN_LEVELS.starter;
+  for (let t = 0; t < 200; t++) {
+    const b = L.base(), base = u32(b[0] * 16777216 + b[1] * 65536 + b[2] * 256 + b[3]), size = 2 ** (32 - L.p);
+    const names = NAMES.slice().sort(() => Math.random() - 0.5).slice(0, L.lans);
+    const listing = names.map(n => ({ name: n, hosts: pick(L.hosts) }));
+    for (let i = 0; i < L.wans; i++) listing.push({ name: L.wans > 1 ? `WAN link ${i + 1}` : 'WAN link', hosts: 2 });
+    listing.forEach(r => { r.size = sizeFor(r.hosts); r.p = 32 - Math.log2(r.size); });
+    if (listing.reduce((s, r) => s + r.size, 0) > size) continue;
+    const order = listing.slice().sort((x, y) => y.size - x.size);
+    let cur = base;
+    order.forEach(r => { r.net = cur; r.bc = cur + r.size - 1; cur += r.size; });
+    return { base, p: L.p, listing, order };
+  }
+  return null;
+}
+function planSteps(pr) {
+  const out = [`Largest first: ${pr.order.map(r => `${r.name} ${r.hosts} + 2 = ${r.hosts + 2} → ${r.size} addresses (/${r.p})`).join('; ')}.`];
+  pr.order.forEach(r => out.push(`${r.name}: ${toStr(r.net)}/${r.p}, hosts ${toStr(r.net + 1)} to ${toStr(r.bc - 1)}, broadcast ${toStr(r.bc)}. Next subnet starts at ${toStr(r.bc + 1)}.`));
+  return out;
+}
+function makeNth(level) {
+  const L = PLAN_LEVELS[level] || PLAN_LEVELS.starter;
+  const b = L.base(), base = u32(b[0] * 16777216 + b[1] * 65536 + b[2] * 256 + b[3]);
+  const newP = Math.min(30, L.p + rnd(2, 6)), count = 2 ** (newP - L.p), sub = 2 ** (32 - newP);
+  const n = rnd(1, Math.min(count, 12)), hostIdx = rnd(1, Math.min(count, 12));
+  const net = base + (n - 1) * sub, host = base + (hostIdx - 1) * sub + rnd(1, sub - 2);
+  return { base, p: L.p, newP, count, sub, n, net, bc: net + sub - 1, host, hostIdx };
+}
+function nthSteps(pr) {
+  return [
+    `Each /${pr.newP} subnet holds 2^${32 - pr.newP} = ${fmt(pr.sub)} addresses, so the block yields ${fmt(pr.count)} subnets.`,
+    `Subnet ${pr.n} starts at ${toStr(pr.base)} + (${pr.n} − 1) × ${fmt(pr.sub)} = ${toStr(pr.net)}; its broadcast is ${toStr(pr.net)} + ${fmt(pr.sub)} − 1 = ${toStr(pr.bc)}.`,
+    `Host ${toStr(pr.host)}: (${toStr(pr.host)} − ${toStr(pr.base)}) ÷ ${fmt(pr.sub)} = ${pr.hostIdx - 1} whole subnets before it, so it sits in subnet ${pr.hostIdx}.`
+  ];
+}
+function v6Expand(s) {
+  s = String(s || '').trim().toLowerCase();
+  if (!/^[0-9a-f:]+$/.test(s)) return null;
+  const parts = s.split('::');
+  if (parts.length > 2) return null;
+  const head = parts[0] ? parts[0].split(':') : [], tail = parts.length === 2 && parts[1] ? parts[1].split(':') : [];
+  if ([...head, ...tail].some(g => !/^[0-9a-f]{1,4}$/.test(g))) return null;
+  let groups;
+  if (parts.length === 2) { const miss = 8 - head.length - tail.length; if (miss < 1) return null; groups = [...head, ...Array(miss).fill('0'), ...tail]; }
+  else { if (head.length !== 8) return null; groups = head; }
+  return groups.map(g => g.padStart(4, '0'));
+}
+function v6Compress(groups) {
+  const g = groups.map(x => x.toLowerCase().replace(/^0+(?=.)/, ''));
+  let best = -1, bestLen = 0;
+  for (let i = 0; i < 8;) { if (g[i] !== '0') { i++; continue; } let j = i; while (j < 8 && g[j] === '0') j++; if (j - i > bestLen) { best = i; bestLen = j - i; } i = j; }
+  if (bestLen < 2) return g.join(':');
+  return g.slice(0, best).join(':') + '::' + g.slice(best + bestLen).join(':');
+}
+function v6Random() {
+  const h4 = () => rnd(0, 65535).toString(16).padStart(4, '0');
+  const g = ['2001', '0db8', h4(), h4(), h4(), h4(), h4(), h4()];
+  const v = rnd(0, 3);
+  if (v === 0) { g[4] = g[5] = '0000'; }
+  else if (v === 1) { g[4] = g[5] = g[6] = '0000'; }
+  else if (v === 2) { g[2] = g[3] = '0000'; g[5] = '0000'; }
+  else { g[3] = '0000'; g[5] = g[6] = '0000'; }
+  g[2] = '0' + g[2].slice(1);
+  g[7] = '00' + g[7].slice(2);
+  return g;
+}
+function grade(kind, raw, a) {
+  const s = String(raw || '').trim();
+  if (!s) return null;
+  if (kind === 'ip') { const v = parseIP(s); return v !== null && v === a; }
+  if (kind === 'int') { const t = s.replace(/[,\s]/g, ''); return /^\d+$/.test(t) && Number(t) === a; }
+  if (kind === 'prefix') {
+    const t = s.replace(/\s/g, '');
+    if (/^\/?\d{1,2}$/.test(t)) return Number(t.replace('/', '')) === a;
+    const v = parseIP(t); return v !== null && prefixOf(v) === a;
+  }
+  if (kind === 'bin') { const t = s.replace(/\s/g, ''); return /^[01]{1,8}$/.test(t) && parseInt(t, 2) === a; }
+  if (kind === 'v6' || kind === 'v6e') { const u = v6Expand(s); return !!u && u.join(':') === a.join(':'); }
+  if (kind === 'v6pfx') { const m = /^(.+)\/(\d{1,3})$/.exec(s); if (!m || Number(m[2]) !== 64) return false; const u = v6Expand(m[1]); return !!u && u.join(':') === a.join(':'); }
+  return false;
+}
+const answerText = (kind, a) => kind === 'ip' ? toStr(a) : kind === 'prefix' ? `/${a}` : kind === 'bin' ? spaced(bin8(a)) : kind === 'v6' ? v6Compress(a) : kind === 'v6e' ? a.join(':') : kind === 'v6pfx' ? v6Compress(a) + '/64' : fmt(a);
+// ==PURE-END==
+
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } }
+};
+const best = Object.assign({ full: 0, quick: 0, sprint: 0, bin: 0, plan: 0 }, store.get('netdrills.subnet.best', {}));
+const saveBest = () => store.set('netdrills.subnet.best', best);
+const setText = (id, v) => { $(id).textContent = v; };
+
+/* Tabs */
+$$('.tabs [role=tab]').forEach(tab => tab.addEventListener('click', () => {
+  $$('.tabs [role=tab]').forEach(t => {
+    const on = t === tab;
+    t.setAttribute('aria-selected', on ? 'true' : 'false');
+    $('#' + t.getAttribute('aria-controls')).hidden = !on;
+  });
+}));
+
+/* Full breakdown */
+const FIELDS = [['net', 'ip'], ['first', 'ip'], ['last', 'ip'], ['bc', 'ip'], ['hosts', 'int'], ['mask', 'ip'], ['wild', 'ip']];
+const F = { level: 'starter', prob: null, done: false, firstTry: true, solved: 0, streak: 0 };
+function renderBits() {
+  const { ip, p } = F.prob;
+  let html = '';
+  for (let o = 0; o < 4; o++) {
+    html += '<div class="oct"><div class="cells">';
+    for (let b = 0; b < 8; b++) {
+      const idx = o * 8 + b;
+      html += `<span class="b${idx < p ? ' n' : ''}">${(ip >>> (31 - idx)) & 1}</span>`;
+    }
+    html += `</div><span class="ov">${(ip >>> (24 - 8 * o)) & 255}</span></div>`;
+  }
+  const bar = $('#bitbar');
+  bar.innerHTML = html;
+  bar.classList.toggle('nobits', !$('#showbits').checked);
+  setText('#bitcap', `${p} network bits (filled) and ${32 - p} host bits (open).`);
+}
+function updFull() {
+  setText('#s-f-solved', F.solved); setText('#s-f-streak', F.streak); setText('#s-f-best', best.full);
+}
+function newProblem() {
+  F.prob = makeProblem(F.level); F.done = false; F.firstTry = true;
+  setText('#pip', toStr(F.prob.ip)); setText('#ppfx', '/' + F.prob.p);
+  FIELDS.forEach(([k]) => {
+    const i = $('#a-' + k);
+    i.value = ''; i.readOnly = false; i.removeAttribute('aria-invalid');
+    i.nextElementSibling.className = 'led';
+  });
+  $('#f-work').hidden = true; setText('#f-status', '');
+  renderBits();
+}
+function showWork() {
+  const w = $('#f-work');
+  w.innerHTML = '<h3>How it works</h3><ol>' + steps(F.prob.ip, F.prob.p).map(s => `<li>${esc(s)}</li>`).join('') + '</ol>';
+  w.hidden = false;
+}
+$('#ff').addEventListener('submit', e => {
+  e.preventDefault();
+  if (F.done) { newProblem(); $('#a-net').focus(); return; }
+  const r = F.prob.r;
+  let right = 0, filled = 0;
+  FIELDS.forEach(([k, kind]) => {
+    const i = $('#a-' + k), g = grade(kind, i.value, r[k]);
+    if (g !== null) filled++;
+    if (g) right++;
+    i.setAttribute('aria-invalid', g ? 'false' : 'true');
+    i.nextElementSibling.className = 'led ' + (g ? 'ok' : 'bad');
+  });
+  if (right === FIELDS.length) {
+    F.done = true; F.solved++;
+    if (F.firstTry) { F.streak++; if (F.streak > best.full) { best.full = F.streak; saveBest(); } }
+    FIELDS.forEach(([k]) => { $('#a-' + k).readOnly = true; });
+    setText('#f-status', F.firstTry ? 'All 7 correct on the first try. Press Enter for a new address.' : 'All 7 correct. The streak only counts first-try solves. Press Enter for a new address.');
+    showWork();
+  } else {
+    F.firstTry = false; F.streak = 0;
+    setText('#f-status', filled < FIELDS.length ? `${right} of 7 correct, ${FIELDS.length - filled} still blank.` : `${right} of 7 correct. Fix the red ones or use Reveal.`);
+  }
+  updFull();
+});
+$('#f-reveal').addEventListener('click', () => {
+  if (F.done) return;
+  const r = F.prob.r;
+  FIELDS.forEach(([k, kind]) => {
+    const i = $('#a-' + k);
+    i.value = answerText(kind, r[k]); i.readOnly = true; i.removeAttribute('aria-invalid');
+    i.nextElementSibling.className = 'led rev';
+  });
+  F.done = true; F.streak = 0;
+  setText('#f-status', 'Answers revealed. Walk through the steps below, then try a new address.');
+  showWork(); updFull();
+});
+$('#f-next').addEventListener('click', () => { if (!F.done && !F.firstTry) F.streak = 0; newProblem(); updFull(); });
+$$('.seg [role=radio]').forEach(b => b.addEventListener('click', () => {
+  $$('.seg [role=radio]').forEach(x => x.setAttribute('aria-checked', x === b ? 'true' : 'false'));
+  F.level = b.dataset.level; newProblem();
+}));
+$('#showbits').addEventListener('change', () => $('#bitbar').classList.toggle('nobits', !$('#showbits').checked));
+
+/* Plan */
+const PL = { level: 'starter', type: 'vlsm', prob: null, fields: [], done: false, firstTry: true, solved: 0, streak: 0 };
+function updPlan() { setText('#s-p-solved', PL.solved); setText('#s-p-streak', PL.streak); setText('#s-p-best', best.plan); }
+function fieldHTML(label, kind, id) {
+  const im = kind === 'int' ? 'numeric' : 'decimal', ph = kind === 'ip' ? 'x.x.x.x' : kind === 'prefix' ? '/nn' : 'number';
+  return `<label class="fld"><span>${label}</span><input class="t" id="${id}" inputmode="${im}" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="${ph}"><i class="led"></i></label>`;
+}
+function newPlan() {
+  PL.done = false; PL.firstTry = true; PL.fields = [];
+  const rows = $('#pl-rows'), req = $('#pl-req');
+  rows.textContent = ''; req.textContent = '';
+  $('#pl-work').hidden = true; setText('#pl-status', '');
+  if (PL.type === 'vlsm') {
+    const pr = PL.prob = makePlan(PL.level);
+    setText('#pl-text', `Carve ${toStr(pr.base)}/${pr.p} into subnets for the networks below. Allocate the largest first, starting at the first address of the block; when two need the same size, keep the order listed.`);
+    pr.listing.forEach(r => { const li = document.createElement('li'); li.textContent = `${r.name}: ${fmt(r.hosts)} hosts`; req.append(li); });
+    pr.listing.forEach((r, i) => {
+      const div = document.createElement('div');
+      div.className = 'prow';
+      div.innerHTML = `<h4>${esc(r.name)}</h4><div class="fs">${fieldHTML('Network address', 'ip', `pl-${i}-net`)}${fieldHTML('Prefix', 'prefix', `pl-${i}-p`)}${fieldHTML('Broadcast', 'ip', `pl-${i}-bc`)}</div>`;
+      rows.append(div);
+      PL.fields.push({ id: `pl-${i}-net`, kind: 'ip', a: r.net }, { id: `pl-${i}-p`, kind: 'prefix', a: r.p }, { id: `pl-${i}-bc`, kind: 'ip', a: r.bc });
+    });
+  } else {
+    const pr = PL.prob = makeNth(PL.level);
+    setText('#pl-text', `${toStr(pr.base)}/${pr.p} is split into /${pr.newP} subnets, numbered from 1 at the start of the block.`);
+    const div = document.createElement('div');
+    div.className = 'prow';
+    div.innerHTML = `<div class="fs">${fieldHTML(`Network address of subnet ${pr.n}`, 'ip', 'pl-n-net')}${fieldHTML(`Broadcast of subnet ${pr.n}`, 'ip', 'pl-n-bc')}${fieldHTML(`Subnet number holding ${toStr(pr.host)}`, 'int', 'pl-n-idx')}</div>`;
+    rows.append(div);
+    PL.fields.push({ id: 'pl-n-net', kind: 'ip', a: pr.net }, { id: 'pl-n-bc', kind: 'ip', a: pr.bc }, { id: 'pl-n-idx', kind: 'int', a: pr.hostIdx });
+  }
+}
+function planWork() {
+  const w = $('#pl-work'), st = PL.type === 'vlsm' ? planSteps(PL.prob) : nthSteps(PL.prob);
+  w.innerHTML = '<h3>How it works</h3><ol>' + st.map(x => `<li>${esc(x)}</li>`).join('') + '</ol>';
+  w.hidden = false;
+}
+$('#plf').addEventListener('submit', e => {
+  e.preventDefault();
+  if (PL.done) { newPlan(); return; }
+  let right = 0, filled = 0;
+  PL.fields.forEach(f => {
+    const i = $('#' + f.id), g = grade(f.kind, i.value, f.a);
+    if (g !== null) filled++;
+    if (g) right++;
+    i.setAttribute('aria-invalid', g ? 'false' : 'true');
+    i.nextElementSibling.className = 'led ' + (g ? 'ok' : 'bad');
+  });
+  const n = PL.fields.length;
+  if (right === n) {
+    PL.done = true; PL.solved++;
+    if (PL.firstTry) { PL.streak++; if (PL.streak > best.plan) { best.plan = PL.streak; saveBest(); } }
+    PL.fields.forEach(f => { $('#' + f.id).readOnly = true; });
+    setText('#pl-status', PL.firstTry ? `All ${n} correct on the first try. Press Enter for a new plan.` : `All ${n} correct. The streak only counts first-try solves. Press Enter for a new plan.`);
+    planWork();
+  } else {
+    PL.firstTry = false; PL.streak = 0;
+    setText('#pl-status', filled < n ? `${right} of ${n} correct, ${n - filled} still blank.` : `${right} of ${n} correct. Fix the red ones or use Reveal.`);
+  }
+  updPlan();
+});
+$('#pl-reveal').addEventListener('click', () => {
+  if (PL.done) return;
+  PL.fields.forEach(f => { const i = $('#' + f.id); i.value = answerText(f.kind, f.a); i.readOnly = true; i.removeAttribute('aria-invalid'); i.nextElementSibling.className = 'led rev'; });
+  PL.done = true; PL.streak = 0;
+  setText('#pl-status', 'Answers revealed. Walk through the steps below, then try a new plan.');
+  planWork(); updPlan();
+});
+$('#pl-next').addEventListener('click', () => { if (!PL.done && !PL.firstTry) PL.streak = 0; newPlan(); updPlan(); });
+$$('#pl-levels [role=radio]').forEach(b => b.addEventListener('click', () => { $$('#pl-levels [role=radio]').forEach(x => x.setAttribute('aria-checked', x === b ? 'true' : 'false')); PL.level = b.dataset.level; newPlan(); }));
+$$('#pl-types [role=radio]').forEach(b => b.addEventListener('click', () => { $$('#pl-types [role=radio]').forEach(x => x.setAttribute('aria-checked', x === b ? 'true' : 'false')); PL.type = b.dataset.type; newPlan(); }));
+
+/* Quick fire */
+const Q = { topics: new Set(Object.keys(GEN)), cur: null, answered: false, correct: 0, total: 0, streak: 0, sprint: null, timer: 0 };
+function updQuick() {
+  setText('#s-q-correct', Q.correct); setText('#s-q-total', Q.total); setText('#s-q-streak', Q.streak);
+  setText('#s-q-best', best.quick); setText('#s-q-sprint', best.sprint);
+}
+function nextQ(focus) {
+  const keys = Array.from(Q.topics);
+  Q.cur = GEN[pick(keys)](); Q.answered = false;
+  setText('#q-text', Q.cur.q);
+  const inp = $('#q-in');
+  inp.value = ''; inp.readOnly = false; inp.removeAttribute('aria-invalid');
+  inp.setAttribute('inputmode', Q.cur.kind === 'ip' || Q.cur.kind === 'prefix' ? 'decimal' : /^v6/.test(Q.cur.kind) ? 'text' : 'numeric');
+  inp.placeholder = { ip: 'x.x.x.x', int: 'number', prefix: 'e.g. 26', bin: '8 bits', v6: 'xxxx:xxxx::xxxx', v6e: 'xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx', v6pfx: 'xxxx:xxxx:xxxx:xxxx::/64' }[Q.cur.kind];
+  $('#q-led').className = 'led'; setText('#q-fb', '');
+  if (focus) inp.focus({ preventScroll: true });
+}
+$('#qf').addEventListener('submit', e => {
+  e.preventDefault();
+  if (Q.answered) { if (!Q.sprint) nextQ(true); return; }
+  const g = grade(Q.cur.kind, $('#q-in').value, Q.cur.a);
+  if (g === null) return;
+  Q.answered = true; Q.total++;
+  if (g) { Q.correct++; Q.streak++; if (Q.streak > best.quick) { best.quick = Q.streak; saveBest(); } } else Q.streak = 0;
+  $('#q-led').className = 'led ' + (g ? 'ok' : 'bad');
+  $('#q-in').setAttribute('aria-invalid', g ? 'false' : 'true');
+  setText('#q-fb', (g ? 'Correct. ' : `Not quite. The answer is ${answerText(Q.cur.kind, Q.cur.a)}. `) + Q.cur.why);
+  if (Q.sprint) {
+    Q.sprint.answered++; if (g) Q.sprint.score++;
+    const s = Q.sprint;
+    setTimeout(() => { if (Q.sprint === s) nextQ(true); }, g ? 450 : 1600);
+  }
+  updQuick();
+});
+$('#q-next').addEventListener('click', () => { if (!Q.answered) Q.streak = 0; nextQ(true); updQuick(); });
+function endSprint() {
+  const s = Q.sprint; Q.sprint = null; clearTimeout(Q.timer);
+  $('#q-sprint').disabled = false; $('#q-next').disabled = false; $('#q-timer').hidden = true; setText('#q-clock', '');
+  if (s.score > best.sprint) { best.sprint = s.score; saveBest(); }
+  Q.answered = true; $('#q-in').readOnly = true;
+  setText('#q-fb', `Sprint over: ${s.score} correct out of ${s.answered}. Best sprint: ${best.sprint}. Press Next question to keep practicing.`);
+  updQuick();
+}
+$('#q-sprint').addEventListener('click', () => {
+  if (Q.sprint) return;
+  Q.sprint = { score: 0, answered: 0, end: Date.now() + 60000 };
+  $('#q-sprint').disabled = true; $('#q-next').disabled = true; $('#q-timer').hidden = false;
+  nextQ(true);
+  const tick = () => {
+    if (!Q.sprint) return;
+    const left = Q.sprint.end - Date.now();
+    $('#q-timer span').style.width = Math.max(0, left / 600) + '%';
+    setText('#q-clock', Math.ceil(Math.max(0, left) / 1000) + ' s left');
+    if (left <= 0) { endSprint(); return; }
+    Q.timer = setTimeout(tick, 200);
+  };
+  tick();
+});
+$$('#chips .chip').forEach(c => c.addEventListener('click', () => {
+  const t = c.dataset.topic, on = c.getAttribute('aria-pressed') === 'true';
+  if (on && Q.topics.size === 1) return;
+  if (on) Q.topics.delete(t); else Q.topics.add(t);
+  c.setAttribute('aria-pressed', on ? 'false' : 'true');
+}));
+
+/* Binary builder */
+const B = { bits: 0, target: 0, built: 0, streak: 0, lock: false };
+function updBin() { setText('#s-b-built', B.built); setText('#s-b-streak', B.streak); setText('#s-b-best', best.bin); }
+function renderBin() {
+  $$('#b-bits .bbtn').forEach(btn => {
+    const on = (B.bits & Number(btn.dataset.v)) !== 0;
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    btn.querySelector('.v').textContent = on ? '1' : '0';
+  });
+  setText('#b-total', B.bits);
+}
+function newTarget() {
+  let t;
+  do { t = rnd(1, 255); } while (t === B.target);
+  B.target = t; B.bits = 0; B.lock = false;
+  setText('#b-target', t); $('#b-led').className = 'led'; setText('#b-msg', '');
+  renderBin();
+}
+$$('#b-bits .bbtn').forEach(btn => btn.addEventListener('click', () => {
+  if (B.lock) return;
+  B.bits ^= Number(btn.dataset.v);
+  renderBin();
+  if (B.bits === B.target) {
+    B.lock = true; B.built++; B.streak++;
+    if (B.streak > best.bin) { best.bin = B.streak; saveBest(); }
+    $('#b-led').className = 'led ok';
+    setText('#b-msg', `${B.target} = ${spaced(bin8(B.target))}. Next number coming up.`);
+    updBin();
+    setTimeout(newTarget, 1100);
+  }
+}));
+$('#b-clear').addEventListener('click', () => { if (!B.lock) { B.bits = 0; renderBin(); } });
+$('#b-skip').addEventListener('click', () => { B.streak = 0; newTarget(); updBin(); });
+
+newProblem(); updFull();
+newPlan(); updPlan();
+nextQ(false); updQuick();
+newTarget(); updBin();
+})();
+</script>
+<!-- tool4that:foot --><p style="text-align:center;margin:28px 0 22px;font:14px/1.4 system-ui,-apple-system,Segoe UI,Arial,sans-serif"><a href="../../">More free tools at Tool4That</a></p><!-- /tool4that:foot -->
+</body>
+</html>

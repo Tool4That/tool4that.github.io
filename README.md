@@ -9,10 +9,16 @@ Live at https://tool4that.github.io/
 | Tool | What it does |
 |---|---|
 | [Maxed & Matched TSP Calculator](https://tool4that.github.io/maxed-and-matched/) | Your exact myPay TSP percentages from your LES. Max out without losing the BRS match. |
+| [Subnet Sprint](https://tool4that.github.io/net-drills/subnet-sprint/) | Net Drills: network, broadcast, and host ranges; VLSM planning; IPv6. |
+| [IOS CLI Lab](https://tool4that.github.io/net-drills/ios-cli-lab/) | Net Drills: configure a simulated router and switch, then prove it from two PCs. |
+| [Config Audit](https://tool4that.github.io/net-drills/config-audit/) | Net Drills: find risky config lines, choose fixes, name what's missing. |
+| [Trouble Tickets](https://tool4that.github.io/net-drills/trouble-tickets/) | Net Drills: diagnose the root cause from real device output. |
+
+Net Drills are unofficial practice for the Cisco NetAcad Network Technician path and the CyberPatriot Cisco challenge, and are not affiliated with either.
 
 ## Add a tool
 
-1. Put the tool in its own folder: `<slug>/index.html`, plus any images it uses.
+1. Prepare the page with `py prepare_tool.py SOURCE.html <slug> --name "…" --description "…" --icon "🔢"`. It checks the page is self-contained and adds the security policy.
 2. Add an entry to `tools.json`: copy the existing one and leave `sha256` and `updated` empty.
 3. Rebuild the hub:
    ```bash

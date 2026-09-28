@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- tool4that:head -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-5mgliCX6x7iyNiuhimgM4160wc/pJorkbdknlWb13EI='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="Read a running-config the way an attacker would: flag every risky line, choose the best fix, and name the protections that are missing.">
+<link rel="canonical" href="https://tool4that.github.io/net-drills/config-audit/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%94%8D%3C%2Ftext%3E%3C%2Fsvg%3E">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tool4That">
+<meta property="og:title" content="Config Audit">
+<meta property="og:description" content="Read a running-config the way an attacker would: flag every risky line, choose the best fix, and name the protections that are missing.">
+<meta property="og:url" content="https://tool4that.github.io/net-drills/config-audit/">
+<meta property="og:image" content="https://tool4that.github.io/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<!-- /tool4that:head -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Config Audit – Net Drills</title>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#E8ECF0;--face:#F7F9FA;--ink:#17212B;--muted:#55647A;--rule:#C6D0DA;
+  --orange:#C8561A;--green:#23794A;--blue:#1F5C9E;--brown:#6E4526;
+  --ok:#1E8A4C;--bad:#B8322A;--warn:#A86A12;--focus:#1F5C9E;
+  --accent:var(--blue);--on-accent:#FFFFFF;
+  --head:"Bahnschrift","DIN Alternate","Roboto Condensed","Avenir Next Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"Cascadia Mono","SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#111922;--face:#19242F;--ink:#E2E9F0;--muted:#98A8B9;--rule:#2E3D4C;
+    --orange:#F0874A;--green:#4DBB7F;--blue:#6AA5EA;--brown:#C08B63;
+    --ok:#4DBB7F;--bad:#F06A5E;--warn:#E3A83F;--focus:#8CC4F2;--on-accent:#111922;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111922;--face:#19242F;--ink:#E2E9F0;--muted:#98A8B9;--rule:#2E3D4C;
+  --orange:#F0874A;--green:#4DBB7F;--blue:#6AA5EA;--brown:#C08B63;
+  --ok:#4DBB7F;--bad:#F06A5E;--warn:#E3A83F;--focus:#8CC4F2;--on-accent:#111922;
+  color-scheme:dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--body)}
+.wrap{max-width:900px;margin:0 auto;padding:22px 18px 40px}
+button,input{font:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.series{display:flex;flex-wrap:wrap;gap:6px 16px;margin:0 0 18px;font:600 13px/1.2 var(--head);color:var(--muted)}
+.jack{display:inline-flex;align-items:center;gap:7px}
+.jack::before{content:"";width:15px;height:11px;border:2px solid var(--c);border-radius:2px 2px 4px 4px}
+.jack.on{color:var(--ink)}
+.jack.on::before{background:var(--c)}
+h1{font:700 clamp(38px,8vw,60px)/.95 var(--head);letter-spacing:-.01em;margin:0 0 10px}
+.lede{margin:0;max-width:62ch;color:var(--muted);font-size:17px}
+.picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin:24px 0 18px;max-width:560px}
+.sbtn{display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:10px 14px;border:1.5px solid var(--rule);border-radius:8px;background:var(--face);color:var(--ink);text-align:left}
+.sbtn .t{display:flex;align-items:center;gap:8px;font:700 17px/1.15 var(--head)}
+.sbtn small{font-size:13px;color:var(--muted)}
+.sbtn[aria-checked="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1.5px var(--accent)}
+.led{display:inline-block;flex:none;width:10px;height:10px;border-radius:50%;background:var(--rule)}
+.led.ok{background:var(--ok)}
+.board{position:sticky;top:env(safe-area-inset-top,0px);z-index:2;background:var(--bg);padding:10px 0 8px;border-bottom:1.5px solid var(--rule);margin-bottom:10px}
+.stats{display:flex;flex-wrap:wrap;gap:6px 26px;margin:0}
+.stats div{display:flex;flex-direction:column-reverse}
+.stats dt{font-size:13px;color:var(--muted)}
+.stats dd{margin:0;font:700 24px/1 var(--head)}
+.tools{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.btn{min-height:40px;padding:8px 14px;border-radius:6px;border:1.5px solid var(--ink);background:transparent;color:var(--ink);font-weight:600;font-size:15px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.hintline{margin:8px 0 0;font-size:15px}
+.hintline:empty{display:none}
+@media (max-width:560px){.stats{gap:4px 18px}.stats dd{font-size:21px}.stats dt{font-size:12.5px}.tools{flex-wrap:nowrap;gap:6px;margin-top:8px}.tools .btn{min-height:38px;padding:6px 10px;font-size:14px;white-space:nowrap}}
+.intro{margin:0 0 10px;font-size:15px;color:var(--muted);max-width:70ch}
+.cfg{background:var(--face);border:1.5px solid var(--rule);border-radius:10px;padding:8px 0;margin:0 0 20px}
+.cfg .head{display:flex;justify-content:space-between;gap:10px;padding:2px 14px 8px;border-bottom:1px solid var(--rule);margin-bottom:6px;font:600 14px/1.3 var(--mono);color:var(--muted)}
+.ln{display:grid;grid-template-columns:3em 1fr auto;align-items:start;width:100%;margin:0;padding:1px 12px 1px 0;border:0;border-left:4px solid transparent;background:transparent;color:var(--ink);text-align:left;font:14px/1.6 var(--mono)}
+button.ln:hover{background:color-mix(in srgb,var(--accent) 9%,transparent)}
+.ln .no{color:var(--muted);text-align:right;padding-right:12px;user-select:none;font-size:12.5px;line-height:1.85}
+.ln code{font:inherit;white-space:pre-wrap;overflow-wrap:anywhere}
+.ln .tag{font:600 12px/1.9 var(--body);padding-left:10px;white-space:nowrap}
+.ln.sep{color:var(--muted);cursor:default}
+.ln.note{font:italic 14px/1.6 var(--body);color:var(--muted);cursor:default}
+.ln.found{border-left-color:var(--bad);background:color-mix(in srgb,var(--bad) 10%,transparent)}
+.ln.found .tag{color:var(--bad)}
+.ln.missed{border-left-color:var(--warn);background:color-mix(in srgb,var(--warn) 12%,transparent)}
+.ln.missed .tag{color:var(--warn)}
+.ln.fine{border-left-color:var(--rule)}
+.card{margin:6px 12px 12px 3em;padding:14px 16px;background:var(--bg);border:1.5px solid var(--rule);border-radius:8px;font:15px/1.5 var(--body)}
+@media (max-width:560px){.card{margin-left:10px}.ln{grid-template-columns:2.4em 1fr auto;font-size:13px}.ln .no{padding-right:8px}}
+.card h3{margin:0 0 6px;font:700 19px/1.2 var(--head)}
+.card p{margin:0 0 8px}
+.sev{display:inline-block;margin:0 0 6px;font-weight:700;font-size:13px}
+.sev.High{color:var(--bad)}.sev.Medium{color:var(--warn)}.sev.Low{color:var(--muted)}
+.opts{display:grid;gap:6px;margin:8px 0 6px;border:0;padding:0}
+.opts legend{font-weight:600;padding:0;margin-bottom:6px}
+.opt{display:block;width:100%;text-align:left;padding:9px 12px;border:1.5px solid var(--rule);border-radius:6px;background:var(--face);color:var(--ink);font:13.5px/1.5 var(--mono);white-space:pre-wrap}
+.opt.right{border-color:var(--ok);box-shadow:inset 4px 0 0 var(--ok)}
+.opt.wrong{border-color:var(--bad);box-shadow:inset 4px 0 0 var(--bad)}
+.opt:disabled{cursor:default;opacity:1}
+.verdict{font-weight:700;margin:6px 0 4px}
+.verdict.good{color:var(--ok)}.verdict.nope{color:var(--bad)}
+.close{border:0;background:none;padding:4px 0;color:var(--accent);font-weight:600;font-size:14px;text-decoration:underline;text-underline-offset:3px}
+.phase{background:var(--face);border:1.5px solid var(--rule);border-radius:10px;padding:16px;margin:0 0 20px}
+.phase h2{margin:0 0 6px;font:700 24px/1.1 var(--head)}
+.phase p{margin:0 0 10px;color:var(--muted)}
+.miss{list-style:none;margin:0 0 12px;padding:0}
+.miss li{padding:8px 0;border-top:1px solid var(--rule)}
+.miss label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+.miss input{width:19px;height:19px;margin-top:2px;accent-color:var(--accent);flex:none}
+.miss .why{margin:4px 0 0 29px;font-size:14px}
+.miss .why.good{color:var(--ok)}.miss .why.nope{color:var(--bad)}
+.summary{border-left:4px solid var(--accent);padding:10px 14px;background:var(--face);border-radius:0 8px 8px 0;margin:0 0 20px}
+.summary h2{margin:0 0 4px;font:700 22px/1.15 var(--head)}
+.summary p{margin:0 0 8px}
+footer{margin-top:40px;font-size:13px;color:var(--muted)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+<style>a.jack{color:inherit;text-decoration:none}a.jack:hover,a.jack:focus-visible{color:var(--ink);text-decoration:underline;text-underline-offset:3px}</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <p class="series" aria-label="Net Drills series">
+    <a class="jack" style="--c:var(--orange)" href="../subnet-sprint/">Subnet Sprint</a>
+    <a class="jack" style="--c:var(--green)" href="../ios-cli-lab/">IOS CLI Lab</a>
+    <span class="jack on" style="--c:var(--blue)" aria-current="page">Config Audit</span>
+    <a class="jack" style="--c:var(--brown)" href="../trouble-tickets/">Trouble Tickets</a>
+  </p>
+  <h1>Config Audit</h1>
+  <p class="lede">Read a running-config the way an attacker would. Tap every line that creates a security problem, choose the best fix, then name the protections that are missing entirely.</p>
+</header>
+
+<div class="picker" role="radiogroup" aria-label="Configuration to audit" id="picker"></div>
+
+<div class="board">
+  <dl class="stats">
+    <div><dt>Found</dt><dd id="st-found">0</dd></div>
+    <div><dt>Best fixes</dt><dd id="st-fix">0</dd></div>
+    <div><dt>Mistaps</dt><dd id="st-miss">0</dd></div>
+    <div><dt>Hints</dt><dd id="st-hint">0</dd></div>
+  </dl>
+  <div class="tools">
+    <button class="btn" type="button" id="b-hint">Hint</button>
+    <button class="btn" type="button" id="b-reveal">Reveal the rest</button>
+    <button class="btn" type="button" id="b-restart">Start over</button>
+  </div>
+  <p class="hintline" id="hintline" role="status"></p>
+</div>
+
+<p class="intro" id="intro"></p>
+<div class="cfg" id="cfg"></div>
+
+<section class="phase" aria-labelledby="ph-title">
+  <h2 id="ph-title">What's missing?</h2>
+  <p>Some of the worst problems are lines that aren't there. Check every protection this config lacks.</p>
+  <ul class="miss" id="miss"></ul>
+  <button class="btn primary" type="button" id="b-miss">Check my picks</button>
+</section>
+
+<section class="summary" id="summary" hidden aria-live="polite"></section>
+
+<footer>Unofficial practice for the Cisco NetAcad Network Technician path and the CyberPatriot Cisco challenge; not affiliated with either. Configs are fictional. Completed audits are remembered in this browser only.</footer>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } }
+};
+const done = Object.assign({}, store.get('netdrills.audit.done', {}));
+
+/* Cisco type 7 decoding, used to show why type 7 is not protection */
+const XLAT = 'dsfd;kfoA,.iyewrkldJKDHSUBsgvca69834ncxv9873254k;fg87';
+function dec7(h) {
+  const seed = parseInt(h.slice(0, 2), 10);
+  let out = '';
+  for (let i = 2, k = 0; i < h.length; i += 2, k++) out += String.fromCharCode(parseInt(h.substr(i, 2), 16) ^ XLAT.charCodeAt((seed + k) % 53));
+  return out;
+}
+
+const TELNET = {
+  sev: 'High', title: 'Remote access is Telnet only',
+  why: 'Telnet sends everything in cleartext, including usernames and passwords. Anyone capturing traffic on the path can read them.',
+  opts: ['transport input ssh', 'transport input all', 'transport output ssh'],
+  note: 'Once SSH keys exist, transport input ssh closes the cleartext door. transport output only controls sessions started from this device.',
+  clue: 'How do remote admins connect to the VTY lines?'
+};
+const HTTP = {
+  sev: 'High', title: 'The web management server is on',
+  why: 'An unused web interface is extra attack surface. In 2023, CVE-2023-20198 let attackers take over tens of thousands of Cisco IOS XE devices through exactly this kind of web UI.',
+  note: 'If nobody manages the device from a browser, turn the service off. Moving it to another port only hides it.',
+  clue: 'Look for a service that most admins never use.'
+};
+
+const SCEN = {
+  r1: {
+    name: 'R1 edge router', sub: '11 problems to find', head: ['R1#show running-config', 'IOS 15.1, 2911-style router'],
+    intro: 'R1 connects the office LAN (G0/0) to the internet (G0/1). The last admin left in a hurry. Tap any line you think is a problem.',
+    lines: [
+      '!', 'version 15.1',
+      ['no service timestamps log datetime msec', 'ts'], ['no service timestamps debug datetime msec', 'ts'],
+      ['no service password-encryption', 'spe'], '!', 'hostname R1', '!',
+      ['enable password cisco', 'en'], '!',
+      ['username admin password 0 admin', 'user'], '!',
+      'ip domain-name corp.local', 'ip ssh version 2', '!',
+      'interface GigabitEthernet0/0', ' description LAN', ' ip address 192.168.1.1 255.255.255.0', ' duplex auto', ' speed auto', '!',
+      'interface GigabitEthernet0/1', ' description WAN to ISP', ' ip address 203.0.113.2 255.255.255.252', ' duplex auto', ' speed auto', '!',
+      'interface GigabitEthernet0/2', ' no ip address', ' duplex auto', ' speed auto', ' shutdown', '!',
+      'ip classless', ['ip http server', 'http'], '!',
+      ['snmp-server community public RW', 'snmp'], '!',
+      ['banner motd ^CWelcome to R1! Come on in.^C', 'banner'], '!',
+      'line con 0', [' exec-timeout 0 0', 'timeout'], [' password cisco', 'conlogin'], '!',
+      'line aux 0', '!',
+      'line vty 0 4', ' login local', [' transport input telnet', 'telnet'],
+      'line vty 5 15', [' no login', 'nologin'], '!', 'end'
+    ],
+    findings: {
+      ts: { sev: 'Low', title: 'Log messages carry no timestamps',
+        why: 'Without timestamps you cannot tell when anything happened, which makes an investigation nearly impossible.',
+        opts: ['service timestamps log datetime msec', 'logging synchronous', 'no logging console'],
+        note: 'Timestamps (plus NTP for accurate time) let you line up events across devices.', clue: 'Near the top: can you tell when a log message happened?' },
+      spe: { sev: 'Medium', title: 'Passwords are stored in plain text',
+        why: 'Anyone who sees this config (a screen share, a backup file, a photo) can read the console and enable passwords.',
+        opts: ['service password-encryption', 'no service password-recovery', 'enable password 7 cisco'],
+        note: 'This scrambles plaintext passwords as type 7. That stops casual reading but is reversible; real protection is hashing with secret.', clue: 'Near the top: how are passwords stored?' },
+      en: { sev: 'High', title: "Privileged EXEC is guarded by 'enable password cisco'",
+        why: "It's stored in plain text and it's the first password anyone guesses. Whoever reaches the # prompt owns the router.",
+        opts: ['no enable password\nenable secret En@ble-S3cret', 'enable password 7 cisco', 'service password-encryption'],
+        note: 'enable secret stores a one-way hash. Encrypting cisco as type 7 still leaves a guessable, reversible password.', clue: 'How is privileged EXEC protected?' },
+      user: { sev: 'High', title: 'Local account admin with the password admin, in plain text',
+        why: "Default-style credentials are the first thing attackers try, and 'password 0' means it's stored unencrypted. The VTY lines log in with this account.",
+        opts: ['no username admin\nusername netadmin secret N3tAdmin-2026', 'username admin password 7 admin', 'username admin privilege 1 password admin'],
+        note: 'A secret is hashed, and a unique name with a strong password beats admin/admin.', clue: 'Check the local user account.' },
+      http: Object.assign({ opts: ['no ip http server', 'ip http port 8080', 'ip http authentication enable'] }, HTTP),
+      snmp: { sev: 'High', title: "SNMP community 'public' with read-write access",
+        why: "'public' is the first community string scanners try, and RW lets anyone who guesses it change the configuration.",
+        opts: ['no snmp-server community public RW', 'snmp-server community public RO', 'snmp-server community PUBLIC RW'],
+        note: 'Remove it. If you need SNMP, use SNMPv3 or a long, unique read-only community limited by an ACL.', clue: 'Look for a management protocol still using a default setting.' },
+      banner: { sev: 'Low', title: 'The banner welcomes visitors',
+        why: 'A login banner should warn, not invite. A legal notice removes any expectation of privacy and supports action against intruders.',
+        opts: ['banner motd #Authorized access only. Activity is monitored.#', 'no banner motd', 'banner motd #Welcome, authorized users!#'],
+        note: 'Warn and state that activity is monitored. Never say welcome.', clue: 'Read what users see before they log in.' },
+      timeout: { sev: 'Medium', title: 'The console never logs out',
+        why: 'exec-timeout 0 0 turns off the idle timer, so a session someone walked away from stays open forever.',
+        opts: ['exec-timeout 5 0', 'exec-timeout 0 5', 'logging synchronous'],
+        note: 'The format is minutes then seconds. 5 0 is 5 minutes; 0 5 would log you out after 5 seconds.', clue: 'Under line con 0, how long can a session sit idle?' },
+      conlogin: { sev: 'High', title: 'The console has a password but never asks for it',
+        why: 'Without the login command the line password is ignored, so anyone at the console port gets straight in.',
+        opts: ['login', 'password Str0ng-Console', 'transport input none'],
+        note: 'Add login under line con 0, and pick a stronger password than cisco while you are there.', clue: 'Under line con 0, is the password actually enforced?' },
+      telnet: TELNET,
+      nologin: { sev: 'High', title: 'VTY lines 5 to 15 need no login at all',
+        why: 'Lines 0 to 4 are set up, but 5 to 15 accept remote sessions with no authentication. An attacker just opens a sixth session.',
+        opts: ['line vty 5 15\nlogin local\ntransport input ssh', 'line vty 5 15\npassword cisco', 'line vty 0 4\nlogin local'],
+        note: 'Secure every VTY line. Configuring line vty 0 15 in one go keeps them identical.', clue: 'Are all the remote lines configured the same way?' }
+    },
+    missing: [
+      { t: 'Minimum password length (security passwords min-length)', present: false, why: 'Not configured, so nothing stops short passwords like cisco.' },
+      { t: 'Brute-force protection (login block-for)', present: false, why: 'Not configured: unlimited password guesses against the VTY lines.' },
+      { t: 'Off-box logging to a syslog server (logging host)', present: false, why: 'Not configured: logs live only on the router, where an intruder can erase them.' },
+      { t: 'Time sync from an NTP server (ntp server)', present: false, why: "Not configured: without synced clocks, logs can't be matched across devices." },
+      { t: 'SSH limited to version 2', present: true, why: 'Present: ip ssh version 2.' },
+      { t: 'The unused interface is disabled', present: true, why: 'Present: G0/2 is shut down.' }
+    ]
+  },
+  s1: {
+    name: 'S1 access switch', sub: '9 problems to find', head: ['S1#show running-config', 'IOS 15.0, 2960-style switch'],
+    intro: 'S1 connects user PCs (VLAN 10) and uplinks to the core on G0/1. It looks tidier than R1, but Layer 2 has its own traps.',
+    lines: [
+      '!', 'version 15.0', 'no service pad', 'service timestamps debug datetime msec', 'service timestamps log datetime msec',
+      'service password-encryption', '!', 'hostname S1', '!', 'enable secret 5 $1$mERr$9cTjUIEqNGurQiFU.ZeCi1', '!',
+      'spanning-tree mode pvst', 'spanning-tree extend system-id', '!',
+      'interface FastEthernet0/1', ' switchport access vlan 10', ' switchport mode access', ' switchport port-security',
+      ' switchport port-security mac-address sticky', ' spanning-tree portfast', '!',
+      'interface FastEthernet0/2', [' switchport access vlan 10', 'dtp'], '!',
+      'interface FastEthernet0/3', ' switchport access vlan 10', ' switchport mode access', ' switchport port-security',
+      ' spanning-tree portfast', ' spanning-tree bpduguard enable', '!',
+      ['interface FastEthernet0/4', 'unused'], '!',
+      { note: '(FastEthernet0/5 through 0/24 look exactly like 0/4)' }, '!',
+      'interface GigabitEthernet0/1', [' switchport mode dynamic desirable', 'trunk'], '!',
+      ['interface GigabitEthernet0/2', 'unused'], '!',
+      'interface Vlan1', [' ip address 192.168.1.2 255.255.255.0', 'vlan1'], '!',
+      'ip default-gateway 192.168.1.1', ['ip http server', 'http'], ['ip http secure-server', 'http'], '!',
+      ['snmp-server community public RO', 'snmp'], '!',
+      ['line con 0', 'con'], ' logging synchronous', '!',
+      'line vty 0 4', [' password 7 0822455D0A16', 't7'], ' login', [' transport input telnet', 'telnet'],
+      'line vty 5 15', [' password 7 0822455D0A16', 't7'], ' login', [' transport input telnet', 'telnet'], '!', 'end'
+    ],
+    findings: {
+      dtp: { sev: 'Medium', title: 'F0/2 can still negotiate a trunk',
+        why: "Setting an access VLAN doesn't lock the mode. A 2960 port defaults to dynamic auto, so a device that speaks DTP can turn it into a trunk and reach every VLAN (switch spoofing).",
+        opts: ['switchport mode access', 'switchport trunk native vlan 999', 'spanning-tree portfast'],
+        note: 'Force access mode on every host port. Port security requires it anyway.', clue: 'Compare F0/2 with F0/1 and F0/3.' },
+      unused: { sev: 'Medium', title: 'Unused ports are live and sit in VLAN 1',
+        why: 'Switch ports ship enabled. Any free jack gives a rogue laptop or access point a working LAN connection.',
+        opts: ['interface range f0/4 - 24\nswitchport mode access\nswitchport access vlan 999\nshutdown', 'interface range f0/4 - 24\ndescription UNUSED', 'interface range f0/4 - 24\nspanning-tree portfast'],
+        note: 'Shut them and park them in an unused VLAN in case one gets turned back on. Do the same for G0/2.', clue: 'Some interfaces have no settings under them at all.' },
+      trunk: { sev: 'High', title: 'The uplink negotiates trunking with DTP',
+        why: 'dynamic desirable actively asks the far end to trunk. Uplinks should be static trunks with DTP off and an unused native VLAN, or switch spoofing and double-tagging get easier.',
+        opts: ['switchport mode trunk\nswitchport nonegotiate\nswitchport trunk native vlan 999', 'switchport mode dynamic auto', 'switchport access vlan 999'],
+        note: 'Static trunk, DTP off, and the native VLAN moved off VLAN 1 (match it on the switch at the other end).', clue: 'How does G0/1 decide whether to trunk?' },
+      vlan1: { sev: 'Medium', title: 'Switch management lives on VLAN 1',
+        why: 'VLAN 1 is the default for every port and carries control traffic, so the management IP is reachable from any port nobody configured.',
+        opts: ['vlan 99\ninterface vlan 99\nip address 192.168.99.2 255.255.255.0\ninterface vlan 1\nno ip address\nshutdown', 'interface vlan 1\ndescription MGMT', 'no ip default-gateway'],
+        note: 'Use a dedicated management VLAN, and update ip default-gateway to match its subnet.', clue: "Which VLAN holds the switch's own IP address?" },
+      http: Object.assign({ opts: ['no ip http server\nno ip http secure-server', 'ip http port 8080', 'ip http authentication enable'] }, HTTP),
+      snmp: { sev: 'Medium', title: "SNMP community 'public'",
+        why: "'public' is the first community string scanners try. Even read-only access leaks interfaces, VLANs, neighbors, and more.",
+        opts: ['no snmp-server community public RO', 'snmp-server community public RW', 'snmp-server community PUBLIC RO'],
+        note: 'Remove it. If SNMP is needed, use SNMPv3 or a long, unique community limited by an ACL.', clue: 'Look for a management protocol still using a default setting.' },
+      con: { sev: 'High', title: 'The console asks for nothing',
+        why: 'Nothing under line con 0 requires a password, so anyone at the console port gets the CLI.',
+        opts: ['line con 0\npassword C0nsole-Pa55\nlogin', 'line con 0\nlogging synchronous', 'line con 0\nexec-timeout 0 0'],
+        note: "Or use login local with a named account. Add exec-timeout 5 0 while you're there.", clue: "What's under line con 0, and what isn't?" },
+      t7: { sev: 'High', title: 'The VTY password is type 7, which is reversible',
+        why: 'Type 7 is scrambling, not hashing, and free tools reverse it instantly. This one decodes to: ' + dec7('0822455D0A16'),
+        opts: ['username netadmin secret N3tAdmin-2026\nline vty 0 15\nlogin local', 'service password-encryption', 'line vty 0 15\npassword 7 0822455D0A16'],
+        note: 'Use a hashed secret for a named user with login local. service password-encryption is already on; it is what produced this weak type 7.', clue: 'Decode what service password-encryption produced on the VTY lines.' },
+      telnet: TELNET
+    },
+    missing: [
+      { t: 'DHCP snooping (ip dhcp snooping)', present: false, why: 'Not configured: a rogue DHCP server on any port could hand out a fake gateway.' },
+      { t: 'BPDU Guard on every PortFast port', present: false, why: 'F0/1 has PortFast without BPDU Guard (F0/3 has both).' },
+      { t: 'An unused native VLAN on the trunk', present: false, why: 'G0/1 has no native VLAN setting, so it stays on VLAN 1.' },
+      { t: 'VTP transparent mode (vtp mode transparent)', present: false, why: 'Not shown, so the switch accepts VTP updates that could overwrite its VLANs.' },
+      { t: 'A legal warning banner (banner motd)', present: false, why: 'There is no banner, so nobody is warned before logging in.' },
+      { t: 'Encryption of plaintext passwords', present: true, why: 'Present: service password-encryption (though type 7 is weak).' },
+      { t: 'A hashed enable secret', present: true, why: 'Present: enable secret 5.' },
+      { t: 'Port security on F0/1', present: true, why: 'Present: switchport port-security with sticky MACs.' }
+    ]
+  }
+};
+
+const BENIGN = [
+  [/^version /, 'The IOS version. Worth checking against known vulnerabilities, but not a misconfiguration.'],
+  [/^hostname /, 'A unique hostname: good. It is also required before SSH keys can be generated.'],
+  [/^ip domain-name /, 'A domain name: needed to generate SSH keys. Fine.'],
+  [/^ip ssh version 2$/, 'Good: SSH version 2 only.'],
+  [/^interface /, 'Selects an interface. The settings under it are what matter.'],
+  [/^ description /, 'Interface descriptions help troubleshooting. Good.'],
+  [/^ ip address /, 'Normal addressing.'],
+  [/^ (duplex|speed) /, 'Normal speed and duplex settings.'],
+  [/^ no ip address$/, 'No address on this interface. Fine.'],
+  [/^ shutdown$/, 'Good: an unused interface is shut down.'],
+  [/^ip classless$/, 'Default routing behavior. Nothing risky.'],
+  [/^line /, 'Selects terminal lines. The settings under it are what matter.'],
+  [/^ login local$/, "login local checks the local username list. Good idea, but check that user's password."],
+  [/^ login$/, 'login makes the line ask for its password. Good, but look at the password itself.'],
+  [/^end$/, 'End of the configuration.'],
+  [/^no service pad$/, 'Good: the legacy X.25 PAD service is off.'],
+  [/^service timestamps /, 'Good: messages carry timestamps.'],
+  [/^service password-encryption$/, 'Better than plain text, but type 7 is weak. Look closely at the line passwords.'],
+  [/^enable secret 5 /, 'Good: the enable secret is stored as a hash.'],
+  [/^spanning-tree /, 'Normal spanning-tree setting.'],
+  [/^ switchport mode access$/, 'Good: this port cannot negotiate a trunk.'],
+  [/^ switchport access vlan /, 'Puts the port in the user VLAN. Fine.'],
+  [/^ switchport port-security/, 'Good: port security limits which devices can use this port.'],
+  [/^ spanning-tree portfast$/, 'PortFast suits host ports. Is BPDU Guard there to protect it?'],
+  [/^ spanning-tree bpduguard enable$/, 'Good: BPDU Guard shuts the port if a switch shows up.'],
+  [/^ip default-gateway /, 'Lets the switch reach admins on other subnets. Fine.'],
+  [/^ logging synchronous$/, 'A typing convenience. Nothing risky.']
+];
+const benignWhy = t => (BENIGN.find(([re]) => re.test(t)) || [0, 'Nothing risky on this line.'])[1];
+
+/* ---------- state ---------- */
+let key = 'r1', S = null;
+function fresh(k) {
+  const sc = SCEN[k];
+  const F = {};
+  Object.entries(sc.findings).forEach(([id, f]) => {
+    const order = [0, 1, 2].sort(() => Math.random() - 0.5);
+    F[id] = { id, f, order, found: false, missed: false, answered: false, right: false };
+  });
+  return { sc, F, mistaps: new Set(), hints: 0, open: null, missChecked: false, missRight: 0 };
+}
+function lineInfo(entry) {
+  if (typeof entry === 'string') return { text: entry, fid: null, sep: entry.trim() === '!' };
+  if (Array.isArray(entry)) return { text: entry[0], fid: entry[1], sep: false };
+  return { text: entry.note, fid: null, note: true };
+}
+const firstLine = id => S.sc.lines.findIndex(e => Array.isArray(e) && e[1] === id);
+const total = () => Object.keys(S.F).length;
+
+/* ---------- render ---------- */
+function renderPicker() {
+  const p = $('#picker');
+  p.textContent = '';
+  Object.entries(SCEN).forEach(([k, sc]) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'sbtn'; b.setAttribute('role', 'radio');
+    b.setAttribute('aria-checked', k === key ? 'true' : 'false');
+    b.innerHTML = '<span class="t"><i class="led" aria-hidden="true"></i><span></span></span><small></small>';
+    b.querySelector('.t span').textContent = sc.name;
+    if (done[k]) b.querySelector('.led').classList.add('ok');
+    b.querySelector('small').textContent = sc.sub + (done[k] ? ', completed' : '');
+    b.addEventListener('click', () => { if (k !== key) load(k); });
+    p.append(b);
+  });
+}
+function renderConfig() {
+  const box = $('#cfg');
+  box.textContent = '';
+  const head = document.createElement('div');
+  head.className = 'head';
+  head.innerHTML = '<span></span><span></span>';
+  head.children[0].textContent = S.sc.head[0];
+  head.children[1].textContent = S.sc.head[1];
+  box.append(head);
+  S.sc.lines.forEach((entry, i) => {
+    const L = lineInfo(entry), n = i + 1;
+    const row = document.createElement(L.sep || L.note ? 'div' : 'button');
+    row.className = 'ln' + (L.sep ? ' sep' : '') + (L.note ? ' note' : '');
+    row.dataset.i = i;
+    row.innerHTML = '<span class="no"></span><code></code><span class="tag"></span>';
+    row.querySelector('.no').textContent = L.note ? '' : n;
+    row.querySelector('code').textContent = L.text;
+    if (row.tagName === 'BUTTON') {
+      row.type = 'button';
+      row.setAttribute('aria-label', `Line ${n}: ${L.text.trim()}`);
+      row.addEventListener('click', () => tap(i));
+    }
+    box.append(row);
+  });
+  paintRows();
+}
+function paintRows() {
+  $$('#cfg .ln').forEach(row => {
+    const i = Number(row.dataset.i), L = lineInfo(S.sc.lines[i]);
+    if (L.sep || L.note) return;
+    const st = L.fid ? S.F[L.fid] : null;
+    row.classList.toggle('found', !!(st && st.found));
+    row.classList.toggle('missed', !!(st && st.missed));
+    row.classList.toggle('fine', !L.fid && S.mistaps.has(i));
+    row.querySelector('.tag').textContent = st && st.found ? 'Found' : st && st.missed ? 'Missed' : '';
+  });
+}
+function updStats() {
+  const vals = Object.values(S.F);
+  const found = vals.filter(v => v.found).length, right = vals.filter(v => v.right).length;
+  $('#st-found').textContent = `${found} of ${total()}`;
+  $('#st-fix').textContent = right;
+  $('#st-miss').textContent = S.mistaps.size;
+  $('#st-hint').textContent = S.hints;
+  const left = vals.filter(v => !v.found && !v.missed).length;
+  $('#b-hint').disabled = !left;
+  $('#b-reveal').disabled = !left;
+  maybeSummary();
+}
+function closeCard() { const c = $('#cfg .card'); if (c) c.remove(); S.open = null; }
+function tap(i) {
+  const L = lineInfo(S.sc.lines[i]);
+  const wasOpen = S.open;
+  closeCard();
+  if (wasOpen === i) return;
+  const row = $(`#cfg .ln[data-i="${i}"]`);
+  if (L.fid) {
+    const st = S.F[L.fid];
+    if (!st.found && !st.missed) st.found = true;
+    row.after(findingCard(st));
+  } else {
+    S.mistaps.add(i);
+    row.after(fineCard(i, L.text));
+  }
+  S.open = i;
+  $('#hintline').textContent = '';
+  paintRows(); updStats();
+}
+function fineCard(i, text) {
+  const c = document.createElement('div');
+  c.className = 'card';
+  c.setAttribute('role', 'region');
+  c.setAttribute('aria-label', 'Line check');
+  c.innerHTML = '<p class="verdict"></p><p></p><button type="button" class="close">Close</button>';
+  c.querySelector('.verdict').textContent = `Line ${i + 1} looks fine.`;
+  c.querySelectorAll('p')[1].textContent = benignWhy(text);
+  c.querySelector('.close').addEventListener('click', closeCard);
+  return c;
+}
+function findingCard(st) {
+  const f = st.f, c = document.createElement('div');
+  c.className = 'card';
+  c.setAttribute('role', 'region');
+  c.setAttribute('aria-label', 'Finding');
+  c.innerHTML = '<span class="sev"></span><h3></h3><p class="why"></p><fieldset class="opts"><legend>Pick the best fix</legend></fieldset><div class="res"></div><button type="button" class="close">Close</button>';
+  const sev = c.querySelector('.sev');
+  sev.textContent = f.sev + ' risk' + (st.missed ? ' (revealed)' : '');
+  sev.classList.add(f.sev);
+  c.querySelector('h3').textContent = f.title;
+  c.querySelector('.why').textContent = f.why;
+  const fs = c.querySelector('.opts'), res = c.querySelector('.res');
+  const showResult = () => {
+    res.innerHTML = '<p class="verdict"></p><p></p>';
+    const v = res.querySelector('.verdict');
+    v.textContent = st.right ? 'Best fix.' : 'Not the best fix. The one outlined in green is.';
+    v.className = 'verdict ' + (st.right ? 'good' : 'nope');
+    res.querySelectorAll('p')[1].textContent = f.note;
+  };
+  st.order.forEach(oi => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'opt'; b.textContent = f.opts[oi]; b.dataset.oi = oi;
+    b.addEventListener('click', () => {
+      if (st.answered) return;
+      st.answered = true; st.right = oi === 0; st.pick = oi;
+      markOpts(fs, st); showResult(); updStats();
+    });
+    fs.append(b);
+  });
+  if (st.answered) { markOpts(fs, st); showResult(); }
+  c.querySelector('.close').addEventListener('click', closeCard);
+  return c;
+}
+function markOpts(fs, st) {
+  $$('.opt', fs).forEach(b => {
+    const oi = Number(b.dataset.oi);
+    b.disabled = true;
+    if (oi === 0) b.classList.add('right');
+    else if (oi === st.pick) b.classList.add('wrong');
+  });
+}
+function renderMissing() {
+  const ul = $('#miss');
+  ul.textContent = '';
+  S.sc.missing.forEach((m, i) => {
+    const li = document.createElement('li');
+    li.innerHTML = '<label><input type="checkbox"><span></span></label><p class="why" hidden></p>';
+    li.querySelector('span').textContent = m.t;
+    li.querySelector('input').id = 'm' + i;
+    ul.append(li);
+  });
+  $('#b-miss').disabled = false;
+}
+function checkMissing() {
+  let right = 0;
+  $$('#miss li').forEach((li, i) => {
+    const m = S.sc.missing[i], box = li.querySelector('input'), ok = box.checked === !m.present;
+    if (ok) right++;
+    box.disabled = true;
+    const w = li.querySelector('.why');
+    w.hidden = false;
+    w.className = 'why ' + (ok ? 'good' : 'nope');
+    w.textContent = (ok ? 'Right. ' : m.present ? 'This one is actually there. ' : 'This one is missing. ') + m.why;
+  });
+  S.missChecked = true; S.missRight = right;
+  $('#b-miss').disabled = true;
+  maybeSummary();
+}
+function maybeSummary() {
+  const vals = Object.values(S.F), box = $('#summary');
+  const huntDone = vals.every(v => v.found || v.missed);
+  if (!huntDone || !S.missChecked) { box.hidden = true; return; }
+  const found = vals.filter(v => v.found).length, answered = vals.filter(v => v.answered).length, right = vals.filter(v => v.right).length;
+  const perfect = found === vals.length && right === vals.length && S.missRight === S.sc.missing.length;
+  box.hidden = false;
+  box.innerHTML = '<h2></h2><p></p><p></p><button type="button" class="btn primary"></button>';
+  box.querySelector('h2').textContent = perfect ? 'Clean audit.' : 'Audit complete.';
+  const p = box.querySelectorAll('p');
+  p[0].textContent = `You found ${found} of ${vals.length} problems, chose the best fix ${right} of ${answered} times, and judged ${S.missRight} of ${S.sc.missing.length} missing protections correctly. Mistaps: ${S.mistaps.size}. Hints: ${S.hints}.`;
+  p[1].textContent = answered < found ? 'Tip: open any red line you have not answered yet and pick its fix.' : 'Coaching question: which three of these would an attacker try first, and why?';
+  const other = key === 'r1' ? 's1' : 'r1', b = box.querySelector('button');
+  b.textContent = `Audit ${SCEN[other].name}`;
+  b.addEventListener('click', () => { load(other); window.scrollTo({ top: 0 }); });
+  if (!done[key]) { done[key] = true; store.set('netdrills.audit.done', done); renderPicker(); }
+}
+function load(k) {
+  key = k; S = fresh(k);
+  $('#intro').textContent = S.sc.intro;
+  $('#hintline').textContent = '';
+  renderPicker(); renderConfig(); renderMissing(); updStats();
+}
+
+$('#b-hint').addEventListener('click', () => {
+  const next = Object.values(S.F).filter(v => !v.found && !v.missed).sort((a, b) => firstLine(a.id) - firstLine(b.id))[0];
+  if (!next) return;
+  S.hints++;
+  $('#hintline').textContent = 'Hint: ' + next.f.clue;
+  updStats();
+});
+$('#b-reveal').addEventListener('click', () => {
+  Object.values(S.F).forEach(v => { if (!v.found) v.missed = true; });
+  $('#hintline').textContent = 'Revealed lines are outlined in amber. Tap one to see the problem and pick its fix.';
+  paintRows(); updStats();
+});
+$('#b-restart').addEventListener('click', () => { closeCard(); load(key); });
+$('#b-miss').addEventListener('click', checkMissing);
+load('r1');
+})();
+</script>
+<!-- tool4that:foot --><p style="text-align:center;margin:28px 0 22px;font:14px/1.4 system-ui,-apple-system,Segoe UI,Arial,sans-serif"><a href="../../">More free tools at Tool4That</a></p><!-- /tool4that:foot -->
+</body>
+</html>

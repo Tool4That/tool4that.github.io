@@ -38,6 +38,9 @@ a { color: var(--focus); }
 .points li::before { content: "\2713  "; color: var(--go-2); font-weight: 700; }
 main { padding: 34px 0 20px; }
 h2 { font-size: 22px; margin: 0 0 14px; }
+.cat { font-size: 17px; margin: 26px 0 4px; color: var(--ink-2); }
+h2 + .cat { margin-top: 6px; }
+.cat-note { margin: 0 0 12px; font-size: 14px; color: var(--muted); max-width: 75ch; }
 .tools { list-style: none; margin: 0 0 34px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
 .tool { background: var(--sheet); border: 1px solid var(--rule); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
 .tool-head { display: flex; gap: 12px; align-items: center; }

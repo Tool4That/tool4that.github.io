@@ -7,13 +7,13 @@
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <title>Tool4That: free tools that run in your browser</title>
-<meta name="description" content="Need a tool for that? Free single-file tools that run in your browser, with no sign-up and no tracking. Starting with Maxed &amp; Matched, the military TSP calculator.">
+<meta name="description" content="Need a tool for that? Free single-file tools that run in your browser, with no sign-up and no tracking: military TSP planning and networking practice.">
 <link rel="canonical" href="https://tool4that.github.io/">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32' aria-hidden='true'%3E%3Crect width='32' height='32' rx='7' fill='%230A7552'/%3E%3Ctext x='16' y='23.5' text-anchor='middle' font-family='Arial,Helvetica,sans-serif' font-weight='700' font-size='21' fill='%23fff'%3E4%3C/text%3E%3C/svg%3E">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Tool4That">
 <meta property="og:title" content="Tool4That: free tools that run in your browser">
-<meta property="og:description" content="Need a tool for that? Free single-file tools that run in your browser, with no sign-up and no tracking. Starting with Maxed &amp; Matched, the military TSP calculator.">
+<meta property="og:description" content="Need a tool for that? Free single-file tools that run in your browser, with no sign-up and no tracking: military TSP planning and networking practice.">
 <meta property="og:url" content="https://tool4that.github.io/">
 <meta property="og:image" content="https://tool4that.github.io/og-image.png">
 <meta property="og:image:width" content="1200">
@@ -37,6 +37,9 @@ a { color: var(--focus); }
 .points li::before { content: "\2713  "; color: var(--go-2); font-weight: 700; }
 main { padding: 34px 0 20px; }
 h2 { font-size: 22px; margin: 0 0 14px; }
+.cat { font-size: 17px; margin: 26px 0 4px; color: var(--ink-2); }
+h2 + .cat { margin-top: 6px; }
+.cat-note { margin: 0 0 12px; font-size: 14px; color: var(--muted); max-width: 75ch; }
 .tools { list-style: none; margin: 0 0 34px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
 .tool { background: var(--sheet); border: 1px solid var(--rule); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
 .tool-head { display: flex; gap: 12px; align-items: center; }
@@ -81,6 +84,7 @@ footer { border-top: 1px solid var(--rule); padding: 18px 0 30px; font-size: 13p
 <main class="wrap">
   <section aria-labelledby="h-tools">
     <h2 id="h-tools">Tools</h2>
+    <h3 class="cat">Military finance</h3>
     <ul class="tools">
       <li class="tool">
         <div class="tool-head"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="44" height="44" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0A7552"/><path d="M9 16.5l4.6 4.6L23 11.4" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg><div><h3><a href="maxed-and-matched/">Maxed &amp; Matched TSP Calculator</a></h3><p class="tagline">Hit the max. Keep the match.</p></div></div>
@@ -89,8 +93,40 @@ footer { border-top: 1px solid var(--rule); padding: 18px 0 30px; font-size: 13p
         <div class="actions"><a class="btn primary" href="maxed-and-matched/">Open</a><a class="btn" href="maxed-and-matched/index.html" download="maxed-and-matched.html">Download .html</a></div>
         <p class="meta">Updated 2026-09-27 &middot; 244 KB &middot; SHA-256<code>5ef422f8f4c6c67c532db44e0d745aab14941635a000405fcf476ed8f4d4453b</code></p>
       </li>
-      <li class="tool soon">More tools coming.</li>
     </ul>
+    <h3 class="cat">Networking practice: Net Drills</h3>
+    <p class="cat-note">Four drills for the Cisco NetAcad Network Technician path and the CyberPatriot Cisco challenge. Unofficial practice; not affiliated with either. Progress stays in your browser.</p>
+    <ul class="tools">
+      <li class="tool">
+        <div class="tool-head"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="44" height="44" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0A7552"/><text x="16" y="20.5" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="12" fill="#fff">/24</text></svg><div><h3><a href="net-drills/subnet-sprint/">Subnet Sprint</a></h3><p class="tagline">Calculate it. Then faster.</p></div></div>
+        <p class="desc">Work out the network, broadcast, and usable host range for any IPv4 address, then do it faster. Includes VLSM planning and IPv6 drills.</p>
+        <ul class="badges" aria-label="Tags"><li>Networking</li><li>CyberPatriot</li><li>Offline</li><li>Private</li></ul>
+        <div class="actions"><a class="btn primary" href="net-drills/subnet-sprint/">Open</a><a class="btn" href="net-drills/subnet-sprint/index.html" download="subnet-sprint.html">Download .html</a></div>
+        <p class="meta">Updated 2026-09-28 &middot; 45 KB &middot; SHA-256<code>e5fa9738c478d771a90281296140c63a2af25e069146ea262b6c374559279b60</code></p>
+      </li>
+      <li class="tool">
+        <div class="tool-head"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="44" height="44" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0A7552"/><path d="M8.5 10.5l5.5 5.5-5.5 5.5" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M16.5 22h7.5" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg><div><h3><a href="net-drills/ios-cli-lab/">IOS CLI Lab</a></h3><p class="tagline">Configure it. Then prove it.</p></div></div>
+        <p class="desc">Configure a simulated router and switch from their consoles, then prove it from two PCs. Timed, Packet Tracer-style missions.</p>
+        <ul class="badges" aria-label="Tags"><li>Networking</li><li>CyberPatriot</li><li>Offline</li><li>Private</li></ul>
+        <div class="actions"><a class="btn primary" href="net-drills/ios-cli-lab/">Open</a><a class="btn" href="net-drills/ios-cli-lab/index.html" download="ios-cli-lab.html">Download .html</a></div>
+        <p class="meta">Updated 2026-09-28 &middot; 154 KB &middot; SHA-256<code>5fa5aff361fb2ad4953b4548ccae1e37250dd1b0d416a995f37a67a13f688b09</code></p>
+      </li>
+      <li class="tool">
+        <div class="tool-head"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="44" height="44" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0A7552"/><circle cx="14" cy="14" r="6.5" fill="none" stroke="#fff" stroke-width="3"/><path d="M19 19l5.5 5.5" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/></svg><div><h3><a href="net-drills/config-audit/">Config Audit</a></h3><p class="tagline">Read it like an attacker.</p></div></div>
+        <p class="desc">Flag every risky line in a running-config, choose the best fix, and name the protections that are missing entirely.</p>
+        <ul class="badges" aria-label="Tags"><li>Networking</li><li>CyberPatriot</li><li>Offline</li><li>Private</li></ul>
+        <div class="actions"><a class="btn primary" href="net-drills/config-audit/">Open</a><a class="btn" href="net-drills/config-audit/index.html" download="config-audit.html">Download .html</a></div>
+        <p class="meta">Updated 2026-09-28 &middot; 38 KB &middot; SHA-256<code>e7c4868341e198f2e60c7c17ac418a05c3ca536b179a5d37469c23da27e3c28f</code></p>
+      </li>
+      <li class="tool">
+        <div class="tool-head"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="44" height="44" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0A7552"/><path d="M20.5 7.5a5 5 0 0 0-6.3 6.3l-6.4 6.4a1.8 1.8 0 0 0 2.5 2.5l6.4-6.4a5 5 0 0 0 6.3-6.3l-3 3-2.6-.9-.9-2.6z" fill="#fff"/></svg><div><h3><a href="net-drills/trouble-tickets/">Trouble Tickets</a></h3><p class="tagline">Read the output. Find the fault.</p></div></div>
+        <p class="desc">Study the complaint and real device output, then pick the root cause. Every ticket ends with the fix, including Packet Tracer scoring gotchas.</p>
+        <ul class="badges" aria-label="Tags"><li>Networking</li><li>CyberPatriot</li><li>Offline</li><li>Private</li></ul>
+        <div class="actions"><a class="btn primary" href="net-drills/trouble-tickets/">Open</a><a class="btn" href="net-drills/trouble-tickets/index.html" download="trouble-tickets.html">Download .html</a></div>
+        <p class="meta">Updated 2026-09-28 &middot; 40 KB &middot; SHA-256<code>456cc64d4b250d0195f04e6b4273bb9d388cc650052a143e5882076af8b12dff</code></p>
+      </li>
+    </ul>
+
   </section>
   <section class="how" aria-labelledby="h-how">
     <h2 id="h-how">How these tools work</h2>

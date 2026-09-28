@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- tool4that:head -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-F9reACOPhqjHJPC/yhTvW+Bsf1VRE5uG5zBO1EWvRn4='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="Read the complaint, study real device output, and pick the root cause. Every ticket ends with the fix, including Packet Tracer scoring gotchas.">
+<link rel="canonical" href="https://tool4that.github.io/net-drills/trouble-tickets/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%9B%A0%EF%B8%8F%3C%2Ftext%3E%3C%2Fsvg%3E">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tool4That">
+<meta property="og:title" content="Trouble Tickets">
+<meta property="og:description" content="Read the complaint, study real device output, and pick the root cause. Every ticket ends with the fix, including Packet Tracer scoring gotchas.">
+<meta property="og:url" content="https://tool4that.github.io/net-drills/trouble-tickets/">
+<meta property="og:image" content="https://tool4that.github.io/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<!-- /tool4that:head -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trouble Tickets – Net Drills</title>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#E8ECF0;--face:#F7F9FA;--ink:#17212B;--muted:#55647A;--rule:#C6D0DA;
+  --orange:#C8561A;--green:#23794A;--blue:#1F5C9E;--brown:#6E4526;
+  --ok:#1E8A4C;--bad:#B8322A;--warn:#A86A12;--focus:#1F5C9E;
+  --accent:var(--brown);--on-accent:#FFFFFF;
+  --scr:#0F1B28;--sink:#D5E2EE;
+  --head:"Bahnschrift","DIN Alternate","Roboto Condensed","Avenir Next Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"Cascadia Mono","SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#111922;--face:#19242F;--ink:#E2E9F0;--muted:#98A8B9;--rule:#2E3D4C;
+    --orange:#F0874A;--green:#4DBB7F;--blue:#6AA5EA;--brown:#C08B63;
+    --ok:#4DBB7F;--bad:#F06A5E;--warn:#E3A83F;--focus:#8CC4F2;--on-accent:#111922;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111922;--face:#19242F;--ink:#E2E9F0;--muted:#98A8B9;--rule:#2E3D4C;
+  --orange:#F0874A;--green:#4DBB7F;--blue:#6AA5EA;--brown:#C08B63;
+  --ok:#4DBB7F;--bad:#F06A5E;--warn:#E3A83F;--focus:#8CC4F2;--on-accent:#111922;
+  color-scheme:dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--body)}
+.wrap{max-width:860px;margin:0 auto;padding:22px 18px 40px}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.series{display:flex;flex-wrap:wrap;gap:6px 16px;margin:0 0 18px;font:600 13px/1.2 var(--head);color:var(--muted)}
+.jack{display:inline-flex;align-items:center;gap:7px}
+.jack::before{content:"";width:15px;height:11px;border:2px solid var(--c);border-radius:2px 2px 4px 4px}
+.jack.on{color:var(--ink)}
+.jack.on::before{background:var(--c)}
+h1{font:700 clamp(38px,8vw,60px)/.95 var(--head);letter-spacing:-.01em;margin:0 0 10px}
+.lede{margin:0;max-width:62ch;color:var(--muted);font-size:17px}
+fieldset.topics{border:0;padding:0;margin:24px 0 14px}
+fieldset.topics legend{font-size:14px;color:var(--muted);padding:0;margin-bottom:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:8px 12px;border-radius:999px;border:1.5px solid var(--rule);background:var(--face);color:var(--ink);font-size:14px;font-weight:600}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.stats{display:flex;flex-wrap:wrap;gap:6px 28px;margin:0 0 16px}
+.stats div{display:flex;flex-direction:column-reverse}
+.stats dt{font-size:13px;color:var(--muted)}
+.stats dd{margin:0;font:700 26px/1 var(--head)}
+.ticket{background:var(--face);border:1.5px solid var(--rule);border-top:6px solid var(--accent);border-radius:10px;padding:16px 18px 18px}
+.thead{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+.cat{font-weight:700;color:var(--accent)}
+.ticket h2{margin:6px 0 8px;font:700 clamp(24px,5vw,30px)/1.1 var(--head)}
+.sym{margin:0 0 14px;padding:0 0 0 14px;border-left:3px solid var(--rule);font-size:17px;max-width:62ch}
+.evl{margin:12px 0 4px;font-size:13.5px;font-weight:600;color:var(--muted)}
+.ev{margin:0;padding:12px 14px;background:var(--scr);color:var(--sink);border-radius:8px;font:13px/1.5 var(--mono);white-space:pre;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.opts{border:0;padding:0;margin:18px 0 0;display:grid;gap:8px}
+.opts legend{font:700 18px/1.2 var(--head);padding:0;margin-bottom:10px}
+.opt{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;width:100%;padding:11px 12px;text-align:left;border:1.5px solid var(--rule);border-radius:8px;background:var(--bg);color:var(--ink);font-size:15.5px}
+.opt .k{display:grid;place-items:center;width:26px;height:26px;border-radius:6px;border:1.5px solid var(--rule);font:700 14px/1 var(--head);color:var(--muted)}
+.opt:not(:disabled):hover{border-color:var(--accent)}
+.opt.right{border-color:var(--ok);box-shadow:inset 4px 0 0 var(--ok)}
+.opt.wrong{border-color:var(--bad);box-shadow:inset 4px 0 0 var(--bad)}
+.opt:disabled{cursor:default}
+.res{margin:16px 0 0;padding:12px 14px;border-radius:8px;background:var(--bg)}
+.verdict{margin:0 0 6px;font:700 18px/1.2 var(--head)}
+.verdict.good{color:var(--ok)}.verdict.nope{color:var(--bad)}
+.res p{margin:0 0 8px}
+.fixl{font-weight:600;margin:10px 0 4px}
+.swipe{margin:4px 0 0;font-size:13px;color:var(--muted)}
+.fix{margin:0;padding:10px 12px;background:var(--face);border:1px solid var(--rule);border-radius:6px;font:13.5px/1.5 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.btn{min-height:44px;padding:10px 16px;border-radius:6px;border:1.5px solid var(--ink);background:transparent;color:var(--ink);font-weight:600;font-size:15px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.keys{margin:10px 0 0;font-size:13.5px;color:var(--muted)}
+.end h2{margin:0 0 6px;font:700 28px/1.1 var(--head)}
+.end ul{margin:8px 0 0;padding-left:20px}
+footer{margin-top:40px;font-size:13px;color:var(--muted)}
+</style>
+<style>a.jack{color:inherit;text-decoration:none}a.jack:hover,a.jack:focus-visible{color:var(--ink);text-decoration:underline;text-underline-offset:3px}</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <p class="series" aria-label="Net Drills series">
+    <a class="jack" style="--c:var(--orange)" href="../subnet-sprint/">Subnet Sprint</a>
+    <a class="jack" style="--c:var(--green)" href="../ios-cli-lab/">IOS CLI Lab</a>
+    <a class="jack" style="--c:var(--blue)" href="../config-audit/">Config Audit</a>
+    <span class="jack on" style="--c:var(--brown)" aria-current="page">Trouble Tickets</span>
+  </p>
+  <h1>Trouble Tickets</h1>
+  <p class="lede">Read the complaint, study the real device output, and pick the root cause. Every ticket ends with the fix, including the ones where Packet Tracer says 96% and you can't see why.</p>
+</header>
+
+<fieldset class="topics">
+  <legend>Ticket types in the deck</legend>
+  <div class="chips" id="chips"></div>
+</fieldset>
+
+<dl class="stats">
+  <div><dt>First try</dt><dd id="s-ok">0</dd></div>
+  <div><dt>Answered</dt><dd id="s-all">0</dd></div>
+  <div><dt>Streak</dt><dd id="s-streak">0</dd></div>
+  <div><dt>Best</dt><dd id="s-best">0</dd></div>
+</dl>
+
+<article class="ticket" id="ticket" aria-live="polite">
+  <div class="thead"><span id="t-no"></span><span class="cat" id="t-cat"></span></div>
+  <h2 id="t-title"></h2>
+  <p class="sym" id="t-sym"></p>
+  <div id="t-ev"></div>
+  <fieldset class="opts" id="t-opts"><legend>What's the most likely cause?</legend></fieldset>
+  <div class="res" id="t-res" hidden></div>
+  <div class="actions"><button class="btn primary" type="button" id="t-next" hidden>Next ticket</button></div>
+  <p class="keys">Keyboard: press 1 to 4 to answer, Enter for the next ticket.</p>
+</article>
+
+<section class="ticket end" id="end" hidden aria-live="polite"></section>
+
+<footer>Unofficial practice for the Cisco NetAcad Network Technician path and the CyberPatriot Cisco challenge; not affiliated with either. Outputs are modeled on Cisco IOS and Packet Tracer. Your best streak stays in this browser only.</footer>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } }
+};
+
+const TICKETS = [
+{ id: 'apipa', cat: 'Services', title: 'Connected, but nothing loads',
+  sym: 'My laptop says it is connected to the network, but no websites or shared drives work.',
+  ev: [['Laptop command prompt', `C:\\>ipconfig
+
+FastEthernet0 Connection:(default port)
+
+   Connection-specific DNS Suffix..: 
+   Link-local IPv6 Address.........: FE80::2E0:F7FF:FE3B:1A0C
+   IPv6 Address....................: ::
+   IPv4 Address....................: 169.254.87.14
+   Subnet Mask.....................: 255.255.0.0
+   Default Gateway.................: ::
+                                     0.0.0.0`]],
+  opts: ['The laptop never got a DHCP lease, so it gave itself an APIPA address', 'The DNS server is down', 'The default gateway is set to the wrong router address', 'The subnet mask should be 255.255.255.0'],
+  why: 'A 169.254.x.x address (APIPA) with no gateway means DHCP failed. Common causes: the DHCP server or pool is down or full, the port is in the wrong VLAN, or DHCP snooping is dropping the offers.',
+  fix: 'Check the DHCP server and pool, the switch port VLAN, and DHCP snooping trust. Then on the laptop:\nipconfig /renew' },
+{ id: 'gw', cat: 'Addressing', title: 'Local works, remote does not',
+  sym: 'I can print to the printer next to me, but I cannot reach anything outside our office.',
+  ev: [['PC command prompt', `C:\\>ipconfig
+
+   IPv4 Address....................: 192.168.10.25
+   Subnet Mask.....................: 255.255.255.0
+   Default Gateway.................: 192.168.10.254
+
+C:\\>ping 192.168.10.30
+
+Pinging 192.168.10.30 with 32 bytes of data:
+
+Reply from 192.168.10.30: bytes=32 time<1ms TTL=128
+Reply from 192.168.10.30: bytes=32 time<1ms TTL=128
+Reply from 192.168.10.30: bytes=32 time<1ms TTL=128
+Reply from 192.168.10.30: bytes=32 time<1ms TTL=128
+
+C:\\>ping 8.8.8.8
+
+Pinging 8.8.8.8 with 32 bytes of data:
+
+Request timed out.
+Request timed out.
+Request timed out.
+Request timed out.`],
+    ['R1 console', `R1#show ip interface brief
+Interface              IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0     192.168.10.1    YES manual up                    up
+GigabitEthernet0/1     203.0.113.2     YES manual up                    up`]],
+  opts: ["The PC's gateway is 192.168.10.254, but the router's LAN address is 192.168.10.1", "The PC's subnet mask is wrong", 'The router LAN interface is down', 'The printer is using the same IP address as the PC'],
+  why: 'Traffic for other networks goes to the default gateway. This PC sends it to .254, where no router is listening, so local traffic works and remote traffic dies.',
+  fix: 'Set the PC default gateway to 192.168.10.1. If DHCP handed it out, fix the pool:\nip dhcp pool LAN\n default-router 192.168.10.1' },
+{ id: 'mask', cat: 'Addressing', title: 'The gateway looks right, but is not',
+  sym: 'PC3 can reach 192.168.1.65 through .126, but nothing else, not even the gateway.',
+  ev: [['PC3 command prompt', `C:\\>ipconfig
+
+   IPv4 Address....................: 192.168.1.70
+   Subnet Mask.....................: 255.255.255.192
+   Default Gateway.................: 192.168.1.1`],
+    ['R1 running-config (excerpt)', `interface GigabitEthernet0/0
+ ip address 192.168.1.1 255.255.255.0`]],
+  opts: ['With a /26 mask, PC3 is in 192.168.1.64/26, so the gateway 192.168.1.1 is outside its subnet', 'The gateway must always be the last usable address', '192.168.1.70 is a broadcast address', 'R1 needs a static route back to PC3'],
+  why: 'The mask decides what PC3 treats as local. 255.255.255.192 makes its subnet 192.168.1.64 to .127, so the gateway .1 is out of reach, and R1 uses /24, so the two sides disagree.',
+  fix: 'Give PC3 the same mask as the router interface: 255.255.255.0. (Or re-plan both sides as /26 with a gateway inside 192.168.1.64/26.)' },
+{ id: 'admin', cat: 'Device config', title: 'A whole floor is offline',
+  sym: 'Nobody on the second floor can reach the server room since this morning.',
+  ev: [['R1 console', `R1#show ip interface brief
+Interface              IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0     192.168.10.1    YES manual up                    up
+GigabitEthernet0/1     192.168.20.1    YES manual administratively down down`]],
+  opts: ['G0/1 has been shut down and needs no shutdown', 'The cable on G0/1 is bad', 'G0/1 has the wrong IP address', 'R1 needs a routing protocol for the second floor'],
+  why: 'administratively down means the interface is disabled in the configuration: someone typed shutdown, or it was never enabled (router ports start shut down). A cabling fault shows plain down/down instead.',
+  fix: 'interface g0/1\nno shutdown' },
+{ id: 'phys', cat: 'Physical', title: 'Dead link after the office move',
+  sym: 'The link from R1 to the second-floor switch has been dead since the move. The switch is powered on.',
+  ev: [['R1 console', `R1#show ip interface brief
+Interface              IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0     192.168.10.1    YES manual up                    up
+GigabitEthernet0/1     192.168.20.1    YES manual down                  down`]],
+  opts: ['A Layer 1 problem: an unplugged, damaged, or wrong cable, or a dead port at the far end', 'Someone typed shutdown on G0/1', 'G0/1 has a duplicate IP address', 'The VTY lines are misconfigured'],
+  why: 'down/down without the word administratively means the port is enabled but sees no signal. That points at the physical layer: cable, connector, port, or the device at the other end.',
+  fix: 'Check the cable and its type, the port lights on both ends, and the far-end port. Swap in a known-good cable.' },
+{ id: 'dns', cat: 'Services', title: 'Websites fail, the internet works',
+  sym: 'Websites will not load, but the IT person says the internet connection is fine.',
+  ev: [['PC command prompt', `C:\\>ping 8.8.8.8
+
+Pinging 8.8.8.8 with 32 bytes of data:
+
+Reply from 8.8.8.8: bytes=32 time=21ms TTL=117
+Reply from 8.8.8.8: bytes=32 time=20ms TTL=117
+Reply from 8.8.8.8: bytes=32 time=22ms TTL=117
+Reply from 8.8.8.8: bytes=32 time=21ms TTL=117
+
+C:\\>ping www.example.com
+Ping request could not find host www.example.com. Please check the name and try again.`]],
+  opts: ['Name resolution is failing: the DNS server setting is wrong or the server is unreachable', 'The default gateway is wrong', 'The website blocks ping', 'The PC has an APIPA address'],
+  why: 'Pinging an internet IP works, so addressing, the gateway, and routing are fine. "Could not find host" means the name never became an address, which is DNS. A site that blocks ping would time out, not fail to resolve.',
+  fix: 'Check the DNS server with ipconfig /all, fix the DHCP dns-server option or static DNS entry, and confirm the DNS server is up.' },
+{ id: 'svi', cat: 'Switching', title: 'Cannot manage the new switch',
+  sym: 'PCs plugged into the new switch work fine, but I cannot ping or SSH to the switch itself.',
+  ev: [['S1 console', `S1#show ip interface brief
+Interface              IP-Address      OK? Method Status                Protocol
+Vlan1                  192.168.1.2     YES manual administratively down down
+FastEthernet0/1        unassigned      YES unset  up                    up
+FastEthernet0/2        unassigned      YES unset  up                    up
+FastEthernet0/3        unassigned      YES unset  down                  down`]],
+  opts: ['The management interface (the VLAN 1 SVI) is shut down', 'The switch needs a routing protocol', 'The PCs are in the wrong VLAN', 'Each switch port needs its own IP address'],
+  why: "Switching frames needs no IP address, so the PCs work. The switch's own IP lives on an SVI, and SVIs stay down until you enable them.",
+  fix: 'interface vlan 1\nno shutdown' },
+{ id: 'dgw', cat: 'Switching', title: 'Manageable from only one subnet',
+  sym: 'I can manage S1 from the IT office on the same subnet, but not from the help desk on another subnet.',
+  ev: [['S1 running-config (excerpt)', `interface Vlan1
+ ip address 192.168.1.2 255.255.255.0
+!
+line vty 0 4
+ login local
+ transport input ssh`],
+    ['Pings to 192.168.1.2', `From IT PC 192.168.1.30:      Reply from 192.168.1.2: bytes=32 time<1ms TTL=255
+From help desk 192.168.50.20: Request timed out.`]],
+  opts: ['S1 has no default gateway, so it cannot answer hosts on other subnets', 'VLAN 1 is shut down', 'The help desk PC needs the switch MAC address', 'SSH is not enabled on S1'],
+  why: 'A Layer 2 switch uses ip default-gateway to reach other networks. Without it, S1 answers same-subnet hosts, but its replies to other subnets have nowhere to go.',
+  fix: 'ip default-gateway 192.168.1.1' },
+{ id: 'mode', cat: 'Device config', title: 'The hostname command fails',
+  sym: 'A mentee typed the exact command from the cheat sheet and got an error.',
+  ev: [['Router console', `Router#hostname R1
+       ^
+% Invalid input detected at '^' marker.`]],
+  opts: ['The mentee is in privileged EXEC; hostname is a global configuration command', 'Hostnames must be lowercase', 'An enable secret is required before a hostname', 'The router must be reloaded first'],
+  why: 'The # prompt means privileged EXEC. Configuration commands work only after configure terminal, when the prompt changes to Router(config)#.',
+  fix: 'configure terminal\nhostname R1' },
+{ id: 'netaddr', cat: 'Addressing', title: 'The router rejects the new LAN address',
+  sym: 'I am setting up a new LAN on G0/2 and the router will not take the address.',
+  ev: [['R1 console', `R1(config)#interface g0/2
+R1(config-if)#ip address 192.168.30.0 255.255.255.0
+Bad mask /24 for address 192.168.30.0`]],
+  opts: ['192.168.30.0 is the network address itself; use a host address such as 192.168.30.1', 'The mask should be 255.255.0.0', 'Private addresses cannot be used on routers', 'The interface must be shut down first'],
+  why: 'With a /24 mask, 192.168.30.0 is the network address and .255 is the broadcast. Neither can be assigned to an interface.',
+  fix: 'ip address 192.168.30.1 255.255.255.0' },
+{ id: 'overlap', cat: 'Addressing', title: 'Overlapping subnets',
+  sym: 'I tried to put a new /26 on G0/1 and the router complains.',
+  ev: [['R1 console', `R1(config)#interface g0/1
+R1(config-if)#ip address 192.168.10.65 255.255.255.192
+% 192.168.10.64 overlaps with GigabitEthernet0/0`],
+    ['R1 running-config (excerpt)', `interface GigabitEthernet0/0
+ ip address 192.168.10.1 255.255.255.0`]],
+  opts: ["G0/0's /24 already includes 192.168.10.64/26; each interface needs its own subnet", '192.168.10.65 is a broadcast address', 'Routers only accept /24 masks', 'G0/1 needs no shutdown before it takes an address'],
+  why: '192.168.10.0/24 covers .0 through .255, which includes the whole 192.168.10.64/26 block. A router cannot put two interfaces in overlapping subnets.',
+  fix: 'Re-plan: shrink G0/0 (for example to 192.168.10.0/26), or give G0/1 a different network such as 192.168.11.0/26.' },
+{ id: 'refused', cat: 'Remote access', title: 'Remote login refused',
+  sym: 'Since yesterday I cannot remote into R1. It just says connection refused.',
+  ev: [['PC command prompt', `C:\\>telnet 192.168.1.1
+Trying 192.168.1.1 ...
+% Connection refused by remote host`],
+    ['R1 running-config (excerpt)', `line vty 0 4
+ login local
+ transport input ssh`]],
+  opts: ['The VTY lines now accept only SSH, so connect with SSH instead of Telnet', 'R1 is powered off', 'The Telnet password is wrong', "The PC's default gateway is wrong"],
+  why: 'Refused (not timed out) means R1 answered, so it is up and reachable. transport input ssh is a hardening change working as intended.',
+  fix: 'ssh -l netadmin 192.168.1.1' },
+{ id: 'nopw', cat: 'Remote access', title: 'Password required, but none set',
+  sym: 'Telnet to the new router connects for a second, then drops.',
+  ev: [['PC command prompt', `C:\\>telnet 192.168.1.1
+Trying 192.168.1.1 ...Open
+
+Password required, but none set
+
+[Connection to 192.168.1.1 closed by foreign host]`]],
+  opts: ['The VTY lines require login but have no password configured', 'Telnet is blocked by transport input', 'The enable secret is missing', 'An ACL is blocking the PC'],
+  why: 'VTY lines check for a login by default. With no password set, IOS refuses the session instead of letting anyone in. (A transport input block would say refused, not Open.)',
+  fix: 'line vty 0 4\npassword Vty-Pa55w0rd\nlogin\n(Better: a username secret, login local, and SSH.)' },
+{ id: 'keys', cat: 'Remote access', title: 'SSH will not start',
+  sym: 'I created a username and set transport input ssh, but SSH connections are refused.',
+  ev: [['R1 console', `R1#show ip ssh
+SSH Disabled - version 1.99
+%Please create RSA keys to enable SSH (and of atleast 768 bits for SSH v2).
+Authentication timeout: 120 secs; Authentication retries: 3`]],
+  opts: ['There is no RSA key pair; set a domain name and generate keys', 'SSH also needs transport input telnet', 'The username must be admin', 'The router needs ip ssh version 1'],
+  why: 'SSH stays disabled until an RSA key pair exists. Generating keys needs a non-default hostname and a domain name, and SSH version 2 needs at least 768 bits.',
+  fix: 'ip domain-name cp.local\ncrypto key generate rsa general-keys modulus 2048\nip ssh version 2' },
+{ id: 'psec', cat: 'Switching', title: 'New laptop, dead port',
+  sym: 'A student swapped in a new laptop on the classroom port and lost all network access.',
+  ev: [['S1 console log', `%PM-4-ERR_DISABLE: psecure-violation error detected on Fa0/5, putting Fa0/5 in err-disable state
+%PORT_SECURITY-2-PSECURE_VIOLATION: Security violation occurred, caused by MAC address 0001.4297.a3c1 on port FastEthernet0/5.`],
+    ['S1 console', `S1#show port-security interface f0/5
+Port Security              : Enabled
+Port Status                : Secure-shutdown
+Violation Mode             : Shutdown
+Maximum MAC Addresses      : 1
+Total MAC Addresses        : 1
+Sticky MAC Addresses       : 1
+Last Source Address:Vlan   : 0001.4297.A3C1:10
+Security Violation Count   : 1`]],
+  opts: ['Port security allows one sticky MAC, saw a new one, and err-disabled the port', 'The new laptop has a bad network card', 'The DHCP pool ran out of addresses', 'Spanning tree is blocking the port'],
+  why: 'The port learned the old laptop as its one allowed MAC. The new MAC triggered a violation, and violation mode shutdown err-disabled the port. That is port security doing its job.',
+  fix: 'If the new laptop is approved, remove the old sticky MAC and bounce the port. On real IOS:\nclear port-security sticky interface f0/5\nIn Packet Tracer, under the interface:\nno switchport port-security mac-address sticky <old MAC from show port-security address>\nThen:\ninterface f0/5\nshutdown\nno shutdown' },
+{ id: 'cable', cat: 'Physical', title: 'The link stays red in Packet Tracer',
+  sym: 'In Packet Tracer, the link between PC0 and R1 stays red even after no shutdown.',
+  ev: [['Packet Tracer', `Connection: PC0 FastEthernet0  <->  R1 GigabitEthernet0/0
+Cable:      Copper Straight-Through`],
+    ['R1 console', `R1#show ip interface brief
+Interface              IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0     192.168.1.1     YES manual down                  down`]],
+  opts: ['A PC-to-router link needs a crossover cable', 'The router port needs speed 100', 'PCs can never connect straight to routers', 'The PC needs a default gateway before the link comes up'],
+  why: 'A PC and a router transmit on the same pins, so they need a crossover cable. Straight-through joins unlike devices, such as PC to switch or switch to router. Many real ports auto-detect this, but Packet Tracer and exams expect the rule.',
+  fix: 'Replace it with a Copper Cross-Over cable, or connect the PC through a switch.' },
+{ id: 'native', cat: 'Switching', title: 'A warning keeps scrolling on S1',
+  sym: 'This message keeps appearing on the S1 console since the trunk changes.',
+  ev: [['S1 console log', `%CDP-4-NATIVE_VLAN_MISMATCH: Native VLAN mismatch discovered on GigabitEthernet0/1 (999), with S2 GigabitEthernet0/1 (1).`]],
+  opts: ['The two ends of the trunk use different native VLANs', 'VLAN 999 does not exist on S1', 'CDP must be turned off to fix the trunk', 'The trunk cable is faulty'],
+  why: 'S1 sends untagged trunk traffic in VLAN 999 and S2 uses VLAN 1. Untagged frames can leak between those VLANs, which is why CDP warns about it.',
+  fix: 'On S2:\ninterface g0/1\nswitchport trunk native vlan 999' },
+{ id: 'vlan', cat: 'Switching', title: 'Wrong subnet on one desk',
+  sym: 'PC4 on port Fa0/4 keeps getting a 192.168.20.x address. It belongs on the users network, 192.168.10.x.',
+  ev: [['S1 console', `S1#show vlan brief
+
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    Fa0/6, Fa0/7, Fa0/8, Fa0/9
+10   USERS                            active    Fa0/1, Fa0/2, Fa0/3
+20   GUESTS                           active    Fa0/4, Fa0/5`]],
+  opts: ['Fa0/4 is assigned to VLAN 20 (GUESTS) instead of VLAN 10', 'The DHCP server is handing out the wrong range', 'PC4 has a static IP address', 'The trunk is not carrying VLAN 10'],
+  why: 'The switch port decides the VLAN, and the VLAN decides which DHCP scope answers. Fa0/4 sits in GUESTS, so PC4 gets a guest address.',
+  fix: 'interface f0/4\nswitchport access vlan 10' },
+{ id: 'ptcase', cat: 'Packet Tracer scoring', title: 'Stuck at 96%: the hostname item',
+  sym: 'We typed the hostname exactly like the instructions said, but Check Results still marks that item wrong.',
+  ev: [['Activity instructions (excerpt)', `Configure the switch hostname as S1-Floor2.`],
+    ['S1 running-config (excerpt)', `hostname S1-floor2`]],
+  opts: ['The value is case-sensitive: S1-floor2 is not S1-Floor2', 'Hostnames cannot contain hyphens', 'The activity only grades hostnames after a reload', 'Hostnames must be set from user EXEC mode'],
+  why: 'Packet Tracer compares strings exactly. One wrong letter case fails the item even though the switch works fine. Copy names, VLAN names, and passwords character for character.',
+  fix: 'hostname S1-Floor2' },
+{ id: 'ptbanner', cat: 'Packet Tracer scoring', title: 'Stuck at 98%: the banner item',
+  sym: 'The banner shows up when we log in, but the banner requirement is still unchecked.',
+  ev: [['Activity instructions (excerpt)', `Configure a message-of-the-day banner that says: Unauthorized Access Prohibited!`],
+    ['R1 running-config (excerpt)', `banner motd ^CUnauthorized access prohibited^C`]],
+  opts: ['The text must match exactly, including capitals and the exclamation mark', 'Only login banners are graded, never MOTD banners', 'The delimiter has to be #', 'The banner text needs quotation marks'],
+  why: 'Scoring checks the banner text character for character. Capitals and punctuation count; the delimiter character does not.',
+  fix: 'banner motd #Unauthorized Access Prohibited!#' },
+{ id: 'ptwrongif', cat: 'Packet Tracer scoring', title: 'Right address, wrong interface',
+  sym: 'The addressing table gives G0/1 the address 192.168.20.1. We configured it, but the LAN item and the ping test both fail.',
+  ev: [['R1 console', `R1#show ip interface brief
+Interface              IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0     192.168.10.1    YES manual up                    up
+GigabitEthernet0/1     unassigned      YES unset  administratively down down
+GigabitEthernet0/2     192.168.20.1    YES manual up                    up`]],
+  opts: ['The address landed on G0/2 instead of G0/1, and nothing is cabled to G0/2', 'The mask should be /16', 'G0/1 needs a description before it accepts an address', '192.168.20.1 is a reserved address'],
+  why: 'The item checks one specific interface, and the cable goes to G0/1. The router happily accepted the address on G0/2, where it helps nobody.',
+  fix: 'interface g0/2\nno ip address\nshutdown\ninterface g0/1\nip address 192.168.20.1 255.255.255.0\nno shutdown' },
+{ id: 'ptparent', cat: 'Device config', title: 'Subinterfaces configured, nothing works',
+  sym: 'Router-on-a-stick is configured exactly per the instructions, but no VLAN can reach its gateway.',
+  ev: [['R1 console', `R1#show ip interface brief
+Interface              IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0     unassigned      YES unset  administratively down down
+GigabitEthernet0/0.10  192.168.10.1    YES manual administratively down down
+GigabitEthernet0/0.99  192.168.99.1    YES manual administratively down down`]],
+  opts: ['The physical interface G0/0 is still shut down, so every subinterface is down with it', 'Each subinterface needs its own no shutdown, nothing else', 'The encapsulation must be ISL, not dot1Q', 'The switch has to be rebooted to see the subinterfaces'],
+  why: 'Subinterfaces ride on the physical port. A shut parent takes them all down no matter how well they are configured.',
+  fix: 'interface g0/0\nno shutdown' },
+{ id: 'ptallowed', cat: 'Switching', title: 'Management VLAN dies at the trunk',
+  sym: 'PCs in VLAN 10 work, but the switch management address in VLAN 99 is unreachable from R1 and the SSH test fails.',
+  ev: [['S1 console', `S1#show interfaces trunk
+Port        Mode         Encapsulation  Status        Native vlan
+Gig0/1      on           802.1q         trunking      999
+
+Port        Vlans allowed on trunk
+Gig0/1      10`]],
+  opts: ["VLAN 99 is not in the trunk's allowed list, so its frames are dropped at G0/1", 'SVIs can never be reached across a trunk', 'The native VLAN must be 99', 'S1 needs a routing protocol'],
+  why: 'A pruned allowed list carries only the VLANs listed. Everything else, including the management VLAN, stops at the trunk port.',
+  fix: 'interface g0/1\nswitchport trunk allowed vlan add 99\n(add, not a bare list, or you replace VLAN 10)' },
+{ id: 'ptencap', cat: 'Device config', title: 'The gateway tags the wrong VLAN',
+  sym: 'VLAN 10 hosts have the right gateway address configured but cannot reach it.',
+  ev: [['R1 running-config (excerpt)', `interface GigabitEthernet0/0.10
+ encapsulation dot1Q 20
+ ip address 192.168.10.1 255.255.255.0`]],
+  opts: ['The subinterface tags VLAN 20, so VLAN 10 frames never match it', 'The subinterface number must equal the VLAN ID by rule', 'The address must be the last usable in the subnet', 'The trunk needs an encapsulation command too'],
+  why: 'The subinterface number is only a name. The encapsulation dot1Q value is what binds it to a VLAN, and here it binds to VLAN 20.',
+  fix: 'interface g0/0.10\nencapsulation dot1Q 10' },
+{ id: 'pthelper', cat: 'Services', title: 'DHCP server on another subnet',
+  sym: 'The DHCP server lives in the server VLAN. Clients in VLAN 10 keep getting 169.254 addresses.',
+  ev: [['R1 running-config (excerpt)', `interface GigabitEthernet0/0.10
+ encapsulation dot1Q 10
+ ip address 192.168.10.1 255.255.255.0
+!
+interface GigabitEthernet0/0.99
+ encapsulation dot1Q 99
+ ip address 192.168.99.1 255.255.255.0`],
+    ['Server', `DHCP service: On
+Pool: 192.168.10.0 /24, default gateway 192.168.10.1
+Server address: 192.168.99.10`]],
+  opts: ['DHCP broadcasts never leave VLAN 10; the VLAN 10 gateway interface needs ip helper-address 192.168.99.10', 'The server must be moved into VLAN 10', 'The pool has to live on the router instead', 'PCs need a static gateway before DHCP works'],
+  why: 'Routers do not forward broadcasts. ip helper-address turns the DHCP broadcast into a unicast to the server and relays the reply back.',
+  fix: 'interface g0/0.10\nip helper-address 192.168.99.10' },
+{ id: 'ptacl', cat: 'Access lists', title: 'The ACL is applied, guests still get through',
+  sym: 'The instructions say to block the guest VLAN from the management network. The ACL is written and applied, but guests still reach it.',
+  ev: [['R1 running-config (excerpt)', `ip access-list extended NO-GUEST-MGMT
+ deny ip 192.168.20.0 0.0.0.255 192.168.99.0 0.0.0.255
+ permit ip any any
+!
+interface GigabitEthernet0/0.20
+ encapsulation dot1Q 20
+ ip address 192.168.20.1 255.255.255.0
+!
+interface GigabitEthernet0/0.99
+ encapsulation dot1Q 99
+ ip address 192.168.99.1 255.255.255.0
+ ip access-group NO-GUEST-MGMT in`]],
+  opts: ['It is applied inbound on the management subinterface; guest packets arrive inbound on G0/0.20 and leave outbound on G0/0.99', 'Extended ACLs only work on physical interfaces', 'The permit ip any any must come first', 'The wildcard masks are backwards'],
+  why: 'Direction is relative to the interface. Guest-to-management packets enter on the guest subinterface and exit the management one; inbound on .99 only ever sees the replies.',
+  fix: 'interface g0/0.99\nno ip access-group NO-GUEST-MGMT in\ninterface g0/0.20\nip access-group NO-GUEST-MGMT in' },
+{ id: 'ptdefroute', cat: 'Device config', title: 'Everything inside works, the internet does not',
+  sym: 'Every internal ping succeeds, and R1 can ping the ISP router, but nothing past it answers.',
+  ev: [['R1 console', `R1#show ip route
+Gateway of last resort is not set
+
+      192.168.10.0/24 is variably subnetted, 2 subnets, 2 masks
+C        192.168.10.0/24 is directly connected, GigabitEthernet0/0.10
+L        192.168.10.1/32 is directly connected, GigabitEthernet0/0.10
+      203.0.113.0/30 is variably subnetted, 2 subnets, 2 masks
+C        203.0.113.0/30 is directly connected, GigabitEthernet0/1
+L        203.0.113.2/32 is directly connected, GigabitEthernet0/1`]],
+  opts: ['R1 has no default route, so packets for unknown networks are dropped', 'The ISP link needs DHCP', 'The LAN subnet mask is wrong', 'Pings to the internet require a routing protocol'],
+  why: '"Gateway of last resort is not set" means R1 only knows its connected networks. A default route sends everything else to the ISP.',
+  fix: 'ip route 0.0.0.0 0.0.0.0 203.0.113.1' }
+];
+
+const CATS = ['Addressing', 'Physical', 'Switching', 'Device config', 'Services', 'Remote access', 'Access lists', 'Packet Tracer scoring'];
+const on = new Set(CATS);
+let deck = [], pos = 0, order = [], answered = false, missed = [];
+const S = { ok: 0, all: 0, streak: 0, best: Number(store.get('netdrills.tickets.best', 0)) || 0 };
+
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+function updStats() {
+  $('#s-ok').textContent = S.ok; $('#s-all').textContent = S.all;
+  $('#s-streak').textContent = S.streak; $('#s-best').textContent = S.best;
+}
+function renderChips() {
+  const box = $('#chips');
+  box.textContent = '';
+  CATS.forEach(c => {
+    const n = TICKETS.filter(t => t.cat === c).length;
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip';
+    b.setAttribute('aria-pressed', on.has(c) ? 'true' : 'false');
+    b.textContent = `${c} (${n})`;
+    b.addEventListener('click', () => {
+      if (on.has(c) && on.size === 1) return;
+      if (on.has(c)) on.delete(c); else on.add(c);
+      renderChips();
+      startDeck(TICKETS.filter(t => on.has(t.cat)));
+    });
+    box.append(b);
+  });
+}
+function startDeck(list) {
+  deck = shuffle(list.slice()); pos = 0; missed = [];
+  $('#end').hidden = true; $('#ticket').hidden = false;
+  show();
+}
+function show() {
+  if (pos >= deck.length) { finish(); return; }
+  const t = deck[pos];
+  answered = false;
+  $('#t-no').textContent = `Ticket ${pos + 1} of ${deck.length}`;
+  $('#t-cat').textContent = t.cat;
+  $('#t-title').textContent = t.title;
+  $('#t-sym').textContent = '\u201C' + t.sym + '\u201D';
+  const ev = $('#t-ev');
+  ev.textContent = '';
+  t.ev.forEach(([label, text]) => {
+    const l = document.createElement('p'); l.className = 'evl'; l.textContent = label;
+    const pre = document.createElement('pre'); pre.className = 'ev'; pre.textContent = text; pre.tabIndex = 0;
+    ev.append(l, pre);
+  });
+  requestAnimationFrame(() => {
+    ev.querySelectorAll('pre.ev').forEach(pre => {
+      if (pre.scrollWidth > pre.clientWidth + 4) {
+        const c = document.createElement('p');
+        c.className = 'swipe';
+        c.textContent = 'Wide output: swipe sideways to see every column.';
+        pre.after(c);
+      }
+    });
+  });
+  const fs = $('#t-opts');
+  fs.querySelectorAll('.opt').forEach(b => b.remove());
+  order = shuffle([0, 1, 2, 3]);
+  order.forEach((oi, k) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'opt'; b.dataset.oi = oi;
+    b.innerHTML = '<span class="k" aria-hidden="true"></span><span></span>';
+    b.firstChild.textContent = k + 1;
+    b.lastChild.textContent = t.opts[oi];
+    b.addEventListener('click', () => answer(oi));
+    fs.append(b);
+  });
+  $('#t-res').hidden = true;
+  $('#t-next').hidden = true;
+}
+function answer(oi) {
+  if (answered) return;
+  answered = true;
+  const t = deck[pos], right = oi === 0;
+  S.all++;
+  if (right) { S.ok++; S.streak++; if (S.streak > S.best) { S.best = S.streak; store.set('netdrills.tickets.best', S.best); } }
+  else { S.streak = 0; missed.push(t); }
+  document.querySelectorAll('#t-opts .opt').forEach(b => {
+    const bi = Number(b.dataset.oi);
+    b.disabled = true;
+    if (bi === 0) b.classList.add('right');
+    else if (bi === oi) b.classList.add('wrong');
+  });
+  const res = $('#t-res');
+  res.innerHTML = '<p class="verdict"></p><p class="why"></p><p class="fixl">Fix</p><pre class="fix"></pre>';
+  const v = res.querySelector('.verdict');
+  v.textContent = right ? 'Solved.' : 'Not this time. The answer outlined in green is the root cause.';
+  v.className = 'verdict ' + (right ? 'good' : 'nope');
+  res.querySelector('.why').textContent = t.why;
+  res.querySelector('.fix').textContent = t.fix;
+  res.hidden = false;
+  const nb = $('#t-next');
+  nb.textContent = pos + 1 < deck.length ? 'Next ticket' : 'See results';
+  nb.hidden = false;
+  nb.focus({ preventScroll: true });
+  updStats();
+}
+function finish() {
+  $('#ticket').hidden = true;
+  const box = $('#end'), solved = deck.length - missed.length;
+  box.hidden = false;
+  box.innerHTML = '<h2></h2><p></p><div class="actions"></div>';
+  box.querySelector('h2').textContent = missed.length ? 'Deck done.' : 'Clean sweep.';
+  box.querySelector('p').textContent = `You solved ${solved} of ${deck.length} tickets on the first try.` + (missed.length ? ' Worth another look:' : ' Every root cause, first try.');
+  if (missed.length) {
+    const ul = document.createElement('ul');
+    missed.forEach(t => { const li = document.createElement('li'); li.textContent = `${t.title} (${t.cat})`; ul.append(li); });
+    box.insertBefore(ul, box.querySelector('.actions'));
+  }
+  const acts = box.querySelector('.actions');
+  if (missed.length) {
+    const r = document.createElement('button');
+    r.type = 'button'; r.className = 'btn primary';
+    r.textContent = `Retry the ${missed.length} missed`;
+    const again = missed.slice();
+    r.addEventListener('click', () => startDeck(again));
+    acts.append(r);
+  }
+  const a = document.createElement('button');
+  a.type = 'button'; a.className = 'btn' + (missed.length ? '' : ' primary');
+  a.textContent = 'Shuffle the whole deck';
+  a.addEventListener('click', () => startDeck(TICKETS.filter(t => on.has(t.cat))));
+  acts.append(a);
+  box.scrollIntoView({ block: 'start' });
+}
+$('#t-next').addEventListener('click', () => { pos++; show(); $('#ticket').scrollIntoView({ block: 'start' }); });
+document.addEventListener('keydown', e => {
+  if (e.altKey || e.ctrlKey || e.metaKey || $('#ticket').hidden) return;
+  if (!answered && /^[1-4]$/.test(e.key)) { answer(order[Number(e.key) - 1]); e.preventDefault(); }
+  else if (answered && e.key === 'Enter' && document.activeElement !== $('#t-next')) { $('#t-next').click(); e.preventDefault(); }
+});
+renderChips(); updStats();
+startDeck(TICKETS);
+})();
+</script>
+<!-- tool4that:foot --><p style="text-align:center;margin:28px 0 22px;font:14px/1.4 system-ui,-apple-system,Segoe UI,Arial,sans-serif"><a href="../../">More free tools at Tool4That</a></p><!-- /tool4that:foot -->
+</body>
+</html>

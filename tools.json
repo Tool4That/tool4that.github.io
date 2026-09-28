@@ -17,7 +17,83 @@
       "download_as": "maxed-and-matched.html",
       "icon": "check",
       "sha256": "5ef422f8f4c6c67c532db44e0d745aab14941635a000405fcf476ed8f4d4453b",
-      "updated": "2026-09-27"
+      "updated": "2026-09-27",
+      "category": "Military finance"
+    },
+    {
+      "slug": "net-drills/subnet-sprint",
+      "name": "Subnet Sprint",
+      "tagline": "Calculate it. Then faster.",
+      "description": "Work out the network, broadcast, and usable host range for any IPv4 address, then do it faster. Includes VLSM planning and IPv6 drills.",
+      "badges": [
+        "Networking",
+        "CyberPatriot",
+        "Offline",
+        "Private"
+      ],
+      "file": "net-drills/subnet-sprint/index.html",
+      "download_as": "subnet-sprint.html",
+      "icon": "subnet",
+      "category": "Networking practice: Net Drills",
+      "sha256": "e5fa9738c478d771a90281296140c63a2af25e069146ea262b6c374559279b60",
+      "updated": "2026-09-28"
+    },
+    {
+      "slug": "net-drills/ios-cli-lab",
+      "name": "IOS CLI Lab",
+      "tagline": "Configure it. Then prove it.",
+      "description": "Configure a simulated router and switch from their consoles, then prove it from two PCs. Timed, Packet Tracer-style missions.",
+      "badges": [
+        "Networking",
+        "CyberPatriot",
+        "Offline",
+        "Private"
+      ],
+      "file": "net-drills/ios-cli-lab/index.html",
+      "download_as": "ios-cli-lab.html",
+      "icon": "terminal",
+      "category": "Networking practice: Net Drills",
+      "sha256": "5fa5aff361fb2ad4953b4548ccae1e37250dd1b0d416a995f37a67a13f688b09",
+      "updated": "2026-09-28"
+    },
+    {
+      "slug": "net-drills/config-audit",
+      "name": "Config Audit",
+      "tagline": "Read it like an attacker.",
+      "description": "Flag every risky line in a running-config, choose the best fix, and name the protections that are missing entirely.",
+      "badges": [
+        "Networking",
+        "CyberPatriot",
+        "Offline",
+        "Private"
+      ],
+      "file": "net-drills/config-audit/index.html",
+      "download_as": "config-audit.html",
+      "icon": "search",
+      "category": "Networking practice: Net Drills",
+      "sha256": "e7c4868341e198f2e60c7c17ac418a05c3ca536b179a5d37469c23da27e3c28f",
+      "updated": "2026-09-28"
+    },
+    {
+      "slug": "net-drills/trouble-tickets",
+      "name": "Trouble Tickets",
+      "tagline": "Read the output. Find the fault.",
+      "description": "Study the complaint and real device output, then pick the root cause. Every ticket ends with the fix, including Packet Tracer scoring gotchas.",
+      "badges": [
+        "Networking",
+        "CyberPatriot",
+        "Offline",
+        "Private"
+      ],
+      "file": "net-drills/trouble-tickets/index.html",
+      "download_as": "trouble-tickets.html",
+      "icon": "wrench",
+      "category": "Networking practice: Net Drills",
+      "sha256": "456cc64d4b250d0195f04e6b4273bb9d388cc650052a143e5882076af8b12dff",
+      "updated": "2026-09-28"
     }
-  ]
+  ],
+  "category_notes": {
+    "Networking practice: Net Drills": "Four drills for the Cisco NetAcad Network Technician path and the CyberPatriot Cisco challenge. Unofficial practice; not affiliated with either. Progress stays in your browser."
+  }
 }

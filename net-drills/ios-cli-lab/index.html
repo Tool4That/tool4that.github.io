@@ -1,0 +1,2179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- tool4that:head -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-LpvuzB5PVCXHPaMro1CO+tAK7yFr9KGL7JLqHMQOke8=' 'sha256-ub5SsBxfAMKfK7WKWDiA5OfpoI9n48Y1lf+V0irRLVM='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="Configure a simulated router and switch from their consoles, then prove it from two PCs. Timed, Packet Tracer-style missions.">
+<link rel="canonical" href="https://tool4that.github.io/net-drills/ios-cli-lab/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%92%BB%3C%2Ftext%3E%3C%2Fsvg%3E">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tool4That">
+<meta property="og:title" content="IOS CLI Lab">
+<meta property="og:description" content="Configure a simulated router and switch from their consoles, then prove it from two PCs. Timed, Packet Tracer-style missions.">
+<meta property="og:url" content="https://tool4that.github.io/net-drills/ios-cli-lab/">
+<meta property="og:image" content="https://tool4that.github.io/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<!-- /tool4that:head -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>IOS CLI Lab – Net Drills</title>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#E8ECF0;--face:#F7F9FA;--ink:#17212B;--muted:#55647A;--rule:#C6D0DA;
+  --orange:#C8561A;--green:#23794A;--blue:#1F5C9E;--brown:#6E4526;
+  --ok:#1E8A4C;--bad:#B8322A;--warn:#A86A12;--focus:#1F5C9E;
+  --accent:var(--green);--on-accent:#FFFFFF;
+  --head:"Bahnschrift","DIN Alternate","Roboto Condensed","Avenir Next Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"Cascadia Mono","SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#111922;--face:#19242F;--ink:#E2E9F0;--muted:#98A8B9;--rule:#2E3D4C;
+    --orange:#F0874A;--green:#4DBB7F;--blue:#6AA5EA;--brown:#C08B63;
+    --ok:#4DBB7F;--bad:#F06A5E;--warn:#E3A83F;--focus:#8CC4F2;--on-accent:#111922;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111922;--face:#19242F;--ink:#E2E9F0;--muted:#98A8B9;--rule:#2E3D4C;
+  --orange:#F0874A;--green:#4DBB7F;--blue:#6AA5EA;--brown:#C08B63;
+  --ok:#4DBB7F;--bad:#F06A5E;--warn:#E3A83F;--focus:#8CC4F2;--on-accent:#111922;
+  color-scheme:dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--body)}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 18px 40px}
+button,input,select{font:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.series{display:flex;flex-wrap:wrap;gap:6px 16px;margin:0 0 18px;font:600 13px/1.2 var(--head);color:var(--muted)}
+.jack{display:inline-flex;align-items:center;gap:7px}
+.jack::before{content:"";width:15px;height:11px;border:2px solid var(--c);border-radius:2px 2px 4px 4px}
+.jack.on{color:var(--ink)}
+.jack.on::before{background:var(--c)}
+h1{font:700 clamp(38px,8vw,60px)/.95 var(--head);letter-spacing:-.01em;margin:0 0 10px}
+.lede{margin:0;max-width:62ch;color:var(--muted);font-size:17px}
+.picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin:24px 0 16px;max-width:1000px}
+.mbtn{display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:10px 14px;border:1.5px solid var(--rule);border-radius:8px;background:var(--face);color:var(--ink);text-align:left}
+.mbtn .t{display:flex;align-items:center;gap:8px;font:700 17px/1.15 var(--head)}
+.mbtn small{font-size:13px;color:var(--muted)}
+.mbtn[aria-checked="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1.5px var(--accent)}
+.topo{display:flex;flex-wrap:nowrap;align-items:center;margin:0 0 16px;padding-top:18px;overflow-x:auto}
+.node{flex:none;display:inline-flex;flex-direction:column;align-items:center;padding:6px 12px;border:1.5px solid var(--rule);border-radius:6px;background:var(--face);font:700 15px/1.2 var(--head)}
+.node small{font:500 12px/1.3 var(--mono);color:var(--muted)}
+.stack{flex:none;display:flex;flex-direction:column;gap:6px}
+.wire{flex:none;width:30px;border-top:2px solid var(--muted)}
+.wire.lbl{position:relative;width:60px}
+.wire.lbl span{position:absolute;left:50%;top:-18px;transform:translateX(-50%);font:500 11.5px/1 var(--mono);color:var(--muted);white-space:nowrap}
+@media (max-width:520px){.node{padding:5px 8px}.node small{font-size:11px}.wire{width:14px}.wire.lbl{width:44px}}
+.lab{display:grid;gap:18px}
+.lab>*{min-width:0}
+@media (min-width:980px){.lab{grid-template-columns:360px minmax(0,1fr);align-items:start}}
+.panel{background:var(--face);border:1.5px solid var(--rule);border-radius:10px;padding:16px}
+.panel h2{margin:0 0 6px;font:700 24px/1.1 var(--head);display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.clock{font:600 14px/1 var(--mono);color:var(--muted)}
+.brief{margin:0;color:var(--muted);font-size:15px}
+.meter{height:6px;background:var(--rule);border-radius:3px;overflow:hidden;margin:14px 0 6px}
+.meter span{display:block;height:100%;width:0;background:var(--accent)}
+details.chk summary{cursor:pointer;font-weight:600;font-size:15px;padding:4px 0}
+.tasks{list-style:none;margin:8px 0 12px;padding:0}
+.task{display:grid;grid-template-columns:14px 1fr;gap:10px;padding:10px 0;border-top:1px solid var(--rule)}
+.task p{margin:0;font-size:15px}
+.task.is-done p{color:var(--muted)}
+.led{display:inline-block;flex:none;width:12px;height:12px;border-radius:50%;background:var(--rule);margin-top:5px}
+.led.ok{background:var(--ok)}
+.led.bad{background:var(--bad)}
+.link{border:0;background:none;padding:4px 0 0;color:var(--accent);font-weight:600;font-size:14px;text-decoration:underline;text-underline-offset:3px}
+.cmd{margin:6px 0 0;padding:8px 10px;background:var(--bg);border-radius:6px;font:13.5px/1.45 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere}
+.done{margin:4px 0 12px;padding:10px 12px;border-left:4px solid var(--ok);background:var(--bg);border-radius:0 6px 6px 0;font-weight:600}
+.btn{min-height:42px;padding:9px 15px;border-radius:6px;border:1.5px solid var(--ink);background:transparent;color:var(--ink);font-weight:600;font-size:15px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.instr{font-size:15px;padding-right:6px;margin:6px 0 10px}
+@media (min-width:980px){.instr{max-height:min(52vh,560px);overflow:auto}}
+.instr h3{margin:14px 0 4px;font:700 17px/1.2 var(--head)}
+.instr p{margin:0 0 8px}
+.instr ul,.instr ol{margin:0 0 8px;padding-left:20px}
+.instr li{margin:2px 0}
+.instr table{border-collapse:collapse;font-size:14px;margin:6px 0 10px;width:100%}
+.instr th,.instr td{text-align:left;padding:4px 8px 4px 0;border-bottom:1px solid var(--rule);vertical-align:top}
+.instr th{color:var(--muted);font-weight:600}
+.instr td.m{font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+.pct{margin:10px 0 0;font:700 22px/1.2 var(--head)}
+.pct.full{color:var(--ok)}
+.term{--scr:#0F1B28;--bar:#16283A;--edge:#26394D;--sink:#D5E2EE;--dim:#8FA3B8;--console:#8CC4F2;--amber:#F2B45A;background:var(--scr);border:1.5px solid var(--edge);border-radius:10px;overflow:hidden;min-width:0}
+.ttabs{display:flex;gap:2px;background:var(--bar);padding:6px 6px 0;overflow-x:auto}
+.ttabs button{border:0;background:transparent;color:var(--dim);font:600 15px/1 var(--head);padding:11px 14px;border-radius:7px 7px 0 0;white-space:nowrap}
+.ttabs button[aria-selected="true"]{background:var(--scr);color:var(--sink)}
+.ttabs button.unread::after{content:"";display:inline-block;width:7px;height:7px;margin-left:8px;border-radius:50%;background:var(--amber);vertical-align:middle}
+.scr{margin:0;height:min(56vh,540px);min-height:260px;overflow:auto;padding:12px 14px 6px;font:13.5px/1.5 var(--mono);color:var(--sink);white-space:pre;-webkit-overflow-scrolling:touch}
+.scr .pr{color:var(--console)}
+.scr .coach{color:var(--amber);white-space:pre-wrap;font:14px/1.45 var(--body)}
+.inrow{display:flex;align-items:center;padding:4px 14px 8px;border-top:1px solid var(--edge)}
+.inrow:focus-within{box-shadow:inset 0 2px 0 var(--console)}
+.inrow .prompt{font:13.5px/1.5 var(--mono);color:var(--console);white-space:pre}
+.inrow input{flex:1;min-width:0;border:0;background:transparent;color:var(--sink);font:16px/1.5 var(--mono);padding:8px 0 8px 1px;outline:none}
+.inrow input::placeholder{color:var(--dim)}
+.inrow input:disabled{opacity:.6}
+.keys{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 12px}
+.keys button{min-height:40px;padding:8px 14px;border-radius:6px;border:1px solid var(--edge);background:var(--bar);color:var(--sink);font:600 14px/1 var(--mono)}
+details.bench{margin-top:14px;background:var(--face);border:1.5px solid var(--rule);border-radius:10px;padding:10px 16px}
+details.bench summary{cursor:pointer;font:700 17px/1.3 var(--head)}
+.pcgrid{display:grid;gap:14px;margin:10px 0 4px}
+@media (min-width:700px){.pcgrid{grid-template-columns:1fr 1fr}}
+.pcset{border:1px solid var(--rule);border-radius:8px;padding:10px 12px 12px;margin:0}
+.pcset legend{font:700 16px/1.2 var(--head);padding:0 6px}
+.modes{display:flex;gap:16px;margin:0 0 8px;font-size:15px}
+.modes label{display:inline-flex;align-items:center;gap:6px}
+.modes input{accent-color:var(--accent);width:17px;height:17px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px}
+.fgrid label{display:flex;flex-direction:column;gap:3px;font-size:13px;color:var(--muted)}
+.fgrid input,.fgrid select{width:100%;min-width:0;padding:7px 9px;border:1.5px solid var(--rule);border-radius:6px;background:var(--bg);color:var(--ink);font:15px/1.3 var(--mono)}
+.fgrid input:disabled{opacity:.5}
+.fgrid .btn{height:40px;min-height:40px;padding:6px 14px;align-self:stretch}
+.pcstat{margin:8px 0 0;font-size:13.5px;color:var(--muted)}
+.pcmsg{margin:6px 0 0;font-size:13.5px;color:var(--bad);min-height:1.2em}
+.tips{margin:14px 0 0;font-size:14px;color:var(--muted);max-width:75ch}
+.tips code{font-family:var(--mono);font-size:13.5px;color:var(--ink)}
+footer{margin-top:40px;font-size:13px;color:var(--muted)}
+</style>
+<style>a.jack{color:inherit;text-decoration:none}a.jack:hover,a.jack:focus-visible{color:var(--ink);text-decoration:underline;text-underline-offset:3px}</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <p class="series" aria-label="Net Drills series">
+    <a class="jack" style="--c:var(--orange)" href="../subnet-sprint/">Subnet Sprint</a>
+    <span class="jack on" style="--c:var(--green)" aria-current="page">IOS CLI Lab</span>
+    <a class="jack" style="--c:var(--blue)" href="../config-audit/">Config Audit</a>
+    <a class="jack" style="--c:var(--brown)" href="../trouble-tickets/">Trouble Tickets</a>
+  </p>
+  <h1>IOS CLI Lab</h1>
+  <p class="lede">Configure a simulated router and switch from their consoles, then prove it from two PCs. No Packet Tracer needed.</p>
+</header>
+
+<div class="picker" role="radiogroup" aria-label="Mission" id="picker"></div>
+
+<p class="topo" aria-label="Topology: PC1 and PC2 connect to switch S1, S1 port G0/1 connects to router R1 port G0/0, and R1 port G0/1 connects to the ISP at 203.0.113.1">
+  <span class="stack"><span class="node">PC1<small id="topo-pc1">Fa0/1</small></span><span class="node">PC2<small id="topo-pc2">Fa0/2</small></span></span>
+  <span class="wire"></span>
+  <span class="node">S1<small>2960 switch</small></span>
+  <span class="wire lbl"><span>G0/1 to G0/0</span></span>
+  <span class="node">R1<small>2911 router</small></span>
+  <span class="wire lbl"><span>G0/1</span></span>
+  <span class="node">ISP<small>203.0.113.1/30</small></span>
+</p>
+
+<div class="lab">
+  <section class="panel" aria-labelledby="m-title">
+    <h2><span id="m-title">Mission</span><span class="clock" id="m-clock" aria-label="Elapsed time">00:00</span></h2>
+    <p class="brief" id="m-brief"></p>
+    <div id="m-progress">
+      <div class="meter" aria-hidden="true"><span id="m-bar"></span></div>
+      <details class="chk" id="m-det" open>
+        <summary id="m-count">0 checks passing</summary>
+        <ul class="tasks" id="m-list"></ul>
+      </details>
+    </div>
+    <div id="m-pt" hidden>
+      <details class="chk" id="m-idet" open><summary>Instructions</summary><div class="instr" id="m-instr"></div></details>
+      <div class="actions"><button class="btn primary" type="button" id="m-check">Check results</button></div>
+      <p class="pct" id="m-pct" hidden></p>
+      <details class="chk" id="m-rdet" hidden>
+        <summary>Show every requirement</summary>
+        <ul class="tasks" id="m-rlist"></ul>
+      </details>
+    </div>
+    <p class="done" id="m-done" role="status" hidden></p>
+    <button class="btn" type="button" id="m-reset">Reset this mission</button>
+  </section>
+
+  <div>
+    <section class="term" aria-label="Terminals">
+      <div class="ttabs" role="tablist" aria-label="Device">
+        <button role="tab" aria-selected="true" data-term="r1" id="tab-r1">R1 console</button>
+        <button role="tab" aria-selected="false" data-term="s1" id="tab-s1">S1 console</button>
+        <button role="tab" aria-selected="false" data-term="pc1" id="tab-pc1">PC1</button>
+        <button role="tab" aria-selected="false" data-term="pc2" id="tab-pc2">PC2</button>
+      </div>
+      <div class="tpane" data-pane="r1"><pre class="scr" id="scr-r1" role="log" aria-live="polite" tabindex="0"></pre><div class="inrow"><span class="prompt" id="pr-r1"></span><input id="in-r1" aria-label="R1 console input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="enter"></div></div>
+      <div class="tpane" data-pane="s1" hidden><pre class="scr" id="scr-s1" role="log" aria-live="polite" tabindex="0"></pre><div class="inrow"><span class="prompt" id="pr-s1"></span><input id="in-s1" aria-label="S1 console input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="enter"></div></div>
+      <div class="tpane" data-pane="pc1" hidden><pre class="scr" id="scr-pc1" role="log" aria-live="polite" tabindex="0"></pre><div class="inrow"><span class="prompt" id="pr-pc1"></span><input id="in-pc1" aria-label="PC1 command prompt input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="enter"></div></div>
+      <div class="tpane" data-pane="pc2" hidden><pre class="scr" id="scr-pc2" role="log" aria-live="polite" tabindex="0"></pre><div class="inrow"><span class="prompt" id="pr-pc2"></span><input id="in-pc2" aria-label="PC2 command prompt input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="enter"></div></div>
+      <div class="keys" aria-label="Terminal keys">
+        <button type="button" data-k="help" aria-label="Help (question mark)">?</button>
+        <button type="button" data-k="tab">Tab</button>
+        <button type="button" data-k="up" aria-label="Previous command">Prev</button>
+        <button type="button" data-k="enter">Enter</button>
+      </div>
+    </section>
+
+    <details class="bench" id="bench">
+      <summary>PC settings and cables</summary>
+      <div class="pcgrid" id="pcgrid"></div>
+    </details>
+  </div>
+</div>
+
+<p class="tips">Type <code>?</code> for help and Tab to finish a word. Abbreviations work: <code>conf t</code>, <code>int g0/0.10</code>, <code>int range f0/1 - 4</code>, <code>sh run</code>, <code>copy run start</code>. PCs use <code>ipconfig /renew</code> for DHCP. The simulator covers the cheat sheet's Level 1 to 3 commands; anything else gets an IOS-style error.</p>
+<footer>Unofficial practice for the Cisco NetAcad Network Technician path and the CyberPatriot Cisco challenge; not affiliated with either. Completed missions are remembered in this browser only.</footer>
+</div>
+
+<script>
+/* ==ENGINE-START== */
+const Engine = (() => {
+'use strict';
+
+/* ---------- helpers ---------- */
+const XLAT = 'dsfd;kfoA,.iyewrkldJKDHSUBsgvca69834ncxv9873254k;fg87';
+function enc7(pw, seed) {
+  if (seed === undefined) seed = Math.floor(Math.random() * 16);
+  let out = String(seed).padStart(2, '0');
+  for (let i = 0; i < pw.length; i++) out += (pw.charCodeAt(i) ^ XLAT.charCodeAt((seed + i) % 53)).toString(16).toUpperCase().padStart(2, '0');
+  return out;
+}
+function dec7(h) {
+  if (!/^\d\d(?:[0-9A-Fa-f]{2})+$/.test(h)) return null;
+  const seed = parseInt(h.slice(0, 2), 10);
+  if (seed > 52) return null;
+  let out = '';
+  for (let i = 2, k = 0; i < h.length; i += 2, k++) out += String.fromCharCode(parseInt(h.substr(i, 2), 16) ^ XLAT.charCodeAt((seed + k) % 53));
+  return out;
+}
+const B64 = './0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+const rch = () => B64[Math.floor(Math.random() * 64)];
+function md5ish() { let s = '', h = ''; for (let i = 0; i < 4; i++) s += rch(); for (let i = 0; i < 22; i++) h += rch(); return '$1$' + s + '$' + h; }
+function ipNum(s) {
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(String(s).trim());
+  if (!m) return null;
+  const o = m.slice(1).map(Number);
+  if (o.some(x => x > 255)) return null;
+  return (o[0] * 16777216 + o[1] * 65536 + o[2] * 256 + o[3]) >>> 0;
+}
+const ipStr = n => [n >>> 24, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.');
+const maskOf = p => (p <= 0 ? 0 : (0xFFFFFFFF << (32 - p)) >>> 0);
+function maskLen(m) { let c = 0; while (c < 32 && ((m >>> (31 - c)) & 1)) c++; return maskOf(c) === m ? c : -1; }
+function sameNet(a, b, mask) { const m = ipNum(mask); return ((ipNum(a) & m) >>> 0) === ((ipNum(b) & m) >>> 0); }
+const netOf = (ip, mask) => (ipNum(ip) & ipNum(mask)) >>> 0;
+const bcOf = (ip, mask) => ((ipNum(ip) & ipNum(mask)) | (~ipNum(mask) >>> 0)) >>> 0;
+const shortIf = n => n.replace('GigabitEthernet', 'Gig').replace('FastEthernet', 'Fa');
+const shortIf2 = n => n.replace('GigabitEthernet', 'Gi').replace('FastEthernet', 'Fa').replace('Vlan', 'Vl');
+const clone = o => JSON.parse(JSON.stringify(o));
+
+/* ---------- topology constants ---------- */
+const R_IF = ['GigabitEthernet0/0', 'GigabitEthernet0/1', 'GigabitEthernet0/2'];
+const R_LAN = 'GigabitEthernet0/0', R_WAN = 'GigabitEthernet0/1', S_UPLINK = 'GigabitEthernet0/1';
+const S_PORTS = [];
+for (let i = 1; i <= 24; i++) S_PORTS.push('FastEthernet0/' + i);
+S_PORTS.push('GigabitEthernet0/1', 'GigabitEthernet0/2');
+const ISP = { ip: '203.0.113.1', mask: '255.255.255.252' };
+const PC_DEFS = { pc1: { name: 'PC1', mac: '0001.4297.A3C1' }, pc2: { name: 'PC2', mac: '0060.5C2E.B14D' } };
+const PC_PORTS = ['FastEthernet0/1', 'FastEthernet0/2', 'FastEthernet0/3', 'FastEthernet0/4'];
+
+/* ---------- device models ---------- */
+const newLine = vty => ({ password: null, login: vty ? 'line' : 'none', execTimeout: [10, 0], logSync: false, transport: 'all' });
+function baseDev(kind, hostname, vtyCount) {
+  const vty = [];
+  for (let i = 0; i < vtyCount; i++) vty.push(newLine(true));
+  return {
+    kind, hostname, domainLookup: true, domainName: null, enableSecret: null, enablePassword: null,
+    spe: false, banner: null, users: {}, minLen: 0, blockFor: null, cdp: true,
+    rsaBits: 0, sshVersion: 0, sshTimeout: 120, sshRetries: 3, con: newLine(false), vty
+  };
+}
+function routerFactory() {
+  const d = baseDev('router', 'Router', 5);
+  d.ifaces = {};
+  R_IF.forEach(n => { d.ifaces[n] = { desc: null, ip: null, mask: null, shut: true }; });
+  d.dhcp = { excluded: [], pools: {} };
+  d.routes = [];
+  return d;
+}
+const newPort = () => ({ desc: null, mode: 'dynamic', accessVlan: 1, nativeVlan: 1, allowed: 'all', nonegotiate: false, shut: false,
+  psec: { on: false, max: 1, sticky: false, violation: 'shutdown', learned: [] }, portfast: false, bpduguard: false, errDisabled: false, violations: 0 });
+function switchFactory() {
+  const d = baseDev('switch', 'Switch', 16);
+  d.vlans = { 1: { name: 'default' } };
+  d.ports = {};
+  S_PORTS.forEach(n => { d.ports[n] = newPort(); });
+  d.svis = { 1: { desc: null, ip: null, mask: null, shut: true } };
+  d.defaultGateway = null;
+  return d;
+}
+const mkPass = (spe, plain, enc) => ({ plain, enc7: enc || (spe ? enc7(plain) : null) });
+const mkSecret = (plain, hash) => ({ plain, hash: hash || md5ish() });
+const subifs = (d, parent) => Object.keys(d.ifaces).filter(n => d.ifaces[n].sub && d.ifaces[n].parent === parent).sort((a, b) => Number(a.split('.')[1]) - Number(b.split('.')[1]));
+const ifUp = (d, n) => { const g = d.ifaces[n]; if (!g || g.shut) return false; return g.sub ? !d.ifaces[g.parent].shut : true; };
+function vlist(a) {
+  if (a === 'all') return 'all';
+  const v = Array.from(a).map(Number).sort((x, y) => x - y), out = [];
+  for (let i = 0; i < v.length;) { let j = i; while (j + 1 < v.length && v[j + 1] === v[j] + 1) j++; out.push(j > i + 1 ? v[i] + '-' + v[j] : j === i + 1 ? v[i] + ',' + v[j] : String(v[i])); i = j + 1; }
+  return out.join(',');
+}
+const vlanDefaultName = v => 'VLAN' + String(v).padStart(4, '0');
+
+/* ---------- running-config text ---------- */
+function lineCfgText(L, vty) {
+  const o = [];
+  if (L.execTimeout[0] !== 10 || L.execTimeout[1] !== 0) o.push(` exec-timeout ${L.execTimeout[0]} ${L.execTimeout[1]}`);
+  if (L.password) o.push(L.password.enc7 ? ' password 7 ' + L.password.enc7 : ' password ' + L.password.plain);
+  if (L.logSync) o.push(' logging synchronous');
+  if (L.login === 'line') o.push(' login'); else if (L.login === 'local') o.push(' login local'); else if (vty) o.push(' no login');
+  if (vty && L.transport !== 'all') o.push(' transport input ' + (L.transport === 'ssh telnet' ? 'telnet ssh' : L.transport));
+  return o;
+}
+function vtyGroups(v) {
+  const out = [];
+  let a = 0;
+  for (let i = 1; i <= v.length; i++) if (i === v.length || i === 5 || JSON.stringify(v[i]) !== JSON.stringify(v[a])) { out.push([a, i - 1]); a = i; }
+  return out;
+}
+function headText(d) {
+  const L = [];
+  if (d.minLen) L.push('security passwords min-length ' + d.minLen);
+  if (d.enableSecret) L.push('enable secret 5 ' + d.enableSecret.hash);
+  if (d.enablePassword) L.push(d.enablePassword.enc7 ? 'enable password 7 ' + d.enablePassword.enc7 : 'enable password ' + d.enablePassword.plain);
+  return L;
+}
+function userText(d) {
+  const L = [];
+  for (const [n, u] of Object.entries(d.users)) {
+    const pv = u.priv !== null && u.priv !== undefined ? ' privilege ' + u.priv : '';
+    L.push(u.type === 'secret' ? `username ${n}${pv} secret 5 ${u.hash}` : `username ${n}${pv} password ${u.enc7 ? '7 ' + u.enc7 : '0 ' + u.plain}`);
+  }
+  if (d.blockFor) L.push(`login block-for ${d.blockFor.sec} attempts ${d.blockFor.attempts} within ${d.blockFor.within}`);
+  return L;
+}
+function sshText(d) {
+  const L = [];
+  if (d.sshTimeout !== 120) L.push('ip ssh time-out ' + d.sshTimeout);
+  if (d.sshRetries !== 3) L.push('ip ssh authentication-retries ' + d.sshRetries);
+  if (d.sshVersion) L.push('ip ssh version ' + d.sshVersion);
+  if (!d.domainLookup) L.push('no ip domain-lookup');
+  if (d.domainName) L.push('ip domain-name ' + d.domainName);
+  return L;
+}
+function tailText(d) {
+  const L = ['line con 0', ...lineCfgText(d.con, false), '!'];
+  if (d.kind === 'router') L.push('line aux 0', '!');
+  for (const [a, b] of vtyGroups(d.vty)) L.push(a === b ? `line vty ${a}` : `line vty ${a} ${b}`, ...lineCfgText(d.vty[a], true));
+  L.push('!', '!', '!', 'end');
+  return L;
+}
+function runRouter(d) {
+  const L = ['!', 'version 15.1', 'no service timestamps log datetime msec', 'no service timestamps debug datetime msec',
+    d.spe ? 'service password-encryption' : 'no service password-encryption', '!', 'hostname ' + d.hostname, '!', '!', '!', '!', ...headText(d), '!', '!', '!', '!', '!'];
+  d.dhcp.excluded.forEach(([a, b]) => L.push(`ip dhcp excluded-address ${a}${b && b !== a ? ' ' + b : ''}`));
+  if (d.dhcp.excluded.length) L.push('!');
+  for (const [name, p] of Object.entries(d.dhcp.pools)) {
+    L.push('ip dhcp pool ' + name);
+    if (p.network) L.push(` network ${p.network} ${p.mask}`);
+    if (p.router) L.push(' default-router ' + p.router);
+    if (p.dns) L.push(' dns-server ' + p.dns);
+    if (p.domain) L.push(' domain-name ' + p.domain);
+    L.push('!');
+  }
+  L.push('!', '!', 'no ip cef', 'no ipv6 cef', '!', '!', '!', ...userText(d), '!', '!', 'license udi pid CISCO2911/K9 sn FTX1524Z0P3-', '!', '!', '!', '!', ...sshText(d), '!', '!', 'spanning-tree mode pvst', '!', '!', '!', '!', '!', '!');
+  for (const n of R_IF) {
+    const g = d.ifaces[n];
+    L.push('interface ' + n);
+    if (g.desc) L.push(' description ' + g.desc);
+    L.push(g.ip ? ` ip address ${g.ip} ${g.mask}` : ' no ip address', ' duplex auto', ' speed auto');
+    if (g.shut) L.push(' shutdown');
+    L.push('!');
+    for (const sn of subifs(d, n)) {
+      const s = d.ifaces[sn];
+      L.push('interface ' + sn);
+      if (s.desc) L.push(' description ' + s.desc);
+      if (s.encap) L.push(` encapsulation dot1Q ${s.encap}${s.native ? ' native' : ''}`);
+      L.push(s.ip ? ` ip address ${s.ip} ${s.mask}` : ' no ip address');
+      if (s.shut) L.push(' shutdown');
+      L.push('!');
+    }
+  }
+  L.push('interface Vlan1', ' no ip address', ' shutdown', '!', 'ip classless');
+  d.routes.forEach(r => L.push(`ip route ${r.net} ${r.mask} ${r.via}`));
+  L.push('!', 'ip flow-export version 9', '!', '!', '!');
+  if (!d.cdp) L.push('no cdp run', '!');
+  if (d.banner !== null) L.push(`banner motd ^C${d.banner}^C`, '!');
+  L.push('!', '!', '!', ...tailText(d));
+  return L.join('\n');
+}
+function portText(p, n) {
+  const o = ['interface ' + n];
+  if (p.desc) o.push(' description ' + p.desc);
+  if (p.accessVlan !== 1) o.push(' switchport access vlan ' + p.accessVlan);
+  if (p.nativeVlan !== 1) o.push(' switchport trunk native vlan ' + p.nativeVlan);
+  if (p.allowed !== 'all') o.push(' switchport trunk allowed vlan ' + (p.allowed.length ? vlist(p.allowed) : 'none'));
+  if (p.mode === 'access') o.push(' switchport mode access');
+  else if (p.mode === 'trunk') o.push(' switchport mode trunk');
+  else if (p.mode === 'desirable') o.push(' switchport mode dynamic desirable');
+  if (p.nonegotiate) o.push(' switchport nonegotiate');
+  if (p.psec.on) {
+    o.push(' switchport port-security');
+    if (p.psec.max !== 1) o.push(' switchport port-security maximum ' + p.psec.max);
+    if (p.psec.violation !== 'shutdown') o.push(' switchport port-security violation ' + p.psec.violation);
+    if (p.psec.sticky) o.push(' switchport port-security mac-address sticky');
+    p.psec.learned.filter(l => l.sticky).forEach(l => o.push(' switchport port-security mac-address sticky ' + l.mac));
+  }
+  if (p.portfast) o.push(' spanning-tree portfast');
+  if (p.bpduguard) o.push(' spanning-tree bpduguard enable');
+  if (p.shut) o.push(' shutdown');
+  o.push('!');
+  return o;
+}
+function runSwitch(d) {
+  const L = ['!', 'version 15.0', 'no service pad', 'service timestamps debug datetime msec', 'service timestamps log datetime msec',
+    d.spe ? 'service password-encryption' : 'no service password-encryption', '!', 'hostname ' + d.hostname, '!', ...headText(d), '!', ...userText(d), '!', '!', ...sshText(d), '!',
+    'spanning-tree mode pvst', 'spanning-tree extend system-id', '!'];
+  for (const n of S_PORTS) L.push(...portText(d.ports[n], n));
+  Object.keys(d.svis).map(Number).sort((a, b) => a - b).forEach(v => {
+    const s = d.svis[v];
+    L.push('interface Vlan' + v);
+    if (s.desc) L.push(' description ' + s.desc);
+    L.push(s.ip ? ` ip address ${s.ip} ${s.mask}` : ' no ip address');
+    if (s.shut) L.push(' shutdown');
+    L.push('!');
+  });
+  if (d.defaultGateway) L.push('ip default-gateway ' + d.defaultGateway);
+  if (!d.cdp) L.push('no cdp run');
+  L.push('!');
+  if (d.banner !== null) L.push(`banner motd ^C${d.banner}^C`, '!');
+  L.push('!', ...tailText(d));
+  return L.join('\n');
+}
+const runText = d => (d.kind === 'router' ? runRouter(d) : runSwitch(d));
+
+/* ---------- grammar ---------- */
+const KWH = {
+  enable: 'Turn on privileged commands', disable: 'Turn off privileged commands', exit: 'Exit from the EXEC', logout: 'Exit from the EXEC',
+  ping: 'Send echo messages', show: 'Show running system information', configure: 'Enter configuration mode', terminal: 'Configure from the terminal',
+  copy: 'Copy from one file to another', write: 'Write running configuration to memory', memory: 'Write to NV memory', erase: 'Erase a filesystem',
+  reload: 'Halt and perform a cold restart', 'running-config': 'Current operating configuration', 'startup-config': 'Contents of startup configuration',
+  ip: 'IP information', interface: 'IP interface status and configuration', interfaces: 'Interface status and configuration', brief: 'Brief summary of IP status and configuration',
+  description: 'Show interface description', ssh: 'Information on SSH', users: 'Display information about terminal lines', cdp: 'CDP information',
+  version: 'System hardware and software status', login: 'Display Secure Login Configurations and State', hostname: "Set system's network name",
+  no: 'Negate a command or set its defaults', secret: 'Assign the privileged level secret', password: 'Assign the privileged level password',
+  service: 'Modify use of network based services', 'password-encryption': 'Encrypt system passwords', 'domain-lookup': 'Enable IP Domain Name System hostname translation',
+  'domain-name': 'Define the default domain name', banner: 'Define a login banner', motd: 'Set Message of the Day banner', username: 'Establish User Name Authentication',
+  privilege: 'Set user privilege level', security: 'Infra Security CLIs', passwords: 'Password security configuration', 'min-length': 'Minimum length of passwords',
+  'block-for': 'Set quiet-mode active time period', attempts: 'Set max number of fail attempts', within: 'Watch period for repeated login failures', run: 'Enable CDP',
+  crypto: 'Encryption module', key: 'Long term key operations', generate: 'Generate new keys', rsa: 'Generate RSA keys',
+  'general-keys': 'Generate a general purpose RSA key pair for signing and encryption', modulus: 'Provide number of modulus bits on the command line', zeroize: 'Remove keys',
+  'time-out': 'Specify SSH time-out interval', 'authentication-retries': 'Specify number of authentication retries', line: 'Configure a terminal line', console: 'Primary terminal line',
+  vty: 'Virtual terminal', do: 'To run exec commands in config mode', end: 'Exit from configure mode', local: 'Local password checking', 'exec-timeout': 'Set the EXEC timeout',
+  logging: 'Modify message logging facilities', synchronous: 'Synchronized message output', transport: 'Define transport protocols for line',
+  input: 'Define which protocols to use when connecting to the terminal server', all: 'All protocols', none: 'No protocols', telnet: 'TCP/IP Telnet protocol',
+  address: 'Set the IP address of an interface', shutdown: 'Shutdown the selected interface', route: 'Establish static routes', dhcp: 'Configure DHCP server and relay parameters',
+  'excluded-address': 'Prevent DHCP from assigning certain addresses', pool: 'Configure DHCP address pools', network: 'Network number and mask',
+  'default-router': 'Default routers', 'dns-server': 'DNS servers', encapsulation: 'Set the encapsulation type for an interface', dot1Q: 'IEEE 802.1Q Virtual LAN',
+  native: 'Make this as native vlan', binding: 'DHCP address bindings', vlan: 'Vlan commands', name: 'Ascii name of the VLAN', range: 'interface range command',
+  switchport: 'Set switching mode characteristics', mode: 'Set trunking mode of the interface', access: 'Set access mode characteristics of the interface',
+  trunk: 'Set trunking characteristics of the interface', dynamic: 'Set the trunking mode to dynamically negotiate access or trunk mode', auto: 'Set trunking mode dynamic negotiation parameter to AUTO',
+  desirable: 'Set trunking mode dynamic negotiation parameter to DESIRABLE', allowed: 'Set allowed VLAN characteristics when interface is in trunking mode',
+  add: 'add VLANs to the current list', remove: 'remove VLANs from the current list', nonegotiate: 'Device will not engage in negotiation protocol on this interface',
+  'port-security': 'Security related command', maximum: 'Max secure addresses', 'mac-address': 'Secure mac address', sticky: 'Configure dynamic secure addresses as sticky',
+  violation: 'Security violation mode', protect: 'Security violation protect mode', restrict: 'Security violation restrict mode',
+  'spanning-tree': 'Spanning Tree Subsystem', portfast: 'Enable an interface to move directly to forwarding on link up', bpduguard: 'Don\'t accept BPDUs on this interface',
+  status: 'Show interface line status', 'default-gateway': 'Specify default gateway (if not routing IP)', 'mac-address-table': 'MAC forwarding table'
+};
+const MODEH = {
+  global: { enable: 'Modify enable password parameters', exit: 'Exit from configure mode', ip: 'Global IP configuration subcommands', interface: 'Select an interface to configure', login: 'Enable Secure Login Checking', password: 'Assign the password', ssh: 'Configure ssh options', vlan: 'Vlan commands', route: 'Establish static routes' },
+  line: { exit: 'Exit from line configuration mode', login: 'Enable password checking', password: 'Set a password', ssh: 'TCP/IP SSH protocol' },
+  if: { exit: 'Exit from interface configuration mode', description: 'Interface specific description', ip: 'Interface Internet Protocol config commands' },
+  swif: { exit: 'Exit from interface configuration mode', description: 'Interface specific description', access: 'Set access mode characteristics of the interface', vlan: 'Set VLAN when interface is in access mode' },
+  svi: { exit: 'Exit from interface configuration mode', description: 'Interface specific description', ip: 'Interface Internet Protocol config commands' },
+  dhcp: { exit: 'Exit from DHCP pool configuration mode' }, vlan: { exit: 'Apply changes, bump revision number, and exit mode' }
+};
+const PNAME = { WORD: 'WORD', LINE: 'LINE', IP: 'A.B.C.D', MASK: 'A.B.C.D', RIF: 'GigabitEthernet', SIF: 'FastEthernet', RANGE: 'LINE', VLIST: 'WORD' };
+const pname = spec => (spec.startsWith('INT:') ? '<' + spec.slice(4) + '>' : PNAME[spec] || spec);
+function build(mode, defs) {
+  const root = { kids: [] }, mh = MODEH[mode] || {};
+  for (const [syn, run, ph] of defs) {
+    let node = root;
+    for (const t of syn.split(' ')) {
+      const isP = t[0] === '<', key = isP ? t.slice(1, -1) : t;
+      let c = node.kids.find(k => (isP ? k.param === key : k.kw === key));
+      if (!c) { c = isP ? { param: key, kids: [], help: (ph && ph[key]) || '' } : { kw: key, kids: [], help: mh[key] || KWH[key] || '' }; node.kids.push(c); }
+      else if (isP && ph && ph[key] && !c.help) c.help = ph[key];
+      node = c;
+    }
+    node.run = run;
+  }
+  return root;
+}
+function tokenize(s) { const out = [], re = /\S+/g; let m; while ((m = re.exec(s))) out.push({ t: m[0], i: m.index }); return out; }
+function parseRIF(t) {
+  const m = /^([a-z]+)\s*(\d+\/\d+)(\.\d+)?$/i.exec(t);
+  if (!m || !'gigabitethernet'.startsWith(m[1].toLowerCase())) return null;
+  return 'GigabitEthernet' + m[2] + (m[3] ? '.' + Number(m[3].slice(1)) : '');
+}
+function parseSIF(t) {
+  let m = /^(v|vl|vla|vlan)\s*(\d{1,4})$/i.exec(t);
+  if (m) return 'Vlan' + Number(m[2]);
+  m = /^([a-z]+)\s*(\d+\/\d+)$/i.exec(t);
+  if (!m) return null;
+  const p = m[1].toLowerCase();
+  if ('fastethernet'.startsWith(p)) return 'FastEthernet' + m[2];
+  if ('gigabitethernet'.startsWith(p)) return 'GigabitEthernet' + m[2];
+  return null;
+}
+function parseRange(raw) {
+  const s = raw.trim().replace(/\s*-\s*/g, '-').replace(/\s+/g, '');
+  let m = /^([a-z]+)(\d+)\/(\d+)-(\d+)$/i.exec(s);
+  if (m) {
+    const t = m[1].toLowerCase(), pre = 'fastethernet'.startsWith(t) ? 'FastEthernet' : 'gigabitethernet'.startsWith(t) ? 'GigabitEthernet' : null;
+    const a = Number(m[3]), b = Number(m[4]);
+    if (!pre || b < a) return null;
+    const out = [];
+    for (let i = a; i <= b; i++) out.push(`${pre}${m[2]}/${i}`);
+    return out;
+  }
+  const one = parseSIF(s);
+  return one && !one.startsWith('Vlan') ? [one] : null;
+}
+function parseVlist(t) {
+  if (!/^\d{1,4}(-\d{1,4})?(,\d{1,4}(-\d{1,4})?)*$/.test(t)) return null;
+  const set = new Set();
+  for (const part of t.split(',')) {
+    const [a, b] = part.split('-').map(Number);
+    const hi = b === undefined ? a : b;
+    if (a < 1 || hi > 4094 || hi < a) return null;
+    for (let v = a; v <= hi; v++) set.add(v);
+  }
+  return Array.from(set).sort((x, y) => x - y);
+}
+function matchParam(spec, toks, i, raw) {
+  const t = toks[i].t;
+  if (spec === 'LINE' || spec === 'RANGE') return { n: toks.length - i, val: raw.slice(toks[i].i).replace(/\s+$/, '') };
+  if (spec === 'WORD') return { n: 1, val: t };
+  if (spec === 'IP' || spec === 'MASK') return ipNum(t) !== null ? { n: 1, val: ipStr(ipNum(t)) } : null;
+  if (spec === 'VLIST') { const v = parseVlist(t); return v ? { n: 1, val: v } : null; }
+  if (spec === 'RIF' || spec === 'SIF') {
+    let s = t, n = 1;
+    if (/^[a-z]+$/i.test(t) && toks[i + 1] && /^\d/.test(toks[i + 1].t)) { s = t + toks[i + 1].t; n = 2; }
+    const v = spec === 'RIF' ? parseRIF(s) : parseSIF(s);
+    return v ? { n, val: v } : null;
+  }
+  const r = /^INT:(\d+)-(\d+)$/.exec(spec);
+  if (r && /^\d+$/.test(t)) { const v = Number(t); return v >= Number(r[1]) && v <= Number(r[2]) ? { n: 1, val: v } : null; }
+  return null;
+}
+function step(node, toks, i, raw) {
+  const tok = toks[i], low = tok.t.toLowerCase(), kws = node.kids.filter(k => k.kw);
+  let nx = kws.find(k => k.kw.toLowerCase() === low);
+  if (!nx) {
+    const c = kws.filter(k => k.kw.toLowerCase().startsWith(low));
+    if (c.length > 1) return { err: 'ambig', at: tok.i };
+    if (c.length === 1) nx = c[0];
+  }
+  if (nx) return { node: nx, n: 1, kw: nx.kw };
+  for (const p of node.kids) {
+    if (!p.param) continue;
+    const m = matchParam(p.param, toks, i, raw);
+    if (m) return { node: p, n: m.n, val: m.val };
+  }
+  return { err: 'invalid', at: tok.i };
+}
+function parse(tree, raw) {
+  const toks = tokenize(raw), args = [], path = [];
+  let node = tree, i = 0;
+  while (i < toks.length) {
+    const r = step(node, toks, i, raw);
+    if (r.err) return { err: r.err, at: r.at, i, toks };
+    node = r.node; i += r.n;
+    if (r.kw) path.push(r.kw); else { args.push(r.val); path.push('<>'); }
+  }
+  if (!node.run) return { err: 'incomplete', i, toks };
+  return { node, args, path };
+}
+
+/* ---------- shared handler helpers ---------- */
+function linesOf(s) { const t = s.targets; if (!t) return []; return t.kind === 'con' ? [s.d.con] : s.d.vty.slice(t.a, t.b + 1); }
+function lineNos(s) { const t = s.targets, o = []; if (!t) return o; if (t.kind === 'con') return [0]; for (let i = t.a; i <= t.b; i++) o.push(2 + i); return o; }
+function tooShort(s, pw) { const n = s.d.minLen; if (n && pw.length < n) { s.w(`% Password too short - must be at least ${n} characters. Password configuration failed\n`); return true; } return false; }
+function parsePw(raw) {
+  const m = /^([07])\s+(\S+)\s*$/.exec(raw);
+  if (m && m[1] === '7') { const p = dec7(m[2]); return p === null ? null : { plain: p, enc7: m[2].toUpperCase() }; }
+  if (m && m[1] === '0') return { plain: m[2] };
+  return { plain: raw };
+}
+function parseSecret(raw) {
+  const m = /^([05])\s+(\S+)\s*$/.exec(raw);
+  if (m && m[1] === '5') return { plain: null, hash: m[2] };
+  if (m && m[1] === '0') return { plain: m[2] };
+  return { plain: raw };
+}
+const swPorts = s => (s.ports || []).map(n => [n, s.d.ports[n]]);
+
+const X = {
+  /* EXEC (both) */
+  enable(s) { s.doEnable(); }, noop() {}, disable(s) { s.mode = 'user'; }, logout(s) { s.close(); },
+  conft(s) { s.w('Enter configuration commands, one per line.  End with CNTL/Z.\n'); s.mode = 'global'; },
+  ping(s, a) { s.lab.pingFromDevice(s, a[0]); },
+  showRun(s) { const t = runText(s.d); s.w(`Building configuration...\n\nCurrent configuration : ${t.length} bytes\n${t}\n\n`); },
+  showStart(s) { const st = s.node.startup; if (!st) { s.w('startup-config is not present\n'); return; } const t = runText(st); s.w(`Using ${t.length} out of 262136 bytes\n${t}\n\n`); },
+  showBrief(s) { s.w(s.lab.briefText(s.node) + '\n'); },
+  showSsh(s) {
+    const d = s.d;
+    if (!d.rsaBits) s.w('SSH Disabled - version 1.99\n%Please create RSA keys to enable SSH (and of atleast 768 bits for SSH v2).\n');
+    else s.w(`SSH Enabled - version ${d.sshVersion === 2 ? '2.0' : d.sshVersion === 1 ? '1.5' : '1.99'}\n`);
+    s.w(`Authentication timeout: ${d.sshTimeout} secs; Authentication retries: ${d.sshRetries}\n`);
+  },
+  showUsers(s) {
+    const n = s.node, rows = ['    Line       User       Host(s)              Idle       Location'];
+    const row = (cur, no, name, user, loc) => `${cur ? '*' : ' '}${String(no).padStart(3)} ${name.padEnd(10)} ${(user || '').padEnd(10)} ${'idle'.padEnd(20)} 00:00:00 ${loc || ''}`;
+    if (n.con.mode !== 'idle' && n.con.mode !== 'closed') rows.push(row(s === n.con, 0, 'con 0', n.con.user, ''));
+    n.vtySess.forEach(v => { if (v.mode !== 'closed') rows.push(row(s === v, 2 + v.lineNo, 'vty ' + v.lineNo, v.user, v.from)); });
+    s.w(rows.join('\n') + '\n\n  Interface    User               Mode         Idle     Peer Address\n\n');
+  },
+  showLogin(s) {
+    const b = s.d.blockFor;
+    if (!b) { s.w('     No login delay has been applied.\n     No Quiet-Mode access list has been configured.\n\n     Router NOT enabled to watch for login Attacks\n'); return; }
+    const q = s.lab.quietLeft(s.node);
+    s.w(`     A default login delay of 1 seconds is applied.\n     No Quiet-Mode access list has been configured.\n\n     Router enabled to watch for login Attacks.\n     If more than ${b.attempts} login failures occur in ${b.within} seconds or less,\n     logins will be disabled for ${b.sec} seconds.\n\n     Router presently in ${q > 0 ? `Quiet-Mode, will remain in Quiet-Mode for ${q} seconds.` : 'Normal-Mode.'}\n     Total login failures: ${s.node.rt.totalFails}.\n`);
+  },
+  showCdp(s) { s.w(s.d.cdp ? 'Global CDP information:\n    Sending CDP packets every 60 seconds\n    Sending a holdtime value of 180 seconds\n    Sending CDPv2 advertisements is enabled\n' : '% CDP is not enabled\n'); },
+  showVer(s) {
+    const up = Math.max(0, Math.floor((s.lab.io.now() - s.node.boot) / 60000)), h = s.d.hostname;
+    if (s.d.kind === 'router') s.w(`Cisco IOS Software, C2900 Software (C2900-UNIVERSALK9-M), Version 15.1(4)M4, RELEASE SOFTWARE (fc2)\nCopyright (c) 1986-2012 by Cisco Systems, Inc.\n\n${h} uptime is ${up} minute${up === 1 ? '' : 's'}\nSystem image file is "flash0:c2900-universalk9-mz.SPA.151-4.M4.bin"\n\ncisco CISCO2911/K9 (revision 1.0) with 491520K/32768K bytes of memory.\n3 Gigabit Ethernet interfaces\n255K bytes of non-volatile configuration memory.\n\nConfiguration register is 0x2102\n`);
+    else s.w(`Cisco IOS Software, C2960 Software (C2960-LANBASEK9-M), Version 15.0(2)SE4, RELEASE SOFTWARE (fc1)\nCopyright (c) 1986-2013 by Cisco Systems, Inc.\n\n${h} uptime is ${up} minute${up === 1 ? '' : 's'}\nSystem image file is "flash:c2960-lanbasek9-mz.150-2.SE4.bin"\n\ncisco WS-C2960-24TT-L (PowerPC405) processor (revision B0) with 65536K bytes of memory.\n24 FastEthernet interfaces\n2 Gigabit Ethernet interfaces\n64K bytes of flash-simulated non-volatile configuration memory.\n\nConfiguration register is 0xF\n`);
+  },
+  showDesc(s) { s.w(s.lab.descText(s.node) + '\n'); },
+  copyRS(s) {
+    s.ask('Destination filename [startup-config]? ', v => {
+      const t = v.trim();
+      if (t === '' || t === 'startup-config') { s.lab.save(s.node); s.w('Building configuration...\n[OK]\n'); }
+      else { s.w(`%Error opening nvram:/${t} (Permission denied)\n`); s.hint('Just press Enter at that prompt to accept [startup-config].'); }
+    });
+  },
+  wr(s) { s.lab.save(s.node); s.w('Building configuration...\n[OK]\n'); },
+  erase(s) {
+    s.ask('Erasing the nvram filesystem will remove all configuration files! Continue? [confirm]', v => {
+      if (/^(y|yes)?$/i.test(v.trim())) { s.node.startup = null; s.w('[OK]\nErase of nvram: complete\n'); s.lab.log(s.node, '%SYS-7-NV_BLOCK_INIT: Initialized the geometry of nvram'); }
+      else s.w('%Error: Erase aborted\n');
+    });
+  },
+  reload(s) {
+    const go = () => s.ask('Proceed with reload? [confirm]', v => { if (/^(y|yes)?$/i.test(v.trim())) s.lab.reboot(s.node); else s.w('\n'); });
+    if (s.lab.saved(s.node)) { go(); return; }
+    s.w('\n');
+    const askSave = () => s.ask('System configuration has been modified. Save? [yes/no]: ', v => {
+      const a = v.trim().toLowerCase();
+      if (a === 'yes' || a === 'y') { s.lab.save(s.node); s.w('Building configuration...\n[OK]\n'); go(); }
+      else if (a === 'no' || a === 'n') go();
+      else { s.w("% Please answer 'yes' or 'no'.\n"); askSave(); }
+    });
+    askSave();
+  },
+  /* global (both) */
+  hostname(s, a) { if (!/^[A-Za-z]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/.test(a[0])) { s.w('% Hostname contains one or more illegal characters.\n'); return; } s.d.hostname = a[0]; },
+  noHostname(s) { s.d.hostname = s.d.kind === 'router' ? 'Router' : 'Switch'; },
+  enSecret(s, a) { const p = parseSecret(a[0]); if (p.plain !== null && tooShort(s, p.plain)) return; s.d.enableSecret = mkSecret(p.plain, p.hash); },
+  enPass(s, a) {
+    const p = parsePw(a[0]);
+    if (!p) { s.w('Invalid encrypted password\n'); return; }
+    if (!p.enc7 && tooShort(s, p.plain)) return;
+    s.d.enablePassword = mkPass(s.d.spe, p.plain, p.enc7);
+    s.hint("'enable password' is stored weakly. 'enable secret' hashes it, and the secret wins if both exist.");
+  },
+  noEnSecret(s) { s.d.enableSecret = null; }, noEnPass(s) { s.d.enablePassword = null; },
+  spe(s) {
+    const d = s.d, cache = {};
+    d.spe = true;
+    [d.enablePassword, d.con.password, ...d.vty.map(l => l.password), ...Object.values(d.users).filter(u => u.type === 'password')]
+      .forEach(p => { if (p && !p.enc7 && p.plain !== null) p.enc7 = cache[p.plain] || (cache[p.plain] = enc7(p.plain)); });
+  },
+  noSpe(s) { s.d.spe = false; },
+  dl(s) { s.d.domainLookup = true; }, noDl(s) { s.d.domainLookup = false; },
+  dn(s, a) { s.d.domainName = a[0]; }, noDn(s) { s.d.domainName = null; },
+  sshVer(s, a) { s.d.sshVersion = a[0]; if (!s.d.rsaBits) s.w('Please create RSA keys (of atleast 768 bits size) to enable SSH v2.\n'); },
+  noSshVer(s) { s.d.sshVersion = 0; }, sshTo(s, a) { s.d.sshTimeout = a[0]; }, noSshTo(s) { s.d.sshTimeout = 120; },
+  sshRet(s, a) { s.d.sshRetries = a[0]; }, noSshRet(s) { s.d.sshRetries = 3; },
+  banner(s, a) { s.banner(a[0]); }, noBanner(s) { s.d.banner = null; },
+  user(s, a, path) {
+    const d = s.d, name = a[0], type = path.includes('secret') ? 'secret' : 'password';
+    const priv = path.includes('privilege') ? a[1] : null, raw = a[a.length - 1], ex = d.users[name];
+    if (ex && ex.type !== type) { s.w('ERROR: Can not have both a user password and a user secret.\nPlease choose one or the other.\n'); s.hint(`Remove the old entry first: no username ${name}`); return; }
+    let rec;
+    if (type === 'secret') { const p = parseSecret(raw); if (p.plain !== null && tooShort(s, p.plain)) return; rec = { type, plain: p.plain, hash: p.hash || md5ish() }; }
+    else {
+      const p = parsePw(raw);
+      if (!p) { s.w('Invalid encrypted password\n'); return; }
+      if (!p.enc7 && tooShort(s, p.plain)) return;
+      rec = { type, plain: p.plain, enc7: p.enc7 || (d.spe ? enc7(p.plain) : null) };
+      s.hint("'username ... password' is stored weakly. Use 'username ... secret'.");
+    }
+    rec.priv = priv !== null ? priv : ex ? ex.priv : null;
+    d.users[name] = rec;
+  },
+  noUser(s, a) { delete s.d.users[a[0]]; },
+  minLen(s, a) { s.d.minLen = a[0]; }, noMinLen(s) { s.d.minLen = 0; },
+  blockFor(s, a) { s.d.blockFor = { sec: a[0], attempts: a[1], within: a[2] }; }, noBlockFor(s) { s.d.blockFor = null; s.node.rt.quietUntil = 0; },
+  cdp(s) { s.d.cdp = true; }, noCdp(s) { s.d.cdp = false; },
+  keygen(s, a, path) {
+    const d = s.d, def = d.kind === 'router' ? 'Router' : 'Switch';
+    if (d.hostname === def) { s.w(`% Please define a hostname other than ${def}.\n`); return; }
+    if (!d.domainName) { s.w('% Please define a domain-name first.\n'); return; }
+    const bits = path.includes('modulus') ? a[0] : null;
+    const run = () => {
+      s.w(`The name for the keys will be: ${d.hostname}.${d.domainName}\n`);
+      if (bits !== null) { s.w(`\n% The key modulus size is ${bits} bits\n`); s.lab.genKeys(s, bits); return; }
+      s.w('Choose the size of the key modulus in the range of 360 to 4096 for your\n  General Purpose Keys. Choosing a key modulus greater than 512 may take\n  a few minutes.\n\n');
+      const askBits = () => s.ask('How many bits in the modulus [512]: ', v => {
+        const t = v.trim(), n = t === '' ? 512 : /^\d+$/.test(t) ? Number(t) : NaN;
+        if (!(n >= 360 && n <= 4096)) { s.w('% A decimal number between 360 and 4096.\n'); askBits(); return; }
+        s.lab.genKeys(s, n);
+      });
+      askBits();
+    };
+    if (d.rsaBits) { s.w(`% You already have RSA keys defined named ${d.hostname}.${d.domainName}.\n`); s.ask('% Do you really want to replace them? [yes/no]: ', v => { if (/^y(es)?$/i.test(v.trim())) run(); }); }
+    else run();
+  },
+  zeroize(s) {
+    if (!s.d.rsaBits) { s.w('% No Signature RSA Keys found in configuration.\n'); return; }
+    s.w('% All keys will be removed.\n% All router certs issued using these keys will also be removed.\n');
+    s.ask('Do you really want to remove these keys? [yes/no]: ', v => { if (/^y(es)?$/i.test(v.trim())) { s.d.rsaBits = 0; s.lab.log(s.node, '%SSH-5-DISABLED: SSH 1.99 has been disabled'); } });
+  },
+  lineCon(s) { s.enter('line'); s.targets = { kind: 'con' }; },
+  lineVty(s, a) {
+    const from = a[0], to = a.length > 1 ? a[1] : a[0];
+    if (to < from) { s.w('%Invalid line range\n'); return; }
+    while (s.d.vty.length <= to) s.d.vty.push(newLine(true));
+    s.enter('line'); s.targets = { kind: 'vty', a: from, b: to };
+  },
+  doCmd(s, a, path, line) { s.runDo(a[0], line); },
+  cfgExit(s) { if (s.mode === 'global') { s.mode = 'priv'; s.lab.configured(s); return; } s.enter('global'); },
+  end(s) { s.enter('global'); s.mode = 'priv'; s.lab.configured(s); },
+  /* line (both) */
+  lPass(s, a) {
+    const p = parsePw(a[0]);
+    if (!p) { s.w('Invalid encrypted password\n'); return; }
+    if (!p.enc7 && tooShort(s, p.plain)) return;
+    const pw = mkPass(s.d.spe, p.plain, p.enc7);
+    linesOf(s).forEach(L => { L.password = { plain: pw.plain, enc7: pw.enc7 }; });
+  },
+  lNoPass(s) { linesOf(s).forEach(L => { L.password = null; }); },
+  lLogin(s) { const ls = linesOf(s), ns = lineNos(s); ls.forEach((L, i) => { L.login = 'line'; if (!L.password) s.w(`% Login disabled on line ${ns[i]}, until 'password' is set\n`); }); },
+  lLoginLocal(s) { linesOf(s).forEach(L => { L.login = 'local'; }); if (!Object.keys(s.d.users).length) s.hint("'login local' checks the local username list, which is empty. Create a user before you log out."); },
+  lNoLogin(s) { linesOf(s).forEach(L => { L.login = 'none'; }); },
+  lTimeout(s, a) { linesOf(s).forEach(L => { L.execTimeout = [a[0], a.length > 1 ? a[1] : 0]; }); },
+  lNoTimeout(s) { linesOf(s).forEach(L => { L.execTimeout = [10, 0]; }); },
+  lSync(s) { linesOf(s).forEach(L => { L.logSync = true; }); }, lNoSync(s) { linesOf(s).forEach(L => { L.logSync = false; }); },
+  lTransport(s, a, path) {
+    const set = path.slice(2);
+    let v;
+    if (set.includes('all')) v = 'all'; else if (set.includes('none')) v = 'none';
+    else if (set.includes('ssh') && set.includes('telnet')) v = 'ssh telnet'; else v = set.includes('ssh') ? 'ssh' : 'telnet';
+    linesOf(s).forEach(L => { L.transport = v; });
+    if (v === 'ssh' && !s.d.rsaBits) s.hint("SSH isn't running yet (no RSA keys), so remote access stays closed until you generate keys.");
+  },
+  lNoTransport(s) { linesOf(s).forEach(L => { L.transport = 'all'; }); },
+  /* router: interfaces, dhcp, routes */
+  rIface(s, a) {
+    const d = s.d, n = a[0];
+    if (n.includes('.')) {
+      const parent = n.split('.')[0];
+      if (!d.ifaces[parent]) { s.w('%Invalid interface type and number\n'); return; }
+      if (!d.ifaces[n]) {
+        d.ifaces[n] = { desc: null, ip: null, mask: null, shut: false, sub: true, parent, encap: null, native: false };
+        if (!d.ifaces[parent].shut) s.lab.log(s.node, `%LINK-5-CHANGED: Interface ${n}, changed state to up\n%LINEPROTO-5-UPDOWN: Line protocol on Interface ${n}, changed state to up`);
+      }
+    } else if (!d.ifaces[n]) { s.w('%Invalid interface type and number\n'); return; }
+    s.enter('if'); s.iface = n;
+  },
+  desc(s, a) { s.curIf().desc = a[0]; }, noDesc(s) { s.curIf().desc = null; },
+  ipAddr(s, a) {
+    const g = s.curIf(), ip = ipNum(a[0]), len = maskLen(ipNum(a[1]));
+    if (len <= 0) { s.w(`Bad mask 0x${ipNum(a[1]).toString(16).toUpperCase().padStart(8, '0')} for address ${a[0]}\n`); return; }
+    if (len < 31) { const net = (ip & maskOf(len)) >>> 0, bc = (net | (~maskOf(len) >>> 0)) >>> 0; if (ip === net || ip === bc) { s.w(`Bad mask /${len} for address ${a[0]}\n`); return; } }
+    if (s.d.kind === 'router') {
+      for (const [n, o] of Object.entries(s.d.ifaces)) {
+        if (n === s.iface || !o.ip) continue;
+        const mm = maskOf(Math.min(len, maskLen(ipNum(o.mask))));
+        if (((ipNum(o.ip) & mm) >>> 0) === ((ip & mm) >>> 0)) { s.w(`% ${ipStr((ip & maskOf(len)) >>> 0)} overlaps with ${n}\n`); return; }
+      }
+    }
+    g.ip = a[0]; g.mask = a[1];
+    s.lab.clearArp();
+  },
+  noIpAddr(s) { const g = s.curIf(); g.ip = null; g.mask = null; },
+  encap(s, a, path) {
+    const g = s.curIf();
+    if (!g.sub) { s.showErr({ err: 'invalid', at: 0 }, 'encapsulation', s.lastPromptLen); s.hint('encapsulation dot1Q belongs on a subinterface such as g0/0.10, not the physical port.'); return; }
+    const v = a[0], nat = path.includes('native');
+    for (const [n, o] of Object.entries(s.d.ifaces)) if (n !== s.iface && o.sub && o.parent === g.parent && o.encap === v) { s.w('% Configuration of multiple subinterfaces of the same main interface with same VID is not permitted.\n'); return; }
+    g.encap = v; g.native = nat;
+  },
+  noEncap(s) { const g = s.curIf(); if (g.sub) { g.encap = null; g.native = false; } },
+  shut(s) {
+    const d = s.d, n = s.iface, g = s.curIf();
+    if (g.shut) return;
+    g.shut = true; s.lab.clearArp();
+    s.lab.log(s.node, `%LINK-5-CHANGED: Interface ${n}, changed state to administratively down`);
+    if (d.kind === 'router' && (g.sub ? !d.ifaces[g.parent].shut : n === R_LAN || s.lab.wanLinked(d))) s.lab.log(s.node, `%LINEPROTO-5-UPDOWN: Line protocol on Interface ${n}, changed state to down`);
+    if (d.kind === 'router' && !g.sub) subifs(d, n).forEach(sn => { if (!d.ifaces[sn].shut) s.lab.log(s.node, `%LINK-5-CHANGED: Interface ${sn}, changed state to down`); });
+  },
+  noShut(s) {
+    const d = s.d, n = s.iface, g = s.curIf();
+    if (!g.shut) return;
+    g.shut = false;
+    if (d.kind === 'router') {
+      const linked = g.sub ? !d.ifaces[g.parent].shut : n === R_LAN || (n === R_WAN);
+      if (linked) { s.lab.log(s.node, `%LINK-5-CHANGED: Interface ${n}, changed state to up`); s.lab.log(s.node, `%LINEPROTO-5-UPDOWN: Line protocol on Interface ${n}, changed state to up`); }
+      else s.lab.log(s.node, `%LINK-5-CHANGED: Interface ${n}, changed state to down`);
+      if (!g.sub) subifs(d, n).forEach(sn => { if (!d.ifaces[sn].shut) s.lab.log(s.node, `%LINK-5-CHANGED: Interface ${sn}, changed state to up`); });
+    } else if (s.lab.sviUp(s.iface)) s.lab.log(s.node, `%LINK-5-CHANGED: Interface Vlan${s.iface}, changed state to up\n%LINEPROTO-5-UPDOWN: Line protocol on Interface Vlan${s.iface}, changed state to up`);
+    s.lab.refreshVty();
+  },
+  dhcpEx(s, a) { const b = a.length > 1 ? a[1] : a[0]; if (ipNum(b) < ipNum(a[0])) { s.w('% Invalid address range\n'); return; } s.d.dhcp.excluded.push([a[0], b]); },
+  noDhcpEx(s, a) { const b = a.length > 1 ? a[1] : a[0]; s.d.dhcp.excluded = s.d.dhcp.excluded.filter(x => !(x[0] === a[0] && x[1] === b)); },
+  dhcpPool(s, a) { if (!s.d.dhcp.pools[a[0]]) s.d.dhcp.pools[a[0]] = { network: null, mask: null, router: null, dns: null, domain: null }; s.enter('dhcp'); s.pool = a[0]; },
+  noDhcpPool(s, a) { delete s.d.dhcp.pools[a[0]]; },
+  pNetwork(s, a) { const len = maskLen(ipNum(a[1])); if (len <= 0) { s.w('% Invalid network mask\n'); return; } const p = s.d.dhcp.pools[s.pool]; p.network = ipStr(netOf(a[0], a[1])); p.mask = a[1]; },
+  pRouter(s, a) { s.d.dhcp.pools[s.pool].router = a[0]; }, pDns(s, a) { s.d.dhcp.pools[s.pool].dns = a[0]; }, pDomain(s, a) { s.d.dhcp.pools[s.pool].domain = a[0]; },
+  route(s, a) {
+    const len = maskLen(ipNum(a[1]));
+    if (len < 0) { s.w('%Inconsistent address and mask\n'); return; }
+    const net = ipStr(netOf(a[0], a[1]));
+    if (net !== a[0]) { s.w('%Inconsistent address and mask\n'); return; }
+    s.d.routes = s.d.routes.filter(r => !(r.net === net && r.mask === a[1]));
+    s.d.routes.push({ net, mask: a[1], via: a[2] });
+  },
+  noRoute(s, a) { s.d.routes = s.d.routes.filter(r => !(r.net === a[0] && r.mask === a[1] && (a.length < 3 || r.via === a[2]))); },
+  showRoute(s) { s.w(s.lab.routeText(s.d) + '\n'); },
+  showBinding(s) {
+    const rows = ['IP address       Client-ID/              Lease expiration        Type', '                 Hardware address'];
+    Object.entries(s.lab.leases).forEach(([ip, l]) => rows.push(ip.padEnd(17) + l.mac.padEnd(24) + '--'.padEnd(24) + 'Automatic'));
+    s.w(rows.join('\n') + '\n');
+  },
+  /* switch: vlans, ports, svis */
+  vlan(s, a) { if (a[0] >= 1002 && a[0] <= 1005) { s.w('% Invalid VLAN ID\n'); return; } if (!s.d.vlans[a[0]]) s.d.vlans[a[0]] = { name: vlanDefaultName(a[0]) }; s.enter('vlan'); s.vlan = a[0]; },
+  noVlan(s, a) { if (a[0] === 1) { s.w('Default VLAN 1 may not be deleted.\n'); return; } delete s.d.vlans[a[0]]; },
+  vName(s, a) { s.d.vlans[s.vlan].name = a[0]; }, vNoName(s) { s.d.vlans[s.vlan].name = vlanDefaultName(s.vlan); },
+  sIface(s, a) {
+    const d = s.d, n = a[0];
+    if (n.startsWith('Vlan')) {
+      const v = Number(n.slice(4));
+      if (v < 1 || v > 4094) { s.w('%Invalid interface type and number\n'); return; }
+      if (!d.svis[v]) d.svis[v] = { desc: null, ip: null, mask: null, shut: false };
+      s.enter('svi'); s.iface = v; return;
+    }
+    if (!d.ports[n]) { s.w('%Invalid interface type and number\n'); return; }
+    s.enter('swif'); s.ports = [n]; s.range = false;
+  },
+  sRange(s, a) {
+    const names = parseRange(a[0]);
+    if (!names || names.some(n => !s.d.ports[n])) { s.w('% Invalid interface range\n'); return; }
+    s.enter('swif'); s.ports = names; s.range = names.length > 1;
+  },
+  swMode(s, a, path) {
+    const m = path.includes('access') ? 'access' : path.includes('trunk') ? 'trunk' : path.includes('desirable') ? 'desirable' : 'dynamic';
+    swPorts(s).forEach(([n, p]) => {
+      if (m !== 'access' && m !== 'trunk' && p.nonegotiate) { s.w(`Command rejected: Conflict between 'nonegotiate' and 'dynamic' status.\n`); return; }
+      p.mode = m;
+      if (n === S_UPLINK) s.lab.clearArp();
+    });
+    s.lab.refreshVty();
+  },
+  swAccessVlan(s, a) {
+    const v = a[0];
+    if (!s.d.vlans[v]) { s.d.vlans[v] = { name: vlanDefaultName(v) }; s.w(`% Access VLAN does not exist. Creating vlan ${v}\n`); }
+    swPorts(s).forEach(([, p]) => { p.accessVlan = v; });
+    s.lab.clearArp(); s.lab.refreshVty();
+  },
+  swNoAccessVlan(s) { swPorts(s).forEach(([, p]) => { p.accessVlan = 1; }); },
+  swNative(s, a) { swPorts(s).forEach(([, p]) => { p.nativeVlan = a[0]; }); s.lab.clearArp(); },
+  swNoNative(s) { swPorts(s).forEach(([, p]) => { p.nativeVlan = 1; }); },
+  swAllowed(s, a, path) {
+    const op = path[4], full = () => { const f = []; for (let v = 1; v <= 4094; v++) f.push(v); return f; };
+    swPorts(s).forEach(([, p]) => {
+      if (op === 'all') p.allowed = 'all';
+      else if (op === 'none') p.allowed = [];
+      else if (op === 'add') { if (p.allowed === 'all') return; p.allowed = Array.from(new Set([...p.allowed, ...a[0]])).sort((x, y) => x - y); }
+      else if (op === 'remove') { const base = p.allowed === 'all' ? full() : p.allowed; p.allowed = base.filter(v => !a[0].includes(v)); }
+      else p.allowed = a[0].slice();
+    });
+    s.lab.clearArp(); s.lab.refreshVty();
+  },
+  swNoAllowed(s) { swPorts(s).forEach(([, p]) => { p.allowed = 'all'; }); },
+  swNoneg(s) {
+    swPorts(s).forEach(([n, p]) => { if (p.mode !== 'access' && p.mode !== 'trunk') { s.w(`Command rejected: Conflict between 'nonegotiate' and 'dynamic' status.\n`); return; } p.nonegotiate = true; });
+  },
+  swNoNoneg(s) { swPorts(s).forEach(([, p]) => { p.nonegotiate = false; }); },
+  psOn(s) {
+    swPorts(s).forEach(([n, p]) => { if (p.mode !== 'access' && p.mode !== 'trunk') { s.w(`Command rejected: ${n} is a dynamic port.\n`); if (!s.range) s.hint("Port security needs a fixed mode: set 'switchport mode access' first."); return; } p.psec.on = true; });
+  },
+  psOff(s) { swPorts(s).forEach(([, p]) => { p.psec.on = false; p.psec.learned = []; p.violations = 0; }); },
+  psMax(s, a) { swPorts(s).forEach(([, p]) => { p.psec.max = a[0]; }); },
+  psSticky(s) { swPorts(s).forEach(([, p]) => { p.psec.sticky = true; p.psec.learned.forEach(l => { l.sticky = true; }); }); },
+  psNoSticky(s) { swPorts(s).forEach(([, p]) => { p.psec.sticky = false; p.psec.learned = []; }); },
+  psViol(s, a, path) { const v = path[3]; swPorts(s).forEach(([, p]) => { p.psec.violation = v; }); },
+  pfOn(s) { swPorts(s).forEach(([, p]) => { p.portfast = true; }); if (!s.range) s.w('%Warning: portfast should only be enabled on ports connected to a single\n host. Connecting hubs, concentrators, switches, bridges, etc... to this\n interface  when portfast is enabled, can cause temporary bridging loops.\n Use with CAUTION\n\n'); },
+  pfOff(s) { swPorts(s).forEach(([, p]) => { p.portfast = false; }); },
+  bgOn(s) { swPorts(s).forEach(([, p]) => { p.bpduguard = true; }); }, bgOff(s) { swPorts(s).forEach(([, p]) => { p.bpduguard = false; }); },
+  swDesc(s, a) { swPorts(s).forEach(([, p]) => { p.desc = a[0]; }); }, swNoDesc(s) { swPorts(s).forEach(([, p]) => { p.desc = null; }); },
+  swShut(s) {
+    swPorts(s).forEach(([n, p]) => {
+      if (p.shut) return;
+      const was = s.lab.portUp(n);
+      p.shut = true;
+      s.lab.log(s.node, `%LINK-5-CHANGED: Interface ${n}, changed state to administratively down`);
+      if (was) s.lab.log(s.node, `%LINEPROTO-5-UPDOWN: Line protocol on Interface ${n}, changed state to down`);
+    });
+    s.lab.clearArp(); s.lab.refreshVty();
+  },
+  swNoShut(s) {
+    swPorts(s).forEach(([n, p]) => {
+      if (!p.shut && !p.errDisabled) return;
+      p.shut = false; p.errDisabled = false;
+      if (s.lab.portUp(n)) s.lab.log(s.node, `%LINK-5-CHANGED: Interface ${n}, changed state to up\n%LINEPROTO-5-UPDOWN: Line protocol on Interface ${n}, changed state to up`);
+      else s.lab.log(s.node, `%LINK-5-CHANGED: Interface ${n}, changed state to down`);
+    });
+    s.lab.clearArp(); s.lab.refreshVty();
+  },
+  sviShut(s) { const v = s.iface, sv = s.d.svis[v]; if (sv.shut) return; const was = s.lab.sviUp(v); sv.shut = true; if (was) s.lab.log(s.node, `%LINK-5-CHANGED: Interface Vlan${v}, changed state to administratively down\n%LINEPROTO-5-UPDOWN: Line protocol on Interface Vlan${v}, changed state to down`); s.lab.clearArp(); },
+  sviNoShut(s) { const v = s.iface, sv = s.d.svis[v]; if (!sv.shut) return; sv.shut = false; if (s.lab.sviUp(v)) s.lab.log(s.node, `%LINK-5-CHANGED: Interface Vlan${v}, changed state to up\n%LINEPROTO-5-UPDOWN: Line protocol on Interface Vlan${v}, changed state to up`); s.lab.clearArp(); },
+  defGw(s, a) { s.d.defaultGateway = a[0]; }, noDefGw(s) { s.d.defaultGateway = null; },
+  showVlan(s) { s.w(s.lab.vlanText(s.d) + '\n'); },
+  showTrunk(s) { s.w(s.lab.trunkText(s.d) + '\n'); },
+  showStatus(s) { s.w(s.lab.statusText(s.d) + '\n'); },
+  showPsec(s, a) { s.w(s.lab.psecText(s.d, a[0]) + '\n'); }
+};
+
+/* ---------- trees ---------- */
+const EXEC_COMMON = [
+  ['exit', X.logout], ['logout', X.logout], ['ping <IP>', X.ping, { IP: 'Ping destination address' }],
+  ['show ip interface brief', X.showBrief], ['show ip ssh', X.showSsh], ['show users', X.showUsers], ['show cdp', X.showCdp],
+  ['show version', X.showVer], ['show login', X.showLogin], ['show interfaces description', X.showDesc]
+];
+const PRIV_COMMON = [
+  ['enable', X.noop], ['disable', X.disable], ['configure terminal', X.conft], ...EXEC_COMMON,
+  ['show running-config', X.showRun], ['show startup-config', X.showStart],
+  ['copy running-config startup-config', X.copyRS], ['write', X.wr], ['write memory', X.wr], ['erase startup-config', X.erase], ['reload', X.reload]
+];
+const GLOBAL_COMMON = [
+  ['hostname <WORD>', X.hostname, { WORD: "This system's network name" }], ['no hostname', X.noHostname],
+  ['enable secret <LINE>', X.enSecret, { LINE: "The UNENCRYPTED (cleartext) 'enable' secret" }], ['enable password <LINE>', X.enPass, { LINE: "The UNENCRYPTED (cleartext) 'enable' password" }],
+  ['no enable secret', X.noEnSecret], ['no enable password', X.noEnPass],
+  ['service password-encryption', X.spe], ['no service password-encryption', X.noSpe],
+  ['ip domain-lookup', X.dl], ['no ip domain-lookup', X.noDl], ['ip domain-name <WORD>', X.dn, { WORD: 'Default domain name' }], ['no ip domain-name', X.noDn],
+  ['ip ssh version <INT:1-2>', X.sshVer, { 'INT:1-2': 'Protocol version' }], ['no ip ssh version', X.noSshVer],
+  ['ip ssh time-out <INT:1-120>', X.sshTo, { 'INT:1-120': 'SSH time-out interval (secs)' }], ['no ip ssh time-out', X.noSshTo],
+  ['ip ssh authentication-retries <INT:0-5>', X.sshRet, { 'INT:0-5': 'Number of authentication retries' }], ['no ip ssh authentication-retries', X.noSshRet],
+  ['banner motd <LINE>', X.banner, { LINE: "c banner-text c, where 'c' is a delimiting character" }], ['no banner motd', X.noBanner],
+  ['username <WORD> secret <LINE>', X.user, { WORD: 'User name', LINE: 'The UNENCRYPTED (cleartext) user secret' }],
+  ['username <WORD> password <LINE>', X.user, { LINE: 'The UNENCRYPTED (cleartext) user password' }],
+  ['username <WORD> privilege <INT:0-15> secret <LINE>', X.user, { 'INT:0-15': 'User privilege level' }],
+  ['username <WORD> privilege <INT:0-15> password <LINE>', X.user], ['no username <WORD>', X.noUser, { WORD: 'User name' }],
+  ['security passwords min-length <INT:0-16>', X.minLen, { 'INT:0-16': 'Minimum length of a valid password' }], ['no security passwords min-length', X.noMinLen],
+  ['login block-for <INT:1-65535> attempts <INT:1-65535> within <INT:1-65535>', X.blockFor, { 'INT:1-65535': 'Number of seconds or attempts' }], ['no login block-for', X.noBlockFor],
+  ['cdp run', X.cdp], ['no cdp run', X.noCdp],
+  ['crypto key generate rsa', X.keygen], ['crypto key generate rsa general-keys', X.keygen],
+  ['crypto key generate rsa general-keys modulus <INT:360-4096>', X.keygen, { 'INT:360-4096': 'size of the key modulus' }],
+  ['crypto key generate rsa modulus <INT:360-4096>', X.keygen], ['crypto key zeroize rsa', X.zeroize],
+  ['line console <INT:0-0>', X.lineCon, { 'INT:0-0': 'First Line number' }],
+  ['line vty <INT:0-15>', X.lineVty, { 'INT:0-15': 'First Line number' }], ['line vty <INT:0-15> <INT:0-15>', X.lineVty, { 'INT:0-15': 'Last Line number' }],
+  ['do <LINE>', X.doCmd, { LINE: 'Exec Command' }], ['exit', X.cfgExit], ['end', X.end]
+];
+const LINE_DEFS = [
+  ['password <LINE>', X.lPass, { LINE: 'The UNENCRYPTED (cleartext) line password' }], ['no password', X.lNoPass],
+  ['login', X.lLogin], ['login local', X.lLoginLocal], ['no login', X.lNoLogin],
+  ['exec-timeout <INT:0-35791>', X.lTimeout, { 'INT:0-35791': 'Timeout in minutes' }], ['exec-timeout <INT:0-35791> <INT:0-2147483>', X.lTimeout, { 'INT:0-2147483': 'Timeout in seconds' }],
+  ['no exec-timeout', X.lNoTimeout], ['logging synchronous', X.lSync], ['no logging synchronous', X.lNoSync],
+  ['transport input all', X.lTransport], ['transport input none', X.lTransport], ['transport input ssh', X.lTransport], ['transport input telnet', X.lTransport],
+  ['transport input ssh telnet', X.lTransport], ['transport input telnet ssh', X.lTransport], ['no transport input', X.lNoTransport],
+  ['do <LINE>', X.doCmd, { LINE: 'Exec Command' }], ['exit', X.cfgExit], ['end', X.end]
+];
+const SUB = [['do <LINE>', X.doCmd, { LINE: 'Exec Command' }], ['exit', X.cfgExit], ['end', X.end]];
+const SW_SHOW = [['show vlan brief', X.showVlan], ['show interfaces trunk', X.showTrunk], ['show interfaces status', X.showStatus],
+  ['show port-security', X.showPsec], ['show port-security interface <SIF>', X.showPsec, { SIF: 'FastEthernet IEEE 802.3' }]];
+const TREES = {
+  router: {
+    user: build('user', [['enable', X.enable], ...EXEC_COMMON, ['show ip route', X.showRoute], ['show ip dhcp binding', X.showBinding]]),
+    priv: build('priv', [...PRIV_COMMON, ['show ip route', X.showRoute], ['show ip dhcp binding', X.showBinding]]),
+    global: build('global', [...GLOBAL_COMMON,
+      ['interface <RIF>', X.rIface, { RIF: 'GigabitEthernet IEEE 802.3z' }],
+      ['ip dhcp excluded-address <IP>', X.dhcpEx, { IP: 'Low IP address' }], ['ip dhcp excluded-address <IP> <IP>', X.dhcpEx], ['no ip dhcp excluded-address <IP>', X.noDhcpEx], ['no ip dhcp excluded-address <IP> <IP>', X.noDhcpEx],
+      ['ip dhcp pool <WORD>', X.dhcpPool, { WORD: 'Pool name' }], ['no ip dhcp pool <WORD>', X.noDhcpPool],
+      ['ip route <IP> <MASK> <IP>', X.route, { IP: 'Destination prefix', MASK: 'Destination prefix mask' }], ['no ip route <IP> <MASK>', X.noRoute], ['no ip route <IP> <MASK> <IP>', X.noRoute]]),
+    line: build('line', LINE_DEFS),
+    if: build('if', [['description <LINE>', X.desc, { LINE: 'Up to 240 characters describing this interface' }], ['no description', X.noDesc],
+      ['ip address <IP> <MASK>', X.ipAddr, { IP: 'IP address', MASK: 'IP subnet mask' }], ['no ip address', X.noIpAddr],
+      ['encapsulation dot1Q <INT:1-4094>', X.encap, { 'INT:1-4094': 'IEEE 802.1Q VLAN ID' }], ['encapsulation dot1Q <INT:1-4094> native', X.encap], ['no encapsulation dot1Q', X.noEncap],
+      ['shutdown', X.shut], ['no shutdown', X.noShut], ...SUB]),
+    dhcp: build('dhcp', [['network <IP> <MASK>', X.pNetwork, { IP: 'Network number', MASK: 'Network mask' }], ['default-router <IP>', X.pRouter, { IP: "Router's IP address" }],
+      ['dns-server <IP>', X.pDns, { IP: "Server's IP address" }], ['domain-name <WORD>', X.pDomain, { WORD: 'Domain name' }], ...SUB])
+  },
+  switch: {
+    user: build('user', [['enable', X.enable], ...EXEC_COMMON, ...SW_SHOW]),
+    priv: build('priv', [...PRIV_COMMON, ...SW_SHOW]),
+    global: build('global', [...GLOBAL_COMMON,
+      ['vlan <INT:1-4094>', X.vlan, { 'INT:1-4094': 'ISL VLAN IDs 1-4094' }], ['no vlan <INT:1-4094>', X.noVlan],
+      ['interface <SIF>', X.sIface, { SIF: 'FastEthernet IEEE 802.3' }], ['interface range <RANGE>', X.sRange, { RANGE: 'interface range, e.g. f0/1 - 4' }],
+      ['ip default-gateway <IP>', X.defGw, { IP: 'IP address of default gateway' }], ['no ip default-gateway', X.noDefGw]]),
+    line: build('line', LINE_DEFS),
+    swif: build('swif', [['description <LINE>', X.swDesc, { LINE: 'Up to 240 characters describing this interface' }], ['no description', X.swNoDesc],
+      ['switchport mode access', X.swMode], ['switchport mode trunk', X.swMode], ['switchport mode dynamic auto', X.swMode], ['switchport mode dynamic desirable', X.swMode],
+      ['switchport access vlan <INT:1-4094>', X.swAccessVlan, { 'INT:1-4094': 'VLAN ID of the VLAN when this port is in access mode' }], ['no switchport access vlan', X.swNoAccessVlan],
+      ['switchport trunk native vlan <INT:1-4094>', X.swNative, { 'INT:1-4094': 'VLAN ID of the native VLAN when this port is in trunking mode' }], ['no switchport trunk native vlan', X.swNoNative],
+      ['switchport trunk allowed vlan <VLIST>', X.swAllowed, { VLIST: 'VLAN IDs of the allowed VLANs when this port is in trunking mode' }],
+      ['switchport trunk allowed vlan add <VLIST>', X.swAllowed], ['switchport trunk allowed vlan remove <VLIST>', X.swAllowed],
+      ['switchport trunk allowed vlan all', X.swAllowed], ['switchport trunk allowed vlan none', X.swAllowed], ['no switchport trunk allowed vlan', X.swNoAllowed],
+      ['switchport nonegotiate', X.swNoneg], ['no switchport nonegotiate', X.swNoNoneg],
+      ['switchport port-security', X.psOn], ['no switchport port-security', X.psOff],
+      ['switchport port-security maximum <INT:1-3072>', X.psMax, { 'INT:1-3072': 'Maximum addresses' }],
+      ['switchport port-security mac-address sticky', X.psSticky], ['no switchport port-security mac-address sticky', X.psNoSticky],
+      ['switchport port-security violation protect', X.psViol], ['switchport port-security violation restrict', X.psViol], ['switchport port-security violation shutdown', X.psViol],
+      ['spanning-tree portfast', X.pfOn], ['no spanning-tree portfast', X.pfOff],
+      ['spanning-tree bpduguard enable', X.bgOn], ['spanning-tree bpduguard disable', X.bgOff], ['no spanning-tree bpduguard', X.bgOff],
+      ['shutdown', X.swShut], ['no shutdown', X.swNoShut], ...SUB]),
+    svi: build('svi', [['description <LINE>', X.desc, { LINE: 'Up to 240 characters describing this interface' }], ['no description', X.noDesc],
+      ['ip address <IP> <MASK>', X.ipAddr, { IP: 'IP address', MASK: 'IP subnet mask' }], ['no ip address', X.noIpAddr],
+      ['shutdown', X.sviShut], ['no shutdown', X.sviNoShut], ...SUB]),
+    vlan: build('vlan', [['name <WORD>', X.vName, { WORD: 'The ascii name for the VLAN' }], ['no name', X.vNoName], ...SUB])
+  }
+};
+const PROMPT = { user: '>', priv: '#', global: '(config)#', line: '(config-line)#', if: '(config-if)#', svi: '(config-if)#', swif: '(config-if)#', dhcp: '(config-dhcp)#', vlan: '(config-vlan)#' };
+
+/* ---------- IOS session ---------- */
+class IOSSession {
+  constructor(lab, node, kind, term) {
+    this.lab = lab; this.node = node; this.kind = kind; this.term = term;
+    this.mode = kind === 'con' ? 'idle' : 'closed';
+    this.pending = null; this.busy = false; this.user = null; this.lineNo = 0; this.from = null; this.proto = null;
+    this.targets = null; this.iface = null; this.ports = null; this.range = false; this.pool = null; this.vlan = null; this.tries = 0; this.lastPromptLen = 0;
+  }
+  get d() { return this.node.dev; }
+  get trees() { return TREES[this.d.kind]; }
+  w(t) { this.lab.io.write(this.term, t); }
+  hint(t) { this.lab.io.hint(this.term, t); }
+  curIf() { return this.d.kind === 'router' ? this.d.ifaces[this.iface] : this.d.svis[this.iface]; }
+  enter(mode) { this.mode = mode; this.targets = null; this.iface = null; this.ports = null; this.range = false; this.pool = null; this.vlan = null; }
+  lineCfg() { return this.kind === 'con' ? this.d.con : (this.d.vty[this.lineNo] || this.d.vty[0]); }
+  prompt() {
+    if (this.pending) return this.pending.prompt;
+    if (this.mode === 'idle' || this.mode === 'closed') return '';
+    return this.d.hostname + (this.mode === 'swif' && this.range ? '(config-if-range)#' : PROMPT[this.mode]);
+  }
+  masked() { return !!(this.pending && this.pending.mask); }
+  hasPending() { return !!this.pending; }
+  isBusy() { return this.busy; }
+  isIdle() { return this.mode === 'idle' && !this.pending; }
+  ask(prompt, fn, mask) { this.pending = { prompt, fn, mask: !!mask }; }
+  input(line) {
+    if (this.busy) return;
+    if (this.pending) { const p = this.pending; this.pending = null; p.fn(line); return; }
+    if (this.mode === 'idle') { this.startLogin(); return; }
+    if (this.mode === 'closed') return;
+    if (/\?\s*$/.test(line)) { const h = this.help(line); if (h) { this.w(h.text); return; } }
+    this.exec(line, this.prompt().length);
+  }
+  startLogin() {
+    const L = this.lineCfg(), d = this.d;
+    if (d.banner) this.w('\n' + d.banner + '\n');
+    if (L.login === 'none' || (L.login === 'line' && !L.password && this.kind === 'con')) { this.enterUser(); return; }
+    if (L.login === 'line' && !L.password) { this.w('\nPassword required, but none set\n'); this.close(); return; }
+    this.w('\nUser Access Verification\n\n');
+    this.tries = 0;
+    if (L.login === 'line') { this.askLinePw(); return; }
+    if (!Object.keys(d.users).length) this.hint("Nobody can log in here: 'login local' is set but no usernames exist. Use Reset to recover, and create the user first next time.");
+    this.askUser();
+  }
+  askLinePw() {
+    this.ask('Password: ', v => {
+      const L = this.lineCfg();
+      if (L.password && v === L.password.plain) { this.loginOK(); return; }
+      this.failed('');
+      if (++this.tries >= 3) { this.w('% Bad passwords\n'); this.close(); } else this.askLinePw();
+    }, true);
+  }
+  askUser() {
+    this.ask('Username: ', u => {
+      this.ask('Password: ', p => {
+        const U = this.d.users[u];
+        if (U && U.plain !== null && p === U.plain) { this.user = u; this.loginOK(); return; }
+        this.w('% Login invalid\n\n');
+        this.failed(u);
+        if (++this.tries >= 3) this.close(); else this.askUser();
+      }, true);
+    });
+  }
+  loginOK() { this.tries = 0; if (this.kind === 'vty' && this.proto === 'telnet') this.lab.ev['telnetLogin:' + this.node.id] = true; this.enterUser(); }
+  failed(user) { if (this.kind === 'vty') this.lab.loginFailure(this.node, user, this.from, this.proto); }
+  enterUser() { this.mode = 'user'; this.w('\n'); }
+  close() {
+    this.pending = null; this.user = null; this.enter(this.mode);
+    if (this.kind === 'con') { this.mode = 'idle'; this.w(`\n${this.d.hostname} con0 is now available\n\n\n\n\n\nPress RETURN to get started.\n\n`); }
+    else { this.mode = 'closed'; this.lab.vtyClosed(this); }
+  }
+  doEnable() {
+    const d = this.d;
+    if (!d.enableSecret && !d.enablePassword) {
+      if (this.kind === 'vty') { this.w('% No password set\n'); this.hint("Remote users can't reach privileged EXEC until an enable secret exists."); return; }
+      this.mode = 'priv'; return;
+    }
+    this.tries = 0;
+    const ask = () => this.ask('Password: ', v => {
+      const ok = d.enableSecret ? d.enableSecret.plain !== null && v === d.enableSecret.plain : v === d.enablePassword.plain;
+      if (ok) { this.mode = 'priv'; return; }
+      if (++this.tries >= 3) { this.w(d.enableSecret ? '% Bad secrets\n\n' : '% Bad passwords\n\n'); return; }
+      ask();
+    }, true);
+    ask();
+  }
+  showErr(r, line, base) {
+    if (r.err === 'invalid') this.w(' '.repeat(Math.max(0, base + r.at)) + "^\n% Invalid input detected at '^' marker.\n\n");
+    else if (r.err === 'ambig') this.w(`% Ambiguous command:  "${line.trim()}"\n`);
+    else this.w('% Incomplete command.\n\n');
+  }
+  exec(line, pl) {
+    this.lastPromptLen = pl;
+    if (!line.trim() || /^\s*!/.test(line)) return;
+    const T = this.trees, res = parse(T[this.mode], line);
+    if (!res.err) { res.node.run(this, res.args, res.path, line); return; }
+    const execMode = this.mode === 'user' || this.mode === 'priv', sub = !execMode && this.mode !== 'global';
+    if (sub && res.err === 'invalid' && res.i === 0) {
+      const g = parse(T.global, line);
+      if (!g.err) { this.enter('global'); g.node.run(this, g.args, g.path, line); return; }
+    }
+    if (execMode && res.err === 'invalid' && res.i === 0 && res.toks.length === 1) { this.translate(res.toks[0].t); return; }
+    this.showErr(res, line, pl);
+    if (res.err === 'ambig') return;
+    if (this.d.kind === 'router' && /^\s*int\S*\s+\S*\d+\/\d+\/\d+/i.test(line)) this.hint('This router is a 2911-style model: its ports are G0/0 to G0/2. ISR 4000 routers use G0/0/0.');
+    else if (this.d.kind === 'switch' && /^\s*int\S*\s+g\S*0\/[03-9]/i.test(line)) this.hint('This switch has FastEthernet0/1 to 0/24 and GigabitEthernet0/1 to 0/2.');
+    else if (execMode && res.i === 0 && !parse(T.global, line).err) this.hint("That's a configuration command. Type 'configure terminal' first.");
+    else if (this.mode === 'user' && !parse(T.priv, line).err) this.hint("That command needs privileged EXEC. Type 'enable' first.");
+    else if (!execMode && res.i === 0 && !parse(T.priv, line).err) this.hint(`EXEC commands don't run in config mode. Put 'do' in front: do ${line.trim()}`);
+    else if (this.mode === 'global' && res.i === 0 && (!parse(T.if || T.swif, line).err || (T.svi && !parse(T.svi, line).err))) this.hint("That's an interface command. Select the interface first, for example: interface g0/0");
+  }
+  runDo(sub, line) {
+    const r = parse(this.trees.priv, sub), off = line.indexOf(sub);
+    if (r.err) { this.showErr(r, sub, this.lastPromptLen + off); return; }
+    if (['configure', 'disable', 'exit', 'logout', 'enable'].includes(r.path[0])) { this.showErr({ err: 'invalid', at: 0 }, sub, this.lastPromptLen + off); return; }
+    r.node.run(this, r.args, r.path, sub);
+  }
+  translate(word) {
+    if (ipNum(word) !== null) { this.w(`Trying ${word} ...\n% Connection refused by remote host\n`); return; }
+    if (!this.d.domainLookup) { this.w(`Translating "${word}"\n% Unknown command or computer name, or unable to find computer address\n`); return; }
+    this.w(`Translating "${word}"...domain server (255.255.255.255)\n`);
+    this.busy = true;
+    this.lab.later(2600, () => {
+      this.busy = false;
+      this.w('% Unknown command or computer name, or unable to find computer address\n');
+      this.hint("Real IOS can freeze for about 30 seconds on a typo while it tries DNS. 'no ip domain-lookup' in global config stops that.");
+      this.lab.io.refresh(this.term);
+    });
+  }
+  banner(raw) {
+    const delim = raw[0], rest = raw.slice(1), end = rest.indexOf(delim);
+    if (end >= 0) { this.d.banner = rest.slice(0, end); return; }
+    this.w(`Enter TEXT message.  End with the character '${delim}'.\n`);
+    const lines = [rest];
+    const more = () => this.ask('', v => { const k = v.indexOf(delim); if (k >= 0) { lines.push(v.slice(0, k)); this.d.banner = lines.join('\n'); } else { lines.push(v); more(); } });
+    more();
+  }
+  help(line) {
+    const T = this.trees;
+    if (this.pending || this.busy || !T[this.mode]) return null;
+    const body = line.replace(/\?\s*$/, ''), toks = tokenize(body), partial = body.length > 0 && !/\s$/.test(body), walk = partial ? toks.length - 1 : toks.length;
+    let node = T[this.mode];
+    for (let i = 0; i < walk;) {
+      const r = step(node, toks, i, body);
+      if (r.err) return { text: r.err === 'ambig' ? `% Ambiguous command:  "${body.trim()}"\n` : '% Unrecognized command\n', restore: body };
+      node = r.node; i += r.n;
+      if (node.param === 'LINE' || node.param === 'RANGE') break;
+    }
+    const isLine = node.param === 'LINE' || node.param === 'RANGE';
+    if (partial && !isLine) {
+      const pre = toks[toks.length - 1].t.toLowerCase();
+      let list = node.kids.filter(k => k.kw && k.kw.toLowerCase().startsWith(pre)).map(k => k.kw).sort();
+      if (!list.length) list = node.kids.filter(k => k.param).map(k => pname(k.param));
+      return { text: list.length ? list.join('  ') + '\n' : '% Unrecognized command\n', restore: body };
+    }
+    const kids = isLine ? [] : node.kids;
+    const rows = [...kids.filter(k => k.param).map(k => [pname(k.param), k.help]), ...kids.filter(k => k.kw).sort((x, y) => (x.kw < y.kw ? -1 : 1)).map(k => [k.kw, k.help])];
+    if (node.run) rows.push(['<cr>', '']);
+    if (!rows.length) return { text: '% Unrecognized command\n', restore: body };
+    const w = Math.max(...rows.map(r => r[0].length));
+    return { text: rows.map(r => ('  ' + r[0].padEnd(w + 2) + r[1]).replace(/\s+$/, '')).join('\n') + '\n', restore: body };
+  }
+  complete(line) {
+    const T = this.trees;
+    if (this.pending || this.busy || !T[this.mode]) return null;
+    const toks = tokenize(line);
+    if (!toks.length || /\s$/.test(line)) return null;
+    let node = T[this.mode];
+    for (let i = 0; i < toks.length - 1;) { const r = step(node, toks, i, line); if (r.err || r.node.param === 'LINE' || r.node.param === 'RANGE') return null; node = r.node; i += r.n; }
+    const last = toks[toks.length - 1], low = last.t.toLowerCase(), c = node.kids.filter(k => k.kw && k.kw.toLowerCase().startsWith(low));
+    return c.length === 1 ? line.slice(0, last.i) + c[0].kw + ' ' : null;
+  }
+}
+
+/* ---------- PC command prompt ---------- */
+class PCShell {
+  constructor(lab, id) { this.lab = lab; this.id = id; this.pending = null; this.busy = false; this.remote = null; this.target = null; }
+  get pc() { return this.lab.pcs[this.id]; }
+  w(t) { this.lab.io.write(this.id, t); }
+  hint(t) { this.lab.io.hint(this.id, t); }
+  prompt() { return this.remote ? this.remote.prompt() : this.pending ? this.pending.prompt : 'C:\\>'; }
+  masked() { return this.remote ? this.remote.masked() : !!(this.pending && this.pending.mask); }
+  hasPending() { return this.remote ? this.remote.hasPending() : !!this.pending; }
+  isBusy() { return this.busy || !!(this.remote && this.remote.busy); }
+  isIdle() { return false; }
+  help(line) { if (this.remote) return this.remote.help(line); return { text: 'Commands: ipconfig, ipconfig /renew, ping <ip>, telnet <ip>, ssh -l <username> <ip>, cls\n', restore: line.replace(/\?\s*$/, '') }; }
+  complete(line) { return this.remote ? this.remote.complete(line) : null; }
+  input(line) {
+    if (this.busy) return;
+    if (this.remote) { this.remote.input(line); return; }
+    if (this.pending) { const p = this.pending; this.pending = null; p.fn(line); return; }
+    const t = line.trim();
+    if (!t) return;
+    const parts = t.split(/\s+/), cmd = parts[0].toLowerCase(), arg = (parts[1] || '').toLowerCase();
+    if (cmd === 'ipconfig' && (arg === '/renew' || arg === '/release')) { if (arg === '/release') this.release(); else this.renew(); }
+    else if (cmd === 'ipconfig') this.ipconfig(arg === '/all');
+    else if (cmd === 'ping' && parts[1]) this.ping(parts[1]);
+    else if (cmd === 'telnet' && parts[1]) this.telnet(parts[1]);
+    else if (cmd === 'ssh') this.ssh(parts);
+    else if (cmd === 'help' || cmd === '?') this.w(this.help('?').text);
+    else if (cmd === 'cls' || cmd === 'clear') this.lab.io.clear(this.id);
+    else this.w('Invalid Command.\n');
+  }
+  ipconfig(all) {
+    const pc = this.pc, ip = pc.ip || (pc.dhcp ? pc.apipa : '0.0.0.0'), mask = pc.ip ? pc.mask : pc.dhcp ? '255.255.0.0' : '0.0.0.0';
+    const ll = 'FE80::' + (parseInt(pc.mac.slice(0, 4), 16) ^ 0x200).toString(16).toUpperCase() + ':' + pc.mac.slice(5, 7) + 'FF:FE' + pc.mac.slice(7, 9) + ':' + pc.mac.slice(10, 14);
+    this.w(`\nFastEthernet0 Connection:(default port)\n\n   Connection-specific DNS Suffix..: \n   Link-local IPv6 Address.........: ${ll}\n   IPv6 Address....................: ::\n   IPv4 Address....................: ${ip}\n   Subnet Mask.....................: ${mask}\n   Default Gateway.................: ::\n                                     ${pc.gw || '0.0.0.0'}\n${all ? `   DHCP Enabled....................: ${pc.dhcp ? 'Yes' : 'No'}\n   Physical Address................: ${pc.mac}\n   DNS Servers.....................: ${pc.dns || '0.0.0.0'}\n` : ''}\n`);
+  }
+  release() { const pc = this.pc; if (!pc.dhcp) { this.w('Static addressing is enabled on this PC. Switch it to DHCP in PC settings to use DHCP.\n'); return; } this.lab.releaseLease(this.id); this.w('\n   IP Address......................: 0.0.0.0\n   Subnet Mask.....................: 0.0.0.0\n   Default Gateway.................: 0.0.0.0\n   DNS Server......................: 0.0.0.0\n\n'); }
+  renew() {
+    const pc = this.pc;
+    if (!pc.dhcp) { this.w('Static addressing is enabled on this PC. Switch it to DHCP in PC settings to use DHCP.\n'); return; }
+    this.busy = true;
+    this.lab.later(900, () => {
+      this.busy = false;
+      const r = this.lab.dhcpRequest(this.id);
+      if (r.ok) this.w(`\n   IP Address......................: ${pc.ip}\n   Subnet Mask.....................: ${pc.mask}\n   Default Gateway.................: ${pc.gw || '0.0.0.0'}\n   DNS Server......................: ${pc.dns || '0.0.0.0'}\n\n`);
+      else { this.w('\nDHCP request failed. APIPA is being used.\n\n   IP Address......................: ' + pc.apipa + '\n   Subnet Mask.....................: 255.255.0.0\n   Default Gateway.................: 0.0.0.0\n   DNS Server......................: 0.0.0.0\n\n'); this.hint(r.why); }
+      this.lab.io.refresh(this.id);
+    });
+  }
+  ping(ip) {
+    if (ipNum(ip) === null) { this.w(`Ping request could not find host ${ip}. Please check the name and try again.\n`); return; }
+    this.w(`\nPinging ${ip} with 32 bytes of data:\n\n`);
+    this.busy = true;
+    this.lab.later(900, () => {
+      this.busy = false;
+      const r = this.lab.pcReach(this.id, ip), out = [];
+      let rec = 0;
+      const key = this.id + '>' + ip;
+      for (let k = 0; k < 4; k++) {
+        if (!r || (k === 0 && r !== 'self' && !this.lab.arp[key])) out.push('Request timed out.');
+        else { rec++; out.push(`Reply from ${ip}: bytes=32 time<1ms TTL=${r === 'self' || (r.target && r.target.kind === 'pc') ? 128 : r.via === 'internet' ? 117 : 255}`); }
+      }
+      if (r) this.lab.arp[key] = true;
+      if (r && r.via === 'internet') this.lab.ev['internet:' + this.id] = true;
+      if (r) this.lab.ev[`ping:${this.id}:${ip}`] = true;
+      this.w(`${out.join('\n')}\n\nPing statistics for ${ip}:\n    Packets: Sent = 4, Received = ${rec}, Lost = ${4 - rec} (${(4 - rec) * 25}% loss),\n` + (rec ? 'Approximate round trip times in milli-seconds:\n    Minimum = 0ms, Maximum = 0ms, Average = 0ms\n' : '') + '\n');
+      if (!r) this.hint(this.lab.whyUnreachable(this.id, ip));
+      this.lab.io.refresh(this.id);
+    });
+  }
+  refused(r, proto, ip) {
+    this.w(r === 'timeout' ? '% Connection timed out; remote host not responding\n' : '% Connection refused by remote host\n');
+    if (r === 'timeout') this.hint(this.lab.whyUnreachable(this.id, ip));
+    else if (r === 'transport') { if (proto === 'telnet') { this.lab.ev['telnetRefused:' + this.lastNode] = true; this.hint("Telnet is blocked by 'transport input' on the VTY lines. Once SSH works, that's what you want."); } else this.hint("The VTY lines don't accept SSH. Check 'transport input' under line vty."); }
+    else if (r === 'nossh') this.hint('SSH is not enabled on that device. It needs a hostname, a domain name, and RSA keys of at least 768 bits.');
+    else if (r === 'quiet') this.hint('That device is in login quiet mode after too many failures (login block-for). Wait it out; the console still works.');
+    else if (r === 'busy') this.hint('Every VTY line is in use.');
+    else if (r === 'notserver') this.hint('That address answers ping, but nothing there listens for Telnet or SSH.');
+  }
+  telnet(ip) {
+    this.w(`Trying ${ip} ...`);
+    this.busy = true;
+    this.lab.later(500, () => {
+      this.busy = false;
+      const c = this.lab.connectCheck(this.id, ip, 'telnet');
+      this.lastNode = c.node ? c.node.id : '';
+      if (c.r !== 'ok') { this.w('\n'); this.refused(c.r, 'telnet', ip); this.lab.io.refresh(this.id); return; }
+      this.w('Open\n');
+      this.target = ip;
+      this.remote = this.lab.openVty(c.node, this, 'telnet', null);
+      this.remote.startLogin();
+      this.lab.io.refresh(this.id);
+    });
+  }
+  ssh(parts) {
+    const li = parts.indexOf('-l');
+    if (li < 0 || !parts[li + 1] || !parts[li + 2]) { this.w('Invalid Command.\nUsage: ssh -l <username> <ip>\n'); return; }
+    const user = parts[li + 1], ip = parts[li + 2];
+    this.busy = true;
+    this.lab.later(600, () => {
+      this.busy = false;
+      const c = this.lab.connectCheck(this.id, ip, 'ssh');
+      this.lastNode = c.node ? c.node.id : '';
+      if (c.r !== 'ok') { this.refused(c.r, 'ssh', ip); this.lab.io.refresh(this.id); return; }
+      const node = c.node, d = node.dev, L = d.vty[this.lab.freeVty(node)];
+      let tries = 0;
+      const close = () => this.w(`\n[Connection to ${ip} closed by foreign host]\n`);
+      const ask = () => { this.pending = { prompt: 'Password: ', mask: true, fn: pw => {
+        if (L.login !== 'local') { this.w('% Authentication failed.\n'); close(); this.hint("SSH logs in with a username. Set 'login local' on the VTY lines and create the user with 'username ... secret ...'."); return; }
+        const U = d.users[user];
+        if (U && U.plain !== null && pw === U.plain) {
+          this.target = ip;
+          this.remote = this.lab.openVty(node, this, 'ssh', user);
+          this.lab.ev['sshLogin:' + node.id] = true;
+          this.lab.ev[`ssh:${this.id}:${ip}`] = true;
+          if (d.banner) this.w('\n' + d.banner + '\n');
+          this.remote.enterUser();
+          return;
+        }
+        this.lab.loginFailure(node, user, this.pc.ip, 'ssh');
+        this.w('% Login invalid\n');
+        if (this.lab.quietLeft(node) > 0 || ++tries >= Math.max(1, d.sshRetries)) { close(); return; }
+        this.w('\n'); ask();
+      } }; };
+      ask();
+      this.lab.io.refresh(this.id);
+    });
+  }
+}
+
+/* ---------- lab: devices, PCs, network ---------- */
+class Lab {
+  constructor(io) { this.io = io; this.gen = 0; this.load({}); }
+  freshRt() { return { fails: [], quietUntil: 0, totalFails: 0, vtyUsed: {} }; }
+  mkNode(id, dev, startup) {
+    const n = { id, dev: clone(dev), startup: startup ? clone(startup) : null, rt: this.freshRt(), boot: this.io.now(), vtySess: [] };
+    n.con = new IOSSession(this, n, 'con', id);
+    return n;
+  }
+  load(o) {
+    this.gen++;
+    this.r1 = this.mkNode('r1', o.r1 || routerFactory(), o.r1Startup);
+    this.s1 = this.mkNode('s1', o.s1 || switchFactory(), o.s1Startup);
+    this.nodes = { r1: this.r1, s1: this.s1 };
+    this.pcs = {};
+    for (const [id, def] of Object.entries(PC_DEFS)) {
+      const c = (o.pcs && o.pcs[id]) || {};
+      this.pcs[id] = { id, name: def.name, mac: def.mac, dhcp: !!c.dhcp, ip: c.dhcp ? null : (c.ip || null), mask: c.dhcp ? null : (c.mask || null), gw: c.dhcp ? null : (c.gw || null), dns: c.dhcp ? null : (c.dns || null), apipa: '169.254.' + (1 + Math.floor(Math.random() * 254)) + '.' + (1 + Math.floor(Math.random() * 254)) };
+    }
+    this.cables = Object.assign({ pc1: 'FastEthernet0/1', pc2: 'FastEthernet0/2' }, o.cables || {});
+    this.shells = { pc1: new PCShell(this, 'pc1'), pc2: new PCShell(this, 'pc2') };
+    this.leases = {};
+    this.arp = {};
+    this.ev = {};
+  }
+  later(ms, fn) { const g = this.gen; this.io.delay(ms, () => { if (g === this.gen) fn(); }); }
+  log(node, msg) { this.io.write(node.id, msg + '\n'); }
+  clearArp() { this.arp = {}; }
+  save(node) { node.startup = clone(node.dev); }
+  saved(node) { return !!node.startup && JSON.stringify(node.startup) === JSON.stringify(node.dev); }
+  configured(s) { this.log(s.node, `%SYS-5-CONFIG_I: Configured from console by ${s.kind === 'con' ? 'console' : `${s.user ? s.user + ' on ' : ''}vty${s.lineNo} (${s.from})`}`); }
+  clock() {
+    const t = new Date(this.io.now()), p = n => String(n).padStart(2, '0');
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], mons = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${p(t.getUTCHours())}:${p(t.getUTCMinutes())}:${p(t.getUTCSeconds())} UTC ${days[t.getUTCDay()]} ${mons[t.getUTCMonth()]} ${t.getUTCDate()} ${t.getUTCFullYear()}`;
+  }
+  quietLeft(node) { return Math.max(0, Math.ceil((node.rt.quietUntil - this.io.now()) / 1000)); }
+  loginFailure(node, user, from, proto) {
+    const rt = node.rt, b = node.dev.blockFor, now = this.io.now();
+    rt.totalFails++;
+    if (!b || rt.quietUntil > now) return;
+    rt.fails = rt.fails.filter(t => now - t < b.within * 1000);
+    rt.fails.push(now);
+    if (rt.fails.length < b.attempts) return;
+    rt.quietUntil = now + b.sec * 1000; rt.fails = [];
+    this.log(node, `%SEC_LOGIN-1-QUIET_MODE_ON: Still timeleft for watching failures is ${b.within} secs, [user: ${user}] [Source: ${from}] [localport: ${proto === 'ssh' ? 22 : 23}] [Reason: Login Authentication Failed] [ACL: sl_def_acl] at ${this.clock()}`);
+    const token = rt.quietUntil;
+    this.later(b.sec * 1000, () => { if (node.rt.quietUntil !== token) return; this.log(node, `%SEC_LOGIN-5-QUIET_MODE_OFF: Quiet Mode is OFF, because block period timed out at ${this.clock()}`); this.io.refresh(node.id); });
+  }
+  /* ---- layer 1/2 ---- */
+  pcAt(port) { for (const [id, p] of Object.entries(this.cables)) if (p === port) return id; return null; }
+  wanLinked() { return true; }
+  connected(port) { return !!this.pcAt(port) || (port === S_UPLINK && !this.r1.dev.ifaces[R_LAN].shut); }
+  portUp(port) { const p = this.s1.dev.ports[port]; return !!p && !p.shut && !p.errDisabled && this.connected(port); }
+  vlanExists(v) { return !!this.s1.dev.vlans[v]; }
+  portVlan(port) { const p = this.s1.dev.ports[port]; if (!this.portUp(port)) return null; const v = p.mode === 'trunk' ? p.nativeVlan : p.accessVlan; return this.vlanExists(v) ? v : null; }
+  trunkCarries(v) {
+    const p = this.s1.dev.ports[S_UPLINK];
+    if (!this.portUp(S_UPLINK) || !this.vlanExists(v)) return null;
+    if (p.mode === 'trunk') { if (!(p.allowed === 'all' || p.allowed.includes(v))) return null; return { tagged: v !== p.nativeVlan }; }
+    return p.accessVlan === v ? { tagged: false } : null;
+  }
+  r1IngressFor(v) {
+    const t = this.trunkCarries(v), d = this.r1.dev, g = d.ifaces[R_LAN];
+    if (!t || g.shut) return null;
+    if (t.tagged) return Object.keys(d.ifaces).find(n => d.ifaces[n].sub && d.ifaces[n].parent === R_LAN && d.ifaces[n].encap === v && !d.ifaces[n].native && !d.ifaces[n].shut) || null;
+    if (g.ip) return R_LAN;
+    return Object.keys(d.ifaces).find(n => d.ifaces[n].sub && d.ifaces[n].parent === R_LAN && d.ifaces[n].encap === v && d.ifaces[n].native && !d.ifaces[n].shut) || null;
+  }
+  ifaceVlan(name) {
+    const d = this.r1.dev, g = d.ifaces[name];
+    if (g.sub) return g.encap;
+    if (name !== R_LAN) return null;
+    const p = this.s1.dev.ports[S_UPLINK];
+    return p.mode === 'trunk' ? p.nativeVlan : p.accessVlan;
+  }
+  vlanActive(v) { return S_PORTS.some(n => this.portUp(n) && (this.portVlan(n) === v || (n === S_UPLINK && !!this.trunkCarries(v)))); }
+  sviUp(v) { const s = this.s1.dev.svis[v]; return !!s && !s.shut && this.vlanExists(v) && this.vlanActive(v); }
+  psecPass(port, mac) {
+    const p = this.s1.dev.ports[port], ps = p.psec;
+    if (!ps.on) return true;
+    p.lastSrc = mac;
+    if (ps.learned.some(l => l.mac === mac)) return true;
+    if (ps.learned.length < ps.max) { ps.learned.push({ mac, sticky: ps.sticky }); return true; }
+    p.violations++;
+    if (ps.violation === 'protect') return false;
+    this.log(this.s1, `%PORT_SECURITY-2-PSECURE_VIOLATION: Security violation occurred, caused by MAC address ${mac} on port ${port}.`);
+    if (ps.violation === 'shutdown') {
+      p.errDisabled = true;
+      this.log(this.s1, `%PM-4-ERR_DISABLE: psecure-violation error detected on ${shortIf(port)}, putting ${shortIf(port)} in err-disable state`);
+      this.log(this.s1, `%LINEPROTO-5-UPDOWN: Line protocol on Interface ${port}, changed state to down\n%LINK-3-UPDOWN: Interface ${port}, changed state to down`);
+      this.refreshVty();
+    }
+    return false;
+  }
+  hostInVlan(v, ip) {
+    for (const id of Object.keys(this.pcs)) { const pc = this.pcs[id]; if (pc.ip === ip && this.portVlan(this.cables[id]) === v) return { kind: 'pc', id, ip, mask: pc.mask, gw: pc.gw }; }
+    const sv = this.s1.dev.svis[v];
+    if (sv && sv.ip === ip && this.sviUp(v)) return { kind: 'svi', vlan: v, ip, mask: sv.mask };
+    const rif = this.r1IngressFor(v);
+    if (rif && this.r1.dev.ifaces[rif].ip === ip) return { kind: 'r1', iface: rif, ip, mask: this.r1.dev.ifaces[rif].mask };
+    return null;
+  }
+  r1OwnIp(ip) { const d = this.r1.dev; return Object.keys(d.ifaces).some(n => d.ifaces[n].ip === ip && ifUp(d, n)); }
+  routes() {
+    const d = this.r1.dev, out = [];
+    Object.keys(d.ifaces).forEach(n => { const g = d.ifaces[n]; if (g.ip && ifUp(d, n)) out.push({ net: ipStr(netOf(g.ip, g.mask)), mask: g.mask, len: maskLen(ipNum(g.mask)), type: 'C', iface: n }); });
+    d.routes.forEach(r => {
+      const via = r.via, hop = out.find(c => c.type === 'C' && sameNet(via, c.net, c.mask));
+      if (hop) out.push({ net: r.net, mask: r.mask, len: maskLen(ipNum(r.mask)), type: 'S', via, iface: hop.iface });
+    });
+    return out;
+  }
+  lookup(ip) { return this.routes().filter(r => sameNet(ip, r.net, r.mask)).sort((a, b) => b.len - a.len)[0] || null; }
+  r1Forward(dst, src) {
+    if (this.r1OwnIp(dst)) return { via: 'r1self' };
+    const r = this.lookup(dst);
+    if (!r) return false;
+    if (r.type === 'S') { if (r.iface === R_WAN) return { via: 'internet' }; return false; }
+    if (r.iface === R_WAN) return dst === ISP.ip ? { via: 'isp' } : false;
+    const v = this.ifaceVlan(r.iface);
+    if (v === null || this.r1IngressFor(v) !== r.iface) return false;
+    const h = this.hostInVlan(v, dst);
+    if (!h || h.kind === 'r1') return false;
+    const srcIp = src || this.r1.dev.ifaces[r.iface].ip;
+    return this.canReply(h, srcIp) ? { via: 'route', target: h } : false;
+  }
+  canReply(h, srcIp) {
+    if (h.kind === 'pc') {
+      if (sameNet(srcIp, h.ip, h.mask)) return true;
+      const v = this.portVlan(this.cables[h.id]), rif = this.r1IngressFor(v);
+      return !!(h.gw && rif && this.r1.dev.ifaces[rif].ip === h.gw);
+    }
+    if (sameNet(srcIp, h.ip, h.mask)) return true;
+    const gw = this.s1.dev.defaultGateway, rif = this.r1IngressFor(h.vlan);
+    return !!(gw && rif && this.r1.dev.ifaces[rif].ip === gw);
+  }
+  pcReach(id, dst) {
+    const pc = this.pcs[id], port = this.cables[id];
+    if (!pc.ip) return false;
+    if (dst === pc.ip) return 'self';
+    const v = this.portVlan(port);
+    if (v === null || !this.psecPass(port, pc.mac)) return false;
+    if (sameNet(dst, pc.ip, pc.mask)) { const h = this.hostInVlan(v, dst); if (!h) return false; if (h.kind === 'pc' && !this.psecPass(this.cables[h.id], this.pcs[h.id].mac)) return false; return { via: 'l2', target: h }; }
+    if (!pc.gw || pc.gw === '0.0.0.0' || !sameNet(pc.gw, pc.ip, pc.mask)) return false;
+    const rif = this.r1IngressFor(v);
+    if (!rif || this.r1.dev.ifaces[rif].ip !== pc.gw) return false;
+    return this.r1Forward(dst, pc.ip);
+  }
+  whyUnreachable(id, dst) {
+    const pc = this.pcs[id], port = this.cables[id], p = this.s1.dev.ports[port];
+    if (!pc.ip) return `${pc.name} has no IP address yet.`;
+    if (p.errDisabled) return `${shortIf(port)} is err-disabled (port security). Fix the cause, then shutdown / no shutdown it.`;
+    if (!this.portUp(port)) return `${shortIf(port)} on S1 is down or shut down.`;
+    if (this.portVlan(port) === null) return `${shortIf(port)} sits in a VLAN that does not exist on S1.`;
+    if (!sameNet(dst, pc.ip, pc.mask)) {
+      if (!pc.gw || pc.gw === '0.0.0.0') return `${dst} is on another network and ${pc.name} has no default gateway.`;
+      if (!sameNet(pc.gw, pc.ip, pc.mask)) return `${pc.name}'s gateway ${pc.gw} is not inside its own subnet.`;
+      const v = this.portVlan(port), rif = this.r1IngressFor(v);
+      if (!rif) return `Nothing on R1 answers for VLAN ${v}: check the trunk (allowed VLANs), the R1 subinterface encapsulation, and no shutdown on G0/0.`;
+      if (this.r1.dev.ifaces[rif].ip !== pc.gw) return `R1 answers VLAN ${v} on ${rif} with ${this.r1.dev.ifaces[rif].ip || 'no IP'}, but ${pc.name}'s gateway is ${pc.gw}.`;
+      const r = this.lookup(dst);
+      if (!r) return `R1 has no route to ${dst}: check ip route and interface addressing.`;
+      return `R1 can route toward ${dst}, but the target did not reply: check its VLAN, address, and gateway (S1 needs ip default-gateway).`;
+    }
+    return `${dst} is in ${pc.name}'s subnet, but no host with that address is reachable in VLAN ${this.portVlan(port)}.`;
+  }
+  pingFromDevice(s, dst) {
+    const node = s.node;
+    s.w(`Type escape sequence to abort.\nSending 5, 100-byte ICMP Echos to ${dst}, timeout is 2 seconds:\n`);
+    let ok = false;
+    if (node.id === 'r1') ok = !!this.r1Forward(dst, null);
+    else ok = this.s1Reach(dst);
+    const key = node.id + '>' + dst;
+    let marks = '.....';
+    if (ok) { marks = this.arp[key] ? '!!!!!' : '.!!!!'; this.arp[key] = true; }
+    const n = (marks.match(/!/g) || []).length;
+    s.w(`${marks}\nSuccess rate is ${n * 20} percent (${n}/5)${n ? ', round-trip min/avg/max = 0/0/1 ms' : ''}\n`);
+    if (ok) this.ev[`ping:${node.id}:${dst}`] = true;
+  }
+  s1Reach(dst) {
+    const d = this.s1.dev;
+    for (const v of Object.keys(d.svis).map(Number)) {
+      const sv = d.svis[v];
+      if (!sv.ip || !this.sviUp(v)) continue;
+      if (dst === sv.ip) return true;
+      if (sameNet(dst, sv.ip, sv.mask)) { const h = this.hostInVlan(v, dst); return !!h && h.kind !== 'svi'; }
+    }
+    const gw = d.defaultGateway;
+    if (!gw) return false;
+    for (const v of Object.keys(d.svis).map(Number)) {
+      const sv = d.svis[v];
+      if (!sv.ip || !this.sviUp(v) || !sameNet(gw, sv.ip, sv.mask)) continue;
+      const rif = this.r1IngressFor(v);
+      if (!rif || this.r1.dev.ifaces[rif].ip !== gw) continue;
+      return !!this.r1Forward(dst, sv.ip);
+    }
+    return false;
+  }
+  /* ---- DHCP ---- */
+  releaseLease(id) { const pc = this.pcs[id]; Object.keys(this.leases).forEach(ip => { if (this.leases[ip].pc === id) delete this.leases[ip]; }); pc.ip = null; pc.mask = null; pc.gw = null; pc.dns = null; this.clearArp(); }
+  dhcpRequest(id) {
+    const pc = this.pcs[id], port = this.cables[id], v = this.portVlan(port), d = this.r1.dev;
+    this.releaseLease(id);
+    if (v === null) return { ok: false, why: `${shortIf(port)} on S1 is down, err-disabled, or in a VLAN that does not exist.` };
+    if (!this.psecPass(port, pc.mac)) return { ok: false, why: `Port security on ${shortIf(port)} dropped the request.` };
+    const rif = this.r1IngressFor(v);
+    if (!rif) return { ok: false, why: `The DHCP request never reached R1 for VLAN ${v}: check the trunk's allowed VLANs and R1's subinterface encapsulation for that VLAN.` };
+    const g = d.ifaces[rif];
+    if (!g.ip) return { ok: false, why: `R1's ${rif} has no IP address, so it cannot serve DHCP for VLAN ${v}.` };
+    const pool = Object.values(d.dhcp.pools).find(p => p.network && sameNet(g.ip, p.network, p.mask));
+    if (!pool) return { ok: false, why: `R1 has no DHCP pool whose network matches ${rif} (${g.ip}). Check ip dhcp pool and its network statement.` };
+    const net = ipNum(pool.network), bc = bcOf(pool.network, pool.mask), used = new Set(Object.keys(this.leases).map(ipNum));
+    const excluded = ip => d.dhcp.excluded.some(([a, b]) => ip >= ipNum(a) && ip <= ipNum(b)) || Object.keys(d.ifaces).some(n => ipNum(d.ifaces[n].ip || '0.0.0.0') === ip);
+    let pick = null;
+    for (let ip = net + 1; ip < bc; ip++) if (!excluded(ip) && !used.has(ip)) { pick = ip; break; }
+    if (pick === null) return { ok: false, why: 'The DHCP pool has no free addresses left.' };
+    pc.ip = ipStr(pick); pc.mask = pool.mask; pc.gw = pool.router; pc.dns = pool.dns;
+    this.leases[pc.ip] = { pc: id, mac: pc.mac };
+    this.ev['dhcp:' + id] = pc.ip;
+    this.clearArp();
+    return { ok: true };
+  }
+  /* ---- sessions ---- */
+  freeVty(node) { for (let i = 0; i < node.dev.vty.length; i++) if (!node.rt.vtyUsed[i]) return i; return -1; }
+  connectCheck(pcId, ip, proto) {
+    const r = this.pcReach(pcId, ip);
+    if (!r || r === 'self') return { r: 'timeout' };
+    let node = null;
+    if (r.via === 'r1self') node = this.r1;
+    else if ((r.via === 'l2' || r.via === 'route') && r.target.kind === 'svi') node = this.s1;
+    else if ((r.via === 'l2' || r.via === 'route') && r.target.kind === 'r1') node = this.r1;
+    if (!node) return { r: 'notserver' };
+    if (this.quietLeft(node) > 0) return { r: 'quiet', node };
+    const idx = this.freeVty(node);
+    if (idx < 0) return { r: 'busy', node };
+    const t = node.dev.vty[idx].transport;
+    if (!(t === 'all' || t.split(' ').includes(proto))) return { r: 'transport', node };
+    if (proto === 'ssh' && node.dev.rsaBits < 768) return { r: 'nossh', node };
+    return { r: 'ok', node };
+  }
+  openVty(node, shell, proto, user) {
+    const s = new IOSSession(this, node, 'vty', shell.id);
+    s.lineNo = this.freeVty(node); s.from = shell.pc.ip; s.proto = proto; s.user = user || null; s.shell = shell;
+    node.rt.vtyUsed[s.lineNo] = true;
+    node.vtySess.push(s);
+    return s;
+  }
+  vtyClosed(s) {
+    const node = s.node;
+    delete node.rt.vtyUsed[s.lineNo];
+    node.vtySess = node.vtySess.filter(x => x !== s);
+    const sh = s.shell;
+    if (sh && sh.remote === s) { sh.remote = null; sh.w(`\n[Connection to ${sh.target} closed by foreign host]\n`); }
+    this.io.refresh(sh ? sh.id : node.id);
+  }
+  refreshVty() {
+    for (const node of [this.r1, this.s1]) node.vtySess.slice().forEach(v => {
+      if (v.mode === 'closed') return;
+      const sh = v.shell;
+      if (!sh || !sh.pc.ip || this.pcReach(sh.id, sh.target) === false) { v.pending = null; v.mode = 'closed'; this.vtyClosed(v); }
+    });
+  }
+  genKeys(s, n) {
+    s.w(`% Generating ${n} bit RSA keys, keys will be non-exportable...`);
+    s.busy = true;
+    const node = s.node;
+    this.later(n >= 2048 ? 1400 : 700, () => {
+      s.busy = false;
+      const had = node.dev.rsaBits > 0;
+      node.dev.rsaBits = n;
+      s.w(`[OK] (elapsed time was ${n >= 2048 ? 2 : 1} seconds)\n`);
+      if (!had) this.log(node, '%SSH-5-ENABLED: SSH 1.99 has been enabled');
+      if (n < 768) s.hint('SSH version 2 needs a modulus of at least 768 bits. Use 2048.');
+      this.io.refresh(s.term);
+    });
+  }
+  reboot(node) {
+    node.vtySess.slice().forEach(v => { v.pending = null; v.mode = 'closed'; this.vtyClosed(v); });
+    const c = node.con, isR = node.dev.kind === 'router';
+    c.pending = null; c.user = null; c.enter('closed'); c.busy = true;
+    this.io.write(node.id, `\n%SYS-5-RELOAD: Reload requested by console. Reload Reason: Reload Command.\n`);
+    this.later(1300, () => {
+      node.dev = node.startup ? clone(node.startup) : (isR ? routerFactory() : switchFactory());
+      if (!isR) Object.values(node.dev.ports).forEach(p => { p.psec.learned = p.psec.learned.filter(l => l.sticky); p.errDisabled = false; });
+      node.rt = this.freshRt(); node.boot = this.io.now(); c.busy = false;
+      this.clearArp(); this.refreshVty();
+      this.io.write(node.id, isR ? '\nSystem Bootstrap, Version 15.1(4)M4, RELEASE SOFTWARE (fc1)\nCopyright (c) 1986-2012 by Cisco Systems, Inc.\n\nBooting flash0:c2900-universalk9-mz.SPA.151-4.M4.bin ...\n\n' : '\nUsing driver version 1 for media type 1\nBase ethernet MAC Address: 00:d0:ba:2c:8e:01\n\nLoading "flash:c2960-lanbasek9-mz.150-2.SE4.bin"...\n\n');
+      const ready = () => { this.io.write(node.id, '\nPress RETURN to get started!\n\n'); c.mode = 'idle'; };
+      if (!node.startup) {
+        this.io.write(node.id, '         --- System Configuration Dialog ---\n\n');
+        c.ask('Continue with configuration dialog? [yes/no]: ', v => { if (/^y/i.test(v.trim())) this.io.hint(node.id, "The setup dialog isn't simulated here, so this counts as no. In Packet Tracer, answer no."); ready(); });
+      } else {
+        if (isR) Object.keys(node.dev.ifaces).forEach(n => { if (ifUp(node.dev, n) && (n === R_LAN || n === R_WAN || node.dev.ifaces[n].sub)) this.log(node, `%LINK-5-CHANGED: Interface ${n}, changed state to up\n%LINEPROTO-5-UPDOWN: Line protocol on Interface ${n}, changed state to up`); });
+        else S_PORTS.forEach(n => { if (this.portUp(n)) this.log(node, `%LINK-5-CHANGED: Interface ${n}, changed state to up\n%LINEPROTO-5-UPDOWN: Line protocol on Interface ${n}, changed state to up`); });
+        ready();
+      }
+      this.io.refresh(node.id);
+    });
+  }
+  /* ---- show text ---- */
+  briefText(node) {
+    const d = node.dev, rows = [['Interface', 'IP-Address', 'OK?', 'Method', 'Status', 'Protocol']];
+    const fmt = r => r[0].padEnd(23) + r[1].padEnd(16) + r[2].padEnd(4) + r[3].padEnd(7) + r[4].padEnd(22) + r[5];
+    if (d.kind === 'router') {
+      for (const n of R_IF) {
+        const g = d.ifaces[n], st = g.shut ? ['administratively down', 'down'] : ['up', 'up'];
+        rows.push([n, g.ip || 'unassigned', 'YES', g.ip ? 'manual' : 'unset', st[0], st[1]]);
+        for (const sn of subifs(d, n)) { const s = d.ifaces[sn], sst = g.shut || s.shut ? ['administratively down', 'down'] : ['up', 'up']; rows.push([sn, s.ip || 'unassigned', 'YES', s.ip ? 'manual' : 'unset', sst[0], sst[1]]); }
+      }
+      rows.push(['Vlan1', 'unassigned', 'YES', 'unset', 'administratively down', 'down']);
+    } else {
+      Object.keys(d.svis).map(Number).sort((a, b) => a - b).forEach(v => { const s = d.svis[v]; rows.push(['Vlan' + v, s.ip || 'unassigned', 'YES', s.ip ? 'manual' : 'unset', s.shut ? 'administratively down' : this.sviUp(v) ? 'up' : 'down', s.shut ? 'down' : this.sviUp(v) ? 'up' : 'down']); });
+      for (const n of S_PORTS) { const p = d.ports[n]; rows.push([n, 'unassigned', 'YES', 'unset', p.shut ? 'administratively down' : this.portUp(n) ? 'up' : 'down', this.portUp(n) ? 'up' : 'down']); }
+    }
+    return rows.map(fmt).join('\n');
+  }
+  descText(node) {
+    const d = node.dev, rows = ['Interface                      Status         Protocol Description'];
+    const add = (n, up, shut, desc) => rows.push(shortIf2(n).padEnd(31) + (shut ? 'admin down' : up ? 'up' : 'down').padEnd(15) + (up ? 'up' : 'down').padEnd(9) + (desc || ''));
+    if (d.kind === 'router') { for (const n of R_IF) { const g = d.ifaces[n]; add(n, !g.shut, g.shut, g.desc); for (const sn of subifs(d, n)) add(sn, ifUp(d, sn), d.ifaces[sn].shut || g.shut, d.ifaces[sn].desc); } add('Vlan1', false, true, ''); }
+    else { Object.keys(d.svis).map(Number).sort((a, b) => a - b).forEach(v => add('Vlan' + v, this.sviUp(v), d.svis[v].shut, d.svis[v].desc)); for (const n of S_PORTS) add(n, this.portUp(n), d.ports[n].shut, d.ports[n].desc); }
+    return rows.join('\n');
+  }
+  routeText(d) {
+    const rs = this.routes(), def = rs.find(r => r.type === 'S' && r.len === 0);
+    const L = ['Codes: L - local, C - connected, S - static, R - RIP, M - mobile, B - BGP', '       D - EIGRP, EX - EIGRP external, O - OSPF, IA - OSPF inter area', '       * - candidate default, U - per-user static route, o - ODR', '', def ? `Gateway of last resort is ${def.via} to network 0.0.0.0` : 'Gateway of last resort is not set', ''];
+    if (def) L.push(`S*    0.0.0.0/0 [1/0] via ${def.via}`);
+    const conn = rs.filter(r => r.type === 'C').sort((a, b) => ipNum(a.net) - ipNum(b.net));
+    conn.forEach(r => { const g = d.ifaces[r.iface]; L.push(`C        ${r.net}/${r.len} is directly connected, ${r.iface}`, `L        ${g.ip}/32 is directly connected, ${r.iface}`); });
+    rs.filter(r => r.type === 'S' && r.len > 0).forEach(r => L.push(`S        ${r.net}/${r.len} [1/0] via ${r.via}`));
+    return L.join('\n');
+  }
+  vlanText(d) {
+    const L = ['', 'VLAN Name                             Status    Ports', '---- -------------------------------- --------- -------------------------------'];
+    const ids = Object.keys(d.vlans).map(Number).sort((a, b) => a - b);
+    ids.forEach(v => {
+      const ports = S_PORTS.filter(n => d.ports[n].mode !== 'trunk' && d.ports[n].accessVlan === v).map(shortIf);
+      const head = `${String(v).padEnd(5)}${d.vlans[v].name.padEnd(33)}${'active'.padEnd(10)}`;
+      const chunks = [];
+      for (let i = 0; i < ports.length; i += 4) chunks.push(ports.slice(i, i + 4).join(', '));
+      if (!chunks.length) L.push(head.replace(/\s+$/, ''));
+      chunks.forEach((c, i) => L.push((i === 0 ? head : ' '.repeat(48)) + c));
+    });
+    [1002, 1003, 1004, 1005].forEach((v, i) => L.push(`${String(v).padEnd(5)}${['fddi-default', 'token-ring-default', 'fddinet-default', 'trnet-default'][i].padEnd(33)}act/unsup`));
+    return L.join('\n');
+  }
+  trunkText(d) {
+    const ts = S_PORTS.filter(n => d.ports[n].mode === 'trunk');
+    if (!ts.length) return '';
+    const L = ['Port        Mode         Encapsulation  Status        Native vlan'];
+    ts.forEach(n => { const p = d.ports[n]; L.push(shortIf(n).padEnd(12) + 'on'.padEnd(13) + '802.1q'.padEnd(15) + (this.portUp(n) ? 'trunking' : 'not-trunking').padEnd(14) + p.nativeVlan); });
+    L.push('', 'Port        Vlans allowed on trunk');
+    ts.forEach(n => L.push(shortIf(n).padEnd(12) + (d.ports[n].allowed === 'all' ? '1-1005' : vlist(d.ports[n].allowed) || 'none')));
+    L.push('', 'Port        Vlans allowed and active in management domain');
+    const active = p => Object.keys(d.vlans).map(Number).filter(v => p.allowed === 'all' || p.allowed.includes(v)).sort((a, b) => a - b);
+    ts.forEach(n => L.push(shortIf(n).padEnd(12) + (active(d.ports[n]).join(',') || 'none')));
+    L.push('', 'Port        Vlans in spanning tree forwarding state and not pruned');
+    ts.forEach(n => L.push(shortIf(n).padEnd(12) + (active(d.ports[n]).join(',') || 'none')));
+    return L.join('\n');
+  }
+  statusText(d) {
+    const L = ['Port      Name               Status       Vlan       Duplex  Speed Type'];
+    S_PORTS.forEach(n => {
+      const p = d.ports[n], st = p.errDisabled ? 'err-disabled' : p.shut ? 'disabled' : this.portUp(n) ? 'connected' : 'notconnect';
+      L.push(shortIf(n).padEnd(10) + (p.desc || '').slice(0, 18).padEnd(19) + st.padEnd(13) + (p.mode === 'trunk' ? 'trunk' : String(p.accessVlan)).padEnd(11) + 'auto'.padEnd(8) + 'auto'.padEnd(6) + (n.startsWith('Gig') ? '10/100/1000BaseTX' : '10/100BaseTX'));
+    });
+    return L.join('\n');
+  }
+  psecText(d, iface) {
+    if (iface) {
+      const p = d.ports[iface];
+      if (!p) return '%Invalid interface type and number';
+      if (!p.psec.on) return `Port Security              : Disabled\nPort Status                : Secure-down\nViolation Mode             : ${p.psec.violation.charAt(0).toUpperCase() + p.psec.violation.slice(1)}\nMaximum MAC Addresses      : ${p.psec.max}\nTotal MAC Addresses        : 0\nSecurity Violation Count   : ${p.violations}`;
+      return `Port Security              : Enabled\nPort Status                : ${p.errDisabled ? 'Secure-shutdown' : this.portUp(iface) ? 'Secure-up' : 'Secure-down'}\nViolation Mode             : ${p.psec.violation.charAt(0).toUpperCase() + p.psec.violation.slice(1)}\nAging Time                 : 0 mins\nAging Type                 : Absolute\nSecureStatic Address Aging : Disabled\nMaximum MAC Addresses      : ${p.psec.max}\nTotal MAC Addresses        : ${p.psec.learned.length}\nConfigured MAC Addresses   : 0\nSticky MAC Addresses       : ${p.psec.learned.filter(l => l.sticky).length}\nLast Source Address:Vlan   : ${p.lastSrc ? p.lastSrc + ':' + p.accessVlan : '0000.0000.0000:0'}\nSecurity Violation Count   : ${p.violations}`;
+    }
+    const L = ['Secure Port  MaxSecureAddr  CurrentAddr  SecurityViolation  Security Action', '               (Count)       (Count)          (Count)', '--------------------------------------------------------------------'];
+    S_PORTS.filter(n => d.ports[n].psec.on).forEach(n => { const p = d.ports[n]; L.push(shortIf(n).padStart(11) + String(p.psec.max).padStart(15) + String(p.psec.learned.length).padStart(13) + String(p.violations).padStart(19) + ('         ' + p.psec.violation.charAt(0).toUpperCase() + p.psec.violation.slice(1))); });
+    L.push('----------------------------------------------------------------------');
+    return L.join('\n');
+  }
+}
+
+return { Lab, routerFactory, switchFactory, clone, enc7, dec7, mkPass, mkSecret, runText, parse, TREES, R_IF, S_PORTS, PC_DEFS, PC_PORTS, ISP, ipNum, ipStr, sameNet };
+})();
+/* ==ENGINE-END== */
+
+</script>
+<script>
+(() => {
+'use strict';
+const E = Engine;
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } }
+};
+const done = Object.assign({}, store.get('netdrills.cli2.done', {}));
+const short = n => n.replace('FastEthernet', 'Fa').replace('GigabitEthernet', 'Gig');
+const hasUsers = d => Object.keys(d.users).length > 0;
+const G0 = 'GigabitEthernet0/0', G1 = 'GigabitEthernet0/1';
+const UNUSED = E.S_PORTS.filter(n => !['FastEthernet0/1', 'FastEthernet0/2', 'GigabitEthernet0/1'].includes(n));
+const PC_STATIC = { pc1: { ip: '192.168.1.11', mask: '255.255.255.0', gw: '192.168.1.1' }, pc2: { ip: '192.168.1.12', mask: '255.255.255.0', gw: '192.168.1.1' } };
+const PC_DHCP = { pc1: { dhcp: true }, pc2: { dhcp: true } };
+
+/* ---------- starting configs ---------- */
+function m1Final() {
+  const d = E.routerFactory();
+  d.hostname = 'R1'; d.domainLookup = false; d.enableSecret = E.mkSecret('En@ble-S3cret'); d.spe = true;
+  d.con.password = E.mkPass(true, 'C0nsole-Pa55'); d.con.login = 'line'; d.con.execTimeout = [5, 0]; d.con.logSync = true;
+  const vp = E.mkPass(true, 'Vty-Pa55w0rd');
+  d.vty.forEach(l => { l.password = { plain: vp.plain, enc7: vp.enc7 }; l.login = 'line'; l.execTimeout = [5, 0]; });
+  d.banner = 'Authorized access only. Activity is monitored.';
+  Object.assign(d.ifaces[G0], { desc: 'LAN to S1', ip: '192.168.1.1', mask: '255.255.255.0', shut: false });
+  return d;
+}
+function m3Broken() {
+  const d = E.routerFactory();
+  d.hostname = 'R1'; d.enablePassword = E.mkPass(false, 'cisco');
+  d.con.password = E.mkPass(false, 'cisco'); d.con.execTimeout = [0, 0];
+  d.vty.forEach(l => { l.login = 'none'; l.transport = 'telnet'; });
+  d.banner = 'Welcome to R1! Come on in.';
+  Object.assign(d.ifaces[G0], { desc: 'LAN to S1', ip: '192.168.1.1', mask: '255.255.255.0', shut: true });
+  return d;
+}
+/* ---------- shared checks ---------- */
+const secretOK = d => !!d.enableSecret && d.enableSecret.plain === 'En@ble-S3cret';
+const conPwOK = d => d.con.login === 'line' && !!d.con.password && d.con.password.plain === 'C0nsole-Pa55';
+const userOK = d => !!d.users.netadmin && d.users.netadmin.type === 'secret' && d.users.netadmin.plain === 'N3tAdmin-2026';
+const vtySsh = d => d.vty.every(l => l.login === 'local' && l.transport === 'ssh');
+const bannerOK = d => !!d.banner && /authori[sz]ed/i.test(d.banner);
+const sub = (d, n, v, ip) => { const s = d.ifaces[n]; return !!s && s.sub && s.encap === v && !s.native && s.ip === ip && s.mask === '255.255.255.0' && !s.shut; };
+const startJSON = { r1: '', s1: '' };
+const savedR1 = L => L.saved(L.r1) && JSON.stringify(L.r1.dev) !== startJSON.r1;
+const savedS1 = L => L.saved(L.s1) && JSON.stringify(L.s1.dev) !== startJSON.s1;
+const psecOK = (S, n, max, viol) => { const p = S.ports[n]; return p.mode === 'access' && p.psec.on && p.psec.sticky && p.psec.max === max && p.psec.violation === viol; };
+
+const M5_INSTR = `
+<p>A new branch office needs its router and switch built from scratch. Complete every requirement, then press <strong>Check results</strong>. Your score is the percentage of requirements met, exactly as Packet Tracer would grade it. Values are case-sensitive.</p>
+<h3>Addressing table</h3>
+<table><thead><tr><th>Interface</th><th>Address</th><th>Notes</th></tr></thead><tbody>
+<tr><td class="m">R1 G0/0.10</td><td class="m">192.168.10.1/24</td><td>VLAN 10, USERS</td></tr>
+<tr><td class="m">R1 G0/0.99</td><td class="m">192.168.99.1/24</td><td>VLAN 99, MGMT</td></tr>
+<tr><td class="m">R1 G0/1</td><td class="m">203.0.113.2/30</td><td>ISP is 203.0.113.1</td></tr>
+<tr><td class="m">S1 VLAN 99</td><td class="m">192.168.99.2/24</td><td>gateway 192.168.99.1</td></tr>
+<tr><td class="m">PC1, PC2</td><td class="m">DHCP</td><td>from R1</td></tr>
+</tbody></table>
+<h3>Part 1: basic settings (R1 and S1)</h3>
+<ul><li>Hostnames R1 and S1.</li><li>Enable secret En@ble-S3cret.</li><li>Console password C0nsole-Pa55, enforced.</li><li>Disable DNS lookup of typos.</li><li>MOTD banner that includes the word Authorized.</li><li>Encrypt plaintext passwords.</li></ul>
+<h3>Part 2: SSH (R1 and S1)</h3>
+<ul><li>Domain name cp.local.</li><li>User netadmin with secret N3tAdmin-2026.</li><li>RSA keys, 2048 bits (1024 or more accepted).</li><li>SSH version 2 only.</li><li>All VTY lines use local usernames and accept SSH only.</li></ul>
+<h3>Part 3: switch</h3>
+<ul><li>VLAN 10 named USERS and VLAN 99 named MGMT.</li><li>F0/1 and F0/2: access ports in VLAN 10.</li><li>F0/3 to F0/24 and G0/2: shut down.</li><li>G0/1: static trunk, DTP off, native VLAN 999, only VLANs 10 and 99 allowed.</li><li>VLAN 99 SVI addressed and enabled; VLAN 1 SVI shut down; default gateway set.</li><li>F0/1 and F0/2: port security with a maximum of 1 sticky address and violation mode restrict; PortFast and BPDU Guard.</li></ul>
+<h3>Part 4: router</h3>
+<ul><li>G0/0 enabled with no IP address of its own.</li><li>Subinterfaces per the table, with 802.1Q encapsulation.</li><li>G0/1 per the table, enabled.</li><li>Default route to the ISP.</li><li>DHCP: exclude 192.168.10.1 through 192.168.10.10; pool USERS for 192.168.10.0/24 with default router 192.168.10.1 and DNS server 192.168.99.10.</li></ul>
+<h3>Part 5: verify and save</h3>
+<ul><li>PC1 gets an address by DHCP (ipconfig /renew).</li><li>PC1 can ping 8.8.8.8.</li><li>PC1 reaches S1 by SSH at 192.168.99.2.</li><li>Save both configurations.</li></ul>`;
+
+const MISSIONS = [
+  { id: 'm1', name: 'Lock the doors', sub: 'Level 1, router', kind: 'list', hintLabel: 'Show command', next: 'Next up: SSH only.',
+    brief: 'A factory-fresh router behind a factory-fresh switch. Give R1 a name, lock the console and remote lines, add a legal banner, bring up G0/0, save, then prove it from PC1. Use these exact values; CyberPatriot scoring is case-sensitive.',
+    init: () => ({ r1: E.routerFactory(), s1: E.switchFactory(), pcs: PC_STATIC }),
+    tasks: [
+      { t: 'Name the router R1', cmd: 'hostname R1', ok: L => L.r1.dev.hostname === 'R1' },
+      { t: 'Stop typos from triggering DNS lookups', cmd: 'no ip domain-lookup', ok: L => !L.r1.dev.domainLookup },
+      { t: 'Protect privileged EXEC with the hashed secret En@ble-S3cret', cmd: 'enable secret En@ble-S3cret', ok: L => secretOK(L.r1.dev) },
+      { t: 'Console requires the password C0nsole-Pa55', cmd: 'line console 0\npassword C0nsole-Pa55\nlogin', ok: L => conPwOK(L.r1.dev) },
+      { t: 'Console logs out after 5 idle minutes', cmd: 'line console 0\nexec-timeout 5 0', ok: L => L.r1.dev.con.execTimeout[0] === 5 && L.r1.dev.con.execTimeout[1] === 0 },
+      { t: 'Every VTY line requires the password Vty-Pa55w0rd', cmd: 'line vty 0 4\npassword Vty-Pa55w0rd\nlogin', ok: L => L.r1.dev.vty.every(l => l.login === 'line' && !!l.password && l.password.plain === 'Vty-Pa55w0rd') },
+      { t: 'Scramble the plaintext passwords in the config', cmd: 'service password-encryption', ok: L => L.r1.dev.spe },
+      { t: 'Show a legal warning banner that includes the word Authorized', cmd: 'banner motd #Authorized access only. Activity is monitored.#', ok: L => bannerOK(L.r1.dev) },
+      { t: 'Bring up G0/0 as 192.168.1.1/24 with a description', cmd: 'interface g0/0\ndescription LAN to S1\nip address 192.168.1.1 255.255.255.0\nno shutdown', ok: L => { const g = L.r1.dev.ifaces[G0]; return g.ip === '192.168.1.1' && g.mask === '255.255.255.0' && !g.shut && !!g.desc; } },
+      { t: 'Save the configuration', cmd: 'end\ncopy running-config startup-config', ok: savedR1 },
+      { t: 'From PC1, Telnet to 192.168.1.1 and log in', cmd: 'PC1 tab:\ntelnet 192.168.1.1', ok: L => !!L.ev['telnetLogin:r1'] }
+    ] },
+  { id: 'm2', name: 'SSH only', sub: 'Level 2, router', kind: 'list', hintLabel: 'Show command', next: 'Next up: Fix the mess.',
+    brief: 'R1 already has Level 1 done: console password C0nsole-Pa55, enable secret En@ble-S3cret. Replace Telnet with SSH for a named admin, add password and brute-force policy, save, then test from PC1.',
+    init: () => { const d = m1Final(); return { r1: d, r1Startup: d, s1: E.switchFactory(), pcs: PC_STATIC }; },
+    tasks: [
+      { t: 'Reject new passwords shorter than 10 characters', cmd: 'security passwords min-length 10', ok: L => L.r1.dev.minLen === 10 },
+      { t: 'Block logins for 120 s after 3 failures within 60 s', cmd: 'login block-for 120 attempts 3 within 60', ok: L => { const b = L.r1.dev.blockFor; return !!b && b.sec === 120 && b.attempts === 3 && b.within === 60; } },
+      { t: 'Create user netadmin with the secret N3tAdmin-2026', cmd: 'username netadmin secret N3tAdmin-2026', ok: L => userOK(L.r1.dev) },
+      { t: 'Set the domain name cp.local', cmd: 'ip domain-name cp.local', ok: L => L.r1.dev.domainName === 'cp.local' },
+      { t: 'Generate RSA keys of at least 1024 bits (2048 recommended)', cmd: 'crypto key generate rsa general-keys modulus 2048', ok: L => L.r1.dev.rsaBits >= 1024 },
+      { t: 'Allow SSH version 2 only', cmd: 'ip ssh version 2', ok: L => L.r1.dev.sshVersion === 2 },
+      { t: 'VTY lines: local usernames, SSH only', cmd: 'line vty 0 4\nlogin local\ntransport input ssh', ok: L => vtySsh(L.r1.dev) },
+      { t: 'Console: log in as a local user', cmd: 'line console 0\nlogin local', ok: L => L.r1.dev.con.login === 'local' },
+      { t: 'Stop advertising the router with CDP', cmd: 'no cdp run', ok: L => !L.r1.dev.cdp },
+      { t: 'Save the configuration', cmd: 'end\ncopy running-config startup-config', ok: savedR1 },
+      { t: 'From PC1, SSH in as netadmin', cmd: 'PC1 tab:\nssh -l netadmin 192.168.1.1', ok: L => !!L.ev['sshLogin:r1'] },
+      { t: 'From PC1, confirm Telnet is refused', cmd: 'PC1 tab:\ntelnet 192.168.1.1', ok: L => !!L.ev['telnetRefused:r1'] }
+    ] },
+  { id: 'm3', name: 'Fix the mess', sub: 'Break-fix, router', kind: 'list', hintLabel: 'Show a fix', next: 'Next up: Switch basics.',
+    brief: 'Someone set up R1 badly and left a sticky note: the enable password is cisco. Each item below is a symptom. Use show commands to find the cause, then fix it.',
+    init: () => { const d = m3Broken(); return { r1: d, r1Startup: d, s1: E.switchFactory(), pcs: PC_STATIC }; },
+    tasks: [
+      { t: 'Anyone at the console gets in without a password', cmd: 'line console 0\nlogin\n(the console already has a password; login makes it ask)', ok: L => { const d = L.r1.dev; return d.con.login === 'line' ? !!d.con.password : d.con.login === 'local' && hasUsers(d); } },
+      { t: 'The console session never times out', cmd: 'line console 0\nexec-timeout 5 0', ok: L => { const s = L.r1.dev.con.execTimeout[0] * 60 + L.r1.dev.con.execTimeout[1]; return s > 0 && s <= 900; } },
+      { t: 'Privileged EXEC is guarded by a plaintext enable password', cmd: 'no enable password\nenable secret En@ble-S3cret', ok: L => !!L.r1.dev.enableSecret && !L.r1.dev.enablePassword },
+      { t: 'Remote (VTY) sessions ask for nothing', cmd: 'username netadmin secret N3tAdmin-2026\nline vty 0 4\nlogin local', ok: L => { const d = L.r1.dev; return d.vty.every(l => (l.login === 'local' ? hasUsers(d) : l.login === 'line' && !!l.password)); } },
+      { t: 'Remote access allows cleartext Telnet', cmd: 'line vty 0 4\ntransport input ssh', ok: L => L.r1.dev.vty.every(l => l.transport === 'ssh' || l.transport === 'none') },
+      { t: 'Admins still need a working SSH way in', cmd: 'ip domain-name cp.local\ncrypto key generate rsa general-keys modulus 2048\nip ssh version 2\n(then on PC1)\nssh -l netadmin 192.168.1.1', ok: L => !!L.ev['sshLogin:r1'] },
+      { t: 'Passwords appear in plain text in the config', cmd: 'service password-encryption', ok: L => L.r1.dev.spe },
+      { t: 'The LAN interface G0/0 is down', cmd: 'interface g0/0\nno shutdown', ok: L => !L.r1.dev.ifaces[G0].shut },
+      { t: 'The banner welcomes visitors instead of warning them', cmd: 'banner motd #Authorized access only. Activity is monitored.#', ok: L => !!L.r1.dev.banner && !/welcome/i.test(L.r1.dev.banner) && bannerOK(L.r1.dev) },
+      { t: 'Typos freeze the CLI while it tries DNS', cmd: 'no ip domain-lookup', ok: L => !L.r1.dev.domainLookup },
+      { t: 'None of the fixes would survive a reload', cmd: 'end\ncopy running-config startup-config', ok: savedR1 }
+    ] },
+  { id: 'm4', name: 'Switch basics', sub: 'Levels 1 to 2, switch', kind: 'list', hintLabel: 'Show command', next: 'Next up: Branch build, Packet Tracer style.',
+    brief: 'R1 is already done (192.168.1.1, Level 1). Now the switch: give S1 an identity, secure it the same way, put a management address on VLAN 1, close every unused port, and lock the two PC ports.',
+    init: () => { const d = m1Final(); return { r1: d, r1Startup: d, s1: E.switchFactory(), pcs: PC_STATIC }; },
+    tasks: [
+      { t: 'Name the switch S1', cmd: 'hostname S1', ok: L => L.s1.dev.hostname === 'S1' },
+      { t: 'Protect privileged EXEC with the hashed secret En@ble-S3cret', cmd: 'enable secret En@ble-S3cret', ok: L => secretOK(L.s1.dev) },
+      { t: 'Console requires the password C0nsole-Pa55', cmd: 'line console 0\npassword C0nsole-Pa55\nlogin', ok: L => conPwOK(L.s1.dev) },
+      { t: 'Create user netadmin with the secret N3tAdmin-2026', cmd: 'username netadmin secret N3tAdmin-2026', ok: L => userOK(L.s1.dev) },
+      { t: 'Domain name cp.local and RSA keys of at least 1024 bits', cmd: 'ip domain-name cp.local\ncrypto key generate rsa general-keys modulus 2048', ok: L => L.s1.dev.domainName === 'cp.local' && L.s1.dev.rsaBits >= 1024 },
+      { t: 'Allow SSH version 2 only', cmd: 'ip ssh version 2', ok: L => L.s1.dev.sshVersion === 2 },
+      { t: 'All 16 VTY lines: local usernames, SSH only', cmd: 'line vty 0 15\nlogin local\ntransport input ssh', ok: L => vtySsh(L.s1.dev) },
+      { t: 'Management address 192.168.1.2/24 on VLAN 1, enabled', cmd: 'interface vlan 1\nip address 192.168.1.2 255.255.255.0\nno shutdown', ok: L => { const s = L.s1.dev.svis[1]; return s.ip === '192.168.1.2' && s.mask === '255.255.255.0' && !s.shut; } },
+      { t: 'Default gateway 192.168.1.1', cmd: 'ip default-gateway 192.168.1.1', ok: L => L.s1.dev.defaultGateway === '192.168.1.1' },
+      { t: 'Shut down every unused port: F0/3 to F0/24 and G0/2', cmd: 'interface range f0/3 - 24\nshutdown\ninterface g0/2\nshutdown', ok: L => UNUSED.every(n => L.s1.dev.ports[n].shut) },
+      { t: 'Port security on F0/1 and F0/2: access mode, 1 sticky address, violation restrict', cmd: 'interface range f0/1 - 2\nswitchport mode access\nswitchport port-security\nswitchport port-security mac-address sticky\nswitchport port-security violation restrict', ok: L => psecOK(L.s1.dev, 'FastEthernet0/1', 1, 'restrict') && psecOK(L.s1.dev, 'FastEthernet0/2', 1, 'restrict') },
+      { t: 'From PC1, SSH to 192.168.1.2 as netadmin', cmd: 'PC1 tab:\nssh -l netadmin 192.168.1.2', ok: L => !!L.ev['ssh:pc1:192.168.1.2'] },
+      { t: 'Save the configuration last: sticky MACs learned by the SSH test change the running-config', cmd: 'end\ncopy running-config startup-config', ok: savedS1 }
+    ] },
+  { id: 'm5', name: 'Branch build', sub: 'Packet Tracer style', kind: 'pt', hintLabel: 'Show a fix', next: 'Reset and beat your time, or try Free play.',
+    brief: 'Written requirements, no live checklist: press Check results whenever you want a score.',
+    init: () => ({ r1: E.routerFactory(), s1: E.switchFactory(), pcs: PC_DHCP }),
+    instr: M5_INSTR,
+    tasks: [
+      { t: 'R1 hostname R1', cmd: 'hostname R1', ok: L => L.r1.dev.hostname === 'R1' },
+      { t: 'R1 enable secret En@ble-S3cret', cmd: 'enable secret En@ble-S3cret', ok: L => secretOK(L.r1.dev) },
+      { t: 'R1 console password C0nsole-Pa55 with login', cmd: 'line console 0\npassword C0nsole-Pa55\nlogin', ok: L => conPwOK(L.r1.dev) },
+      { t: 'R1 no ip domain-lookup', cmd: 'no ip domain-lookup', ok: L => !L.r1.dev.domainLookup },
+      { t: 'R1 banner includes Authorized', cmd: 'banner motd #Authorized access only. Activity is monitored.#', ok: L => bannerOK(L.r1.dev) },
+      { t: 'R1 service password-encryption', cmd: 'service password-encryption', ok: L => L.r1.dev.spe },
+      { t: 'R1 domain cp.local', cmd: 'ip domain-name cp.local', ok: L => L.r1.dev.domainName === 'cp.local' },
+      { t: 'R1 user netadmin secret N3tAdmin-2026', cmd: 'username netadmin secret N3tAdmin-2026', ok: L => userOK(L.r1.dev) },
+      { t: 'R1 RSA keys, 1024 bits or more', cmd: 'crypto key generate rsa general-keys modulus 2048', ok: L => L.r1.dev.rsaBits >= 1024 },
+      { t: 'R1 SSH version 2', cmd: 'ip ssh version 2', ok: L => L.r1.dev.sshVersion === 2 },
+      { t: 'R1 VTY lines login local, SSH only', cmd: 'line vty 0 4\nlogin local\ntransport input ssh', ok: L => vtySsh(L.r1.dev) },
+      { t: 'R1 G0/0 enabled with no IP address', cmd: 'interface g0/0\nno ip address\nno shutdown', ok: L => !L.r1.dev.ifaces[G0].shut && !L.r1.dev.ifaces[G0].ip },
+      { t: 'R1 G0/0.10: dot1Q 10, 192.168.10.1/24', cmd: 'interface g0/0.10\nencapsulation dot1Q 10\nip address 192.168.10.1 255.255.255.0', ok: L => sub(L.r1.dev, 'GigabitEthernet0/0.10', 10, '192.168.10.1') },
+      { t: 'R1 G0/0.99: dot1Q 99, 192.168.99.1/24', cmd: 'interface g0/0.99\nencapsulation dot1Q 99\nip address 192.168.99.1 255.255.255.0', ok: L => sub(L.r1.dev, 'GigabitEthernet0/0.99', 99, '192.168.99.1') },
+      { t: 'R1 G0/1: 203.0.113.2/30, enabled', cmd: 'interface g0/1\nip address 203.0.113.2 255.255.255.252\nno shutdown', ok: L => { const g = L.r1.dev.ifaces[G1]; return g.ip === '203.0.113.2' && g.mask === '255.255.255.252' && !g.shut; } },
+      { t: 'R1 default route via 203.0.113.1', cmd: 'ip route 0.0.0.0 0.0.0.0 203.0.113.1', ok: L => L.r1.dev.routes.some(r => r.net === '0.0.0.0' && r.mask === '0.0.0.0' && r.via === '203.0.113.1') },
+      { t: 'R1 DHCP excludes 192.168.10.1 to 192.168.10.10', cmd: 'ip dhcp excluded-address 192.168.10.1 192.168.10.10', ok: L => L.r1.dev.dhcp.excluded.some(([a, b]) => a === '192.168.10.1' && b === '192.168.10.10') },
+      { t: 'R1 DHCP pool USERS: 192.168.10.0/24, router .1, DNS 192.168.99.10', cmd: 'ip dhcp pool USERS\nnetwork 192.168.10.0 255.255.255.0\ndefault-router 192.168.10.1\ndns-server 192.168.99.10', ok: L => { const p = L.r1.dev.dhcp.pools.USERS; return !!p && p.network === '192.168.10.0' && p.mask === '255.255.255.0' && p.router === '192.168.10.1' && p.dns === '192.168.99.10'; } },
+      { t: 'R1 configuration saved', cmd: 'end\ncopy running-config startup-config', ok: savedR1 },
+      { t: 'S1 hostname S1', cmd: 'hostname S1', ok: L => L.s1.dev.hostname === 'S1' },
+      { t: 'S1 enable secret En@ble-S3cret', cmd: 'enable secret En@ble-S3cret', ok: L => secretOK(L.s1.dev) },
+      { t: 'S1 console password C0nsole-Pa55 with login', cmd: 'line console 0\npassword C0nsole-Pa55\nlogin', ok: L => conPwOK(L.s1.dev) },
+      { t: 'S1 no ip domain-lookup', cmd: 'no ip domain-lookup', ok: L => !L.s1.dev.domainLookup },
+      { t: 'S1 banner includes Authorized', cmd: 'banner motd #Authorized access only. Activity is monitored.#', ok: L => bannerOK(L.s1.dev) },
+      { t: 'S1 service password-encryption', cmd: 'service password-encryption', ok: L => L.s1.dev.spe },
+      { t: 'S1 domain cp.local', cmd: 'ip domain-name cp.local', ok: L => L.s1.dev.domainName === 'cp.local' },
+      { t: 'S1 user netadmin secret N3tAdmin-2026', cmd: 'username netadmin secret N3tAdmin-2026', ok: L => userOK(L.s1.dev) },
+      { t: 'S1 RSA keys, 1024 bits or more', cmd: 'crypto key generate rsa general-keys modulus 2048', ok: L => L.s1.dev.rsaBits >= 1024 },
+      { t: 'S1 SSH version 2', cmd: 'ip ssh version 2', ok: L => L.s1.dev.sshVersion === 2 },
+      { t: 'S1 VTY 0 to 15 login local, SSH only', cmd: 'line vty 0 15\nlogin local\ntransport input ssh', ok: L => vtySsh(L.s1.dev) },
+      { t: 'S1 VLAN 10 named USERS', cmd: 'vlan 10\nname USERS', ok: L => !!L.s1.dev.vlans[10] && L.s1.dev.vlans[10].name === 'USERS' },
+      { t: 'S1 VLAN 99 named MGMT', cmd: 'vlan 99\nname MGMT', ok: L => !!L.s1.dev.vlans[99] && L.s1.dev.vlans[99].name === 'MGMT' },
+      { t: 'S1 F0/1 and F0/2: access ports in VLAN 10', cmd: 'interface range f0/1 - 2\nswitchport mode access\nswitchport access vlan 10', ok: L => ['FastEthernet0/1', 'FastEthernet0/2'].every(n => { const p = L.s1.dev.ports[n]; return p.mode === 'access' && p.accessVlan === 10 && !p.shut; }) },
+      { t: 'S1 F0/3 to F0/24 and G0/2 shut down', cmd: 'interface range f0/3 - 24\nshutdown\ninterface g0/2\nshutdown', ok: L => UNUSED.every(n => L.s1.dev.ports[n].shut) },
+      { t: 'S1 G0/1 static trunk with DTP off', cmd: 'interface g0/1\nswitchport mode trunk\nswitchport nonegotiate', ok: L => { const p = L.s1.dev.ports[G1]; return p.mode === 'trunk' && p.nonegotiate && !p.shut; } },
+      { t: 'S1 G0/1 native VLAN 999', cmd: 'interface g0/1\nswitchport trunk native vlan 999', ok: L => L.s1.dev.ports[G1].nativeVlan === 999 },
+      { t: 'S1 G0/1 allows only VLANs 10 and 99', cmd: 'interface g0/1\nswitchport trunk allowed vlan 10,99', ok: L => JSON.stringify(L.s1.dev.ports[G1].allowed) === '[10,99]' },
+      { t: 'S1 VLAN 99 SVI 192.168.99.2/24, enabled', cmd: 'interface vlan 99\nip address 192.168.99.2 255.255.255.0\nno shutdown', ok: L => { const s = L.s1.dev.svis[99]; return !!s && s.ip === '192.168.99.2' && s.mask === '255.255.255.0' && !s.shut; } },
+      { t: 'S1 VLAN 1 SVI shut down', cmd: 'interface vlan 1\nshutdown', ok: L => L.s1.dev.svis[1].shut },
+      { t: 'S1 default gateway 192.168.99.1', cmd: 'ip default-gateway 192.168.99.1', ok: L => L.s1.dev.defaultGateway === '192.168.99.1' },
+      { t: 'S1 port security on F0/1 and F0/2: max 1, sticky, violation restrict', cmd: 'interface range f0/1 - 2\nswitchport port-security\nswitchport port-security mac-address sticky\nswitchport port-security violation restrict', ok: L => psecOK(L.s1.dev, 'FastEthernet0/1', 1, 'restrict') && psecOK(L.s1.dev, 'FastEthernet0/2', 1, 'restrict') },
+      { t: 'S1 PortFast and BPDU Guard on F0/1 and F0/2', cmd: 'interface range f0/1 - 2\nspanning-tree portfast\nspanning-tree bpduguard enable', ok: L => ['FastEthernet0/1', 'FastEthernet0/2'].every(n => L.s1.dev.ports[n].portfast && L.s1.dev.ports[n].bpduguard) },
+      { t: 'S1 configuration saved (after the PC tests: sticky MACs change the running-config)', cmd: 'end\ncopy running-config startup-config', ok: savedS1 },
+      { t: 'PC1 received a DHCP address in 192.168.10.0/24', cmd: 'PC1 tab:\nipconfig /renew', ok: L => !!L.ev['dhcp:pc1'] && E.sameNet(L.ev['dhcp:pc1'], '192.168.10.0', '255.255.255.0') },
+      { t: 'PC1 reached 8.8.8.8', cmd: 'PC1 tab:\nping 8.8.8.8', ok: L => !!L.ev['internet:pc1'] },
+      { t: 'PC1 logged in to S1 by SSH at 192.168.99.2', cmd: 'PC1 tab:\nssh -l netadmin 192.168.99.2', ok: L => !!L.ev['ssh:pc1:192.168.99.2'] }
+    ] },
+  { id: 'free', name: 'Free play', sub: 'No checklist', kind: 'list', hintLabel: '', next: '',
+    brief: 'Nothing is graded. Build anything from the cheat sheet, move cables, break things on purpose, and use show commands to see what changed.',
+    init: () => ({ r1: E.routerFactory(), s1: E.switchFactory(), pcs: PC_STATIC }), tasks: [] }
+];
+
+/* ---------- terminals ---------- */
+const TERMS = ['r1', 's1', 'pc1', 'pc2'];
+const terms = {};
+let active = 'r1', cur = MISSIONS[0], lab = null, startedAt = 0, finishedAt = 0;
+const io = {
+  write(t, s) { terms[t].write(s); unread(t); },
+  hint(t, s) { terms[t].hint(s); unread(t); },
+  refresh() { refreshAll(); },
+  clear(t) { terms[t].clear(); },
+  delay(ms, fn) { setTimeout(fn, ms); },
+  now() { return Date.now(); }
+};
+function unread(t) { if (t !== active) $('#tab-' + t).classList.add('unread'); }
+function ep(key) { return key === 'r1' ? lab.r1.con : key === 's1' ? lab.s1.con : lab.shells[key]; }
+function makeTerm(key) {
+  const scr = $('#scr-' + key), inp = $('#in-' + key), pr = $('#pr-' + key);
+  let last = '\n';
+  const stick = () => { scr.scrollTop = scr.scrollHeight; };
+  const T = {
+    key, scr, inp, hist: [], hi: 0,
+    write(text) { if (!text) return; scr.append(text); last = text.slice(-1); while (scr.childNodes.length > 2500) scr.removeChild(scr.firstChild); stick(); },
+    hint(text) { const s = document.createElement('span'); s.className = 'coach'; s.textContent = (last === '\n' ? '' : '\n') + 'Coach: ' + text + '\n'; scr.append(s); last = '\n'; stick(); },
+    echo(p, text) { const s = document.createElement('span'); s.className = 'pr'; s.textContent = p; scr.append(s, text + '\n'); last = '\n'; stick(); },
+    clear() { scr.textContent = ''; last = '\n'; },
+    refresh() {
+      const e = ep(key), busy = e.isBusy(), pw = !busy && e.masked();
+      pr.textContent = busy ? '' : e.prompt();
+      if ((inp.type === 'password') !== pw) inp.type = pw ? 'password' : 'text';
+      inp.disabled = busy;
+      inp.placeholder = busy ? 'Working…' : e.isIdle() ? 'Press Enter to start' : pw ? 'Typing stays hidden' : '';
+    }
+  };
+  inp.addEventListener('keydown', ev => {
+    const e = ep(key);
+    if (ev.key === 'Enter') { ev.preventDefault(); submit(T); }
+    else if (ev.key === 'Tab') { ev.preventDefault(); complete(T); }
+    else if (ev.key === '?' && !e.masked() && !e.hasPending()) { ev.preventDefault(); help(T, inp.value + '?'); }
+    else if ((ev.key === 'ArrowUp' || ev.key === 'ArrowDown') && !e.masked()) { ev.preventDefault(); histMove(T, ev.key === 'ArrowUp' ? -1 : 1); }
+  });
+  scr.addEventListener('click', () => { const sel = window.getSelection(); if (!sel || !sel.toString()) inp.focus({ preventScroll: true }); });
+  return T;
+}
+function submit(T) {
+  const e = ep(T.key);
+  if (e.isBusy()) return;
+  const v = T.inp.value;
+  if (!e.masked() && !e.hasPending() && /\?\s*$/.test(v)) { help(T, v); return; }
+  T.echo(e.prompt(), e.masked() ? '' : v);
+  if (!e.masked() && v.trim() && T.hist[T.hist.length - 1] !== v) T.hist.push(v);
+  T.hi = T.hist.length;
+  T.inp.value = '';
+  e.input(v);
+  refreshAll();
+}
+function help(T, v) { const e = ep(T.key), r = e.help(v); if (!r) return; T.echo(e.prompt(), v); T.write(r.text + '\n'); T.inp.value = r.restore; }
+function complete(T) { const c = ep(T.key).complete(T.inp.value); if (c) T.inp.value = c; }
+function histMove(T, dir) { if (!T.hist.length) return; T.hi = Math.min(T.hist.length, Math.max(0, T.hi + dir)); T.inp.value = T.hi === T.hist.length ? '' : T.hist[T.hi]; }
+function refreshAll() { TERMS.forEach(k => terms[k].refresh()); renderBench(); if (cur.kind === 'list') updateTasks(); }
+
+/* ---------- bench: PC settings and cables ---------- */
+const maskBits = m => { const n = E.ipNum(m); if (n === null) return '?'; let c = 0; for (let i = 0; i < 32; i++) if ((n >>> i) & 1) c++; return c; };
+function renderBenchOnce() {
+  const grid = $('#pcgrid');
+  grid.textContent = '';
+  for (const id of ['pc1', 'pc2']) {
+    const fs = document.createElement('fieldset');
+    fs.className = 'pcset'; fs.dataset.pc = id;
+    fs.innerHTML = `<legend>${id.toUpperCase()}</legend>
+      <div class="modes"><label><input type="radio" name="${id}mode" value="dhcp"> DHCP</label><label><input type="radio" name="${id}mode" value="static"> Static</label></div>
+      <div class="fgrid">
+        <label>IP address<input data-f="ip" inputmode="decimal" autocomplete="off" spellcheck="false"></label>
+        <label>Subnet mask<input data-f="mask" inputmode="decimal" autocomplete="off" spellcheck="false"></label>
+        <label>Default gateway<input data-f="gw" inputmode="decimal" autocomplete="off" spellcheck="false"></label>
+        <label>DNS server<input data-f="dns" inputmode="decimal" autocomplete="off" spellcheck="false"></label>
+        <label>Cable to S1 port<select data-f="port"></select></label>
+        <label><span>&nbsp;</span><button class="btn" type="button" data-apply="${id}">Apply</button></label>
+      </div>
+      <p class="pcstat"></p><p class="pcmsg" role="status"></p>`;
+    const sel = fs.querySelector('[data-f="port"]');
+    E.PC_PORTS.forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = short(p); sel.append(o); });
+    fs.querySelectorAll('input[type=radio]').forEach(r => r.addEventListener('change', () => setStatic(fs, r.value === 'static' && r.checked)));
+    fs.addEventListener('input', () => { fs.dataset.dirty = '1'; });
+    fs.addEventListener('change', () => { fs.dataset.dirty = '1'; });
+    fs.querySelector('[data-apply]').addEventListener('click', () => applyPC(id));
+    grid.append(fs);
+  }
+}
+function setStatic(fs, on) { ['ip', 'mask', 'gw', 'dns'].forEach(k => { fs.querySelector(`[data-f="${k}"]`).disabled = !on; }); }
+function renderBench() {
+  for (const id of ['pc1', 'pc2']) {
+    const pc = lab.pcs[id], fs = $(`.pcset[data-pc="${id}"]`);
+    if (!fs) continue;
+    $('#topo-' + id).textContent = short(lab.cables[id]);
+    fs.querySelector('.pcstat').textContent = `Now: ${pc.ip ? pc.ip + '/' + maskBits(pc.mask) + (pc.gw ? ', gateway ' + pc.gw : '') : pc.dhcp ? 'DHCP, no lease yet (run ipconfig /renew)' : 'no address'} on S1 ${short(lab.cables[id])}`;
+    if (fs.dataset.dirty === '1' || (document.activeElement && fs.contains(document.activeElement))) continue;
+    fs.querySelector(`input[value="${pc.dhcp ? 'dhcp' : 'static'}"]`).checked = true;
+    ['ip', 'mask', 'gw', 'dns'].forEach(k => { fs.querySelector(`[data-f="${k}"]`).value = pc[k] || ''; });
+    fs.querySelector('[data-f="port"]').value = lab.cables[id];
+    setStatic(fs, !pc.dhcp);
+  }
+}
+function applyPC(id) {
+  const fs = $(`.pcset[data-pc="${id}"]`), msg = fs.querySelector('.pcmsg'), other = id === 'pc1' ? 'pc2' : 'pc1';
+  const mode = fs.querySelector('input[type=radio]:checked').value, port = fs.querySelector('[data-f="port"]').value;
+  msg.textContent = '';
+  if (lab.cables[other] === port) { msg.textContent = `${other.toUpperCase()} is already on ${short(port)}. Move it first.`; return; }
+  const pc = lab.pcs[id];
+  if (mode === 'dhcp') { pc.dhcp = true; lab.releaseLease(id); }
+  else {
+    const v = {};
+    for (const k of ['ip', 'mask', 'gw', 'dns']) { const t = fs.querySelector(`[data-f="${k}"]`).value.trim(); v[k] = t; }
+    if (E.ipNum(v.ip) === null || E.ipNum(v.mask) === null) { msg.textContent = 'IP address and subnet mask must be dotted-decimal, like 192.168.1.11 and 255.255.255.0.'; return; }
+    if (v.gw && E.ipNum(v.gw) === null) { msg.textContent = 'The gateway must be dotted-decimal, or blank.'; return; }
+    if (v.dns && E.ipNum(v.dns) === null) { msg.textContent = 'The DNS server must be dotted-decimal, or blank.'; return; }
+    if (v.gw && !E.sameNet(v.gw, v.ip, v.mask)) msg.textContent = 'Warning: the gateway is not in the same subnet as the IP address.';
+    lab.releaseLease(id);
+    pc.dhcp = false; pc.ip = v.ip; pc.mask = v.mask; pc.gw = v.gw || null; pc.dns = v.dns || null;
+  }
+  const moved = lab.cables[id] !== port;
+  lab.cables[id] = port;
+  delete fs.dataset.dirty;
+  lab.clearArp(); lab.refreshVty();
+  terms[id].hint(`${id.toUpperCase()} settings applied: ${pc.dhcp ? 'DHCP (run ipconfig /renew)' : pc.ip + '/' + maskBits(pc.mask)}${moved ? ', cable moved to S1 ' + short(port) : ''}.`);
+  refreshAll();
+}
+
+/* ---------- mission UI ---------- */
+function renderPicker() {
+  const p = $('#picker');
+  p.textContent = '';
+  MISSIONS.forEach(m => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'mbtn'; b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', m === cur ? 'true' : 'false');
+    b.innerHTML = '<span class="t"></span><small></small>';
+    b.querySelector('.t').textContent = m.name;
+    if (m.tasks.length) { const led = document.createElement('i'); led.className = 'led' + (done[m.id] ? ' ok' : ''); led.style.marginTop = '0'; led.setAttribute('aria-hidden', 'true'); b.querySelector('.t').prepend(led); }
+    b.querySelector('small').textContent = m.sub + (done[m.id] ? ', completed' : '');
+    b.addEventListener('click', () => { if (m !== cur) loadMission(m.id); });
+    p.append(b);
+  });
+}
+function taskItem(t, label) {
+  const li = document.createElement('li');
+  li.className = 'task';
+  li.innerHTML = '<i class="led" aria-hidden="true"></i><div><p></p><button type="button" class="link" aria-expanded="false"></button><pre class="cmd" hidden></pre></div>';
+  li.querySelector('p').textContent = t.t;
+  const btn = li.querySelector('button'), pre = li.querySelector('pre');
+  btn.textContent = label; pre.textContent = t.cmd || '';
+  if (!label) btn.hidden = true;
+  btn.addEventListener('click', () => { const open = pre.hidden; pre.hidden = !open; btn.setAttribute('aria-expanded', String(open)); btn.textContent = open ? 'Hide' : label; });
+  return li;
+}
+function renderMission() {
+  $('#m-title').textContent = cur.name;
+  $('#m-brief').textContent = cur.brief;
+  $('#m-done').hidden = true;
+  const isPT = cur.kind === 'pt';
+  $('#m-progress').hidden = isPT || !cur.tasks.length;
+  $('#m-pt').hidden = !isPT;
+  if (isPT) {
+    $('#m-instr').innerHTML = cur.instr;
+    $('#m-pct').hidden = true; $('#m-rdet').hidden = true;
+    const rl = $('#m-rlist'); rl.textContent = '';
+    cur.tasks.forEach(t => rl.append(taskItem(t, cur.hintLabel)));
+  } else {
+    const list = $('#m-list'); list.textContent = '';
+    cur.tasks.forEach(t => list.append(taskItem(t, cur.hintLabel)));
+    if (window.innerWidth < 980) $('#m-det').open = false;
+  }
+}
+function results() { return cur.tasks.map(t => { try { return !!t.ok(lab); } catch (err) { return false; } }); }
+function markDone(all) {
+  const box = $('#m-done');
+  box.hidden = !all;
+  if (!all) { finishedAt = 0; return; }
+  if (!finishedAt) finishedAt = Date.now();
+  box.textContent = `Mission complete in ${fmtClock(finishedAt - startedAt)}. ${cur.next}`;
+  if (!done[cur.id]) { done[cur.id] = true; store.set('netdrills.cli2.done', done); renderPicker(); }
+}
+function updateTasks() {
+  if (!cur.tasks.length || cur.kind !== 'list') return;
+  const res = results(), n = res.filter(Boolean).length;
+  $$('#m-list .task').forEach((li, i) => { li.querySelector('.led').className = 'led' + (res[i] ? ' ok' : ''); li.classList.toggle('is-done', res[i]); });
+  $('#m-count').textContent = `${n} of ${res.length} checks passing`;
+  $('#m-bar').style.width = (100 * n / res.length) + '%';
+  markDone(n === res.length);
+}
+function checkResults() {
+  const res = results(), n = res.filter(Boolean).length, pct = Math.round(100 * n / res.length);
+  const p = $('#m-pct');
+  p.hidden = false; p.className = 'pct' + (pct === 100 ? ' full' : '');
+  p.textContent = `Completion: ${pct}% (${n} of ${res.length} requirements)`;
+  $('#m-rdet').hidden = false;
+  $$('#m-rlist .task').forEach((li, i) => { li.querySelector('.led').className = 'led ' + (res[i] ? 'ok' : 'bad'); li.classList.toggle('is-done', res[i]); });
+  markDone(n === res.length);
+}
+const fmtClock = ms => { const s = Math.floor(ms / 1000); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
+setInterval(() => { if (!startedAt) return; $('#m-clock').textContent = fmtClock((finishedAt || Date.now()) - startedAt); }, 1000);
+function loadMission(id) {
+  cur = MISSIONS.find(m => m.id === id) || MISSIONS[0];
+  const init = cur.init();
+  lab.load(init);
+  startJSON.r1 = JSON.stringify(lab.r1.dev); startJSON.s1 = JSON.stringify(lab.s1.dev);
+  startedAt = Date.now(); finishedAt = 0;
+  $('#m-clock').textContent = '00:00';
+  TERMS.forEach(k => { terms[k].clear(); terms[k].hist.length = 0; });
+  $$('.pcset').forEach(fs => { delete fs.dataset.dirty; fs.querySelector('.pcmsg').textContent = ''; });
+  io.write('r1', `${lab.r1.dev.hostname} con0 is now available\n\n\n\nPress RETURN to get started.\n\n`);
+  io.write('s1', `${lab.s1.dev.hostname} con0 is now available\n\n\n\nPress RETURN to get started.\n\n`);
+  io.write('pc1', 'Packet Tracer PC Command Line 1.0\n');
+  io.write('pc2', 'Packet Tracer PC Command Line 1.0\n');
+  $$('.ttabs button').forEach(b => b.classList.remove('unread'));
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  renderPicker(); renderMission(); refreshAll();
+}
+
+/* ---------- wiring ---------- */
+TERMS.forEach(k => { terms[k] = makeTerm(k); });
+renderBenchOnce();
+lab = new E.Lab(io);
+$$('.ttabs [role=tab]').forEach(b => b.addEventListener('click', () => {
+  active = b.dataset.term;
+  $$('.ttabs [role=tab]').forEach(x => x.setAttribute('aria-selected', x === b ? 'true' : 'false'));
+  $$('.tpane').forEach(p => { p.hidden = p.dataset.pane !== active; });
+  b.classList.remove('unread');
+  const T = terms[active];
+  T.scr.scrollTop = T.scr.scrollHeight;
+  if (window.matchMedia('(pointer: fine)').matches) T.inp.focus({ preventScroll: true });
+}));
+$$('.keys button').forEach(b => {
+  b.addEventListener('pointerdown', ev => ev.preventDefault());
+  b.addEventListener('click', () => {
+    const T = terms[active], e = ep(active), k = b.dataset.k;
+    if (k === 'help') { if (!e.masked() && !e.hasPending()) help(T, T.inp.value + '?'); }
+    else if (k === 'tab') complete(T);
+    else if (k === 'up') { if (!e.masked()) histMove(T, -1); }
+    else if (k === 'enter') submit(T);
+    T.inp.focus({ preventScroll: true });
+  });
+});
+$('#m-reset').addEventListener('click', () => loadMission(cur.id));
+$('#m-check').addEventListener('click', checkResults);
+loadMission('m1');
+})();
+</script>
+<!-- tool4that:foot --><p style="text-align:center;margin:28px 0 22px;font:14px/1.4 system-ui,-apple-system,Segoe UI,Arial,sans-serif"><a href="../../">More free tools at Tool4That</a></p><!-- /tool4that:foot -->
+</body>
+</html>
