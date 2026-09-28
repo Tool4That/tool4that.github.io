@@ -1,0 +1,23 @@
+{
+  "site": "https://tool4that.github.io",
+  "name": "Tool4That",
+  "tools": [
+    {
+      "slug": "maxed-and-matched",
+      "name": "Maxed & Matched TSP Calculator",
+      "tagline": "Hit the max. Keep the match.",
+      "description": "Your exact myPay TSP percentages, straight from your LES. Reach the IRS limit in your last paycheck without losing a dollar of BRS match.",
+      "badges": [
+        "Military",
+        "Finance",
+        "Runs offline",
+        "Private"
+      ],
+      "file": "maxed-and-matched/index.html",
+      "download_as": "maxed-and-matched.html",
+      "icon": "check",
+      "sha256": "5ef422f8f4c6c67c532db44e0d745aab14941635a000405fcf476ed8f4d4453b",
+      "updated": "2026-09-27"
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+# Publish files byte-for-byte (no line-ending conversion), so the SHA-256 on each tool card matches what GitHub serves.
+* -text
