@@ -35,6 +35,7 @@ STYLE = """
 html { -webkit-text-size-adjust: 100%; }
 body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.5 var(--font); }
 a { color: var(--focus); }
+footer a { color: inherit; }
 .wrap { max-width: 1040px; margin: 0 auto; padding-left: 20px; padding-right: 20px; }
 .hero { background: var(--ink); color: #fff; padding: 44px 0 52px; }
 .logo { display: flex; align-items: center; gap: 12px; margin: 0 0 26px; font-size: 26px; font-weight: 800; letter-spacing: -0.01em; }
@@ -165,7 +166,7 @@ index = head(title, desc, SITE + "/", SITE + "/og-image.png") + f"""<body>
   </section>
 </main>
 <footer>
-  <div class="wrap">Independent projects, free to use. Not affiliated with any government agency. Planning aids, not professional advice.</div>
+  <div class="wrap">Independent projects, free to use. Not affiliated with any government agency. Planning aids, not professional advice.<br>Tool4That started on GitHub at <a href="https://tool4that.github.io/">tool4that.github.io</a>, which stays online as the backup copy of this site. Main site: <a href="https://freeapp4that.store/">freeapp4that.store</a>.</div>
 </footer>
 </body>
 </html>

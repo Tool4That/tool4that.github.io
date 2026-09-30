@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://tool4that.github.io/sitemap.xml
+Sitemap: https://freeapp4that.store/sitemap.xml

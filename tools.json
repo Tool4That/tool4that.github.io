@@ -1,5 +1,5 @@
 {
-  "site": "https://tool4that.github.io",
+  "site": "https://freeapp4that.store",
   "name": "Tool4That",
   "tools": [
     {
@@ -16,8 +16,8 @@
       "file": "maxed-and-matched/index.html",
       "download_as": "maxed-and-matched.html",
       "icon": "check",
-      "sha256": "5ef422f8f4c6c67c532db44e0d745aab14941635a000405fcf476ed8f4d4453b",
-      "updated": "2026-09-27",
+      "sha256": "fde32cbf53c14d5b60c9bdc5764ae74b0542258e19bb483126b91591862f049c",
+      "updated": "2026-09-30",
       "category": "Military finance"
     },
     {
@@ -35,8 +35,8 @@
       "download_as": "subnet-sprint.html",
       "icon": "subnet",
       "category": "Networking practice: Net Drills",
-      "sha256": "e5fa9738c478d771a90281296140c63a2af25e069146ea262b6c374559279b60",
-      "updated": "2026-09-28"
+      "sha256": "0643dace59c9e4165c881f5d5038d126dd77a1f45165a961ec95f3e5772ef201",
+      "updated": "2026-09-30"
     },
     {
       "slug": "net-drills/ios-cli-lab",
@@ -53,8 +53,8 @@
       "download_as": "ios-cli-lab.html",
       "icon": "terminal",
       "category": "Networking practice: Net Drills",
-      "sha256": "5fa5aff361fb2ad4953b4548ccae1e37250dd1b0d416a995f37a67a13f688b09",
-      "updated": "2026-09-28"
+      "sha256": "ef686d6374486d7b055417078bb3d8fe6aff2ca890067bdd98bce76919b5fdb5",
+      "updated": "2026-09-30"
     },
     {
       "slug": "net-drills/config-audit",
@@ -71,8 +71,8 @@
       "download_as": "config-audit.html",
       "icon": "search",
       "category": "Networking practice: Net Drills",
-      "sha256": "e7c4868341e198f2e60c7c17ac418a05c3ca536b179a5d37469c23da27e3c28f",
-      "updated": "2026-09-28"
+      "sha256": "027b40ad12d28c28fa1e5addd6c5d48779ce63ebef5a0a82a3cfd38e596cbd7a",
+      "updated": "2026-09-30"
     },
     {
       "slug": "net-drills/trouble-tickets",
@@ -89,8 +89,8 @@
       "download_as": "trouble-tickets.html",
       "icon": "wrench",
       "category": "Networking practice: Net Drills",
-      "sha256": "456cc64d4b250d0195f04e6b4273bb9d388cc650052a143e5882076af8b12dff",
-      "updated": "2026-09-28"
+      "sha256": "fa31dfe31d3ba9152fda39e892ea136802c1eb68f4bcf0aee82f44670452a926",
+      "updated": "2026-09-30"
     }
   ],
   "category_notes": {

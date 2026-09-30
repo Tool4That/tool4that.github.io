@@ -1,6 +1,6 @@
 # Tool4That: notes for Claude
 
-Static GitHub Pages site for the org site `tool4that/tool4that.github.io`, served at https://tool4that.github.io/. This repository is **public**.
+Static site published twice from this **public** repository: the primary at https://freeapp4that.store/ (Cloudflare Pages, deploys on push, honors `_headers` and `_redirects`) and the backup at https://tool4that.github.io/ (GitHub Pages). Never set a custom domain in GitHub Pages settings, or the backup address would redirect to the primary. Canonical addresses point at the primary.
 
 ## Layout
 - `index.html`, `404.html`, `robots.txt`, `sitemap.xml`: **generated** by `build_hub.py` from `tools.json`. Don't hand-edit them; edit `tools.json` or the templates inside `build_hub.py`, then rebuild.

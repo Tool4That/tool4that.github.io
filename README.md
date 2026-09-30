@@ -4,15 +4,15 @@
 
 Free, single-file tools that run in your browser: no sign-ups, no tracking, nothing uploaded.
 
-Live at https://tool4that.github.io/
+Live at https://freeapp4that.store/ (primary) and https://tool4that.github.io/ (backup copy).
 
 | Tool | What it does |
 |---|---|
-| [Maxed & Matched TSP Calculator](https://tool4that.github.io/maxed-and-matched/) | Your exact myPay TSP percentages from your LES. Max out without losing the BRS match. |
-| [Subnet Sprint](https://tool4that.github.io/net-drills/subnet-sprint/) | Net Drills: network, broadcast, and host ranges; VLSM planning; IPv6. |
-| [IOS CLI Lab](https://tool4that.github.io/net-drills/ios-cli-lab/) | Net Drills: configure a simulated router and switch, then prove it from two PCs. |
-| [Config Audit](https://tool4that.github.io/net-drills/config-audit/) | Net Drills: find risky config lines, choose fixes, name what's missing. |
-| [Trouble Tickets](https://tool4that.github.io/net-drills/trouble-tickets/) | Net Drills: diagnose the root cause from real device output. |
+| [Maxed & Matched TSP Calculator](https://freeapp4that.store/maxed-and-matched/) | Your exact myPay TSP percentages from your LES. Max out without losing the BRS match. |
+| [Subnet Sprint](https://freeapp4that.store/net-drills/subnet-sprint/) | Net Drills: network, broadcast, and host ranges; VLSM planning; IPv6. |
+| [IOS CLI Lab](https://freeapp4that.store/net-drills/ios-cli-lab/) | Net Drills: configure a simulated router and switch, then prove it from two PCs. |
+| [Config Audit](https://freeapp4that.store/net-drills/config-audit/) | Net Drills: find risky config lines, choose fixes, name what's missing. |
+| [Trouble Tickets](https://freeapp4that.store/net-drills/trouble-tickets/) | Net Drills: diagnose the root cause from real device output. |
 
 Net Drills are unofficial practice for the Cisco NetAcad Network Technician path and the CyberPatriot Cisco challenge, and are not affiliated with either.
 
@@ -46,7 +46,7 @@ certutil -hashfile maxed-and-matched.html SHA256
 
 ## Notes
 
-- **Hosting:** GitHub Pages. `.nojekyll` makes GitHub serve the files exactly as committed.
+- **Hosting, two copies from one repository:** Cloudflare Pages deploys the primary (`freeapp4that.store`) on every push and honors `_headers` and `_redirects`; GitHub Pages serves the backup (`tool4that.github.io`). Never set a custom domain in the GitHub Pages settings: GitHub would redirect the backup address to the primary, which defeats the purpose. `.nojekyll` makes GitHub serve the files exactly as committed.
 - **No custom security headers:** GitHub Pages can't send them. Instead:
   - every page carries its own Content Security Policy;
   - the hub runs no JavaScript at all;
