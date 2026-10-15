@@ -25,7 +25,7 @@
       "slug": "learning",
       "title": "Learning",
       "category": "cyber",
-      "intro": "Build the concepts and vocabulary, from your first terminal command to confident defender. Start here if cybersecurity is new."
+      "intro": "Build the concepts and vocabulary, from your first terminal command to confident defender. Start here if cybersecurity is new, and use the Concept Index to find where to learn and practice any idea."
     },
     {
       "slug": "practice",
@@ -423,6 +423,25 @@
         }
       ],
       "sha256": "1b38f85875b5d127974dc3c458ee63c0e79ffe0a09a085a3f9f2eab0cc8a43fa",
+      "updated": "2026-10-14"
+    },
+    {
+      "slug": "concept-index",
+      "name": "Concept Index",
+      "tagline": "Find a concept. Learn it, then practice it.",
+      "description": "Look up any concept, from OSI layers to account lockout, and see where to learn it and where to practice it across Defense Ladder, Net Drills, Lockdown Drills, and Lockdown Range. Rate what you know to get a path through your gaps.",
+      "badges": [
+        "Cybersecurity",
+        "Study",
+        "Offline",
+        "Private"
+      ],
+      "file": "concept-index/index.html",
+      "download_as": "concept-index.html",
+      "icon": "search",
+      "category": "cyber",
+      "section": "learning",
+      "sha256": "7a3be8acc60122cd82e4036711a819df14d8a1197377e3606f0e23528866851c",
       "updated": "2026-10-14"
     }
   ]

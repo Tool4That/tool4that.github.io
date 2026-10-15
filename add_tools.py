@@ -4,7 +4,7 @@
 Usage:
   py add_tools.py MANIFEST.json SOURCE_DIR [--only SLUG]... [--dry-run]
 
-  MANIFEST.json  a file in manifests/: slug, card text, and prep options for each tool of a series or category
+  MANIFEST.json  a file in manifests/: slug, card text, and prep options for each tool of a series, section, or category
   SOURCE_DIR     a folder OUTSIDE this repository with the source pages (.html) and references (.txt)
   --only SLUG    process only this tool (repeatable)
   --dry-run      show which file matches which tool, change nothing
@@ -23,7 +23,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 CFG = ROOT / "tools.json"
-CARD = ("name", "tagline", "description", "badges", "file", "download_as", "icon", "category", "series")
+CARD = ("name", "tagline", "description", "badges", "file", "download_as", "icon", "category", "series", "section")
 GFONT_LINK = re.compile(r'[ \t]*<link\b[^>]*\bhref\s*=\s*["\']https?://fonts\.(?:googleapis|gstatic)\.com[^>]*>[ \t]*\r?\n?', re.I)
 GFONT_IMPORT = re.compile(r'@import\s+(?:url\()?\s*["\']?https?://fonts\.googleapis\.com[^;]*;', re.I)
 JACK = re.compile(r'<span class="jack( on)?"((?:\s+style="[^"]*")?)>([^<]+)</span>')
@@ -106,6 +106,7 @@ def main():
         sys.exit("Keep sources outside this repository, e.g. ../tool4that-src/<series>.")
     cfg = json.loads(CFG.read_text(encoding="utf-8"))
     cats, sers = {c["slug"] for c in cfg["categories"]}, {s["slug"] for s in cfg.get("series", [])}
+    secs = {s["slug"] for s in cfg.get("sections", [])}
 
     d = man.get("defaults", {})
     specs = []
@@ -113,12 +114,15 @@ def main():
         s = {**d, **t, "prep": {**d.get("prep", {}), **t.get("prep", {})}}
         s["reference"] = None if t.get("reference") is False else ({**d.get("reference", {}), **t.get("reference", {})} or None)
         s.setdefault("category", man.get("category")); s.setdefault("series", man.get("series"))
+        s.setdefault("section", man.get("section"))
         s.setdefault("file", s["slug"] + "/index.html")
         s.setdefault("download_as", s["slug"].rpartition("/")[2] + ".html")
         if s["category"] not in cats:
             sys.exit(f'{s["slug"]}: category "{s["category"]}" is not in tools.json.')
         if s.get("series") and s["series"] not in sers:
             sys.exit(f'{s["slug"]}: series "{s["series"]}" is not in tools.json; add it under "series" first.')
+        if s.get("section") and s["section"] not in secs:
+            sys.exit(f'{s["slug"]}: section "{s["section"]}" is not in tools.json; add it under "sections" first.')
         specs.append(s)
     unknown = set(a.only) - {s["slug"] for s in specs}
     if unknown:

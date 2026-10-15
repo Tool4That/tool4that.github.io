@@ -6,6 +6,7 @@ Static site published twice from this **public** repository: the primary at http
 - `index.html` (the category chooser), `all/index.html`, one `<category>/index.html` per category, one `<series>/index.html` per series (`net-drills/`, `lockdown-drills/`, `lockdown-range/`), `404.html`, `robots.txt`, `sitemap.xml`: **generated** by `build_hub.py` from `tools.json`. Don't hand-edit them; edit `tools.json` or the templates inside `build_hub.py`, then rebuild.
 - `tools.json`: `categories` (slug, title, tagline, description, icon, note), `series` (slug, title, category, description, note: a named group of tools inside a category, with its own page), `sections` (slug, title, category, intro: an in-page grouping inside a category, one level *above* its series, with no page of its own, e.g. Learning and Practice under Cybersecurity), and `tools` (each with a `category` slug, an optional `series` slug, an optional `section` slug, and optional `extras`: more download buttons, e.g. a reference `.txt`). Category and series slugs and `all` are reserved folder names, so a tool slug can't reuse them. A series with no tools gets no page. **If a category defines any sections, every loose tool and every series in it must name a `section`** (a tool in a series inherits the series' section); `build_hub.py` refuses to build otherwise. A category with no sections renders exactly as before.
 - `manifests/<group>.json` + `add_tools.py`: the standard way to prepare and register tools (see "Add or update tools").
+- `concepts.json` + `build_concepts.py` + `design/concept-index.html`: the Concept Index (`concept-index/`), a generated tool that maps each cybersecurity concept to where it is learned and practiced (see "Concept Index").
 - `<slug>/index.html`: one self-contained tool per folder, built elsewhere (see "Tool sources").
 - `.nojekyll`: GitHub serves the files exactly as committed.
 - `.gitattributes` (`* -text`): byte-exact commits, so each tool card's SHA-256 matches the served file.
@@ -13,6 +14,7 @@ Static site published twice from this **public** repository: the primary at http
 ## Rules
 - **Never edit a tool's `index.html` here.** Its inline scripts are pinned by SHA-256 in its Content Security Policy, so any edit breaks the page. Rebuild from source, then copy it in.
 - **After adding or updating a tool,** run `py build_hub.py` (Windows) or `python3 build_hub.py`, then commit.
+- **After adding, renaming, or rebuilding a cybersecurity tool,** rebuild the Concept Index too (see "Concept Index"): a tool's labels may have changed.
 - **`build_hub.py`, `prepare_tool.py`, and `add_tools.py` read and write UTF-8 with LF explicitly.** Keep it that way, so runs on Windows don't rewrite files with Windows line endings or garble text.
 - **Hub pages run no JavaScript** (`default-src 'none'`). Keep it that way.
 - **No analytics, trackers, or third-party scripts.**
@@ -22,7 +24,7 @@ Static site published twice from this **public** repository: the primary at http
 
 ## Add or update tools
 1. **Put the source pages outside this repository**, e.g. `../tool4that-src/<group>/` (one self-contained HTML file per tool; a tool's reference `.txt` goes beside it). File names or page titles must match the tool's `match` patterns in its manifest.
-2. **Describe the tools in a manifest** (`manifests/finance.json`, `manifests/net-drills.json`, `manifests/lockdown-drills.json`, `manifests/lockdown-range.json`): slug, card text, badges, icons, `match` patterns, and prep options (`strip_google_fonts`, exact-text `replace` pairs, `link_series_strip`, `allow_script`, `accept_runtime_fallback`, `frame_guard`). For a new series, add it to `series` in `tools.json` first.
+2. **Describe the tools in a manifest** (`manifests/finance.json`, `manifests/learning.json`, `manifests/net-drills.json`, `manifests/lockdown-drills.json`, `manifests/lockdown-range.json`): slug, card text, badges, icons, `match` patterns, a `section` for tools outside any series (manifest-wide or per tool), and prep options (`strip_google_fonts`, exact-text `replace` pairs, `link_series_strip`, `allow_script`, `accept_runtime_fallback`, `frame_guard`). For a new series, add it to `series` in `tools.json` first.
 3. **Prepare and register them in one step:**
    ```
    py add_tools.py manifests/<group>.json ..\tool4that-src\<group> --dry-run
@@ -37,6 +39,17 @@ Static site published twice from this **public** repository: the primary at http
    ```
    & "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe" --headless=new --screenshot="$PWD\og-image.png" --window-size=1200,630 "$PWD\design\og-hub.html"
    ```
+
+## Concept Index
+`concept-index/` is generated, never hand-built. `build_concepts.py` reads `concepts.json` (domains; concepts with layers, prerequisites, and references; and the places where each concept is learned or practiced) and `tools.json`, then confirms every place against the published tool pages here (`<slug>/index.html` plus its extras `.txt`): each `where` step and at least one `find` term must appear, case-insensitive, as whole words. Places it can't confirm are left out and listed, so the index never points at something a tool doesn't have. It writes `../tool4that-src/learning/concept-index.html` from the template `design/concept-index.html`; `manifests/learning.json` puts it in the Learning section.
+```
+py build_concepts.py
+py add_tools.py manifests/learning.json ..\tool4that-src\learning
+py build_hub.py
+```
+- **A place was left out:** search that tool's page for the concept, then fix the place's `where` (the tool's own labels, joined with ` › `) or `find` (terms that must appear) in `concepts.json`. If the tool doesn't cover the concept, delete the place. Never add a place you haven't found in the tool.
+- **Concepts with no hands-on place** are listed as gaps: candidates for new drills.
+- `--check` validates without writing, `--strict` stops on any left-out place, `--links` requests every reference URL (needs internet), and `--keep-unverified` is for previews only: never publish its output.
 
 ## Tool sources (kept outside this repository, in `../tool4that-src/`)
 - Net Drills (`net-drills/`): `manifests/net-drills.json` (links the series strip between drills). The four sources in `../tool4that-src/net-drills/` are the maintained copies; IOS CLI Lab, Config Audit, and Trouble Tickets started from the published pages (prepare_tool.py strips its own additions when re-run), and Subnet Sprint carries the `#f-levels` radio-scope fix that the original claude.ai artifact lacks.

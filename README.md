@@ -11,6 +11,7 @@ Live at https://freeapp4that.store/ (primary) and https://tool4that.github.io/ (
 | [Maxed & Matched TSP Calculator](https://freeapp4that.store/maxed-and-matched/) | Your exact myPay TSP percentages from your LES. Max out without losing the BRS match. |
 | [PFAT — Personal Finance Advisor Tool](https://freeapp4that.store/spend-lens/) | Add, paste, or import CSV/PDF statements; money-in, money-out HUD, paycheck plan, 30-day look ahead, plain-language checkup. |
 | [Defense Ladder](https://freeapp4that.store/defense-ladder/) | Cybersecurity &rsaquo; Learning: a four-grade cybersecurity ladder (Freshman to Senior) built on Bloom's taxonomy and aligned with the NICE Framework and CIS Controls, from concepts to quizzes, drills, and a hardening checklist you build yourself. |
+| [Concept Index](https://freeapp4that.store/concept-index/) | Cybersecurity &rsaquo; Learning: look up a concept (OSI layers, VLANs, account lockout) and see where to learn it and where to practice it across Defense Ladder, Net Drills, Lockdown Drills, and Lockdown Range; rate what you know to get a path through your gaps. |
 | [Subnet Sprint](https://freeapp4that.store/net-drills/subnet-sprint/) | Net Drills: subnet sandbox; network, broadcast, and host ranges; VLSM planning; IPv6. |
 | [IOS CLI Lab](https://freeapp4that.store/net-drills/ios-cli-lab/) | Net Drills: configure a simulated router and switch, then prove it from two PCs. |
 | [Config Audit](https://freeapp4that.store/net-drills/config-audit/) | Net Drills: find risky config lines, choose fixes, name what's missing. |
@@ -40,12 +41,18 @@ Defense Ladder, Net Drills, Lockdown Drills, and Lockdown Range are unofficial, 
    - `--dry-run`: show which file matches which tool; change nothing.
    - `add_tools.py`: cleans each page, runs `prepare_tool.py` (security policy, preview tags, hub link), copies its reference `.txt`, and updates `tools.json`.
    - One-off single tool (no manifest): `python3 prepare_tool.py SOURCE.html <slug> --name "Name" --description "..." --icon "🔢"`, then add the `tools.json` entry by hand (empty `sha256`/`updated`) and rebuild.
-4. Publish:
+4. If a cybersecurity tool changed, rebuild the Concept Index, which confirms every place it lists against the tool pages:
+   ```bash
+   python3 build_concepts.py
+   python3 add_tools.py manifests/learning.json ../tool4that-src/learning
+   python3 build_hub.py
+   ```
+5. Publish:
    ```bash
    git add -A && git commit -m "Add <tool>" && git push
    ```
 
-`tools.json` groups tools by `categories`, optional `series` (each with its own page), and optional `sections` (an in-page grouping inside a category, above its series, e.g. Learning and Practice). `build_hub.py` validates `tools.json`, then regenerates `index.html`, the category, series, and all-tools pages, `404.html`, `robots.txt`, and `sitemap.xml`. It computes each tool's size and SHA-256, and changes a tool's "Updated" date only when its file changes. It uses the Python standard library only.
+`tools.json` groups tools by `categories`, optional `series` (each with its own page), and optional `sections` (an in-page grouping inside a category, above its series, e.g. Learning and Practice). `build_hub.py` validates `tools.json`, then regenerates `index.html`, the category, series, and all-tools pages, `404.html`, `robots.txt`, and `sitemap.xml`. It computes each tool's size and SHA-256, and changes a tool's "Updated" date only when its file changes. It uses the Python standard library only. `concepts.json` holds the Concept Index data; `build_concepts.py` confirms it against the tool pages and writes the page.
 
 ## Verify a download
 

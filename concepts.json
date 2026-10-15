@@ -1,0 +1,924 @@
+{
+  "about": "Data for the Concept Index (concept-index/). Edit it, then run build_concepts.py. Each place names a tool slug from tools.json, a kind (learn, drill, build, fix = troubleshoot, lab), and how to confirm it in the tool's page: where = the tool's own labels joined with ' › ' (every step must appear), find = terms of which at least one must appear (with no where, the first one found is shown as 'look for'). layers: OSI 1 to 7, and host for the machine itself. refs: src is standard or vendor. Never list a place you haven't found in the tool.",
+  "platforms": {
+    "net-drills/trouble-tickets": "general"
+  },
+  "domains": [
+    {"id": "principles", "title": "Principles and models"},
+    {"id": "addressing", "title": "Addressing and subnetting"},
+    {"id": "switching", "title": "Switching"},
+    {"id": "routing", "title": "Routing, services, and traffic"},
+    {"id": "device", "title": "Network device hardening"},
+    {"id": "accounts", "title": "Accounts and sign-in"},
+    {"id": "policy", "title": "Policy and auditing"},
+    {"id": "system", "title": "Services, software, and files"},
+    {"id": "exposure", "title": "Firewalls and remote access"},
+    {"id": "cli", "title": "Command line"},
+    {"id": "method", "title": "Method"}
+  ],
+  "concepts": [
+    {
+      "id": "osi-model", "name": "OSI model", "domain": "principles", "layers": [],
+      "aka": ["OSI", "OSI layers", "seven layers", "7 layers", "layer 1", "layer 2", "layer 3", "layer 4", "layer 7", "physical layer", "data link layer", "network layer", "transport layer", "application layer"],
+      "summary": "A seven-layer map of network communication, from the cable (layer 1) up to the application (layer 7). Use it to say where a problem or a defense lives.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["OSI"]},
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Physical › Dead link after the office move", "note": "Name each ticket's layer before you answer: Physical tickets are layer 1, Switching 2, Addressing 3, Services 7."}
+      ],
+      "refs": [
+        {"title": "ITU-T X.200: OSI basic reference model", "url": "https://www.itu.int/rec/T-REC-X.200-199407-I/en", "src": "standard"}
+      ]
+    },
+    {
+      "id": "tcpip-model", "name": "TCP/IP model", "domain": "principles", "layers": [],
+      "aka": ["TCP/IP", "internet model", "DoD model", "four layers", "link layer", "internet layer"],
+      "summary": "The four layers the Internet runs on: Link, Internet (IP), Transport (TCP and UDP), and Application. OSI layers 5 to 7 fold into Application.",
+      "prereqs": ["osi-model"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["TCP/IP"]},
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Services › Websites fail, the internet works", "note": "Sort the tickets into TCP/IP layers: Link (Physical and Switching), Internet (Addressing), and Application (Services)."}
+      ],
+      "refs": [
+        {"title": "RFC 1122: Requirements for Internet hosts", "url": "https://www.rfc-editor.org/rfc/rfc1122", "src": "standard"}
+      ]
+    },
+    {
+      "id": "encapsulation", "name": "Encapsulation", "domain": "principles", "layers": ["2", "3", "4"],
+      "aka": ["PDU", "headers", "frame", "packet", "segment", "decapsulation", "802.1Q tag"],
+      "summary": "Each layer wraps the data in its own header: a segment (layer 4) rides inside a packet (layer 3), which rides inside a frame (layer 2). The receiver unwraps them in reverse.",
+      "prereqs": ["osi-model"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["encapsulation"]},
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Branch build", "find": ["dot1Q"], "note": "Each router subinterface adds an 802.1Q VLAN tag to its frames: encapsulation you configure by hand."}
+      ],
+      "refs": []
+    },
+    {
+      "id": "cia-triad", "name": "Confidentiality, integrity, and availability", "domain": "principles", "layers": [],
+      "aka": ["CIA", "CIA triad", "confidentiality", "integrity", "availability"],
+      "summary": "The three things defense protects. A good fix raises one without breaking another, which is why you never disable a service the machine is supposed to provide.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["CIA triad", "confidentiality"]},
+        {"tool": "lockdown-range/linux", "kind": "lab", "find": ["availability"], "note": "The Progress Check includes availability checks, so breaking a service the scenario needs shows up right away."}
+      ],
+      "refs": [
+        {"title": "NIST glossary: information security", "url": "https://csrc.nist.gov/glossary/term/information_security", "src": "standard"}
+      ]
+    },
+    {
+      "id": "least-privilege", "name": "Least privilege", "domain": "principles", "layers": ["host"],
+      "aka": ["minimum access", "need to know", "admin rights", "privilege"],
+      "summary": "Give each account only the rights its job needs, and no more. Most account fixes are least-privilege fixes.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["least privilege"]},
+        {"tool": "lockdown-range/windows", "kind": "lab", "find": ["lusrmgr"], "note": "Compare group members with the scenario brief's list of who should be an administrator."},
+        {"tool": "lockdown-range/linux", "kind": "lab", "find": ["gpasswd", "sudo group", "deluser"]}
+      ],
+      "refs": [
+        {"title": "NIST glossary: least privilege", "url": "https://csrc.nist.gov/glossary/term/least_privilege", "src": "standard"}
+      ]
+    },
+    {
+      "id": "defense-in-depth", "name": "Defense in depth", "domain": "principles", "layers": [],
+      "aka": ["layered defense", "layers of security"],
+      "summary": "Stack independent defenses, such as accounts, firewall, services, and updates, so that one miss doesn't expose the whole system.",
+      "prereqs": ["cia-triad"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["defense in depth", "defense-in-depth"]},
+        {"tool": "lockdown-range/windows", "kind": "lab", "find": ["Progress Check"], "note": "After a scenario, sort your fixes into accounts, policy, services, firewall, and updates. Which layer did you skip?"}
+      ],
+      "refs": [
+        {"title": "NIST glossary: defense-in-depth", "url": "https://csrc.nist.gov/glossary/term/defense_in_depth", "src": "standard"}
+      ]
+    },
+    {
+      "id": "baselines", "name": "Baselines and checklists", "domain": "principles", "layers": ["host"],
+      "aka": ["security baseline", "hardening checklist", "benchmark", "CIS Benchmarks", "CIS Controls"],
+      "summary": "A baseline is the known-good configuration; a checklist turns it into steps, so you harden the same way every time and can show what you changed.",
+      "prereqs": ["defense-in-depth"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "build", "find": ["checklist"], "note": "Build your own hardening checklist and study plan."},
+        {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["baseline"]},
+        {"tool": "lockdown-drills/cisco-ios", "kind": ["learn", "drill"], "find": ["baseline"]}
+      ],
+      "refs": [
+        {"title": "CIS Benchmarks", "url": "https://www.cisecurity.org/cis-benchmarks", "src": "standard"},
+        {"title": "CIS Critical Security Controls", "url": "https://www.cisecurity.org/controls/cis-controls-list", "src": "standard"}
+      ]
+    },
+    {
+      "id": "binary", "name": "Binary and decimal", "domain": "addressing", "layers": ["3"],
+      "aka": ["binary", "bits", "octet", "base 2", "place values"],
+      "summary": "An IPv4 address is 32 bits written as four 8-bit octets. Converting an octet with the place values 128, 64, 32, 16, 8, 4, 2, and 1 is the root skill of subnetting.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "net-drills/subnet-sprint", "kind": "learn", "where": "Binary"},
+        {"tool": "net-drills/subnet-sprint", "kind": "drill", "where": "Quick fire › Binary and decimal"}
+      ],
+      "refs": [
+        {"title": "RFC 791: Internet Protocol", "url": "https://www.rfc-editor.org/rfc/rfc791", "src": "standard"}
+      ]
+    },
+    {
+      "id": "ipv4-prefix", "name": "IPv4 addresses, masks, and prefixes", "domain": "addressing", "layers": ["3"],
+      "aka": ["IP address", "IPv4", "subnet mask", "netmask", "CIDR", "prefix length", "slash notation", "/24", "255.255.255.0"],
+      "summary": "The mask, or /prefix, splits an address into network bits and host bits. /24 is 255.255.255.0: 24 network bits and 8 host bits.",
+      "prereqs": ["binary"],
+      "locations": [
+        {"tool": "net-drills/subnet-sprint", "kind": "learn", "where": "Sandbox", "note": "Slide the prefix and watch network bits and host bits trade places."},
+        {"tool": "net-drills/subnet-sprint", "kind": "drill", "where": "Quick fire › Prefix and mask"},
+        {"tool": "defense-ladder", "kind": "learn", "find": ["subnet mask", "IP address"]}
+      ],
+      "refs": [
+        {"title": "RFC 4632: Classless Inter-Domain Routing (CIDR)", "url": "https://www.rfc-editor.org/rfc/rfc4632", "src": "standard"}
+      ]
+    },
+    {
+      "id": "subnet-ranges", "name": "Network, broadcast, and host range", "domain": "addressing", "layers": ["3"],
+      "aka": ["subnetting", "network address", "broadcast address", "first host", "last host", "usable hosts", "host range"],
+      "summary": "For any address and prefix, the network address has all host bits set to 0, the broadcast has them all set to 1, and the usable hosts sit in between.",
+      "prereqs": ["ipv4-prefix"],
+      "locations": [
+        {"tool": "net-drills/subnet-sprint", "kind": "learn", "where": "Breakdown"},
+        {"tool": "net-drills/subnet-sprint", "kind": "drill", "where": "Quick fire › Network and broadcast"},
+        {"tool": "net-drills/subnet-sprint", "kind": "drill", "where": "Quick fire › Hosts per prefix"},
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Addressing › The router rejects the new LAN address"}
+      ],
+      "refs": [
+        {"title": "RFC 950: Internet standard subnetting procedure", "url": "https://www.rfc-editor.org/rfc/rfc950", "src": "standard"}
+      ]
+    },
+    {
+      "id": "vlsm", "name": "Right-sizing subnets and VLSM", "domain": "addressing", "layers": ["3"],
+      "aka": ["VLSM", "variable length subnet mask", "address plan", "subnet planning", "Nth subnet", "right-size"],
+      "summary": "Pick the smallest prefix that fits each host count, then carve the block largest-first so no two subnets overlap.",
+      "prereqs": ["subnet-ranges"],
+      "locations": [
+        {"tool": "net-drills/subnet-sprint", "kind": "drill", "where": "Quick fire › Right-size a subnet"},
+        {"tool": "net-drills/subnet-sprint", "kind": "build", "where": "Plan › VLSM plan"},
+        {"tool": "net-drills/subnet-sprint", "kind": "build", "where": "Plan › Nth subnet"},
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Addressing › Overlapping subnets"}
+      ],
+      "refs": [
+        {"title": "RFC 1878: Variable length subnet table for IPv4", "url": "https://www.rfc-editor.org/rfc/rfc1878", "src": "standard"}
+      ]
+    },
+    {
+      "id": "wildcard-masks", "name": "Wildcard masks", "domain": "addressing", "layers": ["3"],
+      "aka": ["wildcard", "inverse mask", "ACL mask", "0.0.0.255"],
+      "summary": "The inverse of the subnet mask: subtract each octet from 255. ACLs use it to say which address bits must match.",
+      "prereqs": ["ipv4-prefix"],
+      "locations": [
+        {"tool": "net-drills/subnet-sprint", "kind": "learn", "where": "Breakdown", "find": ["Wildcard mask"]},
+        {"tool": "net-drills/subnet-sprint", "kind": "drill", "where": "Quick fire › Wildcard masks"}
+      ],
+      "refs": [
+        {"title": "Cisco: Configure commonly used IP ACLs", "url": "https://www.cisco.com/c/en/us/support/docs/ip/access-lists/26448-ACLsamples.html", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "special-ipv4", "name": "Private, public, and link-local addresses", "domain": "addressing", "layers": ["3"],
+      "aka": ["private IP", "RFC 1918", "public IP", "APIPA", "169.254", "link-local", "NAT"],
+      "summary": "10/8, 172.16/12, and 192.168/16 are private and never route on the Internet. A 169.254.x.x (APIPA) address means the host gave up waiting for DHCP.",
+      "prereqs": ["ipv4-prefix"],
+      "locations": [
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Services › Connected, but nothing loads"}
+      ],
+      "refs": [
+        {"title": "RFC 1918: Address allocation for private internets", "url": "https://www.rfc-editor.org/rfc/rfc1918", "src": "standard"},
+        {"title": "RFC 3927: Dynamic configuration of IPv4 link-local addresses", "url": "https://www.rfc-editor.org/rfc/rfc3927", "src": "standard"}
+      ]
+    },
+    {
+      "id": "ipv6", "name": "IPv6 addresses", "domain": "addressing", "layers": ["3"],
+      "aka": ["IPv6", "compress", "expand", "double colon", "hextet", "/64"],
+      "summary": "128-bit addresses written as eight groups of hex. To shorten one, drop the leading zeros in each group, then replace the longest run of all-zero groups with :: once.",
+      "prereqs": ["binary"],
+      "locations": [
+        {"tool": "net-drills/subnet-sprint", "kind": "drill", "where": "Quick fire › IPv6 compress and expand"}
+      ],
+      "refs": [
+        {"title": "RFC 5952: IPv6 address text representation", "url": "https://www.rfc-editor.org/rfc/rfc5952", "src": "standard"},
+        {"title": "RFC 4291: IPv6 addressing architecture", "url": "https://www.rfc-editor.org/rfc/rfc4291", "src": "standard"}
+      ]
+    },
+    {
+      "id": "switching", "name": "Switches and MAC addresses", "domain": "switching", "layers": ["2"],
+      "aka": ["switch", "MAC address", "Ethernet", "MAC address table", "CAM table", "broadcast domain"],
+      "summary": "A switch forwards frames by MAC address inside one broadcast domain, learning which address lives on which port.",
+      "prereqs": ["osi-model"],
+      "locations": [
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Switch basics"},
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Switching › New laptop, dead port"}
+      ],
+      "refs": []
+    },
+    {
+      "id": "vlans", "name": "VLANs and access ports", "domain": "switching", "layers": ["2"],
+      "aka": ["VLAN", "access port", "switchport mode access", "switchport access vlan", "VLAN 1", "segmentation"],
+      "summary": "VLANs split one switch into separate broadcast domains. Put each user port in its VLAN as an access port, and leave VLAN 1 unused.",
+      "prereqs": ["switching"],
+      "locations": [
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Branch build", "find": ["access ports in VLAN 10", "switchport access vlan"], "note": "The S1 tasks: VLANs 10 and 99, then the access ports."},
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Switching › Wrong subnet on one desk"},
+        {"tool": "net-drills/config-audit", "kind": "fix", "where": "S1 access switch", "find": ["sit in VLAN 1"]},
+        {"tool": "lockdown-range/cisco-ios", "kind": "lab", "find": ["switchport access vlan", "switchport mode access"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "trunking", "name": "Trunks and 802.1Q tagging", "domain": "switching", "layers": ["2"],
+      "aka": ["trunk", "802.1Q", "dot1Q", "tagging", "native VLAN", "allowed VLANs", "switchport mode trunk"],
+      "summary": "A trunk carries many VLANs over one link by tagging frames. Set it statically, give it an unused native VLAN, and allow only the VLANs that need to cross.",
+      "prereqs": ["vlans"],
+      "locations": [
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Branch build", "find": ["native VLAN 999", "switchport trunk native vlan"], "note": "The S1 G0/1 tasks: static trunk, native VLAN, and allowed list."},
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Switching › Management VLAN dies at the trunk"},
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Switching › A warning keeps scrolling on S1"},
+        {"tool": "net-drills/config-audit", "kind": "fix", "where": "What's missing?", "find": ["An unused native VLAN on the trunk"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "dtp", "name": "Trunk negotiation (DTP)", "domain": "switching", "layers": ["2"],
+      "aka": ["DTP", "dynamic trunking protocol", "switchport nonegotiate", "VLAN hopping", "switch spoofing", "dynamic auto", "dynamic desirable"],
+      "summary": "Ports that negotiate trunks let a rogue device become a trunk and reach every VLAN. Hard-set each port to access or trunk, and turn negotiation off.",
+      "prereqs": ["trunking"],
+      "locations": [
+        {"tool": "net-drills/config-audit", "kind": "fix", "where": "S1 access switch", "find": ["negotiate a trunk", "negotiates trunking with DTP"]},
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Branch build", "find": ["DTP off", "switchport nonegotiate"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "port-security", "name": "Port security", "domain": "switching", "layers": ["2"],
+      "aka": ["switchport port-security", "sticky MAC", "violation mode", "restrict", "err-disabled"],
+      "summary": "Limit which and how many MAC addresses may use a port. Depending on the mode, a violation drops the traffic, logs it, or shuts the port.",
+      "prereqs": ["switching"],
+      "locations": [
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Branch build", "find": ["sticky"], "note": "Then move a PC's cable to another port and watch the violation."},
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Switching › New laptop, dead port"},
+        {"tool": "net-drills/config-audit", "kind": "fix", "where": "What's missing?", "find": ["Port security on F0/1"]},
+        {"tool": "lockdown-drills/cisco-ios", "kind": ["learn", "drill"], "find": ["port-security"]},
+        {"tool": "lockdown-range/cisco-ios", "kind": "lab", "find": ["port-security"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "stp-edge", "name": "PortFast and BPDU Guard", "domain": "switching", "layers": ["2"],
+      "aka": ["spanning tree", "STP", "PortFast", "BPDU Guard", "switching loop", "edge port"],
+      "summary": "PortFast lets a port to an end device forward right away. BPDU Guard shuts that port if a switch appears on it, protecting the spanning tree.",
+      "prereqs": ["switching"],
+      "locations": [
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Branch build", "find": ["BPDU Guard"]},
+        {"tool": "net-drills/config-audit", "kind": "fix", "where": "What's missing?", "find": ["BPDU Guard on every PortFast port"]}
+      ],
+      "refs": [
+        {"title": "Cisco: Spanning Tree PortFast BPDU Guard enhancement", "url": "https://www.cisco.com/c/en/us/support/docs/lan-switching/spanning-tree-protocol/10586-65.html", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "switch-management", "name": "Switch management address (SVI)", "domain": "switching", "layers": ["2", "3"],
+      "aka": ["SVI", "interface vlan", "management VLAN", "ip default-gateway", "manage the switch"],
+      "summary": "You reach a switch through a VLAN interface (SVI) with its own IP address and default gateway. Use a dedicated management VLAN, not VLAN 1.",
+      "prereqs": ["vlans", "default-gateway"],
+      "locations": [
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Switch basics"},
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Switching › Cannot manage the new switch"},
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Switching › Manageable from only one subnet"},
+        {"tool": "net-drills/config-audit", "kind": "fix", "where": "S1 access switch", "find": ["Switch management lives on VLAN 1"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "unused-ports", "name": "Shut down unused ports", "domain": "switching", "layers": ["1", "2"],
+      "aka": ["unused interfaces", "shutdown", "interface range", "disable ports"],
+      "summary": "Every live, unused port is a free plug-in for an intruder. Shut it down and move it out of VLAN 1.",
+      "prereqs": ["vlans"],
+      "locations": [
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Switch basics", "find": ["Shut down every unused port"]},
+        {"tool": "net-drills/config-audit", "kind": "fix", "where": "S1 access switch", "find": ["Unused ports are live"]},
+        {"tool": "lockdown-range/cisco-ios", "kind": "lab", "find": ["interface range", "shutdown"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "dhcp-snooping", "name": "DHCP snooping", "domain": "switching", "layers": ["2"],
+      "aka": ["rogue DHCP", "ip dhcp snooping", "trusted port"],
+      "summary": "Only trusted ports may answer DHCP requests, so a rogue server can't hand clients a malicious gateway or DNS server.",
+      "prereqs": ["dhcp", "switching"],
+      "locations": [
+        {"tool": "net-drills/config-audit", "kind": "fix", "where": "What's missing?", "find": ["DHCP snooping"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "default-gateway", "name": "Default gateway", "domain": "routing", "layers": ["3"],
+      "aka": ["gateway", "router address", "off-subnet traffic"],
+      "summary": "A host sends anything outside its own subnet to its default gateway. A wrong gateway means local traffic works and remote traffic doesn't.",
+      "prereqs": ["subnet-ranges"],
+      "locations": [
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Addressing › Local works, remote does not"},
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Addressing › The gateway looks right, but is not"},
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Switch basics", "find": ["Default gateway"]}
+      ],
+      "refs": [
+        {"title": "RFC 1122: Requirements for Internet hosts", "url": "https://www.rfc-editor.org/rfc/rfc1122", "src": "standard"}
+      ]
+    },
+    {
+      "id": "static-routes", "name": "Static and default routes", "domain": "routing", "layers": ["3"],
+      "aka": ["ip route", "default route", "0.0.0.0/0", "gateway of last resort", "routing table", "show ip route"],
+      "summary": "A router only reaches networks it knows about. A default route (0.0.0.0/0) sends everything else upstream.",
+      "prereqs": ["default-gateway"],
+      "locations": [
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Branch build", "find": ["default route"]},
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Device config › Everything inside works, the internet does not"}
+      ],
+      "refs": [
+        {"title": "RFC 1812: Requirements for IP version 4 routers", "url": "https://www.rfc-editor.org/rfc/rfc1812", "src": "standard"}
+      ]
+    },
+    {
+      "id": "inter-vlan", "name": "Routing between VLANs", "domain": "routing", "layers": ["3", "2"],
+      "aka": ["router on a stick", "subinterface", "encapsulation dot1Q", "inter-VLAN routing"],
+      "summary": "One router port carries a subinterface per VLAN, each tagged with dot1Q and acting as that VLAN's default gateway.",
+      "prereqs": ["trunking", "default-gateway"],
+      "locations": [
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Branch build", "find": ["dot1Q 10"], "note": "The R1 subinterface tasks, G0/0.10 and G0/0.99."},
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Device config › Subinterfaces configured, nothing works"},
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Device config › The gateway tags the wrong VLAN"}
+      ],
+      "refs": []
+    },
+    {
+      "id": "dhcp", "name": "DHCP", "domain": "routing", "layers": ["7"],
+      "aka": ["dynamic addressing", "lease", "DHCP pool", "excluded addresses", "ip helper-address", "DHCP relay"],
+      "summary": "DHCP leases addresses from a pool. Exclude the addresses you assign by hand, and relay requests across a router with ip helper-address.",
+      "prereqs": ["subnet-ranges", "default-gateway"],
+      "locations": [
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Branch build", "find": ["DHCP pool"]},
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Services › DHCP server on another subnet"},
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Services › Connected, but nothing loads"},
+        {"tool": "defense-ladder", "kind": "learn", "find": ["DHCP"]}
+      ],
+      "refs": [
+        {"title": "RFC 2131: Dynamic Host Configuration Protocol", "url": "https://www.rfc-editor.org/rfc/rfc2131", "src": "standard"}
+      ]
+    },
+    {
+      "id": "dns", "name": "DNS", "domain": "routing", "layers": ["7"],
+      "aka": ["name resolution", "nslookup", "resolver", "domain name", "ip domain-lookup"],
+      "summary": "DNS turns names into addresses. When addresses work but names don't, suspect DNS.",
+      "prereqs": ["tcpip-model"],
+      "locations": [
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Services › Websites fail, the internet works"},
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Lock the doors", "find": ["no ip domain-lookup"], "note": "Why routers stop treating a mistyped command as a name to look up."},
+        {"tool": "defense-ladder", "kind": "learn", "find": ["DNS"]}
+      ],
+      "refs": [
+        {"title": "RFC 1034: Domain names, concepts and facilities", "url": "https://www.rfc-editor.org/rfc/rfc1034", "src": "standard"}
+      ]
+    },
+    {
+      "id": "ports", "name": "TCP, UDP, and port numbers", "domain": "routing", "layers": ["4"],
+      "aka": ["port", "port number", "TCP", "UDP", "well-known ports", "three-way handshake", "22", "23", "443", "3389"],
+      "summary": "TCP sets up a reliable connection; UDP just sends. The port number names the service: 22 SSH, 23 Telnet, 80 and 443 web, 3389 Remote Desktop.",
+      "prereqs": ["tcpip-model"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["port number", "well-known port", "UDP"]},
+        {"tool": "net-drills/config-audit", "kind": "fix", "where": "R1 edge router", "find": ["Remote access is Telnet only"], "note": "Telnet on port 23 against SSH on port 22."},
+        {"tool": "lockdown-range/linux", "kind": "lab", "find": ["ufw"], "note": "Firewall rules name a port and a protocol, such as 22/tcp."}
+      ],
+      "refs": [
+        {"title": "RFC 9293: Transmission Control Protocol", "url": "https://www.rfc-editor.org/rfc/rfc9293", "src": "standard"},
+        {"title": "IANA service name and port number registry", "url": "https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml", "src": "standard"}
+      ]
+    },
+    {
+      "id": "acls", "name": "Access control lists (ACLs)", "domain": "routing", "layers": ["3", "4"],
+      "aka": ["ACL", "access-list", "ip access-group", "access-class", "standard ACL", "extended ACL", "implicit deny"],
+      "summary": "An ordered list of permit and deny rules that ends in an implicit deny. Where you apply it, and in which direction, decides what it actually filters.",
+      "prereqs": ["wildcard-masks", "ports"],
+      "locations": [
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Access lists › The ACL is applied, guests still get through"},
+        {"tool": "lockdown-drills/cisco-ios", "kind": ["learn", "drill"], "find": ["access-class", "access-list"]},
+        {"tool": "lockdown-range/cisco-ios", "kind": "lab", "find": ["access-class", "access-list"]}
+      ],
+      "refs": [
+        {"title": "Cisco: Configure commonly used IP ACLs", "url": "https://www.cisco.com/c/en/us/support/docs/ip/access-lists/26448-ACLsamples.html", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "enable-secret", "name": "Privileged mode: enable secret", "domain": "device", "layers": ["host"],
+      "aka": ["enable secret", "enable password", "privileged EXEC", "type 5", "type 8", "type 9", "hashed password"],
+      "summary": "enable secret stores a hash of the password; enable password stores it in plain text or as weak type 7. When both exist, the secret wins.",
+      "prereqs": ["ios-modes"],
+      "locations": [
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Lock the doors"},
+        {"tool": "net-drills/ios-cli-lab", "kind": "fix", "where": "Mission › Fix the mess"},
+        {"tool": "net-drills/config-audit", "kind": "fix", "where": "R1 edge router", "find": ["Privileged EXEC is guarded by"]},
+        {"tool": "lockdown-drills/cisco-ios", "kind": ["learn", "drill"], "find": ["enable secret"]},
+        {"tool": "lockdown-range/cisco-ios", "kind": "lab", "find": ["enable secret"]}
+      ],
+      "refs": [
+        {"title": "Cisco Guide to Harden Cisco IOS Devices", "url": "https://www.cisco.com/c/en/us/support/docs/ip/access-lists/13608-21.html", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "type7", "name": "Password encryption and type 7", "domain": "device", "layers": ["host"],
+      "aka": ["service password-encryption", "type 7", "reversible password", "plaintext passwords"],
+      "summary": "service password-encryption only scrambles plain-text passwords into type 7, which anyone can reverse. Real protection is secrets (hashes) and keeping the config private.",
+      "prereqs": ["enable-secret"],
+      "locations": [
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Lock the doors", "find": ["Scramble the plaintext passwords"]},
+        {"tool": "net-drills/config-audit", "kind": "fix", "where": "S1 access switch", "find": ["type 7, which is reversible"]},
+        {"tool": "lockdown-drills/cisco-ios", "kind": ["learn", "drill"], "find": ["service password-encryption"]}
+      ],
+      "refs": [
+        {"title": "Cisco Guide to Harden Cisco IOS Devices", "url": "https://www.cisco.com/c/en/us/support/docs/ip/access-lists/13608-21.html", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "line-security", "name": "Console and VTY lines", "domain": "device", "layers": ["host"],
+      "aka": ["line console 0", "line vty", "exec-timeout", "login", "login local", "VTY", "console"],
+      "summary": "Every way into a device needs a sign-in: console and VTY lines need authentication and an idle timeout.",
+      "prereqs": ["ios-modes"],
+      "locations": [
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Lock the doors"},
+        {"tool": "net-drills/config-audit", "kind": "fix", "where": "R1 edge router", "find": ["VTY lines 5 to 15 need no login at all", "The console never logs out"]},
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Remote access › Password required, but none set"},
+        {"tool": "lockdown-drills/cisco-ios", "kind": ["learn", "drill"], "find": ["exec-timeout"]},
+        {"tool": "lockdown-range/cisco-ios", "kind": "lab", "find": ["exec-timeout"]}
+      ],
+      "refs": [
+        {"title": "Cisco Guide to Harden Cisco IOS Devices", "url": "https://www.cisco.com/c/en/us/support/docs/ip/access-lists/13608-21.html", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "ssh-only", "name": "SSH-only remote management", "domain": "device", "layers": ["7"],
+      "aka": ["SSH", "Telnet", "transport input ssh", "ip ssh version 2", "crypto key generate rsa", "ip domain-name", "remote access"],
+      "summary": "Telnet sends passwords in clear text. SSH needs a hostname, a domain name, RSA keys, local users, and VTY lines set to SSH only.",
+      "prereqs": ["ports", "line-security"],
+      "locations": [
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › SSH only"},
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Remote access › SSH will not start"},
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Remote access › Remote login refused"},
+        {"tool": "net-drills/config-audit", "kind": "fix", "where": "R1 edge router", "find": ["Remote access is Telnet only"]},
+        {"tool": "lockdown-drills/cisco-ios", "kind": ["learn", "drill"], "find": ["transport input ssh"]},
+        {"tool": "lockdown-range/cisco-ios", "kind": "lab", "find": ["transport input ssh"]}
+      ],
+      "refs": [
+        {"title": "RFC 4251: The Secure Shell (SSH) protocol architecture", "url": "https://www.rfc-editor.org/rfc/rfc4251", "src": "standard"},
+        {"title": "Cisco Guide to Harden Cisco IOS Devices", "url": "https://www.cisco.com/c/en/us/support/docs/ip/access-lists/13608-21.html", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "device-logging", "name": "Logging and time sync", "domain": "device", "layers": ["host"],
+      "aka": ["syslog", "logging host", "NTP", "ntp server", "service timestamps", "timestamps"],
+      "summary": "Logs only help if they survive and line up: send them to a syslog server, stamp them with the time, and sync every clock with NTP.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "net-drills/config-audit", "kind": "fix", "where": "R1 edge router", "find": ["Log messages carry no timestamps"]},
+        {"tool": "net-drills/config-audit", "kind": "fix", "where": "What's missing?", "find": ["syslog server", "NTP server"]},
+        {"tool": "lockdown-drills/cisco-ios", "kind": ["learn", "drill"], "find": ["service timestamps", "logging host", "ntp server"]}
+      ],
+      "refs": [
+        {"title": "RFC 5424: The Syslog protocol", "url": "https://www.rfc-editor.org/rfc/rfc5424", "src": "standard"},
+        {"title": "RFC 5905: Network Time Protocol version 4", "url": "https://www.rfc-editor.org/rfc/rfc5905", "src": "standard"}
+      ]
+    },
+    {
+      "id": "snmp", "name": "SNMP community strings", "domain": "device", "layers": ["7"],
+      "aka": ["SNMP", "community string", "snmp-server community", "public", "private"],
+      "summary": "SNMP v1 and v2c community strings are clear-text passwords. Defaults like public and private let anyone read, or even change, the device.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "net-drills/config-audit", "kind": "fix", "where": "R1 edge router", "find": ["SNMP community"]}
+      ],
+      "refs": [
+        {"title": "RFC 3414: User-based security model for SNMPv3", "url": "https://www.rfc-editor.org/rfc/rfc3414", "src": "standard"}
+      ]
+    },
+    {
+      "id": "save-config", "name": "Running and startup configuration", "domain": "device", "layers": ["host"],
+      "aka": ["copy running-config startup-config", "write memory", "startup-config", "running-config", "NVRAM", "reload"],
+      "summary": "Changes live in RAM (the running-config) until you save them to NVRAM (the startup-config). Unsaved fixes disappear on the next reload.",
+      "prereqs": ["ios-modes"],
+      "locations": [
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Lock the doors", "find": ["Save the configuration"]},
+        {"tool": "net-drills/ios-cli-lab", "kind": "fix", "where": "Mission › Fix the mess", "find": ["survive a reload"]},
+        {"tool": "lockdown-range/cisco-ios", "kind": "lab", "find": ["startup-config"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "user-audit", "name": "User account audit", "domain": "accounts", "layers": ["host"],
+      "aka": ["unauthorized users", "user accounts", "remove users", "local users", "lusrmgr", "net user", "/etc/passwd", "userdel", "deluser"],
+      "summary": "Compare the accounts on the machine with the list of people who should have one, then remove or disable everyone else.",
+      "prereqs": ["least-privilege"],
+      "locations": [
+        {"tool": "lockdown-range/windows", "kind": "lab", "find": ["lusrmgr"]},
+        {"tool": "lockdown-range/linux", "kind": "lab", "find": ["deluser", "userdel"]},
+        {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["Get-LocalUser", "net user", "lusrmgr"]},
+        {"tool": "lockdown-drills/windows-server", "kind": ["learn", "drill"], "find": ["Get-LocalUser", "net user", "Get-ADUser"]},
+        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["deluser", "userdel"]},
+        {"tool": "lockdown-drills/linux-mint", "kind": ["learn", "drill"], "find": ["deluser", "userdel"]},
+        {"tool": "lockdown-drills/freebsd", "kind": ["learn", "drill"], "find": ["rmuser", "pw userdel"]}
+      ],
+      "refs": [
+        {"title": "MITRE ATT&CK T1136: Create Account", "url": "https://attack.mitre.org/techniques/T1136/", "src": "standard"}
+      ]
+    },
+    {
+      "id": "admin-rights", "name": "Administrator and sudo rights", "domain": "accounts", "layers": ["host"],
+      "aka": ["Administrators group", "sudo group", "sudoers", "wheel", "admin group", "net localgroup", "privilege escalation"],
+      "summary": "Only the listed admins belong in Administrators, sudo, or wheel. Every extra admin is a full-control account an attacker can use.",
+      "prereqs": ["user-audit"],
+      "locations": [
+        {"tool": "lockdown-range/windows", "kind": "lab", "find": ["Administrators"]},
+        {"tool": "lockdown-range/linux", "kind": "lab", "find": ["gpasswd", "sudo group"]},
+        {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["net localgroup", "Remove-LocalGroupMember"]},
+        {"tool": "lockdown-drills/windows-server", "kind": ["learn", "drill"], "find": ["net localgroup", "Remove-LocalGroupMember", "Domain Admins"]},
+        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["gpasswd", "sudo group"]},
+        {"tool": "lockdown-drills/linux-mint", "kind": ["learn", "drill"], "find": ["gpasswd", "sudo group"]},
+        {"tool": "lockdown-drills/freebsd", "kind": ["learn", "drill"], "find": ["wheel"]}
+      ],
+      "refs": [
+        {"title": "MITRE ATT&CK T1078: Valid Accounts", "url": "https://attack.mitre.org/techniques/T1078/", "src": "standard"}
+      ]
+    },
+    {
+      "id": "builtin-accounts", "name": "Guest, built-in, and root accounts", "domain": "accounts", "layers": ["host"],
+      "aka": ["Guest account", "built-in Administrator", "root login", "PermitRootLogin", "guest session"],
+      "summary": "Disable the Guest account, lock down the built-in Administrator, and block direct root logins. Attackers try these names first.",
+      "prereqs": ["user-audit"],
+      "locations": [
+        {"tool": "lockdown-range/windows", "kind": "lab", "find": ["Guest"]},
+        {"tool": "lockdown-range/linux", "kind": "lab", "find": ["PermitRootLogin"]},
+        {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["Guest"]},
+        {"tool": "lockdown-drills/windows-server", "kind": ["learn", "drill"], "find": ["Guest"]},
+        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["PermitRootLogin", "allow-guest"]},
+        {"tool": "lockdown-drills/linux-mint", "kind": ["learn", "drill"], "find": ["allow-guest", "PermitRootLogin"]},
+        {"tool": "lockdown-drills/freebsd", "kind": ["learn", "drill"], "find": ["PermitRootLogin"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "password-policy", "name": "Password policy", "domain": "accounts", "layers": ["host"],
+      "aka": ["password length", "minimum password length", "password history", "maximum password age", "complexity", "login.defs", "pam_pwquality", "security passwords min-length"],
+      "summary": "Set a minimum length, a history, and a maximum age so weak or reused passwords are refused. Current guidance favors long passphrases over forced complexity.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "lockdown-range/windows", "kind": "lab", "find": ["Minimum password length", "MinimumPasswordLength"]},
+        {"tool": "lockdown-range/linux", "kind": "lab", "find": ["PASS_MAX_DAYS", "pam_pwquality", "minlen"]},
+        {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["Minimum password length", "MinimumPasswordLength"]},
+        {"tool": "lockdown-drills/windows-server", "kind": ["learn", "drill"], "find": ["Minimum password length", "MinimumPasswordLength"]},
+        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["PASS_MAX_DAYS", "pam_pwquality", "minlen"]},
+        {"tool": "lockdown-drills/linux-mint", "kind": ["learn", "drill"], "find": ["PASS_MAX_DAYS", "pam_pwquality", "minlen"]},
+        {"tool": "lockdown-drills/freebsd", "kind": ["learn", "drill"], "find": ["login.conf", "passwdqc"]},
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › SSH only", "find": ["shorter than 10 characters"]},
+        {"tool": "net-drills/config-audit", "kind": "fix", "where": "What's missing?", "find": ["Minimum password length"]}
+      ],
+      "refs": [
+        {"title": "NIST SP 800-63B: Authentication and authenticator management", "url": "https://pages.nist.gov/800-63-4/sp800-63b.html", "src": "standard"}
+      ]
+    },
+    {
+      "id": "lockout", "name": "Account lockout and brute-force protection", "domain": "accounts", "layers": ["host"],
+      "aka": ["account lockout", "lockout threshold", "lockout duration", "faillock", "pam_tally2", "login block-for", "brute force", "failed logins"],
+      "summary": "After a few failed sign-ins, lock the account or block logins for a while, so password guessing stalls.",
+      "prereqs": ["password-policy"],
+      "locations": [
+        {"tool": "lockdown-range/windows", "kind": "lab", "find": ["lockout"]},
+        {"tool": "lockdown-range/linux", "kind": "lab", "find": ["faillock", "pam_tally2"]},
+        {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["Account lockout", "lockout threshold"]},
+        {"tool": "lockdown-drills/windows-server", "kind": ["learn", "drill"], "find": ["Account lockout", "lockout threshold"]},
+        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["faillock", "pam_tally2"]},
+        {"tool": "lockdown-drills/linux-mint", "kind": ["learn", "drill"], "find": ["faillock", "pam_tally2"]},
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › SSH only", "find": ["Block logins for 120 s"]},
+        {"tool": "net-drills/config-audit", "kind": "fix", "where": "What's missing?", "find": ["Brute-force protection"]}
+      ],
+      "refs": [
+        {"title": "MITRE ATT&CK T1110: Brute Force", "url": "https://attack.mitre.org/techniques/T1110/", "src": "standard"}
+      ]
+    },
+    {
+      "id": "pam", "name": "PAM, the Linux sign-in modules", "domain": "accounts", "layers": ["host"],
+      "aka": ["PAM", "pluggable authentication modules", "/etc/pam.d", "common-password", "common-auth"],
+      "summary": "PAM chains the checks that every Linux sign-in and password change passes through. Password and lockout rules live in /etc/pam.d.",
+      "prereqs": ["password-policy"],
+      "locations": [
+        {"tool": "lockdown-range/linux", "kind": "lab", "find": ["common-password", "/etc/pam.d"]},
+        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["common-password", "/etc/pam.d"]},
+        {"tool": "lockdown-drills/linux-mint", "kind": ["learn", "drill"], "find": ["common-password", "/etc/pam.d"]}
+      ],
+      "refs": [
+        {"title": "Linux man-pages: pam(8)", "url": "https://man7.org/linux/man-pages/man8/pam.8.html", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "security-policy", "name": "Local Security Policy and Group Policy", "domain": "policy", "layers": ["host"],
+      "aka": ["secpol", "secpol.msc", "gpedit", "gpedit.msc", "Group Policy", "GPO", "security options"],
+      "summary": "Windows keeps its password, lockout, user-rights, and security-option settings in Local Security Policy. Group Policy applies them to many machines at once.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "lockdown-range/windows", "kind": "lab", "find": ["secpol", "gpedit"]},
+        {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["secpol"]},
+        {"tool": "lockdown-drills/windows-server", "kind": ["learn", "drill"], "find": ["gpedit", "Group Policy", "secpol"]}
+      ],
+      "refs": [
+        {"title": "Microsoft Learn: Security policy settings", "url": "https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/security-policy-settings/security-policy-settings", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "audit-policy", "name": "Audit policy and logs", "domain": "policy", "layers": ["host"],
+      "aka": ["auditpol", "audit logon events", "success and failure", "Event Viewer", "auditd", "security log"],
+      "summary": "Record sign-ins and changes, both successes and failures. Without audit logs you can't tell what happened or when.",
+      "prereqs": ["security-policy"],
+      "locations": [
+        {"tool": "lockdown-range/windows", "kind": "lab", "find": ["auditpol", "audit policy"]},
+        {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["auditpol", "audit policy"]},
+        {"tool": "lockdown-drills/windows-server", "kind": ["learn", "drill"], "find": ["auditpol", "audit policy"]},
+        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["auditd"]}
+      ],
+      "refs": [
+        {"title": "Microsoft Learn: auditpol", "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/auditpol", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "uac", "name": "User Account Control (UAC)", "domain": "policy", "layers": ["host"],
+      "aka": ["UAC", "elevation prompt", "consent prompt", "EnableLUA", "run as administrator"],
+      "summary": "Even admins run with standard rights until they approve an elevation prompt. Keep UAC at its default level or higher.",
+      "prereqs": ["admin-rights"],
+      "locations": [
+        {"tool": "lockdown-range/windows", "kind": "lab", "find": ["UAC", "User Account Control"]},
+        {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["UAC", "User Account Control"]},
+        {"tool": "lockdown-drills/windows-server", "kind": ["learn", "drill"], "find": ["UAC", "User Account Control"]}
+      ],
+      "refs": [
+        {"title": "Microsoft Learn: User Account Control", "url": "https://learn.microsoft.com/en-us/windows/security/application-security/application-control/user-account-control/", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "registry", "name": "Registry, reg, and secedit", "domain": "policy", "layers": ["host"],
+      "aka": ["registry", "reg add", "reg query", "HKLM", "regedit", "secedit /export", "secedit /configure"],
+      "summary": "Most Windows policy settings are registry values. reg reads and sets them one at a time; secedit exports and imports whole security policies.",
+      "prereqs": ["security-policy"],
+      "locations": [
+        {"tool": "lockdown-range/windows", "kind": "lab", "find": ["secedit", "reg add"]},
+        {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["reg add", "HKLM"]},
+        {"tool": "lockdown-drills/windows-server", "kind": ["learn", "drill"], "find": ["secedit", "reg add", "HKLM"]}
+      ],
+      "refs": [
+        {"title": "Microsoft Learn: reg", "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/reg", "src": "vendor"},
+        {"title": "Microsoft Learn: secedit", "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/secedit", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "banners", "name": "Legal warning banners", "domain": "policy", "layers": ["host"],
+      "aka": ["banner motd", "logon banner", "legal notice", "logon message", "authorized use only"],
+      "summary": "A banner warns that access is for authorized users only, which supports action against intruders. Never write a welcome.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Lock the doors", "find": ["legal warning banner"]},
+        {"tool": "net-drills/config-audit", "kind": "fix", "where": "R1 edge router", "find": ["The banner welcomes visitors"]},
+        {"tool": "lockdown-range/cisco-ios", "kind": "lab", "find": ["banner motd"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "services", "name": "Disable unneeded services", "domain": "system", "layers": ["host"],
+      "aka": ["services", "services.msc", "systemctl disable", "attack surface", "Telnet", "FTP", "no ip http server", "no cdp run", "rc.conf"],
+      "summary": "Every running service is something to attack. Stop and disable what the machine doesn't need, and keep what the scenario requires.",
+      "prereqs": ["cia-triad"],
+      "locations": [
+        {"tool": "lockdown-range/windows", "kind": "lab", "find": ["services.msc", "Set-Service"]},
+        {"tool": "lockdown-range/linux", "kind": "lab", "find": ["systemctl"]},
+        {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["services.msc", "Set-Service", "sc config"]},
+        {"tool": "lockdown-drills/windows-server", "kind": ["learn", "drill"], "find": ["services.msc", "Set-Service", "sc config"]},
+        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["systemctl disable"]},
+        {"tool": "lockdown-drills/linux-mint", "kind": ["learn", "drill"], "find": ["systemctl disable"]},
+        {"tool": "lockdown-drills/freebsd", "kind": ["learn", "drill"], "find": ["sysrc", "rc.conf"]},
+        {"tool": "net-drills/config-audit", "kind": "fix", "where": "R1 edge router", "find": ["The web management server is on"]},
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › SSH only", "find": ["advertising the router with CDP"]}
+      ],
+      "refs": [
+        {"title": "CIS Critical Security Controls", "url": "https://www.cisecurity.org/controls/cis-controls-list", "src": "standard"}
+      ]
+    },
+    {
+      "id": "windows-features", "name": "Legacy Windows features (SMBv1)", "domain": "system", "layers": ["host"],
+      "aka": ["Windows Features", "optional features", "SMBv1", "SMB1", "Telnet Client", "Disable-WindowsOptionalFeature"],
+      "summary": "Turn off legacy components such as SMBv1 that attackers abuse. They are features, not services, so they live in a different panel.",
+      "prereqs": ["services"],
+      "locations": [
+        {"tool": "lockdown-range/windows", "kind": "lab", "find": ["Windows Features"]},
+        {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["SMBv1", "SMB1"]},
+        {"tool": "lockdown-drills/windows-server", "kind": ["learn", "drill"], "find": ["SMBv1", "SMB1"]}
+      ],
+      "refs": [
+        {"title": "Microsoft Learn: Detect, enable, and disable SMBv1, SMBv2, and SMBv3", "url": "https://learn.microsoft.com/en-us/windows-server/storage/file-server/troubleshoot/detect-enable-and-disable-smbv1-v2-v3", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "software", "name": "Remove unwanted software", "domain": "system", "layers": ["host"],
+      "aka": ["uninstall", "appwiz.cpl", "Programs and Features", "apt purge", "pkg delete", "hacking tools", "unauthorized software"],
+      "summary": "Inventory what's installed and remove anything that isn't authorized, especially remote-access and hacking tools.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "lockdown-range/windows", "kind": "lab", "find": ["appwiz"]},
+        {"tool": "lockdown-range/linux", "kind": "lab", "find": ["apt purge", "apt-get purge", "apt remove"]},
+        {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["appwiz", "Uninstall"]},
+        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["apt purge", "apt-get purge", "apt remove"]},
+        {"tool": "lockdown-drills/linux-mint", "kind": ["learn", "drill"], "find": ["apt purge", "apt-get purge", "apt remove"]},
+        {"tool": "lockdown-drills/freebsd", "kind": ["learn", "drill"], "find": ["pkg delete", "pkg remove"]}
+      ],
+      "refs": [
+        {"title": "CIS Critical Security Controls", "url": "https://www.cisecurity.org/controls/cis-controls-list", "src": "standard"}
+      ]
+    },
+    {
+      "id": "updates", "name": "Updates and patching", "domain": "system", "layers": ["host"],
+      "aka": ["Windows Update", "apt update", "apt upgrade", "unattended-upgrades", "freebsd-update", "pkg upgrade", "patch"],
+      "summary": "Install security updates and turn on automatic updates. Most break-ins use flaws that already have a patch.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "lockdown-range/windows", "kind": "lab", "find": ["Windows Update"]},
+        {"tool": "lockdown-range/linux", "kind": "lab", "find": ["apt upgrade", "apt-get upgrade", "unattended-upgrades"]},
+        {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["Windows Update"]},
+        {"tool": "lockdown-drills/windows-server", "kind": ["learn", "drill"], "find": ["Windows Update"]},
+        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["unattended-upgrades", "apt upgrade", "apt-get upgrade"]},
+        {"tool": "lockdown-drills/linux-mint", "kind": ["learn", "drill"], "find": ["unattended-upgrades", "apt upgrade", "apt-get upgrade", "mintupdate"]},
+        {"tool": "lockdown-drills/freebsd", "kind": ["learn", "drill"], "find": ["freebsd-update"]},
+        {"tool": "defense-ladder", "kind": "learn", "find": ["patching", "patch"]}
+      ],
+      "refs": [
+        {"title": "FreeBSD Handbook: Updating and upgrading FreeBSD", "url": "https://docs.freebsd.org/en/books/handbook/cutting-edge/", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "scheduled-tasks", "name": "Scheduled tasks and cron jobs", "domain": "system", "layers": ["host"],
+      "aka": ["Task Scheduler", "taskschd.msc", "schtasks", "cron", "crontab", "persistence"],
+      "summary": "Attackers schedule their tools to come back after you remove them. Review every task and cron job, and delete what you can't explain.",
+      "prereqs": ["software"],
+      "locations": [
+        {"tool": "lockdown-range/windows", "kind": "lab", "find": ["taskschd"]},
+        {"tool": "lockdown-range/linux", "kind": "lab", "find": ["crontab"]},
+        {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["schtasks", "Task Scheduler"]},
+        {"tool": "lockdown-drills/windows-server", "kind": ["learn", "drill"], "find": ["schtasks", "Task Scheduler"]},
+        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["crontab"]},
+        {"tool": "lockdown-drills/linux-mint", "kind": ["learn", "drill"], "find": ["crontab"]},
+        {"tool": "lockdown-drills/freebsd", "kind": ["learn", "drill"], "find": ["crontab"]}
+      ],
+      "refs": [
+        {"title": "MITRE ATT&CK T1053: Scheduled Task/Job", "url": "https://attack.mitre.org/techniques/T1053/", "src": "standard"},
+        {"title": "Linux man-pages: crontab(5)", "url": "https://man7.org/linux/man-pages/man5/crontab.5.html", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "file-permissions", "name": "File permissions", "domain": "system", "layers": ["host"],
+      "aka": ["chmod", "chown", "permissions", "/etc/shadow", "world-writable", "icacls"],
+      "summary": "Sensitive files such as /etc/shadow must be readable only by the accounts that need them. Check owners and modes, not just contents.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "lockdown-range/linux", "kind": "lab", "find": ["chmod"]},
+        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["chmod"]},
+        {"tool": "lockdown-drills/linux-mint", "kind": ["learn", "drill"], "find": ["chmod"]},
+        {"tool": "lockdown-drills/freebsd", "kind": ["learn", "drill"], "find": ["chmod"]},
+        {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["icacls"]}
+      ],
+      "refs": [
+        {"title": "Linux man-pages: chmod(1)", "url": "https://man7.org/linux/man-pages/man1/chmod.1.html", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "host-firewall", "name": "Host firewall", "domain": "exposure", "layers": ["4", "3", "host"],
+      "aka": ["firewall", "Windows Defender Firewall", "wf.msc", "netsh advfirewall", "ufw", "pf", "pfctl", "default deny", "inbound rules"],
+      "summary": "Turn the firewall on, deny inbound connections by default, then allow only the services the machine must offer.",
+      "prereqs": ["ports"],
+      "locations": [
+        {"tool": "lockdown-range/windows", "kind": "lab", "find": ["wf.msc"]},
+        {"tool": "lockdown-range/linux", "kind": "lab", "find": ["ufw"]},
+        {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["advfirewall", "wf.msc", "Defender Firewall"]},
+        {"tool": "lockdown-drills/windows-server", "kind": ["learn", "drill"], "find": ["advfirewall", "wf.msc", "Defender Firewall"]},
+        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["ufw"]},
+        {"tool": "lockdown-drills/linux-mint", "kind": ["learn", "drill"], "find": ["ufw"]},
+        {"tool": "lockdown-drills/freebsd", "kind": ["learn", "drill"], "find": ["pfctl", "pf.conf", "ipfw"]},
+        {"tool": "defense-ladder", "kind": "learn", "find": ["firewall"]}
+      ],
+      "refs": [
+        {"title": "Microsoft Learn: Windows Firewall", "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/network-security/windows-firewall/", "src": "vendor"},
+        {"title": "Ubuntu manual: ufw(8)", "url": "https://manpages.ubuntu.com/manpages/noble/man8/ufw.8.html", "src": "vendor"},
+        {"title": "FreeBSD Handbook: Firewalls", "url": "https://docs.freebsd.org/en/books/handbook/firewalls/", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "rdp", "name": "Remote Desktop exposure", "domain": "exposure", "layers": ["7"],
+      "aka": ["RDP", "Remote Desktop", "3389", "Network Level Authentication", "NLA", "fDenyTSConnections"],
+      "summary": "If Remote Desktop isn't required, turn it off. If it is, require Network Level Authentication and limit who may connect.",
+      "prereqs": ["ports", "host-firewall"],
+      "locations": [
+        {"tool": "lockdown-range/windows", "kind": "lab", "find": ["Remote Desktop", "fDenyTSConnections"]},
+        {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["Remote Desktop", "fDenyTSConnections"]},
+        {"tool": "lockdown-drills/windows-server", "kind": ["learn", "drill"], "find": ["Remote Desktop", "fDenyTSConnections"]}
+      ],
+      "refs": [
+        {"title": "MITRE ATT&CK T1021: Remote Services", "url": "https://attack.mitre.org/techniques/T1021/", "src": "standard"}
+      ]
+    },
+    {
+      "id": "sshd", "name": "SSH server settings", "domain": "exposure", "layers": ["7"],
+      "aka": ["sshd_config", "PermitRootLogin", "PasswordAuthentication", "PermitEmptyPasswords", "OpenSSH server"],
+      "summary": "Harden sshd_config on Linux and FreeBSD: no root logins, no empty passwords, and remote access only for the users who need it.",
+      "prereqs": ["ports", "builtin-accounts"],
+      "locations": [
+        {"tool": "lockdown-range/linux", "kind": "lab", "find": ["sshd_config"]},
+        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["sshd_config"]},
+        {"tool": "lockdown-drills/linux-mint", "kind": ["learn", "drill"], "find": ["sshd_config"]},
+        {"tool": "lockdown-drills/freebsd", "kind": ["learn", "drill"], "find": ["sshd_config"]}
+      ],
+      "refs": [
+        {"title": "Linux man-pages: sshd_config(5)", "url": "https://man7.org/linux/man-pages/man5/sshd_config.5.html", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "ios-modes", "name": "IOS command modes and help", "domain": "cli", "layers": [],
+      "aka": ["user EXEC", "privileged EXEC", "global configuration", "configure terminal", "conf t", "question mark help", "abbreviations"],
+      "summary": "IOS has modes (>, #, and (config)#), and each command works only in its own mode. Type ? to list what's valid where you are.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Device config › The hostname command fails"},
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Free play"},
+        {"tool": "lockdown-range/cisco-ios", "kind": "lab", "find": ["configure terminal"], "note": "IOS consoles with ? help, abbreviations, and the exact error messages."}
+      ],
+      "refs": []
+    },
+    {
+      "id": "powershell", "name": "cmd and PowerShell", "domain": "cli", "layers": [],
+      "aka": ["cmd", "PowerShell", "command prompt", "pipe", "redirection", "findstr", "Select-String"],
+      "summary": "Chain commands with | and save output with >. One command line can list, filter, and export what a settings panel shows.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "lockdown-range/windows", "kind": "lab", "find": ["PowerShell"], "note": "cmd and PowerShell with pipes and redirection, beside the real panels."},
+        {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["PowerShell"]},
+        {"tool": "lockdown-drills/windows-server", "kind": ["learn", "drill"], "find": ["PowerShell"]}
+      ],
+      "refs": [
+        {"title": "Microsoft Learn: about_Pipelines", "url": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_pipelines", "src": "vendor"},
+        {"title": "Microsoft Learn: about_Redirection", "url": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_redirection", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "bash", "name": "Bash, sudo, and text editors", "domain": "cli", "layers": [],
+      "aka": ["bash", "terminal", "shell", "sudo", "grep", "nano", "vi", "pipe", "redirection"],
+      "summary": "Most Linux hardening happens in a terminal: sudo to act as root, pipes and grep to find things, and nano or vi to edit config files.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "lockdown-range/linux", "kind": "lab", "find": ["nano"], "note": "A bash-like terminal with sudo, apt, systemctl, and nano."},
+        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["sudo"]},
+        {"tool": "lockdown-drills/linux-mint", "kind": ["learn", "drill"], "find": ["sudo"]}
+      ],
+      "refs": [
+        {"title": "GNU Bash manual", "url": "https://www.gnu.org/software/bash/manual/bash.html", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "troubleshooting", "name": "Troubleshooting by layer", "domain": "method", "layers": [],
+      "aka": ["troubleshooting", "root cause", "bottom-up", "symptom", "diagnose"],
+      "summary": "Start from the symptom, test layer by layer (link, address, gateway, name), and fix the root cause instead of the symptom.",
+      "prereqs": ["osi-model"],
+      "locations": [
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "find": ["root cause"], "note": "Each ticket: the complaint, real device output, the root cause, then the fix."},
+        {"tool": "net-drills/ios-cli-lab", "kind": "fix", "where": "Mission › Fix the mess"}
+      ],
+      "refs": []
+    },
+    {
+      "id": "verify", "name": "Verify with ping, SSH, and show commands", "domain": "method", "layers": ["3", "7"],
+      "aka": ["ping", "traceroute", "tracert", "ipconfig", "show ip interface brief", "show running-config", "test the fix"],
+      "summary": "Prove a fix from the user's side (ping, sign in over SSH, browse) and from the device's own view (show commands) before you call it done.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "PC1", "note": "Missions end by proving the result from a PC."},
+        {"tool": "lockdown-range/cisco-ios", "kind": "lab", "find": ["ping"], "note": "Secure the topology, then prove it with ping."},
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "find": ["ipconfig"], "note": "Each ticket gives you real ipconfig or show output to read."}
+      ],
+      "refs": []
+    },
+    {
+      "id": "investigation", "name": "Scenario briefs and investigation questions", "domain": "method", "layers": [],
+      "aka": ["scenario brief", "investigation questions", "evidence", "read the brief"],
+      "summary": "Read the scenario brief first: it says who is authorized and which services must stay up. Answer the investigation questions before your fixes change the evidence.",
+      "prereqs": ["cia-triad"],
+      "locations": [
+        {"tool": "lockdown-range/windows", "kind": "lab", "find": ["investigation question", "scenario brief"]},
+        {"tool": "lockdown-range/linux", "kind": "lab", "find": ["investigation question", "scenario brief"]}
+      ],
+      "refs": []
+    }
+  ]
+}

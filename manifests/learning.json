@@ -1,0 +1,27 @@
+{
+  "category": "cyber",
+  "section": "learning",
+  "tools": [
+    {
+      "slug": "concept-index",
+      "name": "Concept Index",
+      "tagline": "Find a concept. Learn it, then practice it.",
+      "description": "Look up any concept, from OSI layers to account lockout, and see where to learn it and where to practice it across Defense Ladder, Net Drills, Lockdown Drills, and Lockdown Range. Rate what you know to get a path through your gaps.",
+      "badges": [
+        "Cybersecurity",
+        "Study",
+        "Offline",
+        "Private"
+      ],
+      "icon": "search",
+      "emoji": "🧭",
+      "match": [
+        "concept[ _-]?index"
+      ],
+      "reference": false,
+      "prep": {
+        "strip_google_fonts": true
+      }
+    }
+  ]
+}

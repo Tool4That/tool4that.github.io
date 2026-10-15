@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Concept Index</title>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#E8ECF0;--face:#F7F9FA;--ink:#17212B;--muted:#55647A;--rule:#C6D0DA;
+  --app:#1F5C9E;--tra:#23794A;--int:#A8461A;--lnk:#6E4526;--host:#4E5D70;--none:#8593A3;
+  --focus:#1F5C9E;--on-ink:#F7F9FA;
+  --head:"Bahnschrift","DIN Alternate","Roboto Condensed","Avenir Next Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"Cascadia Mono","SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#111922;--face:#19242F;--ink:#E2E9F0;--muted:#98A8B9;--rule:#2E3D4C;
+    --app:#6AA5EA;--tra:#4DBB7F;--int:#F0874A;--lnk:#C08B63;--host:#A3B1C2;--none:#6F7F90;
+    --focus:#8CC4F2;--on-ink:#111922;color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111922;--face:#19242F;--ink:#E2E9F0;--muted:#98A8B9;--rule:#2E3D4C;
+  --app:#6AA5EA;--tra:#4DBB7F;--int:#F0874A;--lnk:#C08B63;--host:#A3B1C2;--none:#6F7F90;
+  --focus:#8CC4F2;--on-ink:#111922;color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--body)}
+a{color:var(--app);text-underline-offset:2px}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.vh{position:absolute!important;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-999px;top:.5rem;z-index:9;padding:.5rem .8rem;border-radius:6px;background:var(--face);color:var(--ink)}
+.skip:focus{left:.5rem}
+.wrap{max-width:46rem;margin:0 auto;padding:0 1rem 1.5rem}
+.top{padding:2.25rem 0 .25rem}
+h1{margin:0;font:700 clamp(2.5rem,10vw,3.75rem)/.95 var(--head);letter-spacing:-.01em}
+.wire{display:flex;width:11rem;height:6px;margin:.9rem 0 1rem;border-radius:3px;overflow:hidden}
+.wire i{flex:1}
+.wire .w1{background:var(--lnk)}.wire .w2{background:var(--int)}.wire .w3{background:var(--tra)}.wire .w4{background:var(--app)}
+.lede{margin:0;max-width:36rem;font-size:1.06rem;color:var(--muted)}
+.controls{display:grid;gap:.75rem;margin:1.4rem 0 1.6rem}
+.search input{width:100%;padding:.75rem .9rem;border:2px solid var(--rule);border-radius:8px;background:var(--face);font-size:1.05rem}
+.search input:focus{border-color:var(--focus);outline:none}
+.search input::placeholder{color:var(--muted);opacity:1}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem .7rem}
+.lab{min-width:4.6rem;font:600 .92rem var(--head);color:var(--muted)}
+.seg{display:flex;flex-wrap:wrap;gap:.35rem}
+.pill{min-height:2.3rem;padding:.35rem .9rem;border:1.5px solid var(--rule);border-radius:999px;background:var(--face);font-weight:600;font-size:.93rem;cursor:pointer}
+.pill[aria-checked="true"]{border-color:var(--ink);background:var(--ink);color:var(--on-ink)}
+.stack-h{display:grid;grid-template-columns:minmax(0,1fr) 6.75rem;gap:0 6px;margin:0 0 .4rem;font:700 1.15rem/1.2 var(--head)}
+.stack-h small{align-self:end;font:600 .82rem var(--head);color:var(--muted);text-align:center}
+.stack{display:grid;grid-template-columns:minmax(0,1fr) 6.75rem;gap:4px 6px}
+.ly{grid-column:1;display:grid;grid-template-columns:2.1rem minmax(0,1fr) auto;align-items:center;min-height:2.6rem;padding:0 .75rem 0 0;border:0;border-left:6px solid var(--gc);border-radius:4px;background:color-mix(in srgb,var(--gc) 13%,var(--face));text-align:left;cursor:pointer}
+.ly .n{font:700 1rem var(--head);text-align:center;color:var(--gc)}
+.nm{font:600 1rem/1.2 var(--head)}
+.ct{font-size:.86rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.ly.zero .nm,.ly.zero .ct{opacity:.55}
+.ly.in{box-shadow:inset 0 0 0 2px var(--gc)}
+.br{grid-column:2;display:flex;align-items:center;justify-content:center;padding:0 .35rem;border:0;border-right:6px solid var(--gc);border-radius:4px;background:color-mix(in srgb,var(--gc) 8%,transparent);font:600 .92rem/1.15 var(--head);color:var(--gc);text-align:center;cursor:pointer}
+.ly[aria-pressed="true"],.br[aria-pressed="true"]{background:color-mix(in srgb,var(--gc) 30%,var(--face));box-shadow:inset 0 0 0 2px var(--gc)}
+.host{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:.6rem;min-height:2.6rem;margin-top:6px;padding:0 .75rem;border:2px dashed var(--host);border-radius:6px;background:transparent;text-align:left;cursor:pointer}
+.host small{margin-left:.45rem;font-size:.86rem;color:var(--muted)}
+.host[aria-pressed="true"]{border-style:solid;background:color-mix(in srgb,var(--host) 16%,var(--face))}
+.stack-note{margin:.55rem 0 0;font-size:.9rem;color:var(--muted)}
+.g-app{--gc:var(--app)}.g-tra{--gc:var(--tra)}.g-int{--gc:var(--int)}.g-lnk{--gc:var(--lnk)}.g-host{--gc:var(--host)}.g-none{--gc:var(--none)}
+.tabs{display:flex;gap:.2rem;margin:1.8rem 0 0;border-bottom:2px solid var(--rule)}
+.tab{margin-bottom:-2px;padding:.65rem .85rem;border:0;border-bottom:3px solid transparent;background:none;font:700 1.03rem var(--head);color:var(--muted);cursor:pointer}
+.tab[aria-selected="true"]{border-bottom-color:var(--ink);color:var(--ink)}
+.key{margin:.9rem 0 0;font-size:.92rem;color:var(--muted)}
+.key summary{cursor:pointer;font-weight:600;color:var(--ink)}
+.key dl{display:grid;grid-template-columns:auto 1fr;gap:.4rem .7rem;align-items:center;margin:.6rem 0 .3rem}
+.key dd{margin:0}
+.key p{margin:.3rem 0 0}
+.status{margin:1rem 0 .2rem;font-size:.95rem;color:var(--muted)}
+.linkish{margin-left:.5rem;padding:0;border:0;background:none;color:var(--app);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.dom{margin:1.7rem 0 .5rem;font:700 1.2rem/1.2 var(--head)}
+.card{margin:0 0 .45rem;border:1px solid var(--rule);border-left:5px solid var(--gc);border-radius:6px;background:var(--face)}
+.card h3{margin:0;font-size:inherit}
+.ch{display:flex;align-items:center;gap:.6rem;width:100%;padding:.7rem .8rem .25rem;border:0;background:none;text-align:left;font-weight:650;font-size:1.04rem;line-height:1.3;cursor:pointer}
+.ch .t{flex:1}
+.ch .lt{font:600 .82rem var(--head);color:var(--gc);white-space:nowrap}
+.g-none .ch .lt{color:var(--muted)}
+.ch::after{content:"";flex:none;width:.5rem;height:.5rem;margin:0 .15rem .2rem;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg)}
+.ch[aria-expanded="true"]::after{margin:.25rem .15rem 0;transform:rotate(-135deg)}
+.rt{flex:none;width:.8rem;height:.8rem;border:2px solid var(--muted);border-radius:50%}
+.rt-shaky{background:linear-gradient(90deg,var(--muted) 50%,transparent 50%)}
+.rt-solid{background:var(--muted)}
+.meta{margin:0 .8rem .65rem;font-size:.88rem;color:var(--muted)}
+.cb{padding:.15rem .8rem .9rem;border-top:1px solid var(--rule)}
+.sum{max-width:40rem;margin:.7rem 0 .5rem}
+.aka{margin:0 0 .5rem;font-size:.88rem;color:var(--muted)}
+.links{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem;margin:.35rem 0;font-size:.9rem}
+.links .lab2{margin-right:.15rem;color:var(--muted)}
+.cl{display:inline-block;padding:.2rem .65rem;border:1px solid var(--rule);border-radius:999px;background:var(--bg);color:var(--ink);font-size:.88rem;text-decoration:none;cursor:pointer}
+a.cl:hover{border-color:var(--ink)}
+.cb h4{margin:1.1rem 0 .4rem;font:700 1.02rem var(--head)}
+.locs{display:grid;gap:.45rem;margin:0;padding:0;list-style:none}
+.loc{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.15rem .65rem;padding:.55rem .65rem;border:1px solid var(--rule);border-radius:6px;background:var(--bg)}
+.loc>*{grid-column:2}
+.loc .ks{grid-column:1;grid-row:1/span 5;display:flex;flex-direction:column;align-items:flex-start;gap:.25rem}
+.k{display:inline-block;padding:.28rem .45rem;border:1px solid var(--muted);border-radius:3px;font:600 .75rem/1 var(--head);color:var(--muted);white-space:nowrap}
+.k-build,.k-fix{border-color:var(--ink);color:var(--ink)}
+.k-lab{border-color:var(--ink);background:var(--ink);color:var(--on-ink)}
+.tn a{font-weight:650}
+.gp{margin-left:.35rem;font-size:.84rem;color:var(--muted)}
+.wh{font-size:.93rem}
+.wh code,.cpy{padding:0 .3rem;border:1px solid var(--rule);border-radius:3px;background:var(--face);font:.86rem var(--mono)}
+.nt{font-size:.88rem;color:var(--muted)}
+.ex{font-size:.86rem}
+.loc.unc{border-style:dashed}
+.rl{margin:.6rem 0 .25rem;font-size:.9rem;color:var(--muted)}
+.refs{margin:0;padding-left:1.15rem}
+.refs li{margin:.15rem 0}
+.src{margin-left:.4rem;font-size:.8rem;color:var(--muted)}
+.none{margin:.2rem 0;font-size:.92rem;color:var(--muted)}
+.rate{margin:1.1rem 0 0;padding:0;border:0}
+.rate legend{margin-bottom:.4rem;padding:0;font:700 1.02rem var(--head)}
+.share{margin:.9rem 0 0}
+.cpy{width:100%;padding:.4rem .5rem;color:var(--ink)}
+.empty{padding:1rem;border:1px dashed var(--rule);border-radius:8px;background:var(--face)}
+.empty p{margin:0 0 .7rem}
+.empty p:last-child{margin:0}
+.cols{columns:2 13rem;margin:.4rem 0 0;padding-left:1.1rem}
+.cols li{margin:0 0 .25rem;break-inside:avoid}
+.tally{margin:1rem 0 0;color:var(--muted)}
+.pathlist{margin:0;padding-left:1.5rem}
+.pathlist li{margin:0 0 .75rem}
+.pn{font-weight:650}
+.pr{margin-left:.45rem;font-size:.84rem;color:var(--muted)}
+.nx{display:block;font-size:.9rem;color:var(--muted)}
+.foot{margin-top:2.2rem;padding-top:1rem;border-top:1px solid var(--rule);font-size:.88rem;color:var(--muted)}
+.foot p{margin:0 0 .5rem}
+@media (max-width:380px){.stack,.stack-h{grid-template-columns:minmax(0,1fr) 5.4rem}.br{font-size:.8rem}.lab{min-width:0;width:100%}}
+@media (prefers-reduced-motion:no-preference){.ch::after{transition:transform .15s}}
+</style>
+</head>
+<body>
+<a class="skip" href="#views">Skip to the concepts</a>
+<div class="wrap">
+<header class="top">
+  <h1>Concept Index</h1>
+  <div class="wire" aria-hidden="true"><i class="w1"></i><i class="w2"></i><i class="w3"></i><i class="w4"></i></div>
+  <p class="lede">Look up a concept, then learn it or practice it. Each entry shows which app covers it and where to find it inside.</p>
+</header>
+<main>
+  <section class="controls" aria-label="Find a concept">
+    <div class="search"><label class="vh" for="q">Search concepts</label><input id="q" type="search" placeholder="Try OSI, VLAN, lockout, or sudo" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+    <div class="row"><span class="lab" id="mode-l">I want to</span>
+      <div class="seg" role="radiogroup" aria-labelledby="mode-l">
+        <button class="pill" type="button" role="radio" aria-checked="true" data-mode="learn">Learn it</button>
+        <button class="pill" type="button" role="radio" aria-checked="false" data-mode="practice">Practice it</button>
+      </div>
+    </div>
+    <div class="row"><span class="lab" id="track-l">Track</span>
+      <div class="seg" role="radiogroup" aria-labelledby="track-l">
+        <button class="pill" type="button" role="radio" aria-checked="true" data-track="all">All</button>
+        <button class="pill" type="button" role="radio" aria-checked="false" data-track="windows">Windows</button>
+        <button class="pill" type="button" role="radio" aria-checked="false" data-track="linux">Linux</button>
+        <button class="pill" type="button" role="radio" aria-checked="false" data-track="freebsd">FreeBSD</button>
+        <button class="pill" type="button" role="radio" aria-checked="false" data-track="cisco">Cisco</button>
+      </div>
+    </div>
+  </section>
+  <section aria-labelledby="stack-t">
+    <h2 class="stack-h"><span id="stack-t">Browse by layer</span><small aria-hidden="true">TCP/IP</small></h2>
+    <div class="stack" id="stack"></div>
+    <p class="stack-note">Layers 1 to 7 are the OSI model. Host is the machine itself: accounts, policy, services, and files.</p>
+  </section>
+  <div class="tabs" role="tablist" aria-label="Views" id="views" tabindex="-1">
+    <button class="tab" type="button" role="tab" id="t-concepts" aria-controls="v-concepts" aria-selected="true" data-view="concepts">Concepts</button>
+    <button class="tab" type="button" role="tab" id="t-apps" aria-controls="v-apps" aria-selected="false" data-view="apps">By app</button>
+    <button class="tab" type="button" role="tab" id="t-path" aria-controls="v-path" aria-selected="false" data-view="path">My path<span id="t-path-n"></span></button>
+  </div>
+  <section id="v-concepts" role="tabpanel" aria-labelledby="t-concepts" tabindex="-1">
+    <details class="key">
+      <summary>What Learn, Drill, Build, Troubleshoot, and Lab mean</summary>
+      <dl>
+        <dt><span class="k k-learn">Learn</span></dt><dd>Explanations and worked examples: understand it.</dd>
+        <dt><span class="k k-drill">Drill</span></dt><dd>Quick questions, often timed: remember it.</dd>
+        <dt><span class="k k-build">Build</span></dt><dd>Configure it from instructions: apply it.</dd>
+        <dt><span class="k k-fix">Troubleshoot</span></dt><dd>Find the fault in real output or a config: analyze it.</dd>
+        <dt><span class="k k-lab">Lab</span></dt><dd>A whole machine to harden, with a live check: put it all together.</dd>
+      </dl>
+      <p>The steps follow Bloom's taxonomy, from understanding up to judging your own work.</p>
+    </details>
+    <p class="status" id="status" aria-live="polite"></p>
+    <div id="list"></div>
+  </section>
+  <section id="v-apps" role="tabpanel" aria-labelledby="t-apps" tabindex="-1" hidden>
+    <p class="status">Every app, and the concepts you can learn or practice in it.</p>
+    <div id="apps"></div>
+  </section>
+  <section id="v-path" role="tabpanel" aria-labelledby="t-path" tabindex="-1" hidden>
+    <div id="path"></div>
+  </section>
+</main>
+<footer class="foot">
+  <p id="checked"></p>
+  <p>Unofficial study aid, not affiliated with or endorsed by Microsoft, Canonical, Linux Mint, the FreeBSD Project, or Cisco.</p>
+</footer>
+</div>
+<script type="application/json" id="ci-data">{"concept_index":"no data yet"}</script>
+<script>
+(function () {
+  'use strict';
+  function $(s) { return document.querySelector(s); }
+  function el(tag, props, kids) {
+    var e = document.createElement(tag);
+    if (props) Object.keys(props).forEach(function (k) {
+      var v = props[k];
+      if (v === null || v === undefined || v === false) return;
+      if (k === 'text') e.textContent = v;
+      else if (k === 'cls') e.className = v;
+      else e.setAttribute(k, v);
+    });
+    if (kids) kids.forEach(function (c) {
+      if (c === null || c === undefined || c === false) return;
+      e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+    });
+    return e;
+  }
+  function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+
+  var D = null;
+  try { D = JSON.parse($('#ci-data').textContent); } catch (err) { D = null; }
+  if (!D || !Array.isArray(D.concepts)) {
+    $('#list').appendChild(el('p', {cls: 'empty', text: 'This page has no concept data yet. Build it with build_concepts.py.'}));
+    return;
+  }
+
+  var KIND = {learn: 'Learn', drill: 'Drill', build: 'Build', fix: 'Troubleshoot', lab: 'Lab'};
+  var ORDER = {learn: ['learn', 'drill', 'build', 'fix', 'lab'], practice: ['lab', 'build', 'fix', 'drill', 'learn']};
+  var LAYERS = [
+    {id: '7', name: 'Application', g: 'app'}, {id: '6', name: 'Presentation', g: 'app'}, {id: '5', name: 'Session', g: 'app'},
+    {id: '4', name: 'Transport', g: 'tra'}, {id: '3', name: 'Network', g: 'int'},
+    {id: '2', name: 'Data link', g: 'lnk'}, {id: '1', name: 'Physical', g: 'lnk'}
+  ];
+  var GROUPS = [
+    {id: 'app', name: 'Application', layers: ['7', '6', '5'], row: '1 / 4'},
+    {id: 'tra', name: 'Transport', layers: ['4'], row: '4 / 5'},
+    {id: 'int', name: 'Internet', layers: ['3'], row: '5 / 6'},
+    {id: 'lnk', name: 'Link', layers: ['2', '1'], row: '6 / 8'}
+  ];
+  var TRACKS = {all: 'All', windows: 'Windows', linux: 'Linux', freebsd: 'FreeBSD', cisco: 'Cisco'};
+  var RATE = {'new': 'New', shaky: 'Shaky', solid: 'Solid'};
+  var KR = 't4t.concept-index.ratings', KP = 't4t.concept-index.prefs';
+
+  var store = {
+    get: function (k) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage unavailable: keep going */ } }
+  };
+  var ratings = store.get(KR);
+  if (!ratings || typeof ratings !== 'object') ratings = {};
+  var prefs = store.get(KP) || {};
+  var S = {
+    mode: prefs.mode === 'practice' ? 'practice' : 'learn',
+    track: TRACKS[prefs.track] ? prefs.track : 'all',
+    q: '', layer: null, domain: null, view: 'concepts', open: {}, appOpen: {}
+  };
+
+  var byId = {}, domTitle = {}, topo = {}, seq = 0;
+  D.domains.forEach(function (d) { domTitle[d.id] = d.title; });
+  D.concepts.forEach(function (c) { byId[c.id] = c; c.next = []; });
+  D.concepts.forEach(function (c) { c.prereqs.forEach(function (p) { if (byId[p]) byId[p].next.push(c.id); }); });
+  function walk(c) {
+    if (c.seen) return;
+    c.seen = true;
+    c.prereqs.forEach(function (p) { if (byId[p]) walk(byId[p]); });
+    topo[c.id] = seq++;
+  }
+  D.concepts.forEach(walk);
+  function norm(s) { return String(s).toLowerCase().replace(/[\u2018\u2019]/g, "'").replace(/\s+/g, ' ').trim(); }
+  function groupOf(c) {
+    var first = c.layers.filter(function (x) { return x !== 'host'; })[0];
+    if (!first) return c.layers.length ? 'host' : 'none';
+    for (var i = 0; i < GROUPS.length; i++) if (GROUPS[i].layers.indexOf(first) >= 0) return GROUPS[i].id;
+    return 'none';
+  }
+  function layerTag(c) {
+    var net = c.layers.filter(function (x) { return x !== 'host'; }).map(Number).sort(function (a, b) { return a - b; });
+    var t = net.length ? 'L' + net[0] + (net.length > 1 ? '\u2013' + net[net.length - 1] : '') : '';
+    if (c.layers.indexOf('host') >= 0) t = t ? t + ', host' : 'Host';
+    return t;
+  }
+  D.concepts.forEach(function (c) {
+    var apps = c.locations.map(function (l) { var t = D.tools[l.tool]; return t ? t.name + ' ' + t.group : ''; });
+    var lw = c.layers.map(function (x) {
+      if (x === 'host') return 'host';
+      var L = LAYERS.filter(function (y) { return y.id === x; })[0], g = GROUPS.filter(function (y) { return y.layers.indexOf(x) >= 0; })[0];
+      return 'layer ' + x + ' l' + x + ' ' + (L ? L.name : '') + ' ' + (g ? g.name : '');
+    });
+    c.hay = norm([c.name, c.aka.join(' '), c.summary, domTitle[c.domain] || '', apps.join(' '), lw.join(' ')].join(' '));
+    c.g = groupOf(c);
+  });
+
+  var site = String(D.site || '').replace(/\/+$/, '');
+  var HOSTS = ['freeapp4that.store', 'tool4that.github.io', 'localhost', '127.0.0.1'];
+  var relative = location.protocol !== 'file:' && HOSTS.indexOf(location.hostname) >= 0;
+  function href(path) { return (relative ? '../' : site + '/') + path; }
+
+  function locVisible(l) {
+    if (S.track === 'all') return true;
+    var t = D.tools[l.tool];
+    return !t || t.platform === 'general' || t.platform === S.track;
+  }
+  function locsFor(c) { return c.locations.filter(locVisible); }
+  function trackOk(c) { return S.track === 'all' || !c.locations.length || locsFor(c).length > 0; }
+  var qmemo = {q: null, phrase: false};
+  function queryOk(c) {
+    var q = norm(S.q);
+    if (!q) return true;
+    if (qmemo.q !== q) qmemo = {q: q, phrase: D.concepts.some(function (x) { return x.hay.indexOf(q) >= 0; })};
+    if (qmemo.phrase) return c.hay.indexOf(q) >= 0;
+    return q.split(' ').every(function (w) { return c.hay.indexOf(w) >= 0; });
+  }
+  function layerOk(c, layer) {
+    if (layer === undefined) layer = S.layer;
+    if (!layer) return true;
+    if (layer === 'host') return c.layers.indexOf('host') >= 0;
+    var g = GROUPS.filter(function (x) { return x.id === layer; })[0];
+    if (g) return c.layers.some(function (x) { return g.layers.indexOf(x) >= 0; });
+    return c.layers.indexOf(layer) >= 0;
+  }
+  function domainOk(c) { return !S.domain || c.domain === S.domain; }
+  function shown() { return D.concepts.filter(function (c) { return trackOk(c) && queryOk(c) && layerOk(c) && domainOk(c); }); }
+  function count(layer) { return D.concepts.filter(function (c) { return trackOk(c) && queryOk(c) && domainOk(c) && layerOk(c, layer); }).length; }
+  function practical(l) { return l.kind.some(function (k) { return k !== 'learn'; }); }
+  function learnSide(l) { return S.mode === 'learn' ? l.kind.indexOf('learn') >= 0 : !practical(l); }
+  function rank(l) {
+    var o = ORDER[S.mode], best = 99;
+    l.kind.forEach(function (k) { var i = o.indexOf(k); if (i >= 0 && i < best) best = i; });
+    return best;
+  }
+  function layerPhrase(layer) {
+    if (layer === 'host') return 'on the host';
+    var g = GROUPS.filter(function (x) { return x.id === layer; })[0];
+    if (g) return 'in the TCP/IP ' + g.name + ' layer';
+    var L = LAYERS.filter(function (x) { return x.id === layer; })[0];
+    return L ? 'at layer ' + L.id + ', ' + L.name : '';
+  }
+  function mark(h) {
+    try { history.replaceState(null, '', location.pathname + location.search + (h ? '#' + h : '')); } catch (e) { /* not allowed here */ }
+  }
+  function refocus(sel) { var x = document.querySelector(sel); if (x) x.focus({preventScroll: true}); }
+
+  function renderStack() {
+    var box = $('#stack');
+    box.textContent = '';
+    LAYERS.forEach(function (L, i) {
+      var n = count(L.id);
+      box.appendChild(el('button', {
+        cls: 'ly g-' + L.g + (n ? '' : ' zero') + (S.layer === L.g ? ' in' : ''), type: 'button', style: 'grid-row:' + (i + 1),
+        'aria-pressed': String(S.layer === L.id), 'data-layer': L.id,
+        'aria-label': 'Layer ' + L.id + ', ' + L.name + ': ' + plural(n, 'concept', 'concepts')
+      }, [el('span', {cls: 'n', text: L.id}), el('span', {cls: 'nm', text: L.name}), el('span', {cls: 'ct', text: String(n)})]));
+    });
+    GROUPS.forEach(function (g) {
+      var n = count(g.id);
+      box.appendChild(el('button', {
+        cls: 'br g-' + g.id, type: 'button', style: 'grid-row:' + g.row,
+        'aria-pressed': String(S.layer === g.id), 'data-layer': g.id,
+        'aria-label': 'TCP/IP ' + g.name + ' layer: ' + plural(n, 'concept', 'concepts'), text: g.name
+      }));
+    });
+    var h = count('host');
+    box.appendChild(el('button', {
+      cls: 'host g-host', type: 'button', style: 'grid-row:8',
+      'aria-pressed': String(S.layer === 'host'), 'data-layer': 'host',
+      'aria-label': 'Host, the machine itself: ' + plural(h, 'concept', 'concepts')
+    }, [el('span', null, [el('span', {cls: 'nm', text: 'Host'}), el('small', {text: 'the machine itself'})]), el('span', {cls: 'ct', text: String(h)})]));
+  }
+
+  function countText(nL, nP) {
+    if (!nL && !nP) return 'Not in an app yet.';
+    var a = [];
+    if (nL) a.push(plural(nL, 'place', 'places') + ' to learn');
+    if (nP) a.push(plural(nP, 'place', 'places') + ' to practice');
+    return a.join(', ') + '.';
+  }
+  function card(c) {
+    var open = !!S.open[c.id], locs = locsFor(c), r = ratings[c.id], tag = layerTag(c);
+    var nL = locs.filter(function (l) { return l.kind.indexOf('learn') >= 0; }).length, nP = locs.filter(practical).length;
+    var head = el('button', {cls: 'ch', type: 'button', 'aria-expanded': String(open), 'aria-controls': open ? 'cb-' + c.id : null, 'data-id': c.id}, [
+      el('span', {cls: 't', text: c.name}),
+      tag ? el('span', {cls: 'lt', text: tag}) : null,
+      r ? el('span', {cls: 'rt rt-' + r, role: 'img', 'aria-label': 'rated ' + RATE[r]}) : null
+    ]);
+    var art = el('article', {cls: 'card g-' + c.g, id: 'c-' + c.id}, [el('h3', null, [head]), el('p', {cls: 'meta', text: countText(nL, nP)})]);
+    if (open) art.appendChild(body(c, locs));
+    return art;
+  }
+  function linkRow(label, ids) {
+    var p = el('p', {cls: 'links'}, [el('span', {cls: 'lab2', text: label + ':'})]);
+    ids.forEach(function (id) { if (byId[id]) p.appendChild(el('a', {cls: 'cl', href: '#c=' + id, text: byId[id].name})); });
+    return p;
+  }
+  function locList(list) {
+    var ul = el('ul', {cls: 'locs'});
+    list.forEach(function (l) {
+      var t = D.tools[l.tool] || {name: l.tool, group: '', extras: []};
+      var kinds = l.kind.slice().sort(function (a, z) { return ORDER.learn.indexOf(a) - ORDER.learn.indexOf(z); });
+      var li = el('li', {cls: 'loc' + (l.unchecked ? ' unc' : '')}, [
+        el('span', {cls: 'ks'}, kinds.map(function (k) { return el('span', {cls: 'k k-' + k, text: KIND[k]}); })),
+        el('div', {cls: 'tn'}, [el('a', {href: href(l.tool + '/'), text: t.name}), el('span', {cls: 'gp', text: t.group})])
+      ]);
+      if (l.where || l.look) {
+        var w = el('div', {cls: 'wh'});
+        if (l.where) w.appendChild(document.createTextNode(l.where));
+        if (l.look) { w.appendChild(document.createTextNode(l.where ? ', look for ' : 'Look for ')); w.appendChild(el('code', {text: l.look})); }
+        li.appendChild(w);
+      }
+      if (l.note) li.appendChild(el('div', {cls: 'nt', text: l.note}));
+      if (t.extras && t.extras.length) {
+        li.appendChild(el('div', {cls: 'ex'}, t.extras.map(function (x) {
+          return el('a', {href: href(x.file), text: /walkthrough/i.test(x.label) ? x.label + ' (solutions)' : x.label});
+        })));
+      }
+      if (l.unchecked) li.appendChild(el('div', {cls: 'nt', text: 'Preview only: not yet confirmed in this app.'}));
+      ul.appendChild(li);
+    });
+    return ul;
+  }
+  function refList(refs) {
+    var ul = el('ul', {cls: 'refs'});
+    refs.slice().sort(function (a, z) { return (a.src === 'standard' ? 0 : 1) - (z.src === 'standard' ? 0 : 1); }).forEach(function (r) {
+      ul.appendChild(el('li', null, [
+        el('a', {href: r.url, target: '_blank', rel: 'noopener noreferrer', text: r.title}),
+        el('span', {cls: 'src', text: r.src === 'standard' ? 'Standard' : 'Vendor docs'})
+      ]));
+    });
+    return el('div', null, [el('p', {cls: 'rl', text: 'Read the source'}), ul]);
+  }
+  function rateBox(c) {
+    var row = el('div', {cls: 'seg', role: 'radiogroup', 'aria-label': 'How well do you know ' + c.name + '?'});
+    Object.keys(RATE).forEach(function (k) {
+      row.appendChild(el('button', {cls: 'pill', type: 'button', role: 'radio', 'aria-checked': String(ratings[c.id] === k), 'data-rate': k, 'data-id': c.id, text: RATE[k]}));
+    });
+    return el('fieldset', {cls: 'rate'}, [el('legend', {text: 'How well do you know it?'}), row]);
+  }
+  function body(c, locs) {
+    var b = el('div', {cls: 'cb', id: 'cb-' + c.id}, [el('p', {cls: 'sum', text: c.summary})]);
+    if (c.aka.length) b.appendChild(el('p', {cls: 'aka', text: 'Also called or typed as: ' + c.aka.slice(0, 10).join(', ')}));
+    var pre = c.prereqs.filter(function (p) { return byId[p]; });
+    if (pre.length) b.appendChild(linkRow('Builds on', pre));
+    if (c.next.length) b.appendChild(linkRow('Leads to', c.next));
+    var L = [], P = [];
+    locs.forEach(function (l, i) { l.idx = i; (learnSide(l) ? L : P).push(l); });
+    var byRank = function (a, z) { return rank(a) - rank(z) || a.idx - z.idx; };
+    L.sort(byRank); P.sort(byRank);
+    var learnBlock = [el('h4', {text: 'Learn it'})];
+    if (L.length) learnBlock.push(locList(L));
+    if (c.refs.length) learnBlock.push(refList(c.refs));
+    if (!L.length && !c.refs.length) learnBlock.push(el('p', {cls: 'none', text: 'No learning material listed yet.'}));
+    var practBlock = [el('h4', {text: 'Practice it'}), P.length ? locList(P)
+      : el('p', {cls: 'none', text: S.track === 'all' ? 'No hands-on practice for this yet.' : 'No hands-on practice on this track yet. Try the All track.'})];
+    (S.mode === 'learn' ? learnBlock.concat(practBlock) : practBlock.concat(learnBlock)).forEach(function (x) { b.appendChild(x); });
+    b.appendChild(rateBox(c));
+    b.appendChild(el('p', {cls: 'share'}, [el('button', {cls: 'cl', type: 'button', 'data-copy': c.id, text: 'Copy a link to this concept'})]));
+    return b;
+  }
+
+  function renderConcepts() {
+    var list = shown(), st = $('#status'), box = $('#list');
+    var bits = [plural(list.length, 'concept', 'concepts')];
+    if (S.layer) bits.push(layerPhrase(S.layer));
+    if (S.domain) bits.push('in ' + domTitle[S.domain]);
+    if (S.track !== 'all') bits.push('on the ' + TRACKS[S.track] + ' track');
+    if (S.q) bits.push('matching \u201c' + S.q + '\u201d');
+    st.textContent = bits.join(' ') + '.';
+    if (S.layer || S.domain || S.q) st.appendChild(el('button', {cls: 'linkish', type: 'button', 'data-clear': '1', text: 'Show all'}));
+    box.textContent = '';
+    if (!list.length) {
+      box.appendChild(el('p', {cls: 'empty', text: S.q
+        ? 'Nothing matches \u201c' + S.q + '\u201d. Try a command or another word for it, such as vlan, lockout, or sudo' + (S.track === 'all' ? '.' : ', or switch to the All track.')
+        : 'No concepts here on this track. Switch to the All track or pick another layer.'}));
+      return;
+    }
+    D.domains.forEach(function (d) {
+      var items = list.filter(function (c) { return c.domain === d.id; });
+      if (!items.length) return;
+      var sec = el('section', {'aria-labelledby': 'd-' + d.id}, [el('h2', {cls: 'dom', id: 'd-' + d.id, text: d.title})]);
+      items.forEach(function (c) { sec.appendChild(card(c)); });
+      box.appendChild(sec);
+    });
+  }
+
+  function appKey(slug) { return slug.replace(/\W/g, '-'); }
+  function renderApps() {
+    var box = $('#apps'), groups = [], byGroup = {};
+    box.textContent = '';
+    Object.keys(D.tools).forEach(function (slug) {
+      var t = D.tools[slug];
+      if (S.track !== 'all' && t.platform !== 'general' && t.platform !== S.track) return;
+      var cs = D.concepts.filter(function (c) { return c.locations.some(function (l) { return l.tool === slug; }); });
+      if (!cs.length) return;
+      if (!byGroup[t.group]) { byGroup[t.group] = []; groups.push(t.group); }
+      byGroup[t.group].push({slug: slug, t: t, cs: cs});
+    });
+    if (!groups.length) { box.appendChild(el('p', {cls: 'empty', text: 'No apps on this track yet. Switch to the All track.'})); return; }
+    groups.forEach(function (g) {
+      var sec = el('section', null, [el('h2', {cls: 'dom', text: g})]);
+      byGroup[g].forEach(function (a) {
+        var open = !!S.appOpen[a.slug], key = appKey(a.slug);
+        var art = el('article', {cls: 'card g-none', id: 'a-' + key}, [
+          el('h3', null, [el('button', {cls: 'ch', type: 'button', 'aria-expanded': String(open), 'aria-controls': open ? 'ab-' + key : null, 'data-app': a.slug}, [
+            el('span', {cls: 't', text: a.t.name}), el('span', {cls: 'lt', text: plural(a.cs.length, 'concept', 'concepts')})
+          ])]),
+          el('p', {cls: 'meta', text: a.t.tagline || ''})
+        ]);
+        if (open) {
+          var ul = el('ul', {cls: 'cols'});
+          D.domains.forEach(function (d) {
+            a.cs.filter(function (c) { return c.domain === d.id; }).forEach(function (c) { ul.appendChild(el('li', null, [el('a', {href: '#c=' + c.id, text: c.name})])); });
+          });
+          art.appendChild(el('div', {cls: 'cb', id: 'ab-' + key}, [el('p', null, [el('a', {href: href(a.slug + '/'), text: 'Open ' + a.t.name})]), ul]));
+        }
+        sec.appendChild(art);
+      });
+      box.appendChild(sec);
+    });
+  }
+
+  function byTopo(a, z) { return topo[a.id] - topo[z.id]; }
+  function nextStep(c) {
+    var locs = locsFor(c).slice().sort(function (a, z) { return rank(a) - rank(z); });
+    if (S.mode === 'practice') { var p = locs.filter(practical)[0]; if (p) return p; }
+    return locs[0] || null;
+  }
+  function pathList(title, list, blocked) {
+    var ol = el('ol', {cls: 'pathlist'});
+    list.forEach(function (c) {
+      var li = el('li', null, [el('a', {cls: 'pn', href: '#c=' + c.id, text: c.name}), ratings[c.id] ? el('span', {cls: 'pr', text: RATE[ratings[c.id]]}) : null]);
+      if (blocked) {
+        var need = c.prereqs.filter(function (p) { return byId[p] && ratings[p] !== 'solid'; }).map(function (p) { return byId[p].name; });
+        li.appendChild(el('span', {cls: 'nx', text: 'First: ' + need.join(', ')}));
+      } else {
+        var s = nextStep(c);
+        if (s) {
+          var t = D.tools[s.tool] || {name: s.tool};
+          li.appendChild(el('span', {cls: 'nx'}, ['Next: ', el('a', {href: href(s.tool + '/'), text: t.name}), s.where ? ', ' + s.where : null]));
+        } else if (c.refs.length) {
+          li.appendChild(el('span', {cls: 'nx'}, ['Next: ', el('a', {href: c.refs[0].url, target: '_blank', rel: 'noopener noreferrer', text: c.refs[0].title})]));
+        }
+      }
+      ol.appendChild(li);
+    });
+    return el('section', null, [el('h2', {cls: 'dom', text: title}), ol]);
+  }
+  function renderPath() {
+    var box = $('#path');
+    box.textContent = '';
+    var ids = Object.keys(ratings).filter(function (id) { return byId[id]; });
+    if (!ids.length) {
+      box.appendChild(el('div', {cls: 'empty'}, [
+        el('p', {text: 'Rate a few concepts first: open any concept and choose New, Shaky, or Solid. Your path then lists what to work on, in an order where each step builds on the last.'}),
+        el('p', null, [el('button', {cls: 'pill', type: 'button', 'data-start': 'principles', text: 'Start with the principles'})])
+      ]));
+      return;
+    }
+    var n = {'new': 0, shaky: 0, solid: 0};
+    ids.forEach(function (id) { n[ratings[id]] = (n[ratings[id]] || 0) + 1; });
+    function solid(id) { return ratings[id] === 'solid'; }
+    var work = D.concepts.filter(function (c) { return trackOk(c) && (ratings[c.id] === 'new' || ratings[c.id] === 'shaky'); }).sort(byTopo);
+    var now = work.filter(function (c) { return c.prereqs.every(solid); });
+    var later = work.filter(function (c) { return !c.prereqs.every(solid); });
+    var ready = D.concepts.filter(function (c) { return trackOk(c) && !ratings[c.id] && c.prereqs.length && c.prereqs.every(solid); }).sort(byTopo).slice(0, 8);
+    box.appendChild(el('p', {cls: 'tally', text: 'Solid ' + n.solid + ', shaky ' + n.shaky + ', new ' + n['new'] + '. Ratings stay in this browser.'}));
+    if (now.length) box.appendChild(pathList('Work on these now', now, false));
+    if (later.length) box.appendChild(pathList('Then these', later, true));
+    if (ready.length) box.appendChild(pathList('Ready to explore', ready, false));
+    if (!work.length) box.appendChild(el('p', {cls: 'none', text: 'Nothing rated New or Shaky. Explore what you are ready for, or rate more concepts.'}));
+    box.appendChild(el('p', {cls: 'share'}, [el('button', {cls: 'cl', type: 'button', 'data-reset': '1', text: 'Clear my ratings'})]));
+  }
+
+  function render() {
+    document.querySelectorAll('[data-mode]').forEach(function (b) { b.setAttribute('aria-checked', String(b.getAttribute('data-mode') === S.mode)); });
+    document.querySelectorAll('[data-track]').forEach(function (b) { b.setAttribute('aria-checked', String(b.getAttribute('data-track') === S.track)); });
+    ['concepts', 'apps', 'path'].forEach(function (v) {
+      var t = $('#t-' + v), sel = S.view === v;
+      t.setAttribute('aria-selected', String(sel));
+      t.tabIndex = sel ? 0 : -1;
+      $('#v-' + v).hidden = !sel;
+    });
+    var gaps = Object.keys(ratings).filter(function (id) { return byId[id] && ratings[id] !== 'solid'; }).length;
+    $('#t-path-n').textContent = gaps ? ' (' + gaps + ')' : '';
+    renderStack();
+    if (S.view === 'concepts') renderConcepts(); else if (S.view === 'apps') renderApps(); else renderPath();
+    store.set(KP, {mode: S.mode, track: S.track});
+  }
+
+  function copyLink(id, btn) {
+    var url = (D.self || site + '/') + '#c=' + id;
+    function fallback() {
+      var inp = el('input', {cls: 'cpy', type: 'text', readonly: 'readonly', value: url, 'aria-label': 'Link to this concept'});
+      btn.replaceWith(inp);
+      inp.focus();
+      inp.select();
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(function () { btn.textContent = 'Link copied'; }, fallback);
+    else fallback();
+  }
+
+  function route() {
+    var h = '';
+    try { h = decodeURIComponent(location.hash.replace(/^#/, '')); } catch (e) { h = ''; }
+    var m = /^c=([a-z0-9-]+)$/.exec(h);
+    if (m && byId[m[1]]) {
+      var c = byId[m[1]];
+      S.view = 'concepts';
+      if (!trackOk(c)) S.track = 'all';
+      if (!(queryOk(c) && layerOk(c) && domainOk(c))) { S.q = ''; $('#q').value = ''; S.layer = null; S.domain = null; }
+      S.open[c.id] = true;
+      render();
+      var x = document.getElementById('c-' + c.id);
+      if (x) { x.scrollIntoView({block: 'start'}); refocus('.ch[data-id="' + c.id + '"]'); }
+      return;
+    }
+    m = /^app=(.+)$/.exec(h);
+    if (m && D.tools[m[1]]) {
+      S.view = 'apps';
+      S.appOpen[m[1]] = true;
+      render();
+      var y = document.getElementById('a-' + appKey(m[1]));
+      if (y) y.scrollIntoView({block: 'start'});
+      return;
+    }
+    if (h === 'path' || h === 'apps') { S.view = h; render(); return; }
+    m = /^layer=(\w+)$/.exec(h);
+    if (m && (m[1] === 'host' || GROUPS.some(function (g) { return g.id === m[1]; }) || LAYERS.some(function (L) { return L.id === m[1]; }))) {
+      S.layer = m[1];
+      S.view = 'concepts';
+    }
+    render();
+  }
+
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest) return;
+    var a = e.target.closest('a[href^="#"]');
+    if (a && a.getAttribute('href') === location.hash) { e.preventDefault(); route(); return; }
+    var b = e.target.closest('button');
+    if (!b) return;
+    var d = b.dataset;
+    if (d.mode) { S.mode = d.mode; render(); return; }
+    if (d.track) { S.track = d.track; render(); return; }
+    if (d.layer) { S.layer = S.layer === d.layer ? null : d.layer; S.view = 'concepts'; S.domain = null; mark(S.layer ? 'layer=' + S.layer : ''); render(); return; }
+    if (d.view) { S.view = d.view; mark(d.view === 'concepts' ? '' : d.view); render(); return; }
+    if (d.rate) {
+      if (ratings[d.id] === d.rate) delete ratings[d.id]; else ratings[d.id] = d.rate;
+      store.set(KR, ratings);
+      render();
+      refocus('[data-rate="' + d.rate + '"][data-id="' + d.id + '"]');
+      return;
+    }
+    if (d.id) { S.open[d.id] = !S.open[d.id]; if (S.open[d.id]) mark('c=' + d.id); render(); refocus('.ch[data-id="' + d.id + '"]'); return; }
+    if (d.app) { S.appOpen[d.app] = !S.appOpen[d.app]; mark(S.appOpen[d.app] ? 'app=' + d.app : 'apps'); render(); refocus('[data-app="' + d.app + '"]'); return; }
+    if (d.copy) { copyLink(d.copy, b); return; }
+    if (d.clear) { S.q = ''; $('#q').value = ''; S.layer = null; S.domain = null; mark(''); render(); return; }
+    if (d.start) { S.view = 'concepts'; S.domain = d.start; S.layer = null; S.q = ''; $('#q').value = ''; mark(''); render(); $('#v-concepts').focus(); return; }
+    if (d.reset) {
+      if (d.armed) { ratings = {}; store.set(KR, ratings); render(); }
+      else { b.setAttribute('data-armed', '1'); b.textContent = 'Tap again to clear all ratings'; }
+    }
+  });
+  document.addEventListener('keydown', function (e) {
+    var keys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+    if (keys.indexOf(e.key) < 0 || !e.target.closest || e.target.tagName !== 'BUTTON') return;
+    var grp = e.target.closest('[role="radiogroup"], [role="tablist"]');
+    if (!grp) return;
+    var items = Array.prototype.slice.call(grp.querySelectorAll('button')), i = items.indexOf(e.target), n = items.length;
+    var j = e.key === 'Home' ? 0 : e.key === 'End' ? n - 1 : (e.key === 'ArrowLeft' || e.key === 'ArrowUp') ? (i - 1 + n) % n : (i + 1) % n;
+    e.preventDefault();
+    items[j].focus();
+    items[j].click();
+  });
+  $('#q').addEventListener('input', function (e) { S.q = e.target.value.trim(); S.view = 'concepts'; render(); });
+
+  var unconfirmed = D.concepts.some(function (c) { return c.locations.some(function (l) { return l.unchecked; }); });
+  $('#checked').textContent = (unconfirmed
+    ? 'Preview build: places with a dashed outline are not confirmed in their app yet. '
+    : 'Every place listed was confirmed in its app when this index was built. ') + (D.checked ? 'Apps as of ' + D.checked + '.' : '');
+  window.addEventListener('hashchange', route);
+  route();
+})();
+</script>
+</body>
+</html>
