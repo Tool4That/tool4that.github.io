@@ -506,7 +506,7 @@ code{font:.84rem var(--mono);overflow-wrap:anywhere}
     stack.appendChild(el('button', {cls: 'host g-host', type: 'button', style: 'grid-row:8', 'aria-pressed': String(S.layer === 'host'), 'data-layer': 'host',
       'aria-label': 'Host, the machine itself: ' + plural(count('host'), 'concept', 'concepts')}, [el('span', {cls: 'nm', text: 'Host: the machine itself'}), el('span', {cls: 'ct', text: String(count('host'))})]));
     filters.appendChild(stack);
-    filters.appendChild(el('p', {cls: 'stack-note', text: 'Layers 1 to 7 are the OSI model; the right column is TCP/IP. Tap a layer to filter, tap again to clear.'}));
+    filters.appendChild(el('p', {cls: 'stack-note', text: 'Layers 1 to 7 are the OSI model; the right column is TCP/IP. In TCP/IP, session (5) and presentation (6) jobs happen inside the application protocols, so concepts appear at 5 or 6 by what they do: idle timeouts at 5, encryption in transit at 6. Tap a layer to filter, tap again to clear.'}));
     var list = D.concepts.filter(function (c) { return queryOk(c) && layerOk(c); });
     status(list, S.layer ? layerPhrase(S.layer) : '');
     if (!list.length) { emptyMsg(box); return; }

@@ -443,7 +443,7 @@
       ]
     },
     {
-      "id": "line-security", "name": "Console and VTY lines", "domain": "device", "layers": ["host"],
+      "id": "line-security", "name": "Console and VTY lines", "domain": "device", "layers": ["5", "host"],
       "aka": ["line console 0", "line vty", "exec-timeout", "login", "login local", "VTY", "console"],
       "summary": "Every way into a device needs a sign-in: console and VTY lines need authentication and an idle timeout.",
       "prereqs": ["ios-modes"],
@@ -459,7 +459,7 @@
       ]
     },
     {
-      "id": "ssh-only", "name": "SSH-only remote management", "domain": "device", "layers": ["7"],
+      "id": "ssh-only", "name": "SSH-only remote management", "domain": "device", "layers": ["7", "6"],
       "aka": ["SSH", "Telnet", "transport input ssh", "ip ssh version 2", "crypto key generate rsa", "ip domain-name", "remote access"],
       "summary": "Telnet sends passwords in clear text. SSH needs a hostname, a domain name, RSA keys, local users, and VTY lines set to SSH only.",
       "prereqs": ["ports", "line-security"],
