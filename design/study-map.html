@@ -648,7 +648,7 @@ code{font:.84rem var(--mono);overflow-wrap:anywhere}
     try { h = decodeURIComponent(location.hash.replace(/^#/, '')); } catch (e) { h = ''; }
     var m = /^c=([a-z0-9.-]+)$/.exec(h);
     if (m) {
-      var id = byId[m[1]] ? m[1] : (D.alias[m[1]] || null);
+      var id = byId[m[1]] ? m[1] : null;
       if (id && byId[id]) {
         if (!visibleInTab(byId[id])) { S.tab = 'topic'; S.q = ''; $('#q').value = ''; S.layer = null; }
         S.sel = id;
