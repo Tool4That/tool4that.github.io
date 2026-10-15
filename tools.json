@@ -25,13 +25,13 @@
       "slug": "learning",
       "title": "Learning",
       "category": "cyber",
-      "intro": "Build the concepts and vocabulary, from your first terminal command to confident defender. Start here if cybersecurity is new: the Study Map shows where to learn and practice every concept, and the Concept Index lets you search them."
+      "intro": "Build the concepts and vocabulary, from your first terminal command to confident defender. New to cybersecurity? Start with Defense Ladder, the course. The Study Map finds any concept as you type and shows where to learn and practice it."
     },
     {
       "slug": "practice",
       "title": "Practice",
       "category": "cyber",
-      "intro": "Hands-on reps once you know the ideas: timed drills, baseline-hardening trainers, and full hardening labs you run in your browser."
+      "intro": "Hands-on reps once you know the ideas. Net Drills are timed networking drills. Lockdown Drills walk you through hardening each system step by step. Lockdown Range drops you into a full simulated machine to harden on your own, with a live Progress Check."
     }
   ],
   "series": [
@@ -99,7 +99,7 @@
     {
       "slug": "defense-ladder",
       "name": "Defense Ladder",
-      "tagline": "From first command to defender, one grade at a time.",
+      "tagline": "Start here: the course, one grade at a time.",
       "description": "A four-grade cybersecurity learning ladder, Freshman to Senior, built on Bloom's taxonomy and aligned with the NICE Framework and CIS Controls. Concepts first, then quizzes and config-reading drills, then a hardening checklist and study plan you build yourself. Everything stays in your browser.",
       "badges": [
         "Cybersecurity",
@@ -112,7 +112,7 @@
       "icon": "path",
       "category": "cyber",
       "section": "learning",
-      "sha256": "ea7c062ec4810585f8b2b0e2d729b369de799da13382c9b3294ce58c54f5f002",
+      "sha256": "aca6d0510a5b05d60a7563225d81b9ca5524785e89629e77ffb564ce487aa356",
       "updated": "2026-10-14"
     },
     {
@@ -426,40 +426,22 @@
       "updated": "2026-10-14"
     },
     {
-      "slug": "concept-index",
-      "name": "Concept Index",
-      "tagline": "Find a concept. Learn it, then practice it.",
-      "description": "Look up any concept, from OSI layers to account lockout, and see where to learn it and where to practice it across Defense Ladder, Net Drills, Lockdown Drills, and Lockdown Range. Rate what you know to get a path through your gaps.",
-      "badges": [
-        "Cybersecurity",
-        "Study",
-        "Offline",
-        "Private"
-      ],
-      "file": "concept-index/index.html",
-      "download_as": "concept-index.html",
-      "icon": "search",
-      "category": "cyber",
-      "section": "learning",
-      "sha256": "7a3be8acc60122cd82e4036711a819df14d8a1197377e3606f0e23528866851c",
-      "updated": "2026-10-14"
-    },
-    {
       "slug": "study-map",
       "name": "Study Map",
-      "tagline": "Every concept: where to learn it, where to practice it.",
-      "description": "A table of contents for the whole cybersecurity course. Each concept links to the Defense Ladder unit that teaches it and the drills and labs that practice it, with a star on what every track needs and the matching commands on Windows, Linux, FreeBSD, and Cisco.",
+      "tagline": "Every concept: find it, learn it, practice it.",
+      "description": "Every concept in the cybersecurity course in one place. Search as you type or browse by topic, track, grade, network layer, or app, and see the Defense Ladder unit that teaches it, the drills and labs that practice it, and the commands on Windows, Linux, FreeBSD, and Cisco. Rate what you know to get your own study path.",
       "badges": [
         "Cybersecurity",
         "Study",
-        "Printable"
+        "Printable",
+        "Private"
       ],
       "file": "study-map/index.html",
       "download_as": "study-map.html",
       "icon": "map",
       "category": "cyber",
       "section": "learning",
-      "sha256": "9b636596261da3a15db3ddc208a356f05b7e2c44d60ebbb204662baf15b1cbec",
+      "sha256": "c217a07efa33a0f426d73bd8ce40e75bc9e457151c75c7e13a8ded6b59d5056b",
       "updated": "2026-10-14"
     }
   ]

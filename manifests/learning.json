@@ -3,35 +3,15 @@
   "section": "learning",
   "tools": [
     {
-      "slug": "concept-index",
-      "name": "Concept Index",
-      "tagline": "Find a concept. Learn it, then practice it.",
-      "description": "Look up any concept, from OSI layers to account lockout, and see where to learn it and where to practice it across Defense Ladder, Net Drills, Lockdown Drills, and Lockdown Range. Rate what you know to get a path through your gaps.",
-      "badges": [
-        "Cybersecurity",
-        "Study",
-        "Offline",
-        "Private"
-      ],
-      "icon": "search",
-      "emoji": "🧭",
-      "match": [
-        "concept[ _-]?index"
-      ],
-      "reference": false,
-      "prep": {
-        "strip_google_fonts": true
-      }
-    },
-    {
       "slug": "study-map",
       "name": "Study Map",
-      "tagline": "Every concept: where to learn it, where to practice it.",
-      "description": "A table of contents for the whole cybersecurity course. Each concept links to the Defense Ladder unit that teaches it and the drills and labs that practice it, with a star on what every track needs and the matching commands on Windows, Linux, FreeBSD, and Cisco.",
+      "tagline": "Every concept: find it, learn it, practice it.",
+      "description": "Every concept in the cybersecurity course in one place. Search as you type or browse by topic, track, grade, network layer, or app, and see the Defense Ladder unit that teaches it, the drills and labs that practice it, and the commands on Windows, Linux, FreeBSD, and Cisco. Rate what you know to get your own study path.",
       "badges": [
         "Cybersecurity",
         "Study",
-        "Printable"
+        "Printable",
+        "Private"
       ],
       "icon": "map",
       "emoji": "🗺️",

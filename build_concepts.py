@@ -1,33 +1,27 @@
 #!/usr/bin/env python3
-"""Build the Concept Index page from concepts.json and tools.json.
+"""Check concepts.json and confirm every place it lists against the published tool pages.
 
 Usage:
-  py build_concepts.py [--out DIR] [--check] [--strict] [--links] [--keep-unverified]
+  py build_concepts.py [--check] [--strict] [--links]
 
-  --out DIR           folder for concept-index.html (default: ../tool4that-src/learning, outside this repository)
-  --check             validate and confirm only; write nothing
-  --strict            stop if any place can't be confirmed (default: leave it out and list it)
+  --check             accepted for older instructions; this script never writes anything
+  --strict            exit with an error if any place can't be confirmed (default: list it)
   --links             also request every reference URL and list the ones that fail (needs internet)
-  --keep-unverified   previews only: keep places that aren't confirmed, marked as such (never publish this)
 
 concepts.json lists domains, concepts (layers, prerequisites, references), and the places where each
 concept is learned or practiced. This script checks the data (unique ids, known tools, kinds, and layers;
 prerequisites that exist and don't loop), then confirms every place against the tool's published page in
 this repository (SLUG/index.html plus its extras .txt): each "where" step and at least one "find" term must
-appear, case-insensitive, as whole words. Places it can't confirm are left out and listed, so the index
-never points at something a tool doesn't have. Concepts with nothing hands-on are listed as gaps. Then it
-writes concept-index.html from the template design/concept-index.html, with the data embedded.
-Next: py add_tools.py manifests/learning.json ../tool4that-src/learning, then py build_hub.py.
-Standard library only; reads and writes UTF-8 with LF.
+appear, case-insensitive, as whole words. Places it can't confirm are listed; the Study Map
+(../tool4that-src/curriculum/build_study_map.py, which imports this module) leaves them out, so it never
+points at something a tool doesn't have. Concepts with nothing hands-on are listed as gaps.
+Standard library only; reads UTF-8.
 """
 import argparse, html, json, re, sys, urllib.error, urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / "concepts.json"
-TEMPLATE = ROOT / "design" / "concept-index.html"
-PLACEHOLDER = '{"concept_index":"no data yet"}'
-SLUG = "concept-index"
 KINDS = ("learn", "drill", "build", "fix", "lab")
 HANDS_ON = {"drill", "build", "fix", "lab"}
 LAYERS = ("1", "2", "3", "4", "5", "6", "7", "host")
@@ -215,12 +209,10 @@ def check_links(concepts):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Build the Concept Index page from concepts.json and tools.json.")
-    ap.add_argument("--out", metavar="DIR", help="folder for concept-index.html (default: ../tool4that-src/learning)")
-    ap.add_argument("--check", action="store_true", help="validate and confirm only; write nothing")
-    ap.add_argument("--strict", action="store_true", help="stop if any place can't be confirmed")
+    ap = argparse.ArgumentParser(description="Check concepts.json and confirm every place against the tool pages.")
+    ap.add_argument("--check", action="store_true", help="accepted for older instructions; nothing is ever written")
+    ap.add_argument("--strict", action="store_true", help="exit with an error if any place can't be confirmed")
     ap.add_argument("--links", action="store_true", help="request every reference URL (needs internet)")
-    ap.add_argument("--keep-unverified", action="store_true", help="previews only: keep unconfirmed places, marked")
     a = ap.parse_args()
 
     cfg = json.loads((ROOT / "tools.json").read_text(encoding="utf-8"))
@@ -228,58 +220,23 @@ def main():
     tools = {t["slug"]: t for t in cfg["tools"]}
     errs = validate(data, tools)
     if errs:
-        sys.exit("concepts.json has problems, nothing written:\n  " + "\n  ".join(errs))
-    concepts, ok, left = confirm(data, cfg, a.keep_unverified)
+        sys.exit("concepts.json has problems:\n  " + "\n  ".join(errs))
+    concepts, ok, left = confirm(data, cfg, False)
     total = sum(len(c.get("locations", [])) for c in data["concepts"])
     print(f'concepts.json: {len(concepts)} concepts in {len(data["domains"])} domains, {total} places, '
           f'{sum(len(c["refs"]) for c in concepts)} references')
     print(f"confirmed {ok} of {total} places against the tool pages")
     if left:
-        print(f"left out {len(left)} (" + ("kept as unconfirmed for this preview" if a.keep_unverified else
-              "fix where/find in concepts.json, or delete the place if the tool doesn't cover the concept") + "):")
+        print(f"left out {len(left)} (fix where/find in concepts.json, or delete the place if the tool doesn't cover the concept):")
         print("  " + "\n  ".join(left))
-    gaps = [c["id"] for c in concepts if not any(HANDS_ON & set(p["kind"]) for p in c["locations"] if not p.get("unchecked"))]
+    gaps = [c["id"] for c in concepts if not any(HANDS_ON & set(p["kind"]) for p in c["locations"])]
     if gaps:
         print(f"no hands-on place yet ({len(gaps)}): " + ", ".join(gaps))
     if a.links:
         check_links(concepts)
     if a.strict and left:
-        sys.exit("--strict: places were left out, nothing written.")
-    if a.check:
-        print("Check only: nothing written.")
-        return
-
-    used = {p["tool"] for c in concepts for p in c["locations"]}
-    site = cfg["site"].rstrip("/")
-    payload = {
-        "site": site, "self": f"{site}/{SLUG}/",
-        "checked": max((tools[s].get("updated") or "" for s in used), default=""),
-        "domains": [{"id": d["id"], "title": d["title"]} for d in data["domains"]],
-        "tools": {t["slug"]: {"name": t["name"], "tagline": t.get("tagline", ""), "group": tool_group(t, cfg),
-                              "platform": tool_platform(t, data.get("platforms", {})),
-                              "extras": [{"label": x["label"], "file": x["file"]} for x in t.get("extras", [])]}
-                  for t in cfg["tools"] if t["slug"] in used},
-        "concepts": concepts,
-    }
-    blob = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
-    tpl = TEMPLATE.read_text(encoding="utf-8")
-    if tpl.count(PLACEHOLDER) != 1:
-        sys.exit(f"design/concept-index.html must contain {PLACEHOLDER} exactly once.")
-    page = tpl.replace(PLACEHOLDER, blob)
-    sys.path.insert(0, str(ROOT))
-    from prepare_tool import BLOCKERS
-    refused = [why for rx, why in BLOCKERS if re.search(rx, page, re.I)]
-    if refused:
-        sys.exit("prepare_tool.py would refuse this page (it " + "; it ".join(refused) + "). Find that text in concepts.json and reword it.")
-    out = Path(a.out).resolve() if a.out else (ROOT.parent / "tool4that-src" / "learning")
-    if out == ROOT or ROOT in out.parents:
-        sys.exit("Write the page outside this repository: add_tools.py reads sources from outside it.")
-    out.mkdir(parents=True, exist_ok=True)
-    dest = out / f"{SLUG}.html"
-    dest.write_text(page, encoding="utf-8", newline="\n")
-    print(f"wrote {dest} ({len(page.encode()):,} bytes)" + ("  PREVIEW ONLY: never publish this file" if a.keep_unverified else ""))
-    if not a.keep_unverified:
-        print(f"Next: py add_tools.py manifests/learning.json {out}   then   py build_hub.py")
+        sys.exit("--strict: places were left out.")
+    print("Next: py ..\\tool4that-src\\curriculum\\build_study_map.py --repo .")
 
 
 if __name__ == "__main__":

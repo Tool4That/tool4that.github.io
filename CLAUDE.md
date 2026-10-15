@@ -6,7 +6,8 @@ Static site published twice from this **public** repository: the primary at http
 - `index.html` (the category chooser), `all/index.html`, one `<category>/index.html` per category, one `<series>/index.html` per series (`net-drills/`, `lockdown-drills/`, `lockdown-range/`), `404.html`, `robots.txt`, `sitemap.xml`: **generated** by `build_hub.py` from `tools.json`. Don't hand-edit them; edit `tools.json` or the templates inside `build_hub.py`, then rebuild.
 - `tools.json`: `categories` (slug, title, tagline, description, icon, note), `series` (slug, title, category, description, note: a named group of tools inside a category, with its own page), `sections` (slug, title, category, intro: an in-page grouping inside a category, one level *above* its series, with no page of its own, e.g. Learning and Practice under Cybersecurity), and `tools` (each with a `category` slug, an optional `series` slug, an optional `section` slug, and optional `extras`: more download buttons, e.g. a reference `.txt`). Category and series slugs and `all` are reserved folder names, so a tool slug can't reuse them. A series with no tools gets no page. **If a category defines any sections, every loose tool and every series in it must name a `section`** (a tool in a series inherits the series' section); `build_hub.py` refuses to build otherwise. A category with no sections renders exactly as before.
 - `manifests/<group>.json` + `add_tools.py`: the standard way to prepare and register tools (see "Add or update tools").
-- `concepts.json` + `build_concepts.py` + `design/concept-index.html`: the Concept Index (`concept-index/`), a generated tool that maps each cybersecurity concept to where it is learned and practiced (see "Concept Index").
+- `concepts.json` + `build_concepts.py` + `design/study-map.html`: the data, checker, and page template behind the Study Map (`study-map/`), a generated tool that maps every cybersecurity concept to where it is learned and practiced (see "Study Map").
+- `_redirects` (Cloudflare Pages only): sends the retired `/concept-index/` address to `/study-map/`. The Study Map also opens old Concept Index links (`#c=<id>`).
 - `<slug>/index.html`: one self-contained tool per folder, built elsewhere (see "Tool sources").
 - `.nojekyll`: GitHub serves the files exactly as committed.
 - `.gitattributes` (`* -text`): byte-exact commits, so each tool card's SHA-256 matches the served file.
@@ -14,7 +15,7 @@ Static site published twice from this **public** repository: the primary at http
 ## Rules
 - **Never edit a tool's `index.html` here.** Its inline scripts are pinned by SHA-256 in its Content Security Policy, so any edit breaks the page. Rebuild from source, then copy it in.
 - **After adding or updating a tool,** run `py build_hub.py` (Windows) or `python3 build_hub.py`, then commit.
-- **After adding, renaming, or rebuilding a cybersecurity tool,** rebuild the Concept Index too (see "Concept Index"): a tool's labels may have changed.
+- **After adding, renaming, or rebuilding a cybersecurity tool,** rebuild the Study Map too (see "Study Map"): a tool's labels may have changed.
 - **`build_hub.py`, `prepare_tool.py`, and `add_tools.py` read and write UTF-8 with LF explicitly.** Keep it that way, so runs on Windows don't rewrite files with Windows line endings or garble text.
 - **Hub pages run no JavaScript** (`default-src 'none'`). Keep it that way.
 - **No analytics, trackers, or third-party scripts.**
@@ -40,28 +41,20 @@ Static site published twice from this **public** repository: the primary at http
    & "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe" --headless=new --screenshot="$PWD\og-image.png" --window-size=1200,630 "$PWD\design\og-hub.html"
    ```
 
-## Concept Index
-`concept-index/` is generated, never hand-built. `build_concepts.py` reads `concepts.json` (domains; concepts with layers, prerequisites, and references; and the places where each concept is learned or practiced) and `tools.json`, then confirms every place against the published tool pages here (`<slug>/index.html` plus its extras `.txt`): each `where` step and at least one `find` term must appear, case-insensitive, as whole words. Places it can't confirm are left out and listed, so the index never points at something a tool doesn't have. It writes `../tool4that-src/learning/concept-index.html` from the template `design/concept-index.html`; `manifests/learning.json` puts it in the Learning section.
+## Study Map
+`study-map/` is generated, never hand-built. It is the one place to find any concept: live search; tabs for Topic, Track, Grade, Layer (OSI and TCP/IP, plus the host), App, and My path (New, Shaky, or Solid ratings, kept in the browser); a concept list beside a detail pane on desktop, details in place on phones; and a full static listing for printing and for browsers without JavaScript. Each concept shows the Defense Ladder unit that teaches it, the drills and labs that practice it, and the commands on each system. It replaced the Concept Index on 2026-10-14.
 ```
 py build_concepts.py
-py add_tools.py manifests/learning.json ..\tool4that-src\learning
-py build_hub.py
-```
-- **A place was left out:** search that tool's page for the concept, then fix the place's `where` (the tool's own labels, joined with ` › `) or `find` (terms that must appear) in `concepts.json`. If the tool doesn't cover the concept, delete the place. Never add a place you haven't found in the tool.
-- **Concepts with no hands-on place** are listed as gaps: candidates for new drills.
-- `--check` validates without writing, `--strict` stops on any left-out place, `--links` requests every reference URL (needs internet), and `--keep-unverified` is for previews only: never publish its output.
-
-## Study Map
-`study-map/` is generated, never hand-built: a no-JavaScript, printable table of contents where each concept links to the Defense Ladder unit that teaches it and the drills and labs that practice it.
-```
-py build_concepts.py --check
 py ..\tool4that-src\curriculum\build_study_map.py --repo .
 py add_tools.py manifests/learning.json ..\tool4that-src\learning
 py build_hub.py
 ```
-- `build_study_map.py` reads the private concept map in `..\tool4that-src\curriculum\` (`concepts.json`, `crosswalk.json`, `dl_units.json`), reuses the Concept Index places confirmed by `build_concepts.py`, and writes `..\tool4that-src\learning\study-map.html`. It refuses to write the page if competition wording slips through. The curriculum folder never enters this repository.
+- `build_concepts.py` checks `concepts.json` (the public concept data: layers, prerequisites, summaries, other names, references, and the places where each concept is learned or practiced) and confirms every place against the published tool pages here (`<slug>/index.html` plus its extras `.txt`): each `where` step and at least one `find` term must appear, case-insensitive, as whole words. It writes nothing. `--strict` exits with an error on any left-out place; `--links` requests every reference URL (needs internet).
+- **A place was left out:** search that tool's page for the concept, then fix the place's `where` (the tool's own labels, joined with ` › `) or `find` (terms that must appear) in `concepts.json`. If the tool doesn't cover the concept, delete the place. Never add a place you haven't found in the tool. Concepts with no hands-on place are listed as gaps: candidates for new drills.
+- `build_study_map.py` reads the private concept map in `..\tool4that-src\curriculum\` (`concepts.json`, `crosswalk.json`, `dl_units.json`), uses only the places `build_concepts.py` confirms, fills the template `design/study-map.html`, and writes `..\tool4that-src\learning\study-map.html`. It refuses to write the page if competition wording slips through, or if a `concepts.json` entry here isn't reached by any `crosswalk.json` entry (so nothing silently drops out). The curriculum folder never enters this repository.
 - **Rebuild it whenever Defense Ladder's units or any cybersecurity tool change.** Expect no `unit titles not found` line; if one appears, update the unit's exact title in `dl_units.json`.
 - Defense Ladder answers to `#<grade>/<unit>` links (for example `#freshman/f7`), which the Study Map uses for exact-unit Learn links. Keep unit ids stable: never renumber one once published; a new unit takes the next free id in its grade.
+- The template's script can't contain the words the build refuses (for example `round` or `score` as whole words), because the check covers the whole page.
 
 ## Tool sources (kept outside this repository, in `../tool4that-src/`)
 - Net Drills (`net-drills/`): `manifests/net-drills.json` (links the series strip between drills). The four sources in `../tool4that-src/net-drills/` are the maintained copies; IOS CLI Lab, Config Audit, and Trouble Tickets started from the published pages (prepare_tool.py strips its own additions when re-run), and Subnet Sprint carries the `#f-levels` radio-scope fix that the original claude.ai artifact lacks.

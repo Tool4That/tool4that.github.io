@@ -1,5 +1,5 @@
 {
-  "about": "Data for the Concept Index (concept-index/). Edit it, then run build_concepts.py. Each place names a tool slug from tools.json, a kind (learn, drill, build, fix = troubleshoot, lab), and how to confirm it in the tool's page: where = the tool's own labels joined with ' › ' (every step must appear), find = terms of which at least one must appear (with no where, the first one found is shown as 'look for'). layers: OSI 1 to 7, and host for the machine itself. refs: src is standard or vendor. Never list a place you haven't found in the tool.",
+  "about": "Concept data for the Study Map (study-map/): build_concepts.py checks it and confirms every place against the tool pages, and the Study Map uses the confirmed places, layers, summaries, other names, and references. Each place names a tool slug from tools.json, a kind (learn, drill, build, fix = troubleshoot, lab), and how to confirm it in the tool's page: where = the tool's own labels joined with ' › ' (every step must appear), find = terms of which at least one must appear. layers: OSI 1 to 7, and host for the machine itself. refs: src is standard or vendor. Never list a place you haven't found in the tool.",
   "platforms": {
     "net-drills/trouble-tickets": "general"
   },

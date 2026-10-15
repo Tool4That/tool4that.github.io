@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-ShT5/P5fALOJjO5NOfg8Eyg8FKDK8u4aAoMUBVW+TVs='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-8afaft+oByBaULn4kqVfKl15Y8aAMXO7IeYai3hTSP4='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/defense-ladder/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%8E%93%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -156,6 +156,8 @@ p code,li code,.why code{background:var(--line-2);padding:1px 5px;border-radius:
 .opt input{margin-top:4px}
 .opt.right{border-color:var(--ok);background:var(--ok-bg)}
 .opt.wrong{border-color:var(--bad);background:var(--bad-bg)}
+.opt.right span::after{content:" \2713  Correct";font-weight:700;color:var(--ok);white-space:nowrap}
+.opt.wrong span::after{content:" \2717  Your answer";font-weight:700;color:var(--bad);white-space:nowrap}
 .why{font-size:.9rem;color:var(--ink-2);margin:6px 0 0;padding:8px 10px;background:var(--paper-2);border-radius:8px;border:1px dashed var(--line)}
 
 /* flashcards */
@@ -1592,16 +1594,21 @@ function renderAreas(){
 function renderFlash(b){
   const c=el('div','card');
   c.appendChild(el('h3',null,`${b.title}<span class="blm">Remember</span>`));
-  c.appendChild(el('p','sum','Tap the card to flip. Next to continue. '+b.cards.length+' cards.'));
+  c.appendChild(el('p','sum','Tap the card (or press Enter or Space) to flip. Next to continue. '+b.cards.length+' cards.'));
   const flash=el('div','flash');
   const fc=el('div','fc');
+  fc.tabIndex=0;
+  fc.setAttribute('role','button');
+  fc.setAttribute('aria-live','polite');
   let i=0, back=false;
   const state=store.get(b.id)||{};
   function draw(){
     fc.className='fc'+(back?' back':'');
+    fc.setAttribute('aria-label',(back?'Answer':'Term')+', card '+(i+1)+' of '+b.cards.length+'. Press to flip.');
     fc.innerHTML=`<span class="side">${back?'Answer':'Term'}</span><span class="cnt">${i+1} / ${b.cards.length}</span><div>${back?b.cards[i][1]:b.cards[i][0]}</div>`;
   }
   fc.addEventListener('click',()=>{back=!back;draw();});
+  fc.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();back=!back;draw();}});
   flash.appendChild(fc);
   c.appendChild(flash);
   const row=el('div','row');

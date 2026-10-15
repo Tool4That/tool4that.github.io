@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Study Map</title>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#E8ECF0;--face:#F7F9FA;--ink:#17212B;--muted:#55647A;--rule:#C6D0DA;--accent:#1F5C9E;--star:#A8461A;
+  --app:#1F5C9E;--tra:#23794A;--int:#A8461A;--lnk:#6E4526;--host:#4E5D70;--none:#8593A3;
+  --focus:#1F5C9E;--on-ink:#F7F9FA;--sel:#DCE6F2;
+  --head:"Bahnschrift","DIN Alternate","Roboto Condensed","Avenir Next Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"Cascadia Mono","SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#111922;--face:#19242F;--ink:#E2E9F0;--muted:#98A8B9;--rule:#2E3D4C;--accent:#6AA5EA;--star:#F0874A;
+    --app:#6AA5EA;--tra:#4DBB7F;--int:#F0874A;--lnk:#C08B63;--host:#A3B1C2;--none:#6F7F90;
+    --focus:#8CC4F2;--on-ink:#111922;--sel:#22344A;color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111922;--face:#19242F;--ink:#E2E9F0;--muted:#98A8B9;--rule:#2E3D4C;--accent:#6AA5EA;--star:#F0874A;
+  --app:#6AA5EA;--tra:#4DBB7F;--int:#F0874A;--lnk:#C08B63;--host:#A3B1C2;--none:#6F7F90;
+  --focus:#8CC4F2;--on-ink:#111922;--sel:#22344A;color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--body)}
+a{color:var(--accent);text-underline-offset:2px}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.vh{position:absolute!important;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-999px;top:.5rem;z-index:9;padding:.5rem .8rem;border-radius:6px;background:var(--face);color:var(--ink)}
+.skip:focus{left:.5rem}
+.wrap{max-width:74rem;margin:0 auto;padding:0 1rem 1.2rem}
+.top{display:flex;flex-wrap:wrap;align-items:baseline;gap:.2rem 1.2rem;padding:1.4rem 0 .6rem}
+h1{margin:0;font:700 clamp(2rem,6vw,2.6rem)/1 var(--head)}
+.lede{flex:1 1 22rem;margin:0;color:var(--muted)}
+.star{color:var(--star);font-weight:700}
+#app{display:none}
+.js #app{display:block}
+.js #all{display:none}
+.search input{width:100%;padding:.65rem .85rem;border:2px solid var(--rule);border-radius:8px;background:var(--face);font-size:1.05rem}
+.search input:focus{border-color:var(--focus);outline:none}
+.search input::placeholder{color:var(--muted);opacity:1}
+.tabs{display:flex;gap:.15rem;margin:.6rem 0 0;border-bottom:2px solid var(--rule);overflow-x:auto;scrollbar-width:thin}
+.tab{flex:none;margin-bottom:-2px;padding:.55rem .8rem;border:0;border-bottom:3px solid transparent;background:none;font:700 1rem var(--head);color:var(--muted);cursor:pointer;white-space:nowrap}
+.tab[aria-selected="true"]{border-bottom-color:var(--ink);color:var(--ink)}
+.panes{display:grid;gap:1rem;margin-top:.8rem}
+.side,.detail{min-width:0}
+.detail{display:none}
+@media screen and (min-width:900px){
+  .js .wrap{display:flex;flex-direction:column;height:100vh;height:100dvh;padding-bottom:.4rem}
+  .js .top{padding:1rem 0 .5rem}
+  .js #app{display:flex;flex-direction:column;flex:1;min-height:0}
+  .panes{flex:1;min-height:0;grid-template-columns:minmax(17rem,23rem) minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
+  .side,.detail{height:100%;overflow:auto;overscroll-behavior:contain}
+  .side{padding-right:.4rem}
+  .detail{display:block;padding:1rem 1.2rem;border:1px solid var(--rule);border-radius:8px;background:var(--face)}
+  .js .foot{flex:none;margin-top:.5rem;padding-top:.4rem;font-size:.8rem}
+  .js .foot p{margin:0}
+}
+.status{margin:.2rem 0 .5rem;font-size:.93rem;color:var(--muted)}
+.linkish{margin-left:.5rem;padding:0;border:0;background:none;color:var(--accent);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.seg{display:flex;flex-wrap:wrap;gap:.35rem;margin:0 0 .6rem}
+.pill{min-height:2.2rem;padding:.3rem .85rem;border:1.5px solid var(--rule);border-radius:999px;background:var(--face);font-weight:600;font-size:.92rem;cursor:pointer}
+.pill[aria-checked="true"]{border-color:var(--ink);background:var(--ink);color:var(--on-ink)}
+.gh{margin:.9rem 0 .3rem;font:700 1.02rem/1.2 var(--head)}
+.gh:first-child{margin-top:.2rem}
+.gs{margin:.55rem 0 .2rem;font:600 .9rem/1.25 var(--head);color:var(--muted)}
+.items{margin:0;padding:0;list-style:none}
+.it{display:flex;align-items:center;gap:.45rem;width:100%;min-height:2.4rem;padding:.35rem .55rem;border:0;border-left:4px solid var(--gc,var(--rule));border-radius:4px;background:none;text-align:left;cursor:pointer;line-height:1.25}
+.it:hover{background:var(--face)}
+.it[aria-current="true"]{background:var(--sel);font-weight:650}
+.it .t{flex:1}
+.it .tg{flex:none;font:600 .78rem var(--head);color:var(--muted);white-space:nowrap}
+.rt{flex:none;width:.75rem;height:.75rem;border:2px solid var(--muted);border-radius:50%}
+.rt-shaky{background:linear-gradient(90deg,var(--muted) 50%,transparent 50%)}
+.rt-solid{background:var(--muted)}
+.inline{margin:.2rem 0 .7rem .3rem;padding:.8rem .9rem;border:1px solid var(--rule);border-radius:8px;background:var(--face)}
+.stack{display:grid;grid-template-columns:minmax(0,1fr) 5.6rem;gap:3px 5px;margin:0 0 .4rem}
+.ly{grid-column:1;display:grid;grid-template-columns:1.8rem minmax(0,1fr) auto;align-items:center;min-height:2.3rem;padding:0 .6rem 0 0;border:0;border-left:6px solid var(--gc);border-radius:4px;background:color-mix(in srgb,var(--gc) 13%,var(--face));text-align:left;cursor:pointer}
+.ly .n{font:700 .95rem var(--head);text-align:center;color:var(--gc)}
+.nm{font:600 .95rem/1.15 var(--head)}
+.ct{font-size:.84rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.ly.zero .nm,.ly.zero .ct{opacity:.55}
+.br{grid-column:2;display:flex;align-items:center;justify-content:center;padding:0 .3rem;border:0;border-right:6px solid var(--gc);border-radius:4px;background:color-mix(in srgb,var(--gc) 8%,transparent);font:600 .84rem/1.1 var(--head);color:var(--gc);text-align:center;cursor:pointer}
+.ly[aria-pressed="true"],.br[aria-pressed="true"]{background:color-mix(in srgb,var(--gc) 30%,var(--face));box-shadow:inset 0 0 0 2px var(--gc)}
+.host{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:.5rem;min-height:2.3rem;margin-top:4px;padding:0 .6rem;border:2px dashed var(--host);border-radius:6px;background:transparent;text-align:left;cursor:pointer}
+.host[aria-pressed="true"]{border-style:solid;background:color-mix(in srgb,var(--host) 16%,var(--face))}
+.stack-note{margin:0 0 .5rem;font-size:.86rem;color:var(--muted)}
+.g-app{--gc:var(--app)}.g-tra{--gc:var(--tra)}.g-int{--gc:var(--int)}.g-lnk{--gc:var(--lnk)}.g-host{--gc:var(--host)}.g-none{--gc:var(--none)}
+.d h2{margin:0;font:700 1.45rem/1.15 var(--head)}
+.d .meta{margin:.25rem 0 .6rem;font-size:.9rem;color:var(--muted)}
+.d h3{margin:1rem 0 .35rem;font:700 1rem var(--head)}
+.d ul{margin:0;padding-left:1.1rem}
+.d li{margin:.15rem 0}
+.parts{list-style:none;padding:0!important}
+.parts li{margin:0 0 .45rem}
+.parts b{font-weight:650}
+.k{margin-left:.35rem;padding:.12rem .4rem;border:1px solid var(--muted);border-radius:3px;font:600 .74rem/1 var(--head);color:var(--muted);white-space:nowrap}
+.k-lab{border-color:var(--ink);background:var(--ink);color:var(--on-ink)}
+.k-build,.k-fix{border-color:var(--ink);color:var(--ink)}
+.w{display:block;font-size:.88rem;color:var(--muted)}
+.sys{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.3rem .7rem;margin:0}
+.sys dt{font:700 .86rem/1.6 var(--head);color:var(--muted)}
+.sys dd{margin:0}
+code{font:.84rem var(--mono);overflow-wrap:anywhere}
+.chips{display:flex;flex-wrap:wrap;gap:.35rem;margin:.2rem 0}
+.chip{display:inline-block;padding:.2rem .65rem;border:1px solid var(--rule);border-radius:999px;background:var(--bg);color:var(--ink);font-size:.88rem;cursor:pointer}
+.chip:hover{border-color:var(--ink)}
+.src{margin-left:.4rem;font-size:.8rem;color:var(--muted)}
+.none,.empty{color:var(--muted)}
+.empty{padding:.9rem;border:1px dashed var(--rule);border-radius:8px;background:var(--face)}
+.empty p{margin:0 0 .6rem}.empty p:last-child{margin:0}
+.rate{margin:1.1rem 0 0;padding:0;border:0}
+.rate legend{margin-bottom:.4rem;padding:0;font:700 1rem var(--head)}
+.share{margin:.9rem 0 0}
+.cpy{width:100%;padding:.4rem .5rem;border:1px solid var(--rule);border-radius:3px;background:var(--face);font:.86rem var(--mono)}
+.tally{margin:.2rem 0 .6rem;color:var(--muted);font-size:.93rem}
+.nx{display:block;font-size:.86rem;color:var(--muted)}
+.legend{margin:.8rem 0 0;font-size:.9rem;color:var(--muted)}
+.legend dl{display:grid;grid-template-columns:auto 1fr;gap:.35rem .6rem;align-items:center;margin:.4rem 0 0}
+.legend dd{margin:0}
+.foot{margin-top:1.4rem;padding-top:.8rem;border-top:1px solid var(--rule);font-size:.86rem;color:var(--muted)}
+.foot p{margin:0 0 .4rem}
+/* static listing: printing, and browsers without JavaScript */
+#all h2{margin:2rem 0 .4rem;font:700 1.6rem/1.1 var(--head)}
+#all h3{margin:1.5rem 0 .5rem;font:700 1.2rem/1.2 var(--head)}
+#all .note{margin:.3rem 0;color:var(--muted);font-size:.95rem}
+#all .c{margin:0 0 .6rem;padding:.7rem .85rem;border:1px solid var(--rule);border-radius:6px;background:var(--face)}
+#all .c h4{margin:0;font-size:1.05rem;line-height:1.3}
+#all .c .meta{margin:.15rem 0 .45rem;font-size:.86rem;color:var(--muted)}
+#all .c dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.3rem .7rem;margin:0}
+#all .c dt{font:700 .86rem/1.6 var(--head);color:var(--muted)}
+#all .c dd{margin:0}
+#all .c ul{margin:0;padding-left:1.05rem}
+#all .k{margin-left:.3rem;padding:0;border:0;font:600 .75rem var(--head);color:var(--muted)}
+#all .gap{color:var(--muted);font-style:italic}
+#all .list{margin:.3rem 0 .9rem;padding-left:1.1rem}
+#all .toc{columns:2 14rem;margin:.6rem 0 0;padding-left:1.1rem}
+@media print{
+  #app,.skip{display:none!important}
+  #all{display:block!important}
+  body{background:#fff}
+  #all .c{break-inside:avoid}
+}
+@media (prefers-reduced-motion:no-preference){.it{transition:background .1s}}
+</style>
+</head>
+<body>
+<a class="skip" href="#q">Skip to search</a>
+<div class="wrap">
+<header class="top">
+  <h1>Study Map</h1>
+  <p class="lede">Every concept in the course: where to learn it and where to practice it. <span class="star">&#9733;</span> marks what every track needs.</p>
+</header>
+<div id="app">
+  <div class="search"><label class="vh" for="q">Search concepts</label><input id="q" type="search" placeholder="Search: OSI, VLAN, lockout, sudo, net accounts" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+  <div class="tabs" role="tablist" aria-label="Browse by">
+    <button class="tab" type="button" role="tab" id="t-topic" data-tab="topic" aria-selected="true">Topic</button>
+    <button class="tab" type="button" role="tab" id="t-track" data-tab="track" aria-selected="false">Track</button>
+    <button class="tab" type="button" role="tab" id="t-grade" data-tab="grade" aria-selected="false">Grade</button>
+    <button class="tab" type="button" role="tab" id="t-layer" data-tab="layer" aria-selected="false">Layer</button>
+    <button class="tab" type="button" role="tab" id="t-app" data-tab="app" aria-selected="false">App</button>
+    <button class="tab" type="button" role="tab" id="t-path" data-tab="path" aria-selected="false">My path<span id="t-path-n"></span></button>
+  </div>
+  <div class="panes">
+    <section class="side" id="side" role="tabpanel" aria-labelledby="t-topic">
+      <div id="filters"></div>
+      <p class="status" id="status" aria-live="polite"></p>
+      <div id="list"></div>
+    </section>
+    <section class="detail" id="detail" aria-label="Details" tabindex="-1"></section>
+  </div>
+</div>
+<script type="application/json" id="sm-data">{"study_map":"no data yet"}</script>
+<script>
+(function () {
+  'use strict';
+  function $(s) { return document.querySelector(s); }
+  function el(tag, props, kids) {
+    var e = document.createElement(tag);
+    if (props) Object.keys(props).forEach(function (k) {
+      var v = props[k];
+      if (v === null || v === undefined || v === false) return;
+      if (k === 'text') e.textContent = v;
+      else if (k === 'cls') e.className = v;
+      else e.setAttribute(k, v);
+    });
+    if (kids) kids.forEach(function (c) {
+      if (c === null || c === undefined || c === false) return;
+      e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+    });
+    return e;
+  }
+  function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+
+  var D = null;
+  try { D = JSON.parse($('#sm-data').textContent); } catch (err) { D = null; }
+  if (!D || !Array.isArray(D.concepts)) return;
+  document.documentElement.classList.add('js');
+
+  var KIND = {lab: 'Lab', build: 'Build', fix: 'Troubleshoot', drill: 'Drill'};
+  var LAYERS = [
+    {id: '7', name: 'Application', g: 'app'}, {id: '6', name: 'Presentation', g: 'app'}, {id: '5', name: 'Session', g: 'app'},
+    {id: '4', name: 'Transport', g: 'tra'}, {id: '3', name: 'Network', g: 'int'},
+    {id: '2', name: 'Data link', g: 'lnk'}, {id: '1', name: 'Physical', g: 'lnk'}
+  ];
+  var GROUPS = [
+    {id: 'app', name: 'Application', layers: ['7', '6', '5'], row: '1 / 4'},
+    {id: 'tra', name: 'Transport', layers: ['4'], row: '4 / 5'},
+    {id: 'int', name: 'Internet', layers: ['3'], row: '5 / 6'},
+    {id: 'lnk', name: 'Link', layers: ['2', '1'], row: '6 / 8'}
+  ];
+  var BANDS = ['freshman', 'sophomore', 'junior', 'senior'];
+  var BAND_TAG = {freshman: 'Fr', sophomore: 'So', junior: 'Jr', senior: 'Sr'};
+  var RATE = {'new': 'New', shaky: 'Shaky', solid: 'Solid'};
+  var TABS = ['topic', 'track', 'grade', 'layer', 'app', 'path'];
+  var KR = 't4t.study-map.ratings', KP = 't4t.study-map.prefs';
+  var store = {
+    get: function (k) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage unavailable: keep going */ } }
+  };
+  var ratings = store.get(KR);
+  if (!ratings || typeof ratings !== 'object') ratings = {};
+  var prefs = store.get(KP) || {};
+  var trackIds = D.tracks.map(function (t) { return t[0]; });
+  var S = {
+    tab: TABS.indexOf(prefs.tab) >= 0 ? prefs.tab : 'topic',
+    track: trackIds.indexOf(prefs.track) >= 0 ? prefs.track : 'all',
+    q: '', layer: null, sel: null, app: null
+  };
+  var wide = window.matchMedia('(min-width: 900px)');
+
+  var byId = {}, topo = {}, seq = 0;
+  D.concepts.forEach(function (c) { byId[c.id] = c; c.next = []; });
+  D.concepts.forEach(function (c) { c.prereqs.forEach(function (p) { if (byId[p]) byId[p].next.push(c.id); }); });
+  function walk(c) {
+    if (c.seen) return;
+    c.seen = true;
+    c.prereqs.forEach(function (p) { if (byId[p]) walk(byId[p]); });
+    topo[c.id] = seq++;
+  }
+  D.concepts.forEach(walk);
+  function norm(s) { return String(s).toLowerCase().replace(/[‘’]/g, "'").replace(/\s+/g, ' ').trim(); }
+  function groupOf(c) {
+    var nums = c.layers.filter(function (x) { return x !== 'host'; }).map(Number).sort(function (a, b) { return a - b; });
+    var first = nums.length ? String(nums[0]) : null;
+    if (!first) return c.layers.length ? 'host' : 'none';
+    for (var i = 0; i < GROUPS.length; i++) if (GROUPS[i].layers.indexOf(first) >= 0) return GROUPS[i].id;
+    return 'none';
+  }
+  function layerTag(c) {
+    var net = c.layers.filter(function (x) { return x !== 'host'; }).map(Number).sort(function (a, b) { return a - b; });
+    var t = net.length ? 'L' + net[0] + (net.length > 1 ? '–' + net[net.length - 1] : '') : '';
+    if (c.layers.indexOf('host') >= 0) t = t ? t + ', host' : 'Host';
+    return t;
+  }
+  var groupTitle = {};
+  D.groups.forEach(function (g) { groupTitle[g.id] = g.title; });
+  D.concepts.forEach(function (c) {
+    var lw = c.layers.map(function (x) {
+      if (x === 'host') return 'host';
+      var L = LAYERS.filter(function (y) { return y.id === x; })[0], g = GROUPS.filter(function (y) { return y.layers.indexOf(x) >= 0; })[0];
+      return 'layer ' + x + ' l' + x + ' ' + (L ? L.name : '') + ' ' + (g ? g.name : '');
+    });
+    var bits = [c.name, c.aka.join(' '), groupTitle[c.group] || '', c.band, lw.join(' ')];
+    c.parts.forEach(function (p) { bits.push(p.name, p.summary); });
+    Object.keys(c.impl).forEach(function (k) { bits.push(c.impl[k]); });
+    c.practice.forEach(function (p) { var t = D.tools[p.tool]; if (t) bits.push(t.name); bits.push(p.where.join(' ')); });
+    c.learn.concat(c.check, c.drill).forEach(function (a) { bits.push(D.units[a] || ''); });
+    c.hay = norm(bits.join(' '));
+    c.g = groupOf(c);
+  });
+
+  var site = String(D.site || '').replace(/\/+$/, '');
+  var HOSTS = ['freeapp4that.store', 'tool4that.github.io', 'localhost', '127.0.0.1'];
+  var relative = location.protocol !== 'file:' && HOSTS.indexOf(location.hostname) >= 0;
+  function href(path) { return (relative ? '../' : site + '/') + path; }
+  function dlHref(anchor) { return href('defense-ladder/' + (D.deep ? '#' + anchor : '')); }
+
+  var qmemo = {q: null, phrase: false};
+  function queryOk(c) {
+    var q = norm(S.q);
+    if (!q) return true;
+    if (qmemo.q !== q) qmemo = {q: q, phrase: D.concepts.some(function (x) { return x.hay.indexOf(q) >= 0; })};
+    if (qmemo.phrase) return c.hay.indexOf(q) >= 0;
+    return q.split(' ').every(function (w) { return c.hay.indexOf(w) >= 0; });
+  }
+  function onTrack(c, t) { return t === 'all' ? c.star : (c.star || c.tracks.indexOf(t) >= 0); }
+  function layerOk(c, layer) {
+    if (layer === undefined) layer = S.layer;
+    if (!layer) return true;
+    if (layer === 'host') return c.layers.indexOf('host') >= 0;
+    if (layer === 'none') return !c.layers.length;
+    var g = GROUPS.filter(function (x) { return x.id === layer; })[0];
+    if (g) return c.layers.some(function (x) { return g.layers.indexOf(x) >= 0; });
+    return c.layers.indexOf(layer) >= 0;
+  }
+  function layerPhrase(layer) {
+    if (layer === 'host') return 'on the host';
+    if (layer === 'none') return 'not tied to a layer';
+    var g = GROUPS.filter(function (x) { return x.id === layer; })[0];
+    if (g) return 'in the TCP/IP ' + g.name + ' layer';
+    var L = LAYERS.filter(function (x) { return x.id === layer; })[0];
+    return L ? 'at layer ' + L.id + ', ' + L.name : '';
+  }
+  function mark(h) {
+    try { history.replaceState(null, '', location.pathname + location.search + (h ? '#' + h : '')); } catch (e) { /* not allowed here */ }
+  }
+  function refocus(sel) { var x = document.querySelector(sel); if (x) x.focus({preventScroll: true}); }
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  /* ---------- concept details ---------- */
+  function linkList(anchors, suffix) {
+    return el('ul', null, anchors.map(function (a) {
+      return el('li', null, [el('a', {href: dlHref(a), text: 'Defense Ladder › ' + (D.units[a] || a)}), suffix ? el('span', {cls: 'k', text: suffix}) : null]);
+    }));
+  }
+  function practiceList(c) {
+    var items = c.drill.map(function (a) {
+      return el('li', null, [el('a', {href: dlHref(a), text: 'Defense Ladder › ' + (D.units[a] || a)}), el('span', {cls: 'k', text: 'Drill'})]);
+    });
+    c.practice.forEach(function (p) {
+      var t = D.tools[p.tool] || {name: p.tool};
+      items.push(el('li', null, [el('a', {href: href(p.tool + '/'), text: t.name}),
+        el('span', {cls: 'k ' + (p.kinds.indexOf('lab') >= 0 ? 'k-lab' : ''), text: p.kinds.map(function (k) { return KIND[k]; }).join(', ')}),
+        p.where.length ? el('span', {cls: 'w', text: p.where.slice(0, 3).join('; ')}) : null]));
+    });
+    return items.length ? el('ul', null, items) : el('p', {cls: 'none', text: 'No hands-on practice yet.'});
+  }
+  function chips(ids) {
+    return el('div', {cls: 'chips'}, ids.filter(function (id) { return byId[id]; }).map(function (id) {
+      return el('button', {cls: 'chip', type: 'button', 'data-go': id, text: byId[id].name});
+    }));
+  }
+  function rateBox(c) {
+    var row = el('div', {cls: 'seg', role: 'radiogroup', 'aria-label': 'How well do you know ' + c.name + '?'});
+    Object.keys(RATE).forEach(function (k) {
+      row.appendChild(el('button', {cls: 'pill', type: 'button', role: 'radio', 'aria-checked': String(ratings[c.id] === k), 'data-rate': k, 'data-id': c.id, text: RATE[k]}));
+    });
+    return el('fieldset', {cls: 'rate'}, [el('legend', {text: 'How well do you know it?'}), row]);
+  }
+  function conceptDetail(c) {
+    var d = el('div', {cls: 'd'});
+    d.appendChild(el('h2', null, [c.star ? el('span', {cls: 'star', title: 'Every track', text: '★ '}) : null, c.name]));
+    var meta = [cap(c.band) + ', aim: ' + c.bloom.toLowerCase()];
+    var lt = layerTag(c); if (lt) meta.push(lt === 'Host' ? 'the host' : 'layers ' + lt);
+    meta.push(c.star ? 'every track' : c.tracks.map(function (t) { var x = D.tracks.filter(function (y) { return y[0] === t; })[0]; return x ? x[1] : t; }).join(', ') + ' track');
+    d.appendChild(el('p', {cls: 'meta', text: meta.join(' · ')}));
+    if (c.parts.length) {
+      d.appendChild(el('h3', {text: 'What it covers'}));
+      d.appendChild(el('ul', {cls: 'parts'}, c.parts.map(function (p) { return el('li', null, [el('b', {text: p.name + '. '}), p.summary]); })));
+    }
+    d.appendChild(el('h3', {text: 'Learn it'}));
+    d.appendChild(c.learn.length ? linkList(c.learn) : el('p', {cls: 'none', text: 'Not in Defense Ladder yet.'}));
+    d.appendChild(el('h3', {text: 'Practice it'}));
+    d.appendChild(practiceList(c));
+    if (c.check.length) { d.appendChild(el('h3', {text: 'Check yourself'})); d.appendChild(linkList(c.check, 'Quiz')); }
+    var sys = Object.keys(D.systems).filter(function (k) { return c.impl[k]; });
+    if (sys.length) {
+      d.appendChild(el('h3', {text: 'On each system'}));
+      var dl = el('dl', {cls: 'sys'});
+      sys.forEach(function (k) { dl.appendChild(el('dt', {text: D.systems[k]})); dl.appendChild(el('dd', null, [el('code', {text: c.impl[k]})])); });
+      d.appendChild(dl);
+    }
+    var pre = c.prereqs.filter(function (p) { return byId[p]; });
+    if (pre.length) { d.appendChild(el('h3', {text: 'Builds on'})); d.appendChild(chips(pre)); }
+    if (c.next.length) { d.appendChild(el('h3', {text: 'Leads to'})); d.appendChild(chips(c.next)); }
+    if (c.refs.length) {
+      d.appendChild(el('h3', {text: 'Read the source'}));
+      d.appendChild(el('ul', null, c.refs.map(function (r) {
+        return el('li', null, [el('a', {href: r.url, target: '_blank', rel: 'noopener noreferrer', text: r.title}), el('span', {cls: 'src', text: r.src === 'standard' ? 'Standard' : 'Vendor docs'})]);
+      })));
+    }
+    d.appendChild(rateBox(c));
+    d.appendChild(el('p', {cls: 'share'}, [el('button', {cls: 'chip', type: 'button', 'data-copy': c.id, text: 'Copy a link to this concept'})]));
+    return d;
+  }
+  function appConcepts(slug) {
+    if (slug === 'defense-ladder') return D.concepts.filter(function (c) { return c.learn.length || c.drill.length || c.check.length; });
+    return D.concepts.filter(function (c) { return c.practice.some(function (p) { return p.tool === slug; }); });
+  }
+  function appDetail(slug) {
+    var t = D.tools[slug], cs = appConcepts(slug);
+    var d = el('div', {cls: 'd'});
+    d.appendChild(el('h2', {text: t.name}));
+    d.appendChild(el('p', {cls: 'meta', text: [t.group, plural(cs.length, 'concept', 'concepts')].join(' · ')}));
+    if (t.tagline) d.appendChild(el('p', {text: t.tagline}));
+    d.appendChild(el('p', null, [el('a', {href: href(slug + '/'), text: 'Open ' + t.name})]));
+    d.appendChild(el('h3', {text: 'Concepts you can work on here'}));
+    d.appendChild(chips(cs.sort(function (a, z) { return topo[a.id] - topo[z.id]; }).map(function (c) { return c.id; })));
+    return d;
+  }
+  function placeholder() {
+    var d = el('div', {cls: 'd'});
+    d.appendChild(el('h2', {text: 'Pick a concept'}));
+    d.appendChild(el('p', {text: 'Choose one from the list, or type in the search box. Each concept shows the Defense Ladder unit that teaches it, the drills and labs that practice it, and the commands on each system.'}));
+    var lg = el('div', {cls: 'legend'}, [el('p', {text: 'Kinds of practice:'})]);
+    var dl = el('dl');
+    [['k', 'Drill', 'Quick questions or a short exercise: remember it.'], ['k k-build', 'Build', 'Configure it from instructions: apply it.'],
+     ['k k-fix', 'Troubleshoot', 'Find the fault in output or a config: analyze it.'], ['k k-lab', 'Lab', 'A whole machine to harden, with a live check.']].forEach(function (r) {
+      dl.appendChild(el('dt', null, [el('span', {cls: r[0], text: r[1]})])); dl.appendChild(el('dd', {text: r[2]}));
+    });
+    lg.appendChild(dl);
+    d.appendChild(lg);
+    return d;
+  }
+
+  /* ---------- list ---------- */
+  function item(c, tag) {
+    var r = ratings[c.id];
+    return el('li', null, [el('button', {cls: 'it g-' + c.g, type: 'button', 'data-id': c.id, 'aria-current': String(S.sel === c.id),
+      'aria-expanded': wide.matches ? null : String(S.sel === c.id)}, [
+      c.star ? el('span', {cls: 'star', 'aria-label': 'every track', text: '★'}) : null,
+      el('span', {cls: 't', text: c.name}),
+      r ? el('span', {cls: 'rt rt-' + r, role: 'img', 'aria-label': 'rated ' + RATE[r]}) : null,
+      tag ? el('span', {cls: 'tg', text: tag}) : null
+    ])]);
+  }
+  function itemsBlock(list, tagFn) {
+    var ul = el('ul', {cls: 'items'});
+    list.forEach(function (c) {
+      var li = item(c, tagFn ? tagFn(c) : '');
+      if (!wide.matches && S.sel === c.id) li.appendChild(el('div', {cls: 'inline'}, [conceptDetail(c)]));
+      ul.appendChild(li);
+    });
+    return ul;
+  }
+  function status(list, extra) {
+    var st = $('#status');
+    var bits = [plural(list.length, 'concept', 'concepts')];
+    if (extra) bits.push(extra);
+    if (S.q) bits.push('matching “' + S.q + '”');
+    st.textContent = bits.join(' ') + '.';
+    if (S.q || S.layer) st.appendChild(el('button', {cls: 'linkish', type: 'button', 'data-clear': '1', text: 'Show all'}));
+  }
+  function emptyMsg(box) {
+    box.appendChild(el('p', {cls: 'empty', text: S.q ? 'Nothing matches “' + S.q + '” here. Try a command or another word for it, such as vlan, lockout, or sudo.' : 'Nothing here yet.'}));
+  }
+  function renderTopic(box) {
+    var list = D.concepts.filter(queryOk);
+    status(list);
+    if (!list.length) { emptyMsg(box); return; }
+    D.groups.forEach(function (g) {
+      var cs = list.filter(function (c) { return c.group === g.id; });
+      if (!cs.length) return;
+      box.appendChild(el('h3', {cls: 'gh', text: g.title}));
+      box.appendChild(itemsBlock(cs, function (c) { return BAND_TAG[c.band] || ''; }));
+    });
+  }
+  function renderTrack(box, filters) {
+    var seg = el('div', {cls: 'seg', role: 'radiogroup', 'aria-label': 'Track'});
+    D.tracks.forEach(function (t) { seg.appendChild(el('button', {cls: 'pill', type: 'button', role: 'radio', 'aria-checked': String(S.track === t[0]), 'data-track': t[0], text: t[1]})); });
+    filters.appendChild(seg);
+    var list = D.concepts.filter(function (c) { return onTrack(c, S.track) && queryOk(c); });
+    status(list, S.track === 'all' ? 'every track needs' : 'on the ' + (D.tracks.filter(function (t) { return t[0] === S.track; })[0] || ['', ''])[1] + ' track');
+    if (!list.length) { emptyMsg(box); return; }
+    BANDS.forEach(function (b) {
+      var cs = list.filter(function (c) { return c.band === b; });
+      if (!cs.length) return;
+      box.appendChild(el('h3', {cls: 'gh', text: cap(b)}));
+      box.appendChild(itemsBlock(cs, null));
+    });
+  }
+  function renderGrade(box) {
+    var list = D.concepts.filter(queryOk);
+    status(list, 'in teaching order');
+    if (!list.length) { emptyMsg(box); return; }
+    var shown = {};
+    BANDS.forEach(function (b) {
+      var anchors = D.unitOrder.filter(function (a) { return a.indexOf(b + '/') === 0; });
+      var head = false;
+      anchors.forEach(function (a) {
+        var cs = list.filter(function (c) { return c.learn.indexOf(a) >= 0; });
+        if (!cs.length) return;
+        if (!head) { box.appendChild(el('h3', {cls: 'gh', text: cap(b)})); head = true; }
+        box.appendChild(el('p', {cls: 'gs', text: (D.units[a] || a).split(' › ').pop()}));
+        box.appendChild(itemsBlock(cs, null));
+        cs.forEach(function (c) { shown[c.id] = true; });
+      });
+    });
+    var rest = list.filter(function (c) { return !shown[c.id]; });
+    if (rest.length) { box.appendChild(el('h3', {cls: 'gh', text: 'Not in Defense Ladder yet'})); box.appendChild(itemsBlock(rest, null)); }
+  }
+  function count(layer) { return D.concepts.filter(function (c) { return queryOk(c) && layerOk(c, layer); }).length; }
+  function renderLayer(box, filters) {
+    var stack = el('div', {cls: 'stack'});
+    LAYERS.forEach(function (L, i) {
+      var n = count(L.id);
+      stack.appendChild(el('button', {cls: 'ly g-' + L.g + (n ? '' : ' zero'), type: 'button', style: 'grid-row:' + (i + 1),
+        'aria-pressed': String(S.layer === L.id), 'data-layer': L.id, 'aria-label': 'Layer ' + L.id + ', ' + L.name + ': ' + plural(n, 'concept', 'concepts')},
+        [el('span', {cls: 'n', text: L.id}), el('span', {cls: 'nm', text: L.name}), el('span', {cls: 'ct', text: String(n)})]));
+    });
+    GROUPS.forEach(function (g) {
+      stack.appendChild(el('button', {cls: 'br g-' + g.id, type: 'button', style: 'grid-row:' + g.row, 'aria-pressed': String(S.layer === g.id), 'data-layer': g.id,
+        'aria-label': 'TCP/IP ' + g.name + ' layer: ' + plural(count(g.id), 'concept', 'concepts'), text: g.name}));
+    });
+    stack.appendChild(el('button', {cls: 'host g-host', type: 'button', style: 'grid-row:8', 'aria-pressed': String(S.layer === 'host'), 'data-layer': 'host',
+      'aria-label': 'Host, the machine itself: ' + plural(count('host'), 'concept', 'concepts')}, [el('span', {cls: 'nm', text: 'Host: the machine itself'}), el('span', {cls: 'ct', text: String(count('host'))})]));
+    filters.appendChild(stack);
+    filters.appendChild(el('p', {cls: 'stack-note', text: 'Layers 1 to 7 are the OSI model; the right column is TCP/IP. Tap a layer to filter, tap again to clear.'}));
+    var list = D.concepts.filter(function (c) { return queryOk(c) && layerOk(c); });
+    status(list, S.layer ? layerPhrase(S.layer) : '');
+    if (!list.length) { emptyMsg(box); return; }
+    var order = [['app', 'Application layers (7 to 5)'], ['tra', 'Transport (4)'], ['int', 'Network / Internet (3)'], ['lnk', 'Data link and physical (2, 1)'], ['host', 'The host'], ['none', 'Not tied to a layer']];
+    order.forEach(function (o) {
+      var cs = list.filter(function (c) { return c.g === o[0]; });
+      if (!cs.length) return;
+      box.appendChild(el('h3', {cls: 'gh', text: o[1]}));
+      box.appendChild(itemsBlock(cs, layerTag));
+    });
+  }
+  function renderApp(box) {
+    $('#status').textContent = 'Every app, and the concepts you can learn or practice in it.';
+    var groups = [], byGroup = {};
+    Object.keys(D.tools).forEach(function (slug) {
+      var t = D.tools[slug], n = appConcepts(slug).length;
+      if (!n) return;
+      if (!byGroup[t.group]) { byGroup[t.group] = []; groups.push(t.group); }
+      byGroup[t.group].push({slug: slug, t: t, n: n});
+    });
+    groups.forEach(function (g) {
+      box.appendChild(el('h3', {cls: 'gh', text: g}));
+      var ul = el('ul', {cls: 'items'});
+      byGroup[g].forEach(function (a) {
+        var li = el('li', null, [el('button', {cls: 'it', type: 'button', 'data-app': a.slug, 'aria-current': String(S.app === a.slug),
+          'aria-expanded': wide.matches ? null : String(S.app === a.slug)}, [el('span', {cls: 't', text: a.t.name}), el('span', {cls: 'tg', text: String(a.n)})])]);
+        if (!wide.matches && S.app === a.slug) li.appendChild(el('div', {cls: 'inline'}, [appDetail(a.slug)]));
+        ul.appendChild(li);
+      });
+      box.appendChild(ul);
+    });
+  }
+  function nextStep(c) {
+    if (c.learn.length) return {text: 'Defense Ladder › ' + (D.units[c.learn[0]] || ''), href: dlHref(c.learn[0])};
+    var p = c.practice[0];
+    if (p) return {text: (D.tools[p.tool] || {name: p.tool}).name, href: href(p.tool + '/')};
+    if (c.refs.length) return {text: c.refs[0].title, href: c.refs[0].url};
+    return null;
+  }
+  function pathSection(title, list, blocked) {
+    var box = el('div');
+    box.appendChild(el('h3', {cls: 'gh', text: title}));
+    var ul = el('ul', {cls: 'items'});
+    list.forEach(function (c) {
+      var li = item(c, ratings[c.id] ? RATE[ratings[c.id]] : '');
+      if (blocked) {
+        var need = c.prereqs.filter(function (p) { return byId[p] && ratings[p] !== 'solid'; }).map(function (p) { return byId[p].name; });
+        li.appendChild(el('span', {cls: 'nx', text: 'First: ' + need.join(', ')}));
+      } else {
+        var s = nextStep(c);
+        if (s) li.appendChild(el('span', {cls: 'nx'}, ['Next: ', el('a', {href: s.href, text: s.text})]));
+      }
+      if (!wide.matches && S.sel === c.id) li.appendChild(el('div', {cls: 'inline'}, [conceptDetail(c)]));
+      ul.appendChild(li);
+    });
+    box.appendChild(ul);
+    return box;
+  }
+  function renderPath(box) {
+    var st = $('#status');
+    var ids = Object.keys(ratings).filter(function (id) { return byId[id]; });
+    if (!ids.length) {
+      st.textContent = '';
+      box.appendChild(el('div', {cls: 'empty'}, [
+        el('p', {text: 'Rate a few concepts first: open any concept and choose New, Shaky, or Solid. Your path then lists what to work on, in an order where each step builds on the last.'}),
+        el('p', null, [el('button', {cls: 'pill', type: 'button', 'data-tab': 'track', text: 'Start with what every track needs'})])
+      ]));
+      return;
+    }
+    var n = {'new': 0, shaky: 0, solid: 0};
+    ids.forEach(function (id) { n[ratings[id]] = (n[ratings[id]] || 0) + 1; });
+    function solid(id) { return ratings[id] === 'solid'; }
+    var work = D.concepts.filter(function (c) { return ratings[c.id] === 'new' || ratings[c.id] === 'shaky'; }).sort(function (a, z) { return topo[a.id] - topo[z.id]; });
+    var now = work.filter(function (c) { return c.prereqs.every(solid); });
+    var later = work.filter(function (c) { return !c.prereqs.every(solid); });
+    var ready = D.concepts.filter(function (c) { return !ratings[c.id] && c.prereqs.length && c.prereqs.every(solid); }).sort(function (a, z) { return topo[a.id] - topo[z.id]; }).slice(0, 8);
+    st.textContent = 'Solid ' + n.solid + ', shaky ' + n.shaky + ', new ' + n['new'] + '. Ratings stay in this browser.';
+    if (now.length) box.appendChild(pathSection('Work on these now', now, false));
+    if (later.length) box.appendChild(pathSection('Then these', later, true));
+    if (ready.length) box.appendChild(pathSection('Ready to explore', ready, false));
+    if (!work.length) box.appendChild(el('p', {cls: 'none', text: 'Nothing rated New or Shaky. Explore what you are ready for, or rate more concepts.'}));
+    box.appendChild(el('p', {cls: 'share'}, [el('button', {cls: 'chip', type: 'button', 'data-reset': '1', text: 'Clear my ratings'})]));
+  }
+
+  function render() {
+    TABS.forEach(function (t) {
+      var b = $('#t-' + t), on = S.tab === t;
+      b.setAttribute('aria-selected', String(on));
+      b.tabIndex = on ? 0 : -1;
+    });
+    $('#side').setAttribute('aria-labelledby', 't-' + S.tab);
+    var gaps = Object.keys(ratings).filter(function (id) { return byId[id] && ratings[id] !== 'solid'; }).length;
+    $('#t-path-n').textContent = gaps ? ' (' + gaps + ')' : '';
+    var filters = $('#filters'), box = $('#list');
+    filters.textContent = ''; box.textContent = '';
+    if (S.tab === 'topic') renderTopic(box);
+    else if (S.tab === 'track') renderTrack(box, filters);
+    else if (S.tab === 'grade') renderGrade(box);
+    else if (S.tab === 'layer') renderLayer(box, filters);
+    else if (S.tab === 'app') renderApp(box);
+    else renderPath(box);
+    var det = $('#detail');
+    det.textContent = '';
+    if (S.tab === 'app' && S.app && !S.sel) det.appendChild(appDetail(S.app));
+    else if (S.sel && byId[S.sel]) det.appendChild(conceptDetail(byId[S.sel]));
+    else if (S.tab === 'app' && S.app) det.appendChild(appDetail(S.app));
+    else det.appendChild(placeholder());
+    store.set(KP, {tab: S.tab, track: S.track});
+  }
+
+  function select(id, keepTab) {
+    S.sel = id;
+    if (!keepTab && S.tab === 'app') S.app = S.app || null;
+    mark('c=' + id);
+    render();
+    if (wide.matches) { $('#detail').scrollTop = 0; }
+    else { var x = document.querySelector('.it[data-id="' + id + '"]'); if (x) x.scrollIntoView({block: 'start'}); }
+    refocus('.it[data-id="' + id + '"]');
+  }
+  function copyLink(id, btn) {
+    var url = (D.self || site + '/') + '#c=' + id;
+    function fallback() {
+      var inp = el('input', {cls: 'cpy', type: 'text', readonly: 'readonly', value: url, 'aria-label': 'Link to this concept'});
+      btn.replaceWith(inp);
+      inp.focus();
+      inp.select();
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(function () { btn.textContent = 'Link copied'; }, fallback);
+    else fallback();
+  }
+  function visibleInTab(c) {
+    if (S.tab === 'track') return onTrack(c, S.track) && queryOk(c);
+    if (S.tab === 'layer') return layerOk(c) && queryOk(c);
+    if (S.tab === 'app' || S.tab === 'path') return true;
+    return queryOk(c);
+  }
+  function route() {
+    var h = '';
+    try { h = decodeURIComponent(location.hash.replace(/^#/, '')); } catch (e) { h = ''; }
+    var m = /^c=([a-z0-9.-]+)$/.exec(h);
+    if (m) {
+      var id = byId[m[1]] ? m[1] : (D.alias[m[1]] || null);
+      if (id && byId[id]) {
+        if (!visibleInTab(byId[id])) { S.tab = 'topic'; S.q = ''; $('#q').value = ''; S.layer = null; }
+        S.sel = id;
+        render();
+        if (!wide.matches) { var x = document.querySelector('.it[data-id="' + id + '"]'); if (x) x.scrollIntoView({block: 'start'}); }
+        return;
+      }
+    }
+    m = /^t=([a-z]+)$/.exec(h);
+    if (m && TABS.indexOf(m[1]) >= 0) S.tab = m[1];
+    m = /^layer=(\w+)$/.exec(h);
+    if (m) { S.tab = 'layer'; S.layer = m[1]; }
+    render();
+  }
+
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest) return;
+    var b = e.target.closest('button');
+    if (!b) return;
+    var d = b.dataset;
+    if (d.tab) { S.tab = d.tab; S.sel = null; if (d.tab !== 'app') S.app = null; mark('t=' + d.tab); render(); refocus('#t-' + d.tab); return; }
+    if (d.track) { S.track = d.track; render(); refocus('[data-track="' + d.track + '"]'); return; }
+    if (d.layer) { S.layer = S.layer === d.layer ? null : d.layer; render(); refocus('[data-layer="' + d.layer + '"]'); return; }
+    if (d.rate) {
+      if (ratings[d.id] === d.rate) delete ratings[d.id]; else ratings[d.id] = d.rate;
+      store.set(KR, ratings);
+      render();
+      refocus('[data-rate="' + d.rate + '"][data-id="' + d.id + '"]');
+      return;
+    }
+    if (d.go) {
+      if (!wide.matches && S.tab === 'app') { S.tab = 'topic'; S.app = null; }
+      if (!visibleInTab(byId[d.go])) { S.tab = 'topic'; S.app = null; S.q = ''; $('#q').value = ''; S.layer = null; }
+      select(d.go);
+      return;
+    }
+    if (d.id && b.classList.contains('it')) {
+      if (!wide.matches && S.sel === d.id) { S.sel = null; mark(''); render(); refocus('.it[data-id="' + d.id + '"]'); return; }
+      select(d.id, true);
+      return;
+    }
+    if (d.app) {
+      if (!wide.matches && S.app === d.app) S.app = null; else S.app = d.app;
+      S.sel = null; mark('t=app'); render(); refocus('[data-app="' + d.app + '"]'); return;
+    }
+    if (d.copy) { copyLink(d.copy, b); return; }
+    if (d.clear) { S.q = ''; $('#q').value = ''; S.layer = null; render(); return; }
+    if (d.reset) {
+      if (d.armed) { ratings = {}; store.set(KR, ratings); S.sel = null; render(); }
+      else { b.setAttribute('data-armed', '1'); b.textContent = 'Tap again to clear all ratings'; }
+    }
+  });
+  document.addEventListener('keydown', function (e) {
+    var keys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+    if (keys.indexOf(e.key) < 0 || !e.target.closest || e.target.tagName !== 'BUTTON') return;
+    var grp = e.target.closest('[role="radiogroup"], [role="tablist"]');
+    if (!grp) return;
+    var items = Array.prototype.slice.call(grp.querySelectorAll('button')), i = items.indexOf(e.target), n = items.length;
+    var j = e.key === 'Home' ? 0 : e.key === 'End' ? n - 1 : (e.key === 'ArrowLeft' || e.key === 'ArrowUp') ? (i - 1 + n) % n : (i + 1) % n;
+    e.preventDefault();
+    items[j].focus();
+    items[j].click();
+  });
+  $('#q').addEventListener('input', function (e) {
+    S.q = e.target.value.trim();
+    if (S.tab === 'app' || S.tab === 'path') S.tab = 'topic';
+    render();
+  });
+  if (wide.addEventListener) wide.addEventListener('change', render);
+  window.addEventListener('hashchange', route);
+  route();
+})();
+</script>
+<div id="all">
+<!-- static listing -->
+</div>
+<footer class="foot">
+<!-- footer -->
+</footer>
+</div>
+</body>
+</html>
