@@ -22,6 +22,26 @@
       "prep": {
         "strip_google_fonts": true
       }
+    },
+    {
+      "slug": "study-map",
+      "name": "Study Map",
+      "tagline": "Every concept: where to learn it, where to practice it.",
+      "description": "A table of contents for the whole cybersecurity course. Each concept links to the Defense Ladder unit that teaches it and the drills and labs that practice it, with a star on what every track needs and the matching commands on Windows, Linux, FreeBSD, and Cisco.",
+      "badges": [
+        "Cybersecurity",
+        "Study",
+        "Printable"
+      ],
+      "icon": "map",
+      "emoji": "🗺️",
+      "match": [
+        "study[ _-]?map"
+      ],
+      "reference": false,
+      "prep": {
+        "strip_google_fonts": true
+      }
     }
   ]
 }

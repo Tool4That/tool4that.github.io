@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-fK9nSBn8qkxxJ9Dy1thMN3MQOXNmbuyysbSx7+/sWPY='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-ShT5/P5fALOJjO5NOfg8Eyg8FKDK8u4aAoMUBVW+TVs='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/defense-ladder/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%8E%93%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -678,7 +678,7 @@ LEVELS.push({
      TIPS('<b>Layers 7, 6, 5: Application, Presentation, Session.</b> What programs say to each other and how it is formatted and kept going (HTTP, DNS, SSH, TLS). TCP/IP folds all three into its <b>Application</b> layer.',
           '<b>Layer 4: Transport.</b> TCP (reliable and ordered, set up with a three-way handshake) and UDP (fast, no delivery guarantee). Port numbers live here. Unit of data: segment (TCP) or datagram (UDP).',
           '<b>Layer 3: Network.</b> IP addresses and routing between networks; routers work here. TCP/IP calls it the <b>Internet</b> layer. Unit of data: packet.',
-          '<b>Layer 2: Data link, and Layer 1: Physical.</b> MAC addresses and frames on one local network (switches work at layer 2), then bits on copper, fiber or radio. TCP/IP groups both as <b>Network Access</b>.',
+          '<b>Layer 2: Data link, and Layer 1: Physical.</b> MAC addresses and frames on one local network (switches work at layer 2), then bits on copper, fiber or radio. TCP/IP groups both as its <b>Link</b> layer (also called Network Access).',
           '<b>Encapsulation:</b> on the way out, each layer wraps the data from the layer above in its own header (layer 2 adds a trailer too). The receiver unwraps in reverse.')),
    C('Core ideas','Understand',
      TIPS('Networks of all sizes share the same parts: end devices, intermediary devices (switches, routers, access points), and media (copper, fiber, wireless).',
@@ -692,7 +692,7 @@ LEVELS.push({
           '<b>Configuration hygiene starts on day one.</b> Name each device exactly as the network documentation does, so prompts, logs and neighbor tables match the diagram. Router interfaces start administratively down until you enter <code>no shutdown</code>. And save with <code>copy running-config startup-config</code>, or the work vanishes on reload.')),
    FLASH('f7fl','Networking terms',[
      ['OSI model','Seven layers: Physical, Data link, Network, Transport, Session, Presentation, Application.'],
-     ['TCP/IP model','Four layers: Network Access, Internet, Transport, Application.'],
+     ['TCP/IP model','Four layers: Link (also called Network Access), Internet, Transport, Application.'],
      ['Encapsulation','Each layer wraps the data from the layer above in its own header on the way out.'],
      ['MAC address','A 48-bit hardware address used inside one local network (layer 2).'],
      ['IP address','A logical address used to route between networks (layer 3). IPv4 is 32 bits; IPv6 is 128 bits.'],
@@ -700,6 +700,51 @@ LEVELS.push({
      ['TCP','Connection-oriented transport: handshake, ordering, retransmission of lost data.'],
      ['UDP','Connectionless transport: no handshake, no retransmission. Used by DNS queries, streaming and VoIP.'],
      ['Default gateway','The router a host sends traffic to when the destination is on another network.']
+   ]),
+   ORDER('f7o1','OSI drill: stack the seven layers','Tap the layers from the top (layer 7, closest to the user) down to layer 1, the wire.',[
+     ['Layer 7: Application','Closest to the user: where programs talk, such as web (HTTP, HTTPS), names (DNS), remote shells (SSH) and address requests (DHCP).'],
+     ['Layer 6: Presentation','Formats the data: encoding, encryption, compression.'],
+     ['Layer 5: Session','Opens, keeps and closes the conversation between two programs.'],
+     ['Layer 4: Transport','TCP and UDP; port numbers pick the program on each end.'],
+     ['Layer 3: Network','IP addresses and routing between networks. Routers work here.'],
+     ['Layer 2: Data link','Frames and MAC addresses on one local network. Switches work here.'],
+     ['Layer 1: Physical','Bits as signals on copper, light in fiber, or radio.']
+   ]),
+   ORDER('f7o2','OSI drill: the four TCP/IP layers','Now the TCP/IP model, top to bottom. Each item says which OSI layers it covers.',[
+     ['Application: covers OSI layers 7, 6 and 5','Application protocols such as HTTP, DNS and SSH also handle their own formatting and sessions, so TCP/IP folds the top three OSI layers into one.'],
+     ['Transport: covers OSI layer 4','TCP and UDP, the same job as OSI layer 4.'],
+     ['Internet: covers OSI layer 3','IPv4, IPv6 and ICMP: addressing and routing between networks.'],
+     ['Link: covers OSI layers 2 and 1','Ethernet, Wi-Fi and the physical medium itself. Also called Network Access.']
+   ]),
+   ORDER('f7o3','OSI drill: encapsulation on the way out','A browser sends a request. Put the names of the data in the order it is wrapped as it goes down the stack. The receiver unwraps it in reverse, from bits back up to data.',[
+     ['Data','At the top three layers the program’s message is just called data.'],
+     ['Segment (TCP) or datagram (UDP)','Layer 4 adds a header with source and destination ports.'],
+     ['Packet','Layer 3 adds a header with source and destination IP addresses.'],
+     ['Frame','Layer 2 adds MAC addresses in a header and an error check in a trailer.'],
+     ['Bits','Layer 1 sends the frame as signals on the medium.']
+   ]),
+   MATCH('f7m1','OSI drill: layer to PDU','Tap a layer on the left, then the name its data has (its PDU, protocol data unit) on the right. A wrong pick explains where that answer belongs.',[
+     ['Layers 7, 6 and 5: Application, Presentation, Session','Data','Above the transport layer the payload is simply called data.'],
+     ['Layer 4: Transport','Segment (TCP), datagram (UDP)','TCP data is a segment and UDP data is a datagram; the header adds source and destination ports.'],
+     ['Layer 3: Network','Packet','The IP header adds source and destination IP addresses; the result is a packet.'],
+     ['Layer 2: Data link','Frame','A frame adds MAC addresses in a header and an error check in a trailer.'],
+     ['Layer 1: Physical','Bits','On the medium it is just bits: voltage, light or radio.']
+   ]),
+   MATCH('f7m2','OSI drill: layer to example protocol','Tap a layer, then its example protocols. Two layers have none of their own in TCP/IP.',[
+     ['Layer 7: Application','HTTP, HTTPS, DNS, SSH, DHCP','Application protocols carry what programs say: web pages, name lookups, remote shells, address requests.'],
+     ['Layer 6: Presentation','None: its job is formatting, encryption, compression','TCP/IP has no separate presentation protocol; the application does this work itself.'],
+     ['Layer 5: Session','None: its job is opening, keeping, and closing sessions','TCP/IP has no separate session protocol either; applications manage their own sessions.'],
+     ['Layer 4: Transport','TCP, UDP','TCP is reliable and ordered; UDP is fast with no delivery guarantee.'],
+     ['Layer 3: Network','IPv4, IPv6, ICMP','IP addresses and routes packets; ICMP carries their error and test messages, such as ping.'],
+     ['Layer 2: Data link','Ethernet, 802.1Q VLAN tags, Wi-Fi (802.11)','These frame data for one local network; an 802.1Q tag marks which VLAN a frame belongs to.'],
+     ['Layer 1: Physical','Signals on copper, light in fiber, radio','Layer 1 is the signal on the medium itself, not a protocol message.']
+   ]),
+   MATCH('f7m3','OSI drill: layer to example device','Tap a layer, then the devices that work there.',[
+     ['Layers 7, 6 and 5: Application, Presentation, Session','End hosts: the programs on computers, phones and servers','These layers run in software on the end hosts themselves.'],
+     ['Layer 4: Transport','Firewalls that filter on port numbers','A firewall that allows or blocks traffic by port is making a layer 4 decision.'],
+     ['Layer 3: Network','Router, layer 3 switch','Routers and layer 3 switches forward packets between networks by IP address.'],
+     ['Layer 2: Data link','Switch, wireless access point, NIC','Switches, access points and network cards work with frames and MAC addresses.'],
+     ['Layer 1: Physical','Hub, repeater, cables','Hubs and repeaters only repeat bits; cables carry them.']
    ]),
    QUIZ('f7q','Check: networking foundations',[
      ['11111111.11111111.11111111.00000000 as a subnet mask is',['255.255.0.0','255.255.255.0','255.255.255.128','255.0.0.0'],1,'Eight ones per octet is 255. Three full octets of ones is /24.'],
@@ -1385,6 +1430,7 @@ function markRail(){
    RENDER
    ===================================================================== */
 const main=document.getElementById('main');
+let booted=false;
 function render(){
   main.innerHTML='';
   if(current.page==='level') renderLevel();
@@ -1393,9 +1439,32 @@ function render(){
   else if(current.page==='progress') renderProgress();
   else if(current.page==='about') renderAbout();
   markRail();
+  if(booted) syncHash();
   main.focus();
   window.scrollTo(0,0);
 }
+
+/* =====================================================================
+   UNIT LINKS: #<grade>/<unit>, e.g. #freshman/f7 (unit ids are stable; never renumber)
+   ===================================================================== */
+function syncHash(){
+  const h=current.page==='level'?'#'+current.level+'/'+current.unit:'';
+  if(location.hash===h) return;
+  try{ history.replaceState(null,'',location.pathname+location.search+h); }catch(e){}
+}
+function unitFromHash(){
+  const m=/^#([a-z]+)\/([a-z]+[0-9]+)$/.exec(location.hash||'');
+  const L=m&&levelById(m[1]);
+  const U=L&&L.units.find(u=>u.id===m[2]);
+  return U?{level:L.id,unit:U.id,page:'level'}:null;
+}
+function route(){
+  const target=unitFromHash();
+  current=target||{level:LEVELS[0].id,unit:LEVELS[0].units[0].id,page:'level'};
+  render();
+  if(target){ const uh=main.querySelector('.uhead'); if(uh) uh.scrollIntoView({block:'start'}); }
+}
+window.addEventListener('hashchange',route);
 
 function renderLevel(){
   const L=levelById(current.level);
@@ -1612,6 +1681,8 @@ function renderMatch(b){
   grid.append(colL,colR);
   c.appendChild(grid);
   const status=el('div','row');const pill=el('span','pill');status.appendChild(pill);c.appendChild(status);
+  const explain=b.pairs.some(p=>p[2]);
+  const whyEl=el('div');whyEl.setAttribute('aria-live','polite');if(explain)c.appendChild(whyEl);
   function pick(side,i,btn){
     if(btn.classList.contains('done'))return;
     if(!sel){sel={side,i,btn};btn.classList.add('sel');return;}
@@ -1620,13 +1691,16 @@ function renderMatch(b){
     if(sel.i===i){
       sel.btn.classList.remove('sel');sel.btn.classList.add('done');btn.classList.add('done');
       matched++;
+      whyEl.innerHTML='';
       if(matched===b.pairs.length){pill.textContent='All matched';pill.className='pill ok';store.set(b.id,{done:true});refreshChrome();}
       sel=null;
     } else {
       const a=sel.btn,bb=btn;a.classList.add('shake');bb.classList.add('shake');
       setTimeout(()=>{a.classList.remove('shake','sel');bb.classList.remove('shake');},500);
+      const ri=side==='R'?i:sel.i;
       sel=null;
       pill.textContent='Not a match, try again';pill.className='pill bad';
+      if(explain){const p=b.pairs[ri];whyEl.innerHTML='';whyEl.appendChild(el('div','why',`<b>${p[1]}</b> goes with <b>${p[0]}</b>. ${p[2]||''}`));}
     }
   }
   if(isDone(b.id)){pill.textContent='Completed before. Play again anytime.';pill.className='pill ok';}
@@ -2075,7 +2149,8 @@ function refreshChrome(){
    BOOT
    ===================================================================== */
 buildRail();
-render();
+route();
+booted=true;
 </script>
 <!-- tool4that:foot --><p style="text-align:center;margin:28px 0 22px;font:14px/1.4 system-ui,-apple-system,Segoe UI,Arial,sans-serif"><a href="../">More free tools at Tool4That</a></p><!-- /tool4that:foot -->
 </body>

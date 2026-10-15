@@ -51,6 +51,18 @@ py build_hub.py
 - **Concepts with no hands-on place** are listed as gaps: candidates for new drills.
 - `--check` validates without writing, `--strict` stops on any left-out place, `--links` requests every reference URL (needs internet), and `--keep-unverified` is for previews only: never publish its output.
 
+## Study Map
+`study-map/` is generated, never hand-built: a no-JavaScript, printable table of contents where each concept links to the Defense Ladder unit that teaches it and the drills and labs that practice it.
+```
+py build_concepts.py --check
+py ..\tool4that-src\curriculum\build_study_map.py --repo .
+py add_tools.py manifests/learning.json ..\tool4that-src\learning
+py build_hub.py
+```
+- `build_study_map.py` reads the private concept map in `..\tool4that-src\curriculum\` (`concepts.json`, `crosswalk.json`, `dl_units.json`), reuses the Concept Index places confirmed by `build_concepts.py`, and writes `..\tool4that-src\learning\study-map.html`. It refuses to write the page if competition wording slips through. The curriculum folder never enters this repository.
+- **Rebuild it whenever Defense Ladder's units or any cybersecurity tool change.** Expect no `unit titles not found` line; if one appears, update the unit's exact title in `dl_units.json`.
+- Defense Ladder answers to `#<grade>/<unit>` links (for example `#freshman/f7`), which the Study Map uses for exact-unit Learn links. Keep unit ids stable: never renumber one once published; a new unit takes the next free id in its grade.
+
 ## Tool sources (kept outside this repository, in `../tool4that-src/`)
 - Net Drills (`net-drills/`): `manifests/net-drills.json` (links the series strip between drills). The four sources in `../tool4that-src/net-drills/` are the maintained copies; IOS CLI Lab, Config Audit, and Trouble Tickets started from the published pages (prepare_tool.py strips its own additions when re-run), and Subnet Sprint carries the `#f-levels` radio-scope fix that the original claude.ai artifact lacks.
 - Lockdown Drills (`lockdown-drills/`): six OS hardening trainers (Windows 11, Windows Server, Linux Mint, Ubuntu, FreeBSD, Cisco IOS), each with a reference `.txt`; `manifests/lockdown-drills.json`.

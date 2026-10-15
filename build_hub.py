@@ -27,6 +27,7 @@ ICONS = {
     "lock": '<path d="M11.2 15v-3.4a4.8 4.8 0 0 1 9.6 0V15" fill="none" stroke="#fff" stroke-width="2.8"/><rect x="8.5" y="14.5" width="15" height="11" rx="2" fill="#fff"/><circle cx="16" cy="19.4" r="1.8" fill="#0A7552"/><rect x="15.2" y="19.8" width="1.6" height="3.4" fill="#0A7552"/>',
     "path": '<path d="M6 25h5.5v-6h5.5v-6H23V7" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>',
     "screen": '<rect x="6.5" y="8" width="19" height="13" rx="1.6" fill="none" stroke="#fff" stroke-width="2.6"/><path d="M12.5 25h7M16 21v4" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>',
+    "map": '<path d="M6.5 9.5l6.3-2.5 6.4 2.5 6.3-2.5v15.5l-6.3 2.5-6.4-2.5-6.3 2.5z" fill="none" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"/><path d="M12.8 7v15.5M19.2 9.5V25" stroke="#fff" stroke-width="2.4"/>',
 }
 def mark(icon="four", size=32):
     glyph = ICONS.get(icon) or '<text x="16" y="23.5" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="21" fill="#fff">4</text>'

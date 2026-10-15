@@ -25,7 +25,7 @@
       "slug": "learning",
       "title": "Learning",
       "category": "cyber",
-      "intro": "Build the concepts and vocabulary, from your first terminal command to confident defender. Start here if cybersecurity is new, and use the Concept Index to find where to learn and practice any idea."
+      "intro": "Build the concepts and vocabulary, from your first terminal command to confident defender. Start here if cybersecurity is new: the Study Map shows where to learn and practice every concept, and the Concept Index lets you search them."
     },
     {
       "slug": "practice",
@@ -112,7 +112,7 @@
       "icon": "path",
       "category": "cyber",
       "section": "learning",
-      "sha256": "1fbaa6a9e2ad2ac377b1003d02523cf38c1452d4452781af78d303099cabdf9c",
+      "sha256": "ea7c062ec4810585f8b2b0e2d729b369de799da13382c9b3294ce58c54f5f002",
       "updated": "2026-10-14"
     },
     {
@@ -442,6 +442,24 @@
       "category": "cyber",
       "section": "learning",
       "sha256": "7a3be8acc60122cd82e4036711a819df14d8a1197377e3606f0e23528866851c",
+      "updated": "2026-10-14"
+    },
+    {
+      "slug": "study-map",
+      "name": "Study Map",
+      "tagline": "Every concept: where to learn it, where to practice it.",
+      "description": "A table of contents for the whole cybersecurity course. Each concept links to the Defense Ladder unit that teaches it and the drills and labs that practice it, with a star on what every track needs and the matching commands on Windows, Linux, FreeBSD, and Cisco.",
+      "badges": [
+        "Cybersecurity",
+        "Study",
+        "Printable"
+      ],
+      "file": "study-map/index.html",
+      "download_as": "study-map.html",
+      "icon": "map",
+      "category": "cyber",
+      "section": "learning",
+      "sha256": "9b636596261da3a15db3ddc208a356f05b7e2c44d60ebbb204662baf15b1cbec",
       "updated": "2026-10-14"
     }
   ]
