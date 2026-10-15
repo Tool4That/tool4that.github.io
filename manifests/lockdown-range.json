@@ -1,0 +1,78 @@
+{
+  "category": "cyber",
+  "series": "lockdown-range",
+  "defaults": {
+    "icon": "screen",
+    "emoji": "🖥",
+    "reference": {
+      "file": "reference.txt",
+      "label": "Walkthrough .txt"
+    },
+    "prep": {
+      "strip_google_fonts": true,
+      "link_series_strip": true
+    }
+  },
+  "tools": [
+    {
+      "slug": "lockdown-range/windows",
+      "match": [
+        "windows[ _-]?range",
+        "lockdown range: windows"
+      ],
+      "name": "Windows Range",
+      "tagline": "Harden the workstation. Then the server.",
+      "description": "A Windows 11 and Windows Server 2025 hardening lab in your browser: sign in, read the scenario brief, answer the investigation questions, then fix it with the real panels or the command line while a live Progress Check keeps count.",
+      "badges": [
+        "Windows",
+        "Hardening",
+        "No VM",
+        "Private"
+      ],
+      "download_as": "windows-range.html",
+      "reference": {
+        "download_as": "windows-range-walkthrough.txt"
+      }
+    },
+    {
+      "slug": "lockdown-range/linux",
+      "match": [
+        "linux[ _-]?range",
+        "lockdown range: linux"
+      ],
+      "name": "Linux Range",
+      "tagline": "Harden the box from the shell.",
+      "description": "Ubuntu, Linux Mint, and Ubuntu Server hardening labs in your browser: a real-feeling bash terminal with sudo, apt, systemctl, ufw, PAM, cron, and nano, three scenarios, and a live Progress Check with availability checks.",
+      "badges": [
+        "Linux",
+        "Hardening",
+        "No VM",
+        "Private"
+      ],
+      "download_as": "linux-range.html",
+      "reference": {
+        "download_as": "linux-range-walkthrough.txt"
+      }
+    },
+    {
+      "slug": "lockdown-range/cisco-ios",
+      "match": [
+        "cisco[ _-]?range",
+        "lockdown range: cisco"
+      ],
+      "name": "Cisco Range",
+      "tagline": "Secure the topology. Prove it with ping.",
+      "description": "A Packet Tracer-style topology in your browser: IOS consoles with ? help, abbreviations, and the exact error messages, PC command prompts, three scenarios from one router to a two-switch network, and a live Progress Check.",
+      "badges": [
+        "Cisco IOS",
+        "Hardening",
+        "No VM",
+        "Private"
+      ],
+      "download_as": "cisco-range.html",
+      "reference": {
+        "download_as": "cisco-range-walkthrough.txt"
+      }
+    }
+  ]
+}

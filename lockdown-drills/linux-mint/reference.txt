@@ -1,0 +1,596 @@
+================================================================================
+ 04: LINUX MINT HARDENING: SOLUTION WALKTHROUGH
+     Linux Mint 22.3 (Cinnamon), Ubuntu 24.04 base
+ Training reference for virtual machines you own or are authorized to change.
+ Three levels: L1 Doorman, L2 Watchman, L3 Hunter. Every item = COMMAND, WHY,
+ NOTE and the hardening AREA it belongs to. No scripts by design: type it,
+ read it, explain it. Item IDs match the Lockdown Drills trainer for this OS.
+ Unofficial practice; not affiliated with or endorsed by Linux Mint or Canonical.
+
+ HARDENING AREAS (CIS Critical Security Controls v8)
+   Account management ........ CIS Control 5
+   Access control ............ CIS Control 6
+   Secure configuration ...... CIS Control 4 (software inventory: Control 2)
+   Patching .................. CIS Control 7
+   Malware defenses .......... CIS Control 10
+   Audit logging ............. CIS Control 8
+   Also tagged: Data protection (CIS Control 3); Investigation (forensics
+   basics: answer questions and preserve evidence before you change things).
+================================================================================
+
+------------------------------ DOORMAN -----------------------------------------
+ Lock the doors. Users, admins, passwords, lockout, firewall, updates, junk
+ software, obvious services, the Login Window. Mint is Ubuntu LTS underneath
+ (see Version notes), with its own GUI tools on top.
+--------------------------------------------------------------------------------
+[B-00] Scenario brief and evidence first
+  AREA: Investigation (forensics basics)
+  GUI: open the scenario brief (the documented requirements for this machine) and write down authorized users, admins, required services, and anything forbidden
+  $ sudo timeshift --create --comments "before hardening"   (practice VMs)
+  WHY: Authorized users, admins and required services decide what is a fix and
+       what breaks the business. Answer the investigation questions before
+       changing anything.
+  NOTE: Unfamiliar is not the same as unauthorized: leave backup and monitoring
+        agents alone until the system owner confirms what they are. Keep a
+        second terminal open as root (sudo -i) before touching PAM, sudoers or
+        SSH so a typo cannot lock you out. Timeshift ships with Mint: a snapshot
+        before you start is a free undo on practice VMs.
+
+[B-01] List human users, admins and UID-0 accounts
+  AREA: Account management (CIS Control 5)
+  $ awk -F: '$3>=1000 && $3<65534 {print $1" uid="$3" shell="$7}' /etc/passwd
+  $ awk -F: '$3==0 {print $1}' /etc/passwd
+  $ getent group sudo adm wheel docker lxd
+  GUI: Menu, Administration, Users and Groups.
+  WHY: An extra UID-0 user is a second root. sudo, adm and wheel are admin
+       groups. docker and lxd are root-equivalent because they can mount the
+       host filesystem.
+
+[B-02] Remove or disable an unauthorized user
+  AREA: Account management (CIS Control 5)
+  $ sudo deluser --remove-home baduser
+  $ sudo userdel -r baduser
+  $ sudo usermod -L baduser && sudo usermod -s /usr/sbin/nologin baduser
+  WHY: Deleting closes the login path; --remove-home removes planted files. Lock
+       plus nologin disables without destroying evidence.
+  NOTE: Run ps -u baduser first and kill their processes. The brief decides.
+
+[B-03] Fix admin group membership
+  AREA: Account management (CIS Control 5)
+  $ sudo gpasswd -d mallory sudo
+  $ sudo usermod -aG sudo alice
+  $ groups alice
+  GUI: Users and Groups: Account type Standard or Administrator (Administrator =
+       sudo group).
+  WHY: Least privilege. -aG appends; -G alone replaces every group the user had.
+
+[B-04] Passwords: strong, forced change, no empties, root locked
+  AREA: Account management (CIS Control 5)
+  $ sudo passwd alice
+  $ sudo chage -d 0 alice
+  $ sudo awk -F: '$2=="" {print $1" HAS NO PASSWORD"}' /etc/shadow
+  $ sudo passwd -l root
+  WHY: An empty shadow field means login with Enter. Locked root forces
+       accountable sudo instead of a shared root password.
+  NOTE: Record changed passwords somewhere safe (on paper, in a lab). Do not
+        change the password of the account you sign in with unless the brief
+        says so.
+
+[B-05] Password aging and quality
+  AREA: Account management (CIS Control 5)
+  $ sudo sed -i 's/^PASS_MAX_DAYS.*/PASS_MAX_DAYS\t60/' /etc/login.defs
+  $ sudo sed -i 's/^PASS_MIN_DAYS.*/PASS_MIN_DAYS\t1/' /etc/login.defs
+  $ sudo sed -i 's/^PASS_WARN_AGE.*/PASS_WARN_AGE\t7/' /etc/login.defs
+  $ sudo chage -M 60 -m 1 -W 7 alice
+  $ sudo apt install -y libpam-pwquality
+  $ sudo nano /etc/security/pwquality.conf
+      minlen = 12  dcredit = -1  ucredit = -1  lcredit = -1  ocredit = -1  difok = 3  maxrepeat = 3  enforce_for_root
+  $ sudo nano /etc/pam.d/common-password
+      password  requisite  pam_pwquality.so retry=3        (ensure present)
+      ... pam_unix.so ... remember=5                       (add to the pam_unix line)
+  WHY: login.defs only affects new users, so chage for existing ones. pwquality
+       enforces complexity when a password is changed; remember= blocks reuse.
+  NOTE: pam_pwquality is the quality module on Ubuntu, Mint and Debian alike.
+        Leave obscure in place.
+
+[B-06] Account lockout with pam_faillock
+  AREA: Account management (CIS Control 5)
+  $ sudo nano /etc/security/faillock.conf
+      deny = 5   unlock_time = 1800   fail_interval = 900
+  $ sudo nano /etc/pam.d/common-auth          (order matters)
+      auth  required                   pam_faillock.so preauth silent
+      auth  [success=1 default=ignore] pam_unix.so            (existing line, remove nullok)
+      auth  [default=die]              pam_faillock.so authfail
+      auth  sufficient                 pam_faillock.so authsucc
+  $ sudo nano /etc/pam.d/common-account       (add first)
+      account required pam_faillock.so
+  $ sudo faillock --user alice
+  $ sudo faillock --user alice --reset
+  WHY: Stops online brute force. pam_faillock replaced pam_tally2, which current
+       Ubuntu, Mint and Debian releases no longer ship. nullok allows empty
+       passwords.
+  NOTE: Test with su - alice in a second terminal before closing your root
+        shell.
+
+[B-07] Firewall with ufw
+  AREA: Secure configuration (CIS Control 4)
+  $ sudo apt install -y ufw
+  $ sudo ufw default deny incoming
+  $ sudo ufw default allow outgoing
+  $ sudo ufw allow 22/tcp
+  $ sudo ufw enable
+  $ sudo ufw logging on
+  $ sudo ufw status verbose
+  GUI: Menu, Preferences, Firewall Configuration (gufw): Status On, Incoming
+       Deny, Outgoing Allow.
+  WHY: Default-deny inbound covers the service you have not found yet.
+  NOTE: Only allow 22/tcp if the brief requires SSH. Add rules for required
+        services (80/tcp, 443/tcp, 21/tcp).
+
+[B-08] Updates: now and automatic (Update Manager)
+  AREA: Patching (CIS Control 7)
+  GUI: Update Manager (shield icon), Refresh, Select All, Install Updates
+  GUI: Update Manager, Edit, Preferences, Automation: Apply updates automatically On, Remove obsolete kernels On
+  $ sudo mintupdate-cli upgrade -y
+  $ sudo apt update && sudo apt upgrade -y
+  $ apt list --upgradable
+  $ sudo apt install -y unattended-upgrades && sudo dpkg-reconfigure -plow unattended-upgrades
+  WHY: Two separate goals: patched now, and configured to keep patching. Mint
+       hides the automation under Update Manager preferences; the apt route
+       works too.
+  NOTE: Start the upgrade first because it takes time. If Update Manager shows a
+        broken mirror, fix Software Sources (I-11).
+
+[B-09] Remove unapproved software
+  AREA: Secure configuration: software (CIS Controls 2 and 4)
+  $ apt list --installed 2>/dev/null | grep -Ei 'nmap|zenmap|john|hydra|medusa|wireshark|aircrack|ophcrack|netcat|ncat|socat|telnetd|nikto|metasploit|hashcat|sqlmap|torrent|deluge|minetest|aisleriot|mahjongg|sudoku|freeciv|wesnoth'
+  $ dpkg -l | grep -i <name>
+  $ sudo apt purge --auto-remove -y nmap
+  $ flatpak list
+  $ flatpak uninstall -y <application-id>
+  GUI: Software Manager (mintinstall), Installed
+  WHY: Hacking tools, games and P2P clients are acceptable-use violations and
+       attack surface.
+  NOTE: Packages the brief requires (vsftpd, apache2, samba, openssh-server,
+        mysql) stay; harden them in Watchman I-12. Mint blocks snapd with
+        /etc/apt/preferences.d/nosnap.pref; that file is normal, not a finding.
+        Flatpak apps hide from apt: list them separately.
+
+[B-10] Find unapproved media files
+  AREA: Data protection (CIS Control 3)
+  $ sudo find / -type f \( -iname '*.mp3' -o -iname '*.mp4' -o -iname '*.wav' -o -iname '*.mkv' -o -iname '*.avi' -o -iname '*.flac' -o -iname '*.mov' -o -iname '*.m4a' \) -not -path '/usr/*' -not -path '/proc/*' -not -path '/snap/*' 2>/dev/null
+  WHY: Many acceptable-use policies ban personal media on work machines, and the
+       search also surfaces hidden folders in /home and /var/tmp.
+  NOTE: Confirm, then rm. Write the path down in case an investigation question
+        needs it.
+
+[B-11] Services: what runs, what listens
+  AREA: Secure configuration (CIS Control 4)
+  $ systemctl list-units --type=service --state=running
+  $ sudo ss -tulpn
+  $ sudo systemctl disable --now vsftpd
+  $ sudo systemctl disable --now telnet.socket inetd xinetd 2>/dev/null
+  WHY: Telnet and FTP are cleartext; avahi, cups, rpcbind, nfs and smb are
+       exposure when nobody needs them. ss -tulpn shows the PID and program for
+       every open port.
+  NOTE: Required services stay. disable --now means stop it and do not start it
+        at boot. Check what starts a service before you trust that: a systemd
+        .socket unit can keep the port open after its .service is stopped (ss
+        then shows systemd holding it).
+
+[B-12] Login Window: auto-login, guest sessions, screen lock
+  AREA: Secure configuration (CIS Control 4)
+  GUI: Menu, Administration, Login Window, Users: Automatic login Off; Settings: Allow guest sessions Off
+  $ sudo nano /etc/lightdm/lightdm.conf
+      [Seat:*]   autologin-user=   allow-guest=false
+  $ gsettings set org.cinnamon.desktop.screensaver lock-enabled true
+  $ gsettings set org.cinnamon.desktop.screensaver lock-delay 0
+  $ gsettings set org.cinnamon.desktop.session idle-delay 300
+  GUI: Menu, Preferences, Screensaver: Lock the computer when put to sleep On, Delay before locking 0
+  WHY: Auto-login or a guest session means physical access is root in ten
+       seconds; an unlocked idle desktop is the same thing a few minutes later.
+  NOTE: gsettings changes the current user only; check each authorized user or
+        set it in the GUI for each.
+
+------------------------------ WATCHMAN ----------------------------------------
+ Check the windows. SSH, sudoers, cron and timers, shell persistence,
+ permissions and SUID, processes, AppArmor, auditing, apt sources, and hardening
+ the services you must keep.
+--------------------------------------------------------------------------------
+[I-01] SSH hardening, only when SSH is required
+  AREA: Access control (CIS Control 6)
+  $ sudo nano /etc/ssh/sshd_config            (then every file in /etc/ssh/sshd_config.d/)
+      PermitRootLogin no        PermitEmptyPasswords no     MaxAuthTries 3
+      LoginGraceTime 30         X11Forwarding no            UsePAM yes
+      PasswordAuthentication yes or no per the brief      AllowUsers alice bob
+  $ sudo sshd -t && sudo systemctl restart ssh
+  $ systemctl list-units 'ssh*' --no-pager     (is ssh.socket the unit that listens on 22?)
+  $ sudo systemctl daemon-reload && sudo systemctl restart ssh.socket   (after a Port or ListenAddress change)
+  $ sudo find / -name authorized_keys -exec ls -l {} \; -exec cat {} \; 2>/dev/null
+  WHY: Root over SSH means no accountability and the prime brute-force target. A
+       planted authorized_keys file is a password-less backdoor that survives
+       every password you fix. Check how sshd is started: when ssh.socket owns
+       port 22, a Port change or a disable aimed only at ssh.service does not do
+       what you expect.
+  NOTE: Not required: sudo systemctl disable --now ssh.socket ssh.service &&
+        sudo apt purge -y openssh-server, then confirm with sudo ss -tlpn that
+        nothing holds port 22. Also read /etc/ssh/sshd_config.d/*.conf because
+        Include files override.
+
+[I-02] sudoers audit
+  AREA: Access control (CIS Control 6)
+  $ sudo grep -R -nE 'NOPASSWD|!authenticate|ALL=\(ALL' /etc/sudoers /etc/sudoers.d/
+  $ sudo visudo
+  $ sudo visudo -f /etc/sudoers.d/<file>
+  $ sudo -l -U mallory
+  WHY: A NOPASSWD ALL line in a sudoers.d drop-in is a silent root backdoor.
+       Never edit sudoers with nano: a syntax error means nobody can sudo.
+
+[I-03] Cron, at and systemd timers
+  AREA: Malware defenses (CIS Control 10)
+  $ cat /etc/crontab; sudo ls -la /etc/cron.d /etc/cron.hourly /etc/cron.daily /var/spool/cron/crontabs
+  $ for u in $(cut -d: -f1 /etc/passwd); do sudo crontab -l -u "$u" 2>/dev/null | sed "s/^/$u: /"; done
+  $ systemctl list-timers --all
+  $ sudo atq
+  $ sudo crontab -r -u baduser
+  WHY: Cron re-creates users, re-opens ports and re-installs tools every few
+       minutes. It is the reason a fixed problem comes back.
+
+[I-04] Shell and startup persistence
+  AREA: Malware defenses (CIS Control 10)
+  $ grep -R -nE 'alias|nc |ncat|bash -i|/dev/tcp|curl .*\| *sh|wget .*\| *sh' /etc/profile /etc/bash.bashrc /etc/profile.d/ /home/*/.bashrc /home/*/.profile /root/.bashrc 2>/dev/null
+  $ cat /etc/rc.local 2>/dev/null; ls -la /etc/init.d/ /etc/systemd/system/
+  $ systemctl list-unit-files --state=enabled
+  WHY: An alias on sudo or a reverse shell in .bashrc runs every time a terminal
+       opens, including the one you use to fix things.
+
+[I-05] Critical file permissions, world-writable, SUID
+  AREA: Access control (CIS Control 6)
+  $ sudo chown root:shadow /etc/shadow /etc/gshadow && sudo chmod 640 /etc/shadow /etc/gshadow
+  $ sudo chown root:root /etc/passwd /etc/group && sudo chmod 644 /etc/passwd /etc/group
+  $ sudo chown root:root /etc/sudoers && sudo chmod 440 /etc/sudoers
+  $ sudo chmod 750 /home/*
+  $ sudo find / -xdev -type f -perm -0002 -not -path '/proc/*' 2>/dev/null
+  $ sudo find / -xdev -type d -perm -0002 ! -perm -1000 2>/dev/null
+  $ sudo find / -xdev -type f \( -perm -4000 -o -perm -2000 \) 2>/dev/null
+  $ sudo chmod u-s /path/to/evil
+  WHY: A readable /etc/shadow means offline cracking. A writable /etc/passwd
+       means make yourself root. SUID on bash, nmap, find or vim is instant root
+       (see GTFOBins).
+  NOTE: Normal SUID set: passwd su sudo mount umount ping chsh chfn gpasswd
+        newgrp pkexec fusermount3 ssh-keysign. Anything else: investigate.
+
+[I-06] Hosts file and name resolution
+  AREA: Secure configuration (CIS Control 4)
+  $ cat /etc/hosts
+  $ resolvectl status 2>/dev/null | grep -i 'DNS Servers'
+  WHY: Redirecting packages.linuxmint.com or security.ubuntu.com to 127.0.0.1
+       breaks updates silently.
+
+[I-07] Processes and connections: find the backdoor
+  AREA: Malware defenses (CIS Control 10)
+  $ ps -eo pid,ppid,user,cmd --sort=-%cpu | head -25
+  $ ps -ef | grep -Ei 'nc |ncat|socat|bash -i|python.* -c|perl -e|xmrig|miner' | grep -v grep
+  $ sudo ss -tulpn; sudo lsof -i -P -n | grep -Ei 'LISTEN|ESTABLISHED'
+  $ sudo ls -l /proc/<pid>/exe; sudo cat /proc/<pid>/cmdline | tr '\0' ' '
+  $ sudo kill -9 <pid>
+  WHY: Killing a process is pointless unless you also remove what starts it:
+       cron, a systemd unit, rc.local, .bashrc. Find the parent, then the file.
+
+[I-08] AppArmor enforcing
+  AREA: Secure configuration (CIS Control 4)
+  $ sudo apt install -y apparmor-utils
+  $ sudo systemctl enable --now apparmor
+  $ sudo aa-status
+  $ sudo aa-enforce /etc/apparmor.d/<profile>     (only profiles aa-status lists in complain mode)
+  WHY: Mandatory access control: a compromised service cannot read files outside
+       its profile. Ubuntu and Mint enable it by default, so a stopped or
+       disabled AppArmor is itself a finding.
+  NOTE: Never run aa-enforce on /etc/apparmor.d/*: some shipped profiles are
+        deliberately in unconfined mode and only grant one permission (see
+        Version notes), so enforcing them breaks those apps. Enforce by name,
+        then test the apps the brief requires.
+
+[I-09] Logging and audit
+  AREA: Audit logging (CIS Control 8)
+  $ systemctl status rsyslog --no-pager
+  $ sudo apt install -y auditd && sudo systemctl enable --now auditd
+  $ sudo nano /etc/audit/rules.d/hardening.rules
+      -w /etc/passwd -p wa -k identity
+      -w /etc/shadow -p wa -k identity
+      -w /etc/sudoers -p wa -k sudoers
+      -w /etc/sudoers.d/ -p wa -k sudoers
+  $ sudo augenrules --load && sudo auditctl -l
+  $ sudo ausearch -k identity
+  $ last; lastlog; sudo lastb | head; who; w
+  $ sudo grep -E 'Accepted|Failed|useradd|userdel|usermod' /var/log/auth.log | tail -40
+  $ journalctl -p err -b --no-pager | tail
+  WHY: Audit rules answer who changed /etc/passwd and when, which is exactly
+       what an investigation needs.
+  NOTE: If rsyslog is not installed (journald only, as on a default Debian
+        install), use journalctl.
+
+[I-10] Account hygiene: shells, system accounts, odd groups
+  AREA: Account management (CIS Control 5)
+  $ grep -vE 'nologin|/bin/false|/bin/sync' /etc/passwd
+  $ sudo usermod -s /usr/sbin/nologin <system-account>
+  $ sudo chage -l alice
+  $ getent group root shadow adm sudo docker lxd disk
+  WHY: A service account with /bin/bash is a login. The disk group reads raw
+       disks, which means the shadow file. Planted group memberships are quiet
+       privilege.
+
+[I-11] Software Sources hygiene
+  AREA: Patching (CIS Control 7)
+  $ cat /etc/apt/sources.list.d/official-package-repositories.list /etc/apt/sources.list.d/*.list 2>/dev/null
+  GUI: Menu, Administration, Software Sources: Official repositories, PPAs, Additional repositories
+  $ ls -l /etc/apt/trusted.gpg.d/ /etc/apt/keyrings/ /etc/apt/preferences.d/ 2>/dev/null
+  $ sudo apt update
+  WHY: A malicious repository or key means apt upgrade installs the attacker's
+       packages. Keep the official packages.linuxmint.com and archive.ubuntu.com
+       lines; remove unknown PPAs and keys.
+  NOTE: nosnap.pref in preferences.d is Mint's own and stays.
+
+[I-12] Harden required services instead of removing them
+  AREA: Secure configuration (CIS Control 4)
+      vsftpd  /etc/vsftpd.conf: anonymous_enable=NO  local_enable=YES  write_enable=NO  chroot_local_user=YES  ssl_enable=YES
+  $ sudo systemctl restart vsftpd
+      apache2 /etc/apache2/conf-enabled/security.conf: ServerTokens Prod  ServerSignature Off  TraceEnable Off ; site config: Options -Indexes
+  $ sudo apache2ctl configtest && sudo systemctl restart apache2
+      samba   /etc/samba/smb.conf [global]: map to guest = Never  restrict anonymous = 2 ; per share: guest ok = no
+  $ testparm && sudo systemctl restart smbd
+  $ sudo mysql_secure_installation
+      mysql   /etc/mysql/mysql.conf.d/mysqld.cnf: bind-address = 127.0.0.1
+  $ sudo systemctl restart mysql
+  WHY: Keeping the service running and making it safe is the real job, and real
+       findings hide in these configs. Anonymous FTP is the classic.
+
+------------------------------ HUNTER ------------------------------------------
+ Hunt and harden. Kernel and network sysctl, rootkits and tampered packages, the
+ immutable-flag trap, PAM internals, forensics tooling, firewall depth, version
+ notes.
+--------------------------------------------------------------------------------
+[A-01] Kernel and network hardening with sysctl
+  AREA: Secure configuration (CIS Control 4)
+  $ sudo nano /etc/sysctl.d/99-hardening.conf
+      net.ipv4.ip_forward = 0
+      net.ipv4.conf.all.accept_redirects = 0    net.ipv4.conf.default.accept_redirects = 0
+      net.ipv4.conf.all.send_redirects = 0      net.ipv4.conf.default.send_redirects = 0
+      net.ipv4.conf.all.accept_source_route = 0 net.ipv4.conf.all.rp_filter = 1
+      net.ipv4.conf.all.log_martians = 1        net.ipv4.tcp_syncookies = 1
+      net.ipv4.icmp_echo_ignore_broadcasts = 1  net.ipv4.icmp_ignore_bogus_error_responses = 1
+      net.ipv6.conf.all.accept_redirects = 0    net.ipv6.conf.all.accept_source_route = 0
+      kernel.randomize_va_space = 2   kernel.kptr_restrict = 2   kernel.dmesg_restrict = 1   kernel.sysrq = 0
+      fs.protected_hardlinks = 1   fs.protected_symlinks = 1   fs.suid_dumpable = 0
+  $ sudo sysctl --system
+  $ sysctl net.ipv4.ip_forward kernel.randomize_va_space
+  WHY: ip_forward=1 turns the host into a pivot; syncookies and rp_filter blunt
+       SYN floods and spoofing; ASLR at 2 and suid_dumpable 0 make exploitation
+       harder.
+  NOTE: A bad change can leave ip_forward=1 or randomize_va_space=0 in
+        /etc/sysctl.conf or a file in /etc/sysctl.d/. grep for them.
+
+[A-02] Rootkits, tampered packages, malware
+  AREA: Malware defenses (CIS Control 10)
+  $ sudo apt install -y rkhunter chkrootkit debsums clamav
+  $ sudo rkhunter --propupd && sudo rkhunter --check --sk
+  $ sudo chkrootkit
+  $ sudo debsums -c
+  $ sudo systemctl stop clamav-freshclam; sudo freshclam; sudo clamscan -r -i /home /tmp /var/tmp /opt
+  $ which nc ncat netcat socat; sudo find / -xdev -type f \( -name nc -o -name ncat -o -name netcat -o -name socat \) 2>/dev/null
+  WHY: debsums catches a replaced /bin/ls or sshd; rkhunter knows rootkit paths;
+       netcat binaries are the backdoor toolkit.
+  NOTE: Signatures need internet. Run propupd early so rkhunter's baseline is
+        the current, hopefully clean, state.
+
+[A-03] The lsattr trap, core dumps, Ctrl-Alt-Del
+  AREA: Secure configuration (CIS Control 4)
+  $ sudo lsattr /etc/passwd /etc/shadow /etc/sudoers /etc/ssh/sshd_config
+  $ sudo chattr -i /etc/passwd
+  $ sudo nano /etc/security/limits.conf
+      * hard core 0
+  $ sudo systemctl mask ctrl-alt-del.target
+  WHY: Attackers set the immutable flag so your useradd, passwd and chage
+       silently fail. It is the number one reason a fix will not stick on a
+       compromised machine.
+
+[A-04] PAM deep dive
+  AREA: Access control (CIS Control 6)
+      required: must pass, keep going. requisite: must pass, stop on fail. sufficient: pass means done. optional.
+  $ grep -nE 'nullok|pam_permit|pam_succeed_if' /etc/pam.d/common-auth /etc/pam.d/sudo /etc/pam.d/login /etc/pam.d/sshd
+  $ sudo sed -i 's/ nullok//g' /etc/pam.d/common-auth
+  $ grep -n 'pam_unix' /etc/pam.d/common-password
+  WHY: An auth sufficient pam_permit.so line at the top of common-auth means any
+       password works for everyone. An md5 hashing algorithm cracks fast; expect
+       yescrypt or sha512, obscure, remember=5.
+
+[A-05] Forensics toolkit
+  AREA: Investigation (forensics basics)
+  $ sudo find / -xdev -type f -newermt "2026-10-01" -not -path '/proc/*' -not -path '/sys/*' -not -path '/var/lib/*' 2>/dev/null | head -60
+  $ sudo find / -xdev \( -nouser -o -nogroup \) 2>/dev/null
+  $ sudo find /home /root /tmp /var/tmp /dev/shm -name '.*' -type f 2>/dev/null
+  $ stat <file>; file <file>; strings <file> | head; md5sum <file>; sha256sum <file>
+  $ sudo journalctl _COMM=sudo --no-pager | tail -40
+  $ sudo grep -E 'useradd|userdel|usermod|groupadd|passwd' /var/log/auth.log* 2>/dev/null
+  WHY: Investigation questions usually want a hash, a timestamp, a hidden path,
+       or who ran what. -newermt finds what changed most recently.
+
+[A-06] Firewall depth: ufw internals, IPv6, unneeded daemons
+  AREA: Secure configuration (CIS Control 4)
+  $ sudo ufw status numbered; sudo ufw delete <n>
+  $ grep IPV6 /etc/default/ufw
+  $ sudo iptables -S; sudo nft list ruleset 2>/dev/null | head -60
+  $ sudo grep -nE 'ACCEPT.*--dport' /etc/ufw/before.rules /etc/ufw/user.rules 2>/dev/null
+  $ sudo systemctl disable --now avahi-daemon cups rpcbind nfs-server bluetooth 2>/dev/null
+  WHY: A rule planted in before.rules never shows in ufw status. IPv6 off in ufw
+       leaves half the stack unfiltered.
+
+[A-07] Version notes: Linux Mint 22.3 and its Ubuntu base
+      Mint 22.3 "Zena" = Ubuntu 24.04 (noble) package base, Cinnamon 6.6: apt, pam_faillock, yescrypt hashes, AppArmor and ufw behave as on Ubuntu 24.04
+      openssh-server (when installed) is socket-activated: ssh.socket holds port 22, so disable it too; after a Port or ListenAddress change run systemctl daemon-reload, then systemctl restart ssh.socket
+      The noble AppArmor package ships some profiles in unconfined mode on purpose (they only grant user namespaces): never aa-enforce /etc/apparmor.d/*
+      LightDM + Cinnamon: /etc/lightdm/lightdm.conf, cinnamon-settings, gsettings org.cinnamon.*
+      Update Manager (mintupdate) replaces Software Updater; mintupdate-cli for the terminal
+      No snapd (nosnap.pref); Flatpak is enabled: flatpak list
+      Timeshift is preinstalled: snapshot first on practice VMs
+      Mint sources: /etc/apt/sources.list.d/official-package-repositories.list (zena and noble lines)
+  WHY: Knowing which tools Mint ships keeps you from hunting for a GNOME setting
+       that is not there, and from treating Mint's own files as findings.
+
+[A-08] Verify loop, every thirty minutes
+  $ sudo ss -tulpn; getent group sudo; awk -F: '$3==0' /etc/passwd
+  $ sudo ufw status verbose; sudo aa-status | head -3; systemctl is-active auditd
+  $ sudo awk -F: '$2==""' /etc/shadow; sudo lsattr /etc/passwd /etc/shadow
+  WHY: Cron and timers undo fixes. Re-checking catches the undo, and anything
+       you broke, before a user does.
+
+------------------------------ FIX OR BREAK? (practice cards) ------------------
+  Brief: Authorized administrators: alice. Authorized users: bob, carol.
+  Action: Run sudo gpasswd -d bob sudo because bob is in the sudo group.
+  Call: FIX. Bob is a user, not an admin. Removing him from sudo is least
+             privilege.
+
+  Brief: This server hosts the company website with Apache.
+  Action: Run sudo apt purge apache2 to remove the web server.
+  Call: BREAKS IT. Required service. Keep it running and harden it: ServerTokens
+                   Prod, no directory listing, updates.
+
+  Brief: Investigation 2: what is the SHA-256 hash of /home/bob/Music/track.mp3?
+  Action: Delete all media files, then answer the investigation questions.
+  Call: CHECK FIRST. Hash it first, then delete. Evidence before cleanup.
+
+  Brief: Nothing in the brief mentions /opt/backup-agent.
+  Action: Delete /opt/backup-agent because it is not a standard package.
+  Call: CHECK FIRST. Unrecognized is not the same as unauthorized. Find what
+                     runs it (a systemd unit, a cron job, the file owner) and
+                     ask the system owner before removing a backup or monitoring
+                     agent.
+
+  Brief: Only alice may log in with SSH; SSH must stay available.
+  Action: Run sudo systemctl disable --now ssh.socket ssh.service.
+  Call: BREAKS IT. SSH is required. Set PermitRootLogin no and AllowUsers alice,
+                   and keep it running; ssh.socket is what listens on port 22,
+                   so leave it enabled.
+
+  Brief: No games are allowed on company machines.
+  Action: Run sudo apt purge --auto-remove -y minetest after confirming no
+          investigation question mentions it.
+  Call: FIX. Acceptable-use violation, and confirmed it is not evidence. Log the
+             removal.
+
+  Brief: The company uses Samba for the shared drive.
+  Action: Set guest ok = no and map to guest = Never in smb.conf and restart
+          smbd.
+  Call: FIX. Hardening a required service without breaking it. Exactly the job.
+
+  Brief: Standard users must not be able to run commands as root.
+  Action: Delete the line '%sudo ALL=(ALL:ALL) ALL' from /etc/sudoers with nano.
+  Call: BREAKS IT. That removes sudo for the real admins, and editing with nano
+                   risks a syntax error that breaks sudo for everyone. Use
+                   visudo and remove only the unauthorized entries.
+
+  Brief: The machine must not forward traffic between its interfaces.
+  Action: Set net.ipv4.ip_forward = 0 and run sudo sysctl --system.
+  Call: FIX. Matches the brief and removes a pivot.
+
+  Brief: Your useradd and passwd commands keep failing silently on this machine.
+  Action: Reinstall the passwd package.
+  Call: CHECK FIRST. Check sudo lsattr /etc/passwd /etc/shadow first. The
+                     immutable flag is the usual cause; reinstalling fixes
+                     nothing.
+
+  Brief: Timeshift is used for backups on this workstation.
+  Action: Run sudo apt purge timeshift because backups are not a security
+          control.
+  Call: BREAKS IT. Required software per the brief. Leave it; snapshots are also
+                   your own undo button.
+
+  Brief: The design team installs approved apps through Flatpak.
+  Action: Run sudo apt purge flatpak to remove an unneeded package manager.
+  Call: BREAKS IT. Required tooling. Audit flatpak list for unapproved apps
+                   instead.
+
+------------------------------ SPOT THE FINDING (output snippets) --------------
+  Lines from /etc/passwd. Tap the finding.
+     root:x:0:0:root:/root:/bin/bash
+     alice:x:1000:1000:Alice:/home/alice:/bin/bash
+  >> sysadm:x:0:0::/home/sysadm:/bin/bash
+     www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin
+  WHY: A second UID-0 account is a second root. Remove it (after noting it for
+       the investigation).
+
+  Output of getent group sudo. Brief: alice is the only admin. Tap the finding.
+  >> sudo:x:27:alice,mallory
+     adm:x:4:syslog,alice
+     users:x:100:
+     plugdev:x:46:alice
+  WHY: mallory in the sudo group is an unauthorized admin: sudo gpasswd -d
+       mallory sudo.
+
+  Lines from /etc/shadow. Tap the finding.
+     alice:$y$j9T$...:19600:0:99999:7:::
+  >> bob::19600:0:99999:7:::
+     carol:!:19600:0:99999:7:::
+     daemon:*:19600:0:99999:7:::
+  WHY: An empty second field means bob logs in with no password. ! and * mean
+       locked, which is fine.
+
+  Lines from /etc/ssh/sshd_config. Tap the finding.
+     Port 22
+  >> PermitRootLogin yes
+     PasswordAuthentication yes
+     X11Forwarding no
+  WHY: PermitRootLogin yes lets attackers brute-force root directly. Set it to
+       no and restart ssh.
+
+  Lines found in /etc/sudoers.d/. Tap the finding.
+     %sudo ALL=(ALL:ALL) ALL
+     Defaults env_reset
+  >> mallory ALL=(ALL) NOPASSWD: ALL
+     root ALL=(ALL:ALL) ALL
+  WHY: Passwordless full sudo for an unlisted user is a root backdoor. Remove it
+       with visudo -f.
+
+  Output of sudo ss -tulpn. Brief: no FTP on this machine. Tap the finding.
+     tcp LISTEN 0 128 0.0.0.0:22   users:(("sshd",pid=655))
+  >> tcp LISTEN 0 32  0.0.0.0:21   users:(("vsftpd",pid=812))
+     udp UNCONN 0 0   127.0.0.53:53 users:(("systemd-resolve",pid=400))
+     tcp LISTEN 0 128 127.0.0.1:631 users:(("cupsd",pid=701))
+  WHY: vsftpd on port 21 when the brief forbids FTP: disable it and remove the
+       package.
+
+  Output of sudo lsattr. Tap the finding.
+     --------------e------- /etc/shadow
+  >> ----i---------e------- /etc/passwd
+     --------------e------- /etc/sudoers
+     --------------e------- /etc/group
+  WHY: The i flag makes /etc/passwd immutable, so user changes silently fail.
+       sudo chattr -i /etc/passwd.
+
+  Lines from /etc/sysctl.conf. Tap the finding.
+     net.ipv4.tcp_syncookies = 1
+  >> net.ipv4.ip_forward = 1
+     kernel.randomize_va_space = 2
+     fs.protected_symlinks = 1
+  WHY: ip_forward=1 makes a workstation route traffic, a pivot for attackers.
+       Set it to 0 and apply with sysctl --system.
+
+------------------------------ OFFICIAL SOURCES --------------------------------
+  Linux Mint documentation
+    https://linuxmint.com/documentation.php
+  Linux Mint 22.3 Cinnamon: new features
+    https://www.linuxmint.com/rel_zena_cinnamon_whatsnew.php
+  Ubuntu security
+    https://ubuntu.com/security
+  Ubuntu Server documentation: firewall (ufw)
+    https://ubuntu.com/server/docs/how-to/security/firewalls/
+  pam_faillock manual (Ubuntu 24.04)
+    https://manpages.ubuntu.com/manpages/noble/man8/pam_faillock.8.html
+  sshd socket-based activation (Ubuntu)
+    https://discourse.ubuntu.com/t/sshd-now-uses-socket-based-activation-ubuntu-22-10-and-later/30189
+  CIS Critical Security Controls v8
+    https://www.cisecurity.org/controls/v8
+  CIS Benchmarks
+    https://www.cisecurity.org/cis-benchmarks
+
+================================================================================

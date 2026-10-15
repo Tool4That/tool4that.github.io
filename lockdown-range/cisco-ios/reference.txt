@@ -1,0 +1,798 @@
+LOCKDOWN RANGE: CISCO IOS - SOLUTION WALKTHROUGH
+================================================
+File: cisco-range.html (single page, works offline; progress stays in the
+browser). Companion to the Windows Range and Linux Range labs.
+A general networking-security practice lab for learners, instructors and
+study groups. Every name, address and organization in the scenarios is
+fictional. Unofficial practice; not affiliated with or endorsed by Cisco.
+The look and feel is inspired by Cisco Packet Tracer, a free network
+simulator.
+
+1. WHAT THE LAB SIMULATES (AND WHAT IT DOES NOT)
+------------------------------------------------
+A Packet Tracer-style practice topology with real-feeling Cisco IOS consoles
+and PC command prompts, plus a live Progress Check that re-runs every check
+as you work.
+
+Simulated faithfully:
+- IOS modes and prompts: Router> Router# (config)# (config-if)#
+  (config-if-range)# (config-subif)# (config-line)# (config-vlan)#
+  (config-std-nacl)#; unique-prefix abbreviations (conf t, int g0/0, sh run,
+  wr); ? context help; Tab completion; Up/Down history; Ctrl+Z; Ctrl+C.
+- The exact error strings: % Invalid input detected at '^' marker. (caret
+  under the bad word), % Ambiguous command:  "...", % Incomplete command.,
+  % Bad secrets, % Bad passwords, % Login invalid, % No password set,
+  % Please define a hostname other than Router., % Please define a
+  domain-name first., Command rejected: ... is a dynamic port., % Password
+  too short ..., % Login disabled on line N, until 'password' is set, etc.
+- show running-config rendered from device state in true IOS order with
+  enable secret 5 $1$mERr$..., username ... secret 5 ..., password 7 ...
+  (real type-7 encoding) once service password-encryption is on, banner
+  motd ^C...^C, grouped line vty blocks, end.
+- copy running-config startup-config / write, show startup-config, and
+  reload (asks to save, then boots from startup-config: unsaved work is
+  gone, and the Progress Check drops with it).
+- A real layer-2/layer-3 model: access and trunk ports (802.1Q, native VLAN,
+  allowed list, DTP dynamic auto/desirable), router-on-a-stick
+  subinterfaces (encapsulation dot1Q N [native]), SVIs that only come up
+  when their VLAN exists and has an active port, ip default-gateway on
+  switches, static/default routes on routers, standard ACLs on VTY lines
+  (access-class), login block-for quiet mode. ping / traceroute / tracert
+  / ssh / telnet are evaluated against that model, with IOS and Windows
+  style output (!!!!! / ..... / U.U.U, Request timed out., Destination host
+  unreachable., TTL that drops per router hop).
+- Numbered ACL editing like real IOS: "no access-list 10 permit host X"
+  deletes the WHOLE list 10; remove one entry with "ip access-list standard
+  10" then "no <sequence number>" (show access-lists prints the numbers).
+- SSH from a PC or device succeeds only when the target is fully ready
+  (RSA key, login local, a matching username/secret, transport input ssh,
+  ACL permits the source) and then drops you into that device's vty
+  session. Telnet works only when the line allows it and has a password
+  (and leaves the SSH-only check failing until it is closed).
+- Port security with sticky learning, BPDU guard / portfast, DHCP snooping
+  configuration, CDP neighbours, MAC address table, logging buffer with
+  syslog-style %LINK / %LINEPROTO / %SYS-5-CONFIG_I / %SSH-5-ENABLED lines,
+  show version / show clock / show ip ssh / show port-security ...
+
+Deliberately NOT simulated (the console tells you with a [Range] note):
+- Output paging (--More--): everything scrolls; use the browser scrollback.
+- erase startup-config / write erase, copy startup-config running-config
+  (the real merge), the setup dialog, debug output, extended ping options,
+  SNMP, AAA (aaa new-model), dynamic routing protocols, IPv6, extended or
+  interface ACLs (ip access-group), storm control, DHCP server/client.
+- Real DNS behaviour on an unknown first word in EXEC mode: the real router
+  prints Translating "shw"... and tries to telnet; the lab always gives
+  the ^ marker error so the message you learn is the one that matters.
+- Port-security violations never actually happen (every PC keeps its MAC).
+- NTP never synchronises and syslog servers never answer (the server is
+  not a device in the topology); the checks only read the configuration.
+
+How progress is measured:
+- Checks: each scenario has 22-27 checks worth 100 points in total. Each
+  check belongs to a hardening area (the same areas the Windows and Linux
+  labs use, each tied to a CIS Critical Security Controls v8 control):
+    Account management (CIS Control 5)   - enable secret, local accounts,
+                                           password encryption and length
+    Access control (CIS Control 6)       - console/VTY login, SSH only,
+                                           RSA keys, timeouts, login
+                                           block-for, VTY ACLs, port security
+    Secure configuration (CIS Control 4) - hostname, banner, unneeded
+                                           services, unused ports, VLANs,
+                                           trunks, BPDU guard, DHCP
+                                           snooping, CDP, saved config
+    Audit logging (CIS Control 8)        - syslog host, timestamps, NTP
+  Patching (CIS Control 7) and Malware defenses (CIS Control 10) have no
+  checks in this lab. Two groups sit outside the six areas:
+  Troubleshooting (restoring a broken path) and Investigation (questions
+  you answer by reading the devices).
+- Availability checks: the "A" in confidentiality, integrity and
+  availability. Each Scenario Brief lists what the organization needs
+  (authorized accounts, required links and addresses). Breaking one fails
+  an availability check, shows it in red and subtracts points until you
+  undo the change.
+
+2. THE ROUTINE (CHECKLIST)
+--------------------------
+[ ] 1. Pick the scenario pill (1 Recruit, 2 Operator, 3 Captain).
+[ ] 2. Read the Activity panel top to bottom: the Scenario Brief
+       (authorized administrators / users, required services, policy,
+       warning and credentials) and the addressing table.
+[ ] 3. Power on: click the device tab (it boots), press RETURN, log in with
+       the credentials from the Scenario Brief if the console asks.
+[ ] 4. Investigation first: answer the two questions in the Activity panel
+       (answers save as you type, checking is case-insensitive).
+[ ] 5. Snapshot mentality: show running-config, show ip interface brief,
+       show vlan brief, show interfaces trunk, show access-lists on every
+       device BEFORE changing anything. Compare accounts with the Scenario
+       Brief.
+[ ] 6. Fix by area: accounts and passwords; console and VTY lines; SSH
+       (domain, RSA key, version 2); banner and services; VLANs and trunks;
+       unused ports; port security / BPDU guard / DHCP snooping; logging
+       and NTP; ACLs. Watch the Progress Check after each change.
+[ ] 7. Verify from the PCs: ipconfig, ping, tracert, ssh -l user address,
+       telnet address (it should now be refused).
+[ ] 8. Save on EVERY device: copy running-config startup-config (Enter at
+       the filename prompt) or write. Test with reload if you dare.
+[ ] 9. Finish / Debrief: read every miss, note the exact command, Reset
+       lab and do it again faster.
+
+3. SCENARIOS - SOLUTION WALKTHROUGH
+-----------------------------------
+Each check: title (points) [hardening area] / exact fix / why it matters.
+Totals are 100 per scenario. Availability checks are listed last. Commands
+show the prompt they belong to; "(config)#" means global configuration mode
+on that device.
+
+3.1  Level 1 Recruit: Harbor Lights Tutoring Center
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  Theme: Branch router hardening
+Scenario Brief summary:
+  You are the new network technician at Harbor Lights Tutoring Center, an
+  after-school program with one branch router (R1) and a front-desk PC (PC1).
+  The previous technician left without securing anything: R1 still has its
+  factory hostname, a plaintext enable password, an unused account and Telnet
+  wide open.
+  Harden R1 so it meets the policy below. Work from R1's console tab; use PC1 to
+  test. R1 has no console password yet: press RETURN at the console to begin.
+  Authorized administrators:
+    - techlead (existing account, privilege 15) - keep it
+    - netadmin (your account - create it with privilege 15 and a secret of 10+
+      characters)
+  Authorized users:
+    - No other accounts are authorized. The "guest" account is not authorized.
+  Required (availability checks protect these):
+    - R1 GigabitEthernet0/0 (192.168.1.1) is the front-desk LAN and must stay up
+      with its address.
+    - SSH management from PC1 to R1 is required once you finish.
+  Policy:
+    - Privileged access uses an enable secret, never a plaintext enable
+      password.
+    - Passwords and secrets are at least 10 characters.
+    - The console and VTY lines require authentication; remote access is SSH
+      only (no Telnet).
+    - A message-of-the-day banner warns unauthorized users and never says
+      "welcome".
+    - Idle sessions time out within 10 minutes. Passwords are stored encrypted.
+    - Unneeded services are off (HTTP server, DNS lookups). Unused interfaces
+      are shut down.
+    - Save the configuration when you are done.
+  Warning: Do not remove authorized accounts and do not take GigabitEthernet0/0
+  offline: either one fails an availability check.
+  Credentials: R1 console: no password yet (press RETURN). Enable password:
+  letmein123 (replace it with an enable secret). PC1 is already addressed.
+  Addressing (device | interface | address | mask | gateway):
+    R1 | GigabitEthernet0/0 | 192.168.1.1 | 255.255.255.0 | -
+    R1 | GigabitEthernet0/1 | unused | - | -
+    PC1 | FastEthernet0 | 192.168.1.10 | 255.255.255.0 | 192.168.1.1
+  Task list (shown in the Activity panel at this level):
+    1. Set the hostname to R1.
+    2. Configure an enable secret (10+ characters) and remove the plaintext
+       enable password.
+    3. Delete the unauthorized guest account; create netadmin with privilege 15
+       and a secret.
+    4. Protect the console with a password and login; set exec-timeout 5 0 on
+       console and VTY.
+    5. Make the VTY lines use login local and transport input ssh.
+    6. Set a domain name, generate a 2048-bit RSA key and force SSH version 2.
+    7. Add a MOTD banner (no "welcome"), enable service password-encryption,
+       require passwords of 10+ characters and limit login attempts.
+    8. Turn off the HTTP server and DNS lookups; shut down the unused interface
+       GigabitEthernet0/1.
+    9. Answer both investigation questions, then save with copy running-config
+       startup-config.
+
+Investigation answers:
+  Q1: The VTY lines on R1 still carry a plaintext line password. What is it?
+      (Hint: show running-config)
+      ANSWER: cisco
+  Q2: What is the file name of the IOS image R1 booted from? (Hint: show
+      version)
+      ANSWER: c1900-universalk9-mz.SPA.151-4.M4.bin
+      also accepted: flash0:c1900-universalk9-mz.SPA.151-4.M4.bin,
+        flash:c1900-universalk9-mz.SPA.151-4.M4.bin
+
+Checks (22, 100 points):
+   1. Hostname set to R1 (4 pts) [Secure configuration]
+        R1(config)# hostname R1
+        why: A named device is identifiable in logs and prompts; "Router" means
+        nobody set it up.
+   2. Enable secret configured (6 pts) [Account management]
+        R1(config)# enable secret Str0ng-Enable-2026!
+        why: The enable secret is hashed in the config; it guards privileged
+        mode.
+   3. Plaintext enable password removed (5 pts) [Account management]
+        R1(config)# no enable password
+        why: enable password is stored readably (or with weak type 7); the
+        secret replaces it.
+   4. Unauthorized account "guest" removed (6 pts) [Account management]
+        R1(config)# no username guest
+        why: Every unauthorized account is a way in; the scenario brief lists
+        who is allowed.
+   5. Administrator "netadmin" created with privilege 15 and a secret (6 pts)
+      [Account management]
+        R1(config)# username netadmin privilege 15 secret N3tadmin-2026!
+        why: login local and SSH both need a local account; privilege 15 lands
+        you in enable mode.
+   6. Console line protected with a password and login (6 pts) [Access control]
+        R1(config)# line console 0
+        R1(config-line)# password C0nsole-Pass!
+        R1(config-line)# login
+        why: Without it anyone with a console cable owns the device.
+   7. VTY lines use local user authentication (login local) (6 pts) [Access
+      control]
+        R1(config)# line vty 0 4
+        R1(config-line)# login local
+        why: SSH needs usernames; a shared line password cannot be audited or
+        revoked per person.
+   8. VTY lines accept SSH only (Telnet disabled) (6 pts) [Access control]
+        R1(config-line)# transport input ssh
+        why: Telnet sends passwords in clear text on the wire.
+   9. Domain name configured (3 pts) [Access control]
+        R1(config)# ip domain-name harborlights.local
+        why: The RSA key is named hostname.domain; IOS refuses to generate one
+        without a domain.
+  10. RSA key pair generated (2048 bits) (6 pts) [Access control]
+        R1(config)# crypto key generate rsa general-keys modulus 2048
+        why: Keys shorter than 2048 bits are considered weak; the key is what
+        enables the SSH server.
+  11. SSH version 2 enforced (5 pts) [Access control]
+        R1(config)# ip ssh version 2
+        why: SSHv1 has known weaknesses; v2 only is the standard.
+  12. MOTD banner warns unauthorized users (and does not say "welcome") (4 pts)
+      [Secure configuration]
+        R1(config)# banner motd #Authorized access only. Activity is monitored.#
+        why: States that access is restricted and monitored. Cisco advises
+        banners that reveal nothing about the device or owner; "welcome" reads
+        as an invitation, and legal wording is a question for counsel.
+  13. Service password-encryption enabled (4 pts) [Account management]
+        R1(config)# service password-encryption
+        why: Turns plaintext line and user passwords into type 7, which stops
+        shoulder-surfing but is reversible obfuscation, not real encryption:
+        secrets still need enable secret / username secret.
+  14. Exec timeout of 10 minutes or less on console and VTY (5 pts) [Access
+      control]
+        R1(config-line)# exec-timeout 5 0
+        why: An idle, logged-in session left open is a free privileged shell.
+  15. Minimum password length set to 10 or more (3 pts) [Account management]
+        R1(config)# security passwords min-length 10
+        why: IOS then rejects new passwords and secrets shorter than that; set
+        it before you set the passwords.
+  16. Login attempts limited (login block-for) (4 pts) [Access control]
+        R1(config)# login block-for 120 attempts 3 within 60
+        why: Slows password guessing against the VTY lines.
+  17. HTTP server disabled (3 pts) [Secure configuration]
+        R1(config)# no ip http server
+        why: An unneeded management interface is attack surface.
+  18. DNS lookups disabled (no ip domain-lookup) (3 pts) [Secure configuration]
+        R1(config)# no ip domain-lookup
+        why: Stops typos from becoming long DNS "Translating..." hangs on the
+        console.
+  19. Unused interface GigabitEthernet0/1 shut down (3 pts) [Secure
+      configuration]
+        R1(config)# interface GigabitEthernet0/1
+        R1(config-if)# shutdown
+        why: Nobody can plug into a port that is administratively down.
+  20. Configuration saved to startup-config (4 pts) [Secure configuration]
+        R1# copy running-config startup-config
+        why: Unsaved work vanishes on reload - this check reads the saved
+        startup-config, just as a reload would.
+  21. Investigation 1 answered (4 pts) [Investigation]
+        Answer: cisco
+        why: Reading the config before changing it is the first step of every
+        assessment.
+  22. Investigation 2 answered (4 pts) [Investigation]
+        Answer: c1900-universalk9-mz.SPA.151-4.M4.bin
+        why: show version tells you the software (and known bugs) you are
+        defending.
+
+Availability checks (pass while the required items keep working):
+  - Fails if: Authorized administrator "techlead" removed (-8 pts)
+        why: The scenario brief lists techlead as an authorized administrator;
+        deleting a colleague's account locks them out of a device the center
+        depends on.
+  - Fails if: PC1 can no longer reach its gateway 192.168.1.1 (-10 pts)
+        why: GigabitEthernet0/0 is a required service; shutting it or changing
+        its address breaks the front desk.
+
+3.2  Level 2 Operator: Pua Lane Public Library
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  Theme: Access switch: VLANs, port security, SSH
+Scenario Brief summary:
+  You are the network technician for the Pua Lane branch of the county library.
+  The branch has one access switch (S1) with two staff PCs and an uplink to the
+  district router R1. District IT owns R1 and has already configured it as a
+  router-on-a-stick: VLAN 10 (STAFF, gateway 192.168.10.1) and VLAN 99 (MGMT,
+  gateway 192.168.99.1, the native VLAN on the trunk).
+  S1 was set up by a volunteer years ago: everything sits in VLAN 1, the switch
+  is managed over Telnet with the password "cisco", and the uplink is not a
+  trunk. Bring S1 up to policy. R1 is view-only for you - do not change it.
+  Authorized administrators:
+    - libadmin (district account, privilege 15) - keep it
+    - netadmin (your account - create it with privilege 15 and a secret of 10+
+      characters)
+  Authorized users:
+    - No other accounts are authorized. "tempadmin" was never approved.
+  Required (availability checks protect these):
+    - PC1 and PC2 must keep connectivity to each other; after the migration both
+      belong to VLAN 10 (STAFF).
+    - The uplink GigabitEthernet0/1 to R1 is required. R1 is district-managed:
+      do not modify it.
+    - S1 must be manageable over SSH on VLAN 99 (192.168.99.2) from a staff PC.
+  Policy:
+    - User traffic never uses VLAN 1; management uses VLAN 99 (192.168.99.2/24,
+      default gateway 192.168.99.1).
+    - The uplink is an 802.1Q trunk with native VLAN 99, allowed VLANs 10 and
+      99, and no DTP negotiation.
+    - Unused ports are shut down and parked in VLAN 999 (PARKING).
+    - PC-facing ports run port security (max 1-2 sticky addresses, violation
+      shutdown or restrict) and BPDU guard.
+    - Enable secret only; passwords 10+ characters; console password is not
+      "cisco"; SSH only (no Telnet); banner without "welcome"; timeouts within
+      10 minutes; passwords encrypted; HTTP server and DNS lookups off.
+    - Save the configuration when you are done.
+  Warning: Removing libadmin, breaking PC1-PC2 connectivity or modifying R1
+  fails an availability check.
+  Credentials: S1 console password: cisco. S1 enable password: library (replace
+  it). R1: no credentials are provided (user EXEC only).
+  Addressing (device | interface | address | mask | gateway):
+    R1 | Gi0/0.10 (VLAN 10) | 192.168.10.1 | 255.255.255.0 | -
+    R1 | Gi0/0.99 (VLAN 99, native) | 192.168.99.1 | 255.255.255.0 | -
+    S1 | Vlan99 (management) | 192.168.99.2 | 255.255.255.0 | 192.168.99.1
+    PC1 | Fa0/1 (VLAN 10) | 192.168.10.11 | 255.255.255.0 | 192.168.10.1
+    PC2 | Fa0/2 (VLAN 10) | 192.168.10.12 | 255.255.255.0 | 192.168.10.1
+
+Investigation answers:
+  Q1: What is the MAC address of PC2? (Hint: ipconfig /all on PC2, or show mac
+      address-table on S1)
+      ANSWER: 0001.B7D9.E350
+  Q2: An unauthorized local account exists on S1. What is its username?
+      ANSWER: tempadmin
+
+Checks (27, 100 points):
+   1. Hostname set to S1 (3 pts) [Secure configuration]
+        S1(config)# hostname S1
+        why: Logs, CDP and prompts all show the name.
+   2. Enable secret configured (4 pts) [Account management]
+        S1(config)# enable secret L1brary-En@ble!
+        why: Hashed, unlike the enable password.
+   3. Plaintext enable password removed (4 pts) [Account management]
+        S1(config)# no enable password
+        why: "library" is readable in the config and easy to guess.
+   4. Unauthorized account "tempadmin" removed (5 pts) [Account management]
+        S1(config)# no username tempadmin
+        why: A forgotten privilege-15 account is a permanent back door.
+   5. Administrator "netadmin" created with privilege 15 and a secret (5 pts)
+      [Account management]
+        S1(config)# username netadmin privilege 15 secret N3tadmin-2026!
+        why: Needed for login local and SSH.
+   6. Console password changed from the default "cisco" (3 pts) [Access control]
+        S1(config)# line console 0
+        S1(config-line)# password C0nsole-Pass!
+        S1(config-line)# login
+        why: "cisco" is the first guess anyone makes.
+   7. VTY lines use local user authentication (login local) (4 pts) [Access
+      control]
+        S1(config)# line vty 0 15
+        S1(config-line)# login local
+        why: Per-user accounts instead of one shared password.
+   8. VTY lines accept SSH only (Telnet disabled) (5 pts) [Access control]
+        S1(config-line)# transport input ssh
+        why: Telnet exposes every keystroke, including passwords.
+   9. Domain name set and 2048-bit RSA key generated (4 pts) [Access control]
+        S1(config)# ip domain-name pualane.local
+        S1(config)# crypto key generate rsa general-keys modulus 2048
+        why: No key, no SSH server.
+  10. SSH version 2 enforced (3 pts) [Access control]
+        S1(config)# ip ssh version 2
+        why: Disables the weaker protocol version.
+  11. MOTD banner warns unauthorized users (3 pts) [Secure configuration]
+        S1(config)# banner motd #Authorized library staff only. Activity is
+            monitored.#
+        why: Legal notice shown before login.
+  12. Service password-encryption enabled (3 pts) [Account management]
+        S1(config)# service password-encryption
+        why: Obscures line passwords in show running-config.
+  13. Exec timeout of 10 minutes or less on console and VTY (3 pts) [Access
+      control]
+        S1(config-line)# exec-timeout 5 0
+        why: Closes abandoned sessions.
+  14. HTTP server disabled (3 pts) [Secure configuration]
+        S1(config)# no ip http server
+        why: Removes the web management interface.
+  15. DNS lookups disabled (2 pts) [Secure configuration]
+        S1(config)# no ip domain-lookup
+        why: Prevents typo lookups from hanging the console.
+  16. VLAN 10 "STAFF" created and both PC ports are access ports in it (4 pts)
+      [Secure configuration]
+        S1(config)# vlan 10
+        S1(config-vlan)# name STAFF
+        S1(config)# interface range fa0/1 - 2
+        S1(config-if-range)# switchport mode access
+        S1(config-if-range)# switchport access vlan 10
+        why: User traffic leaves the default VLAN; access mode stops DTP games
+        on user ports.
+  17. Management moved to VLAN 99 (Vlan99 192.168.99.2 up, Vlan1 shut down) (5
+      pts) [Secure configuration]
+        S1(config)# vlan 99
+        S1(config-vlan)# name MGMT
+        S1(config)# interface vlan 99
+        S1(config-if)# ip address 192.168.99.2 255.255.255.0
+        S1(config-if)# no shutdown
+        S1(config)# interface vlan 1
+        S1(config-if)# no ip address
+        S1(config-if)# shutdown
+        why: Management on VLAN 1 is reachable from every unconfigured port.
+  18. Default gateway corrected to 192.168.99.1 (3 pts) [Secure configuration]
+        S1(config)# ip default-gateway 192.168.99.1
+        why: The switch replies to off-subnet managers through its gateway on
+        the MGMT VLAN.
+  19. Uplink Gi0/1 is a trunk: native VLAN 99, allowed 10,99, nonegotiate (5
+      pts) [Secure configuration]
+        S1(config)# interface GigabitEthernet0/1
+        S1(config-if)# switchport mode trunk
+        S1(config-if)# switchport trunk native vlan 99
+        S1(config-if)# switchport trunk allowed vlan 10,99
+        S1(config-if)# switchport nonegotiate
+        why: Matches R1 (native 99) and stops VLAN hopping via the default
+        native VLAN 1 and DTP.
+  20. Unused ports shut down (Fa0/3-24, Gi0/2) (4 pts) [Secure configuration]
+        S1(config)# interface range fa0/3 - 24
+        S1(config-if-range)# shutdown
+        S1(config)# interface GigabitEthernet0/2
+        S1(config-if)# shutdown
+        why: A live empty port is an invitation.
+  21. Unused ports parked in VLAN 999 (3 pts) [Secure configuration]
+        S1(config)# vlan 999
+        S1(config-vlan)# name PARKING
+        S1(config)# interface range fa0/3 - 24 , gi0/2
+        S1(config-if-range)# switchport mode access
+        S1(config-if-range)# switchport access vlan 999
+        why: If a parked port is ever enabled by mistake it lands in a dead-end
+        VLAN.
+  22. Port security on PC ports (max 1-2, sticky, violation shutdown/restrict)
+      (5 pts) [Access control]
+        S1(config)# interface range fa0/1 - 2
+        S1(config-if-range)# switchport port-security
+        S1(config-if-range)# switchport port-security maximum 1
+        S1(config-if-range)# switchport port-security violation shutdown
+        S1(config-if-range)# switchport port-security mac-address sticky
+        why: Only the known PC may use that port; a rogue device shuts it down.
+  23. BPDU guard enabled on PC ports (3 pts) [Secure configuration]
+        S1(config-if-range)# spanning-tree portfast
+        S1(config-if-range)# spanning-tree bpduguard enable
+        why: A rogue switch plugged into a user port cannot take over spanning
+        tree.
+  24. PC1 can SSH to S1 (192.168.99.2) as netadmin (4 pts) [Troubleshooting]
+        PC1> ssh -l netadmin 192.168.99.2
+        why: Proves the management path end to end: VLAN 10 -> R1 -> VLAN 99 ->
+        S1 and back.
+  25. Configuration saved to startup-config (4 pts) [Secure configuration]
+        S1# copy running-config startup-config
+        why: A reload would otherwise undo everything.
+  26. Investigation 1 answered (3 pts) [Investigation]
+        Answer: the Physical Address shown by ipconfig /all on PC2
+        why: MAC addresses tie a port to a machine - the basis of port security.
+  27. Investigation 2 answered (3 pts) [Investigation]
+        Answer: tempadmin
+        why: Compare every account against the scenario brief before touching
+        anything.
+
+Availability checks (pass while the required items keep working):
+  - Fails if: Authorized administrator "libadmin" removed (-8 pts)
+        why: District IT needs its account; the scenario brief lists it as
+        authorized.
+  - Fails if: Required PC1-PC2 connectivity broken (-10 pts)
+        why: Both PCs must stay in the same VLAN with their ports up.
+  - Fails if: District router R1 modified (-10 pts)
+        why: R1 belongs to district IT and is out of scope; changing a device
+        you do not own risks the routing the whole branch depends on.
+
+3.3  Level 3 Captain: Kaulana Creek Veterinary Clinic
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  Theme: Two switches, trunks, troubleshooting
+Scenario Brief summary:
+  You are the lead technician at Kaulana Creek Veterinary Clinic. The clinic
+  network is a router (R1) doing inter-VLAN routing for two switches: S1 at the
+  front desk and S2 in the exam rooms, joined by a trunk. VLAN 10 FRONTDESK
+  (PC1), VLAN 20 EXAM (PC2) and VLAN 99 MGMT (R1 .1, S1 .2, S2 .3) are in use;
+  the syslog/NTP server lives at 192.168.99.50.
+  Since a contractor "upgraded" things last week, PC2 cannot reach PC1 and the
+  front desk cannot SSH to S1. Find and fix the faults, then finish hardening
+  all three devices to policy. Each device has your account; use it on the
+  consoles.
+  Authorized administrators:
+    - vetadmin (privilege 15, on R1, S1 and S2) - your account, password
+      Cl1nic-Adm1n!
+    - Enable secret on all devices: Cl1nic-En@ble
+  Authorized users:
+    - No other accounts are authorized: "svc_backup" (R1) and "kiosk" (S2) were
+      never approved.
+  Required (availability checks protect these):
+    - PC1 (192.168.10.10) and PC2 (192.168.20.10) must be able to reach each
+      other.
+    - The trunks R1-S1 and S1-S2 and the management addresses in VLAN 99 are
+      required.
+    - Remote management is SSH only, from the management subnet 192.168.99.0/24
+      only.
+  Policy:
+    - SSH only on all VTY lines, protected by a standard ACL permitting just
+      192.168.99.0/24; RSA keys 2048 bits; SSH version 2.
+    - Trunks use native VLAN 99 and switchport nonegotiate; unused ports are
+      shut down.
+    - Access ports: port security (sticky, max 2), BPDU guard, CDP off.
+    - DHCP snooping on VLANs 10 and 20 with the trunks trusted.
+    - Every device logs to 192.168.99.50 with timestamps and syncs time with NTP
+      from 192.168.99.50.
+    - Enable secret only, encrypted passwords, exec-timeout within 10 minutes,
+      login block-for, MOTD banner, HTTP server off.
+    - Save all three configurations.
+  Warning: Removing vetadmin, breaking the trunks or the management addresses,
+  or cutting PC1 off from its gateway fails an availability check.
+  Credentials: Console login on R1, S1 and S2: vetadmin / Cl1nic-Adm1n! (lands
+  in privileged EXEC). Enable secret: Cl1nic-En@ble.
+  Addressing (device | interface | address | mask | gateway):
+    R1 | Gi0/0.10 (VLAN 10) | 192.168.10.1 | 255.255.255.0 | -
+    R1 | Gi0/0.20 (VLAN 20) | 192.168.20.1 | 255.255.255.0 | -
+    R1 | Gi0/0.99 (VLAN 99, native) | 192.168.99.1 | 255.255.255.0 | -
+    S1 | Vlan99 | 192.168.99.2 | 255.255.255.0 | 192.168.99.1
+    S2 | Vlan99 | 192.168.99.3 | 255.255.255.0 | 192.168.99.1
+    PC1 | S1 Fa0/1 (VLAN 10) | 192.168.10.10 | 255.255.255.0 | 192.168.10.1
+    PC2 | S2 Fa0/1 (VLAN 20) | 192.168.20.10 | 255.255.255.0 | 192.168.20.1
+    Server1 | (not shown) VLAN 99 | 192.168.99.50 | 255.255.255.0 | 192.168.99.1
+
+Investigation answers:
+  Q1: Which R1 interface is administratively down although it must carry the
+      EXAM VLAN? Type it as show ip interface brief prints it.
+      ANSWER: GigabitEthernet0/0.20
+      also accepted: g0/0.20, gi0/0.20, gig0/0.20, gigabitethernet 0/0.20
+  Q2: The VTY access list on R1 permits one host that is outside the clinic.
+      What is that IP address?
+      ANSWER: 203.0.113.66
+
+Checks (27, 100 points):
+   1. Unauthorized account "svc_backup" removed from R1 (3 pts) [Account
+      management]
+        R1(config)# no username svc_backup
+        why: A privilege-15 account with a plaintext password is the worst kind
+        of leftover.
+   2. Unauthorized account "kiosk" removed from S2 (3 pts) [Account management]
+        S2(config)# no username kiosk
+        why: Not in the scenario brief, so not authorized.
+   3. Leftover plaintext enable password removed from S2 (3 pts) [Account
+      management]
+        S2(config)# no enable password
+        why: The secret already protects enable mode; the password only leaks.
+   4. Service password-encryption on R1, S1 and S2 (4 pts) [Account management]
+        (config)# service password-encryption
+        why: Consistency matters: one readable config is enough.
+   5. R1 RSA key regenerated at 2048 bits and SSH version 2 enforced (5 pts)
+      [Access control]
+        R1(config)# crypto key generate rsa general-keys modulus 2048
+        R1(config)# ip ssh version 2
+        why: A 1024-bit key no longer meets policy.
+   6. SSH-only VTY access (login local + transport input ssh) on R1, S1 and S2
+      (6 pts) [Access control]
+        (config)# ip domain-name kaulanavet.local
+        (config)# crypto key generate rsa general-keys modulus 2048
+        (config)# line vty 0 15
+        (config-line)# login local
+        (config-line)# transport input ssh
+        why: Telnet on any one device exposes the shared admin password.
+   7. R1 VTY access list permits only 192.168.99.0/24 (outside host removed) (4
+      pts) [Access control]
+        R1(config)# ip access-list standard 10
+        R1(config-std-nacl)# no 20
+        R1(config-std-nacl)# exit
+        R1(config)# line vty 0 4
+        R1(config-line)# access-class 10 in
+        why: An ACL that lets an internet host in is worse than none - it looks
+        secure.
+   8. VTY access-class restricting to 192.168.99.0/24 applied on S1 and S2 (5
+      pts) [Access control]
+        S1(config)# access-list 10 permit 192.168.99.0 0.0.0.255
+        S1(config)# line vty 0 15
+        S1(config-line)# access-class 10 in
+        why: Only management stations should even see a login prompt.
+   9. Exec timeout within 10 minutes on console and VTY of all devices (4 pts)
+      [Access control]
+        (config-line)# exec-timeout 5 0
+        why: Idle sessions are unattended privileged shells.
+  10. Login block-for configured on all devices (3 pts) [Access control]
+        (config)# login block-for 120 attempts 3 within 60
+        why: Rate-limits brute force on SSH.
+  11. MOTD banner (without "welcome") on all devices (3 pts) [Secure
+      configuration]
+        (config)# banner motd #Authorized clinic staff only. Activity is
+            monitored.#
+        why: Legal notice on every login path.
+  12. HTTP server disabled on all devices (3 pts) [Secure configuration]
+        (config)# no ip http server
+        why: Unused management surface.
+  13. Syslog host 192.168.99.50 and log timestamps on all devices (4 pts) [Audit
+      logging]
+        (config)# logging host 192.168.99.50
+        (config)# service timestamps log datetime msec
+        why: Central, time-stamped logs are the evidence trail.
+  14. NTP server 192.168.99.50 on all devices (3 pts) [Audit logging]
+        (config)# ntp server 192.168.99.50
+        why: Logs from three devices only correlate if their clocks agree.
+  15. R1 GigabitEthernet0/0.20 enabled (no shutdown) (4 pts) [Troubleshooting]
+        R1(config)# interface GigabitEthernet0/0.20
+        R1(config-if)# no shutdown
+        why: VLAN 20 has no gateway while its subinterface is down.
+  16. S2 Fa0/1 assigned to VLAN 20 (EXAM) (4 pts) [Troubleshooting]
+        S2(config)# interface FastEthernet0/1
+        S2(config-if)# switchport access vlan 20
+        why: PC2 has a VLAN 20 address but sits in VLAN 10: wrong broadcast
+        domain.
+  17. PC2 default gateway corrected to 192.168.20.1 (3 pts) [Troubleshooting]
+        PC2 > IP Configuration > Default Gateway = 192.168.20.1
+        why: A wrong gateway strands the PC on its own subnet.
+  18. PC1 can reach PC2 (end-to-end connectivity restored) (5 pts)
+      [Troubleshooting]
+        PC1> ping 192.168.20.10
+        why: The business outcome: the clinic works again.
+  19. Native VLAN 99 and nonegotiate on all trunks (S1 Gi0/1 mismatch fixed) (4
+      pts) [Secure configuration]
+        S1(config)# interface range gi0/1 - 2
+        S1(config-if-range)# switchport trunk native vlan 99
+        S1(config-if-range)# switchport nonegotiate
+        S2(config)# interface gi0/1
+        S2(config-if)# switchport nonegotiate
+        why: The native mismatch on S1 Gi0/1 is why management traffic to R1
+        fails; nonegotiate stops DTP.
+  20. Unused ports shut down on S1 and S2 (4 pts) [Secure configuration]
+        S1(config)# interface range fa0/2 - 24
+        S1(config-if-range)# shutdown
+        S2(config)# interface range fa0/2 - 24 , gi0/2
+        S2(config-if-range)# shutdown
+        why: Every open port in an exam room is a place to plug in.
+  21. Port security (sticky, max 2) on S1 Fa0/1 and S2 Fa0/1 (4 pts) [Access
+      control]
+        (config-if)# switchport port-security
+        (config-if)# switchport port-security maximum 2
+        (config-if)# switchport port-security violation restrict
+        (config-if)# switchport port-security mac-address sticky
+        why: Limits each port to the devices that belong there.
+  22. BPDU guard on the access ports (3 pts) [Secure configuration]
+        (config-if)# spanning-tree portfast
+        (config-if)# spanning-tree bpduguard enable
+        why: Blocks a rogue switch from influencing the topology.
+  23. DHCP snooping on VLANs 10 and 20 with trusted trunks (S1, S2) (4 pts)
+      [Secure configuration]
+        S1(config)# ip dhcp snooping
+        S1(config)# ip dhcp snooping vlan 10,20
+        S1(config)# interface range gi0/1 - 2
+        S1(config-if-range)# ip dhcp snooping trust
+        (same on S2 with gi0/1)
+        why: Stops a rogue DHCP server on a user port from redirecting the
+        clinic.
+  24. CDP disabled on PC-facing ports (or globally) on S1 and S2 (2 pts) [Secure
+      configuration]
+        (config-if)# no cdp enable
+        why: CDP tells anyone on the port the switch model, IOS version and
+        VLAN.
+  25. Configurations saved on R1, S1 and S2 (4 pts) [Secure configuration]
+        # copy running-config startup-config
+        why: Three devices, three saves.
+  26. Investigation 1 answered (3 pts) [Investigation]
+        Answer: GigabitEthernet0/0.20
+        why: show ip interface brief is the fastest health check on any IOS
+        device.
+  27. Investigation 2 answered (3 pts) [Investigation]
+        Answer: 203.0.113.66
+        why: Read ACLs line by line; one permit is all it takes.
+
+Availability checks (pass while the required items keep working):
+  - Fails if: Authorized administrator "vetadmin" removed from a device (-8 pts)
+        why: Your own account is the authorized administrator on every device in
+        the scenario brief; removing it locks you out.
+  - Fails if: PC1 can no longer reach its gateway 192.168.10.1 (-8 pts)
+        why: VLAN 10 must stay routed; the trunk to R1 and Gi0/0.10 are
+        required.
+  - Fails if: Management address removed or shut on S1 or S2 (VLAN 99) (-6 pts)
+        why: Without the SVI the switch cannot be managed remotely.
+  - Fails if: Required trunk S1 Gi0/2 - S2 Gi0/1 broken (-6 pts)
+        why: S2 and PC2 hang off this trunk.
+
+4. IOS QUICK REFERENCE (what the lab accepts)
+---------------------------------------------
+Moving around
+  enable / disable / exit / end / Ctrl+Z / logout
+  configure terminal | conf t     do <exec command> (from any config mode)
+  show running-config | include X   (also exclude, begin, section)
+  show startup-config  show ip interface brief  show interfaces [X]
+  show interfaces status/trunk   show vlan brief   show ip route
+  show ip ssh / show ssh / show users / show line / show version
+  show clock / show history / show logging / show login
+  show port-security [interface X] / show port-security address
+  show mac address-table / show cdp neighbors / show access-lists
+  show spanning-tree [summary] / show crypto key mypubkey rsa
+  show ip dhcp snooping / show flash: / dir / show arp
+  ping A.B.C.D / traceroute A.B.C.D / ssh -l user A.B.C.D / telnet A.B.C.D
+  copy running-config startup-config / write [memory] / reload
+  clear line vty N / clock set hh:mm:ss day month year / terminal length 0
+Global configuration
+  hostname NAME                      enable secret SECRET
+  no enable password                 service password-encryption
+  service timestamps log datetime msec   security passwords min-length N
+  login block-for S attempts N within S  username U privilege 15 secret P
+  no username U                      banner motd #text#  (any delimiter)
+  ip domain-name NAME                crypto key generate rsa [general-keys
+                                       modulus 2048]   crypto key zeroize rsa
+  ip ssh version 2  ip ssh time-out 60  ip ssh authentication-retries 2
+  no ip http server  no ip http secure-server  no ip domain-lookup
+  no cdp run         logging host A.B.C.D   logging buffered 16384
+  ntp server A.B.C.D clock timezone HST -10  ip default-gateway A.B.C.D
+  ip route 0.0.0.0 0.0.0.0 NEXTHOP   access-list N permit host A | A W | any
+  ip access-list standard NAME|N (then permit/deny/remark, no SEQ)
+  no access-list N  (any "no access-list N ..." deletes the whole list)
+  vlan N / name NAME / no vlan N      ip dhcp snooping [vlan LIST]
+  spanning-tree portfast default    spanning-tree portfast bpduguard default
+  interface X | interface range fa0/3 - 24 , gi0/2
+Interface
+  ip address A M / no ip address     shutdown / no shutdown   description T
+  encapsulation dot1Q N [native]    (router subinterfaces)
+  switchport mode access|trunk|dynamic auto|dynamic desirable
+  switchport access vlan N          switchport trunk native vlan N
+  switchport trunk allowed vlan 10,20 | add | remove | all | none | except
+  switchport nonegotiate            switchport port-security
+  switchport port-security maximum N / violation shutdown|restrict|protect
+  switchport port-security mac-address sticky [H.H.H] | H.H.H
+  spanning-tree portfast            spanning-tree bpduguard enable|disable
+  ip dhcp snooping trust            ip dhcp snooping limit rate N
+  no cdp enable                     duplex / speed
+Line (line console 0 | line vty 0 4 | line vty 0 15 | line aux 0)
+  password P / no password          login / login local / no login
+  exec-timeout M [S]                logging synchronous
+  transport input ssh|telnet|all|none   access-class N in
+PC command prompt
+  ipconfig [/all]  ping [-n N] A  tracert A  arp -a | -d
+  ssh -l USER A    telnet A       help / ?  cls  exit
+  IP Configuration button: static address, mask, gateway, DNS (or DHCP,
+  which fails to an APIPA address because there is no DHCP server).
+
+5. THE REAL DEVICE DIFFERS HERE
+-------------------------------
+- Real IOS pauses long output with --More-- (Space continues, q quits) unless
+  you set terminal length 0. The lab never pauses.
+- Generating a 2048-bit key takes several seconds on real hardware; reload
+  takes minutes, not two seconds.
+- Real routers answer an unknown first word in EXEC mode with Translating
+  "word"...domain server (255.255.255.255) and hang for a while unless you
+  configured no ip domain-lookup. The lab shows the ^ marker instead.
+- Packet Tracer and real switches learn sticky MAC addresses only when the
+  PC actually sends traffic; the lab learns them as soon as sticky is
+  enabled on a port whose PC is connected (and on any ping through it).
+- Real syslog and NTP servers answer; here 192.168.99.50 is only a name in
+  the Scenario Brief. show ntp status will always say unsynchronized.
+- On a real device Telnet/SSH from a PC needs the PC to resolve ARP and the
+  first ping often loses one packet (the lab mimics that first loss).
+- Real IOS versions differ in wording (ip domain name vs ip domain-name,
+  secret 5 vs secret 9). The lab follows Packet Tracer / IOS 15.1.
+- login block-for quiet mode, ACL access-class and port security are real
+  here, but a mis-typed ACL on a real device can lock you out of your own
+  SSH session; always keep a console connection open while testing.
+- The lab resets a device's log and clock on reload like a router with
+  no battery-backed clock (Mar 1 1993); real switches keep their log in
+  RAM only as well, so save and export logs before a reload in real life.
+- Browser notes: Ctrl+W/Ctrl+T belong to the browser; use Ctrl+U to clear a
+  line. On phones, type ? at the end of the line to get help.
+- Numbered ACLs: on a real device "no access-list 10 permit host X"
+  deletes all of access list 10, and a VTY access-class that points at a
+  missing list no longer filters anything. Edit single entries through
+  "ip access-list standard 10" and sequence numbers instead (the lab
+  behaves the same way).
+
+6. SOURCES (open documentation the checks follow)
+-------------------------------------------------
+- Cisco Guide to Harden Cisco IOS Devices (enable secret, type 7 is
+  obfuscation only, SSH version 2 and RSA modulus, transport input ssh,
+  exec-timeout, no ip http server, CDP on untrusted ports, banners,
+  logging and NTP):
+  https://www.cisco.com/c/en/us/support/docs/ip/access-lists/13608-21.html
+- Configuring IP Access Lists (numbered ACL deletion, named and
+  sequence-numbered editing):
+  https://www.cisco.com/c/en/us/support/docs/security/ios-firewall/23602-confaccesslists.html
+- CIS Critical Security Controls v8 (the hardening areas):
+  https://www.cisecurity.org/controls/v8

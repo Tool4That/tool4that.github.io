@@ -1,0 +1,43 @@
+{
+  "category": "finance",
+  "tools": [
+    {
+      "slug": "spend-lens",
+      "name": "PFAT — Personal Finance Advisor Tool",
+      "tagline": "See where your money goes.",
+      "description": "Add transactions by hand, paste text, or import CSV and PDF bank statements. Get a money-in, money-out HUD, a paycheck plan, a 30-day look ahead, and a plain-language checkup. Everything stays on your device.",
+      "badges": [
+        "Finance",
+        "Budgeting",
+        "Private"
+      ],
+      "icon": "chart",
+      "download_as": "pfat.html",
+      "match": [
+        "pfat",
+        "spend[ _-]?lens",
+        "personal finance advisor"
+      ],
+      "page_description": "See where your money goes. Add transactions by hand, paste text, or import bank CSV and PDF statements, then get a money-in, money-out HUD, a paycheck plan, a 30-day look ahead, and a plain-language checkup. Everything stays on your device.",
+      "emoji": "📊",
+      "prep": {
+        "strip_google_fonts": true,
+        "replace": [
+          [
+            "--display: \"Bricolage Grotesque\", \"Arial Narrow\", Arial, sans-serif;",
+            "--display: \"Segoe UI Variable Display\", \"Segoe UI\", system-ui, -apple-system, \"Helvetica Neue\", Arial, sans-serif;"
+          ],
+          [
+            "--body: \"IBM Plex Sans\", \"Helvetica Neue\", Arial, sans-serif;",
+            "--body: \"Segoe UI Variable Text\", \"Segoe UI\", system-ui, -apple-system, \"Helvetica Neue\", Arial, sans-serif;"
+          ]
+        ],
+        "allow_script": [
+          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/"
+        ],
+        "accept_runtime_fallback": true,
+        "frame_guard": true
+      }
+    }
+  ]
+}

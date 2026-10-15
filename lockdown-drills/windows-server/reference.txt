@@ -1,0 +1,711 @@
+================================================================================
+ 02: WINDOWS SERVER HARDENING: SOLUTION WALKTHROUGH
+     Windows Server 2025 (member server or domain controller)
+ Training reference for virtual machines you own or are authorized to change.
+ Three levels: L1 Doorman, L2 Watchman, L3 Hunter. Every item = COMMAND, WHY,
+ NOTE and the hardening AREA it belongs to. No scripts by design: type it,
+ read it, explain it. Item IDs match the Lockdown Drills trainer for this OS.
+ Unofficial practice; not affiliated with or endorsed by Microsoft.
+
+ HARDENING AREAS (CIS Critical Security Controls v8)
+   Account management ........ CIS Control 5
+   Access control ............ CIS Control 6
+   Secure configuration ...... CIS Control 4 (software inventory: Control 2)
+   Patching .................. CIS Control 7
+   Malware defenses .......... CIS Control 10
+   Audit logging ............. CIS Control 8
+   Also tagged: Data protection (CIS Control 3); Investigation (forensics
+   basics: answer questions and preserve evidence before you change things).
+================================================================================
+
+------------------------------ DOORMAN -----------------------------------------
+ Lock the doors. First find out what the box is (standalone, member server, or
+ domain controller), then users, admins, passwords and policy in the place that
+ actually takes effect: local, or the domain.
+--------------------------------------------------------------------------------
+[B-00] Scenario brief and evidence first
+  AREA: Investigation (forensics basics)
+  GUI: open the scenario brief (the documented requirements for this machine) and write down authorized users, admins, required services, and anything forbidden
+  PS> (Get-CimInstance Win32_ComputerSystem).DomainRole
+      0-1 standalone or member workstation, 2-3 standalone or member server, 4-5 domain controller
+  PS> Get-WindowsFeature AD-Domain-Services,DNS,DHCP,Web-Server,Web-Ftp-Server | Select-Object Name,Installed
+  WHY: Most outages during hardening come from acting against the documented
+       requirements: removing a user, role or service the business needs is an
+       availability failure. Investigation questions often depend on evidence
+       you destroy while fixing, so answer them before you change anything.
+       Which commands apply depends on the role: local accounts and secpol on a
+       member server, Active Directory and Group Policy on a domain controller.
+  NOTE: Unfamiliar is not the same as unauthorized: leave management, backup and
+        monitoring agents alone until the system owner confirms what they are.
+
+[B-01] List users: local and domain
+  AREA: Account management (CIS Control 5)
+  PS> Get-LocalUser | Select-Object Name,Enabled,PasswordRequired,LastLogon
+  PS> Get-ADUser -Filter * -Properties Enabled,PasswordNeverExpires,PasswordNotRequired,LastLogonDate | Select-Object Name,Enabled,PasswordNeverExpires,PasswordNotRequired,LastLogonDate
+  CMD> net user /domain
+  GUI: dsa.msc (Active Directory Users and Computers) on a DC; lusrmgr.msc on a member server
+  WHY: Unauthorized accounts are backdoors. On a DC the local SAM is gone; every
+       account is a domain account, so Get-ADUser is the list to compare with
+       the brief.
+  NOTE: PasswordNotRequired=True and PasswordNeverExpires=True are findings in
+        their own right.
+
+[B-02] Remove or disable an unauthorized user
+  AREA: Account management (CIS Control 5)
+  PS> Disable-ADAccount -Identity baduser
+  PS> Remove-ADUser -Identity baduser -Confirm:$false
+  PS> Remove-LocalUser -Name "baduser"
+  CMD> net user baduser /delete
+  WHY: Disable first if the brief is unclear, delete when it is not: a disabled
+       account keeps its SID and group memberships for the investigation
+       question.
+
+[B-03] Audit the privileged groups
+  AREA: Account management (CIS Control 5)
+  PS> Get-ADGroupMember "Domain Admins"; Get-ADGroupMember "Enterprise Admins"; Get-ADGroupMember "Schema Admins"; Get-ADGroupMember "Administrators"
+  PS> Get-ADGroupMember "Account Operators"; Get-ADGroupMember "Server Operators"; Get-ADGroupMember "Backup Operators"; Get-ADGroupMember "DnsAdmins"
+  PS> Remove-ADGroupMember -Identity "Domain Admins" -Members baduser -Confirm:$false
+  PS> Get-LocalGroupMember -Group Administrators
+  CMD> net localgroup Administrators baduser /delete
+  WHY: Domain Admins is the whole game, and the operator groups, Backup
+       Operators and DnsAdmins are quieter roads to the same place. On a member
+       server it is still the local Administrators group.
+
+[B-04] Disable Guest; protect the built-in Administrator
+  AREA: Account management (CIS Control 5)
+  CMD> net user Guest /active:no
+  PS> Disable-ADAccount -Identity Guest
+  CMD> net user Administrator /active:no
+  PS> Set-ADUser -Identity Administrator -PasswordNeverExpires $false
+  WHY: Well-known accounts are brute-forced by name. The domain Guest should
+       always be disabled; the domain Administrator stays enabled only if the
+       brief uses it, with a strong password.
+  NOTE: Do not disable the account the brief tells you to log in with.
+
+[B-05] Strong passwords and forced change
+  AREA: Account management (CIS Control 5)
+  PS> Set-ADAccountPassword -Identity alice -Reset -NewPassword (ConvertTo-SecureString "Correct-Horse-Battery-2026!" -AsPlainText -Force)
+  PS> Set-ADUser -Identity alice -ChangePasswordAtLogon $true -PasswordNeverExpires $false -PasswordNotRequired $false
+  PS> Get-ADUser -Filter * | Set-ADUser -PasswordNeverExpires $false
+  CMD> net user alice "Correct-Horse-Battery-2026!"
+  CMD> net user alice /logonpasswordchg:yes
+  WHY: Weak, shared or blank passwords are the way in. PasswordNotRequired lets
+       an account have a blank password even when policy forbids it;
+       PasswordNeverExpires defeats the aging policy.
+  NOTE: Record every changed password somewhere safe (on paper, in a lab).
+
+[B-06] Password policy where it actually lives
+  AREA: Account management (CIS Control 5)
+  PS> Get-ADDefaultDomainPasswordPolicy
+  PS> Set-ADDefaultDomainPasswordPolicy -Identity (Get-ADDomain).DNSRoot -MinPasswordLength 12 -ComplexityEnabled $true -PasswordHistoryCount 24 -MinPasswordAge 1.00:00:00 -MaxPasswordAge 60.00:00:00 -ReversibleEncryptionEnabled $false
+  GUI: gpmc.msc, Default Domain Policy, Computer Configuration, Policies, Windows Settings, Security Settings, Account Policies, Password Policy
+  CMD> net accounts /minpwlen:12 /maxpwage:60 /minpwage:1 /uniquepw:24   (member server)
+  GUI: secpol.msc, Account Policies, Password Policy (member server)
+  WHY: On a domain controller, net accounts and secpol.msc are overridden by the
+       Default Domain Policy, so a change there never sticks. On a member server
+       the local policy is the one that counts.
+
+[B-07] Account lockout policy
+  AREA: Account management (CIS Control 5)
+  PS> Set-ADDefaultDomainPasswordPolicy -Identity (Get-ADDomain).DNSRoot -LockoutThreshold 5 -LockoutDuration 00:30:00 -LockoutObservationWindow 00:30:00
+  CMD> net accounts /lockoutthreshold:5 /lockoutduration:30 /lockoutwindow:30   (member server)
+  PS> Search-ADAccount -LockedOut | Select-Object Name
+  PS> Unlock-ADAccount -Identity alice
+  WHY: Turns an online brute force from thousands of guesses a minute into five
+       per half hour. Search-ADAccount shows who is locked out right now, which
+       is also an investigation clue.
+
+[B-08] Firewall on for all profiles
+  AREA: Secure configuration (CIS Control 4)
+  PS> Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled True
+  PS> Get-NetFirewallProfile | Select-Object Name,Enabled,DefaultInboundAction
+  CMD> netsh advfirewall set allprofiles state on
+  GUI: Settings, Privacy and security, Windows Security, Firewall and network
+       protection.
+  WHY: Default-deny inbound covers the service you have not found yet.
+       Misconfigured machines often have exactly one profile off, usually
+       Public.
+  NOTE: DefaultInboundAction should be Block. Allow-rule review is a Watchman
+        item.
+
+[B-09] Windows Update on a server
+  AREA: Patching (CIS Control 7)
+  CMD> sconfig   (option 5: Update setting = Automatic; option 6: Install Updates)
+  GUI: Settings, Windows Update, Check for updates
+  PS> Set-Service -Name wuauserv -StartupType Automatic; Start-Service wuauserv
+  GUI: gpmc.msc (or gpedit.msc), Computer Configuration, Policies, Administrative Templates, Windows Components, Windows Update: Configure Automatic Updates = Enabled (4)
+  WHY: Patching closes the holes scanners find, and the automatic-update setting
+       matters on its own. On a server, policy usually decides it, so check the
+       GPO when the setting will not stick.
+  NOTE: Start updates first and let them run; save work before any reboot.
+
+[B-10] Microsoft Defender on Server
+  AREA: Malware defenses (CIS Control 10)
+  PS> Get-MpComputerStatus | Select-Object AMServiceEnabled,RealTimeProtectionEnabled,AntivirusSignatureLastUpdated
+  PS> Install-WindowsFeature -Name Windows-Defender
+  PS> Set-MpPreference -DisableRealtimeMonitoring $false
+  PS> Update-MpSignature
+  PS> Start-MpScan -ScanType QuickScan
+  GUI: Windows Security, Virus and threat protection, Manage settings
+  WHY: Windows Server ships with Defender, but someone can remove the feature or
+       disable it by policy. Real-time protection and current signatures both
+       matter.
+  NOTE: If Get-MpComputerStatus errors, the feature is missing: install it, then
+        configure it.
+
+[B-11] Remove unapproved software
+  AREA: Secure configuration: software (CIS Controls 2 and 4)
+  PS> Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*, HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | Select-Object DisplayName,DisplayVersion,Publisher | Sort-Object DisplayName
+  GUI: Settings, Apps, Installed apps (or appwiz.cpl)
+  WHY: Hacking tools, games, torrent clients and remote-access tools are
+       acceptable-use violations and attack surface.
+  NOTE: Software the brief requires stays. The registry listing is instant;
+        Win32_Product is slow and can trigger repairs.
+
+[B-12] Find unapproved media and loose executables
+  AREA: Data protection (CIS Control 3)
+  PS> Get-ChildItem -Path C:\Users,C:\inetpub,C:\Shares -Recurse -Include *.mp3,*.mp4,*.wav,*.avi,*.mkv,*.flac,*.mov,*.m4a -ErrorAction SilentlyContinue | Select-Object FullName
+  PS> Get-ChildItem -Path C:\Users,C:\inetpub -Recurse -Include *.exe,*.bat,*.ps1,*.vbs,*.aspx -ErrorAction SilentlyContinue | Select-Object FullName
+  WHY: Media in user profiles and web roots is the usual acceptable-use
+       violation; a stray .aspx or .ps1 under inetpub is a webshell.
+  NOTE: Confirm against the brief before deleting, and search C:\ too, not just
+        C:\Users.
+
+[B-13] Stop obviously unsafe services
+  AREA: Secure configuration (CIS Control 4)
+  PS> Get-Service -Name ftpsvc,TermService,RemoteRegistry,SNMP -ErrorAction SilentlyContinue | Select-Object Name,Status,StartType
+  PS> Stop-Service -Name RemoteRegistry; Set-Service -Name RemoteRegistry -StartupType Disabled
+  PS> Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server' -Name fDenyTSConnections -Value 1
+  GUI: services.msc, Startup type Disabled; Settings, System, Remote Desktop
+  PS> Stop-Service -Name Spooler; Set-Service -Name Spooler -StartupType Disabled   (unless this is the print server)
+  WHY: Telnet and FTP leak credentials in cleartext. Remote Registry lets a
+       remote attacker edit the registry. RDP is a brute-force magnet. The Print
+       Spooler on a domain controller is PrintNightmare: off unless the brief
+       makes it a print server.
+  NOTE: If the brief requires RDP, FTP or SSH, harden it instead of killing it.
+
+------------------------------ WATCHMAN ----------------------------------------
+ Check the windows. Roles and features, audit and policy through Group Policy,
+ services, shares, tasks, ports, logs, and the required roles (IIS, FTP, DNS,
+ DHCP) hardened instead of removed.
+--------------------------------------------------------------------------------
+[I-01] Audit policy: turn the lights on
+  AREA: Audit logging (CIS Control 8)
+  CMD> auditpol /set /category:* /success:enable /failure:enable
+  CMD> auditpol /get /category:*
+  GUI: secpol.msc, Local Policies, Audit Policy, each set to Success and Failure
+  GUI: gpmc.msc, Default Domain Controllers Policy, Computer Configuration, Policies, Windows Settings, Security Settings, Advanced Audit Policy Configuration
+  WHY: Without auditing, Event Viewer has nothing to tell you or an
+       investigator. Logon, account management and policy change are the key
+       ones.
+  NOTE: On a DC the Default Domain Controllers Policy overrides local auditpol;
+        set it there or it will revert at the next gpupdate.
+
+[I-02] Security Options in secpol.msc
+  AREA: Secure configuration (CIS Control 4)
+  GUI: secpol.msc, Local Policies, Security Options
+      Accounts: Limit local account use of blank passwords to console logon only = Enabled
+      Interactive logon: Do not display last user name = Enabled
+      Interactive logon: Do not require CTRL+ALT+DEL = Disabled
+      Network access: Do not allow anonymous enumeration of SAM accounts and shares = Enabled
+      Network security: LAN Manager authentication level = Send NTLMv2 response only. Refuse LM & NTLM
+      Microsoft network client and server: Digitally sign communications (always) = Enabled
+      Shutdown: Allow system to be shut down without having to log on = Disabled
+      User Account Control: Run all administrators in Admin Approval Mode = Enabled
+      Domain controller: LDAP server signing requirements = Require signing
+      Domain member: Digitally encrypt or sign secure channel data (always) = Enabled
+  WHY: These are the classic CIS and STIG level-one settings; each blocks a
+       named attack: blank-password remote logon, username harvesting, LM and
+       NTLMv1 cracking or relay, SMB relay, pre-auth shutdown, UAC bypass.
+  NOTE: Command-line equivalents live in the registry (Hunter A-02) or secedit
+        (Hunter A-01).
+
+[I-03] UAC to Always notify
+  AREA: Secure configuration (CIS Control 4)
+  PS> Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name EnableLUA -Value 1 -Type DWord
+  PS> Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name ConsentPromptBehaviorAdmin -Value 2 -Type DWord
+  PS> Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name PromptOnSecureDesktop -Value 1 -Type DWord
+  GUI: Control Panel, User Accounts, Change User Account Control settings,
+       slider to the top.
+  WHY: UAC off means every process an admin runs is full admin with no prompt,
+       which malware loves. Value 2 means prompt on the secure desktop.
+  NOTE: Changing EnableLUA needs a reboot to fully apply.
+
+[I-04] Service audit: what runs, from where
+  AREA: Secure configuration (CIS Control 4)
+  PS> Get-CimInstance Win32_Service | Select-Object Name,State,StartMode,PathName | Sort-Object Name
+  PS> Get-Service | Where-Object Status -eq Running | Sort-Object DisplayName
+  PS> Stop-Service -Name <name>; Set-Service -Name <name> -StartupType Disabled
+  WHY: Look for Telnet, FTP, SNMP, SSDP and UPnP, Remote Registry, Xbox
+       services, odd names, and any service whose PathName is under C:\Users or
+       C:\Temp. Those are planted.
+  NOTE: Required services (IIS, DNS, DHCP, OpenSSH, MySQL, Apache) stay running;
+        harden their configs instead.
+
+[I-05] Roles and features: remove what the brief does not need
+  AREA: Secure configuration (CIS Control 4)
+  PS> Get-WindowsFeature | Where-Object Installed | Select-Object Name,DisplayName
+  PS> Uninstall-WindowsFeature -Name FS-SMB1,Telnet-Client,TFTP-Client -Remove
+  PS> Uninstall-WindowsFeature -Name Web-Ftp-Server -Remove   (only if FTP is not required)
+  PS> Set-SmbServerConfiguration -EnableSMB1Protocol $false -Force
+  GUI: Server Manager, Manage, Remove Roles and Features
+  WHY: Every role is a listening service. FS-SMB1 is the server-side SMBv1
+       (EternalBlue). Telnet and TFTP clients are cleartext tools that have no
+       business on a server.
+  NOTE: Required roles (AD DS, DNS, DHCP, IIS, FTP) stay and get hardened in
+        I-15 and I-16.
+
+[I-06] Shares
+  AREA: Access control (CIS Control 6)
+  PS> Get-SmbShare
+  CMD> net share
+  PS> Remove-SmbShare -Name "badshare" -Force
+  PS> Get-SmbShareAccess -Name "Finance"
+  PS> Revoke-SmbShareAccess -Name "Finance" -AccountName Everyone -Force
+  PS> Grant-SmbShareAccess -Name "Finance" -AccountName "CORP\Finance" -AccessRight Change -Force
+  WHY: An unexpected share is a data exfiltration path. Check the ACLs on the
+       shares you must keep.
+  NOTE: ADMIN$, C$, IPC$ are defaults; on a DC, SYSVOL and NETLOGON are normal
+        too. Everyone with Full on a data share is the classic finding.
+
+[I-07] Scheduled tasks
+  AREA: Malware defenses (CIS Control 10)
+  PS> Get-ScheduledTask | Where-Object State -ne Disabled | Select-Object TaskName,TaskPath,State
+  PS> (Get-ScheduledTask -TaskName "<name>").Actions | Select-Object Execute,Arguments
+  PS> Disable-ScheduledTask -TaskName "<name>" -TaskPath "\"
+  PS> Unregister-ScheduledTask -TaskName "<name>" -Confirm:$false
+  CMD> schtasks /query /fo LIST /v
+  WHY: Favorite persistence: a task that re-adds a user, re-opens a port, or
+       runs a script from a user folder every five minutes.
+  NOTE: Tasks under \Microsoft\Windows are mostly legit; focus on the root path.
+
+[I-08] Startup items and Run keys
+  AREA: Malware defenses (CIS Control 10)
+  PS> Get-CimInstance Win32_StartupCommand | Select-Object Name,Command,Location,User
+  PS> Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run'
+  PS> Get-ItemProperty 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run'
+  PS> Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run' -Name "<evil>"
+  GUI: Task Manager, Startup apps.
+  WHY: Anything that auto-runs survives a reboot. Attackers hide here with
+       innocent names like Windows Update Helper.
+  NOTE: Also check the RunOnce keys and the shell:startup folders.
+
+[I-09] Hosts file
+  AREA: Secure configuration (CIS Control 4)
+  PS> Get-Content C:\Windows\System32\drivers\etc\hosts
+  GUI: notepad as admin, open the hosts file, delete every non-comment line except localhost
+  WHY: Malware points update and antivirus domains at 127.0.0.1 or an attacker
+       IP, so Defender and Windows Update silently fail.
+
+[I-10] Listening ports to process
+  AREA: Secure configuration (CIS Control 4)
+  CMD> netstat -abno
+  PS> Get-NetTCPConnection -State Listen | Select-Object LocalAddress,LocalPort,OwningProcess | Sort-Object LocalPort
+  PS> Get-Process -Id <pid> | Select-Object Name,Path
+  CMD> tasklist /svc
+  WHY: A port you cannot explain is a backdoor; nc.exe listeners are the
+       classic. Map port to PID to binary path to the service or task that
+       starts it.
+  NOTE: Normal on a DC: 53, 88, 135, 389, 445, 464, 636, 3268, 3269, plus
+        dynamic RPC ports. Anything else needs a name.
+
+[I-11] Remote Desktop hardening when RDP is required
+  AREA: Access control (CIS Control 6)
+  PS> Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name UserAuthentication -Value 1
+  CMD> net localgroup "Remote Desktop Users"
+  PS> Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Remote Assistance' -Name fAllowToGetHelp -Value 0
+  WHY: Network Level Authentication forces a login before a session exists,
+       which kills pre-auth exploits. The Remote Desktop Users group is a
+       privilege list; audit it. Remote Assistance should be off.
+
+[I-12] Firewall allow-rule review
+  AREA: Secure configuration (CIS Control 4)
+  PS> Get-NetFirewallRule | Where-Object {$_.Enabled -eq 'True' -and $_.Direction -eq 'Inbound' -and $_.Action -eq 'Allow'} | Select-Object DisplayName,Profile | Sort-Object DisplayName
+  PS> Remove-NetFirewallRule -DisplayName "<suspicious rule>"
+  PS> Set-NetFirewallProfile -All -DefaultInboundAction Block -NotifyOnListen True -LogBlocked True
+  WHY: Firewall on means nothing if a rule allows the whole internet into
+       4444/tcp.
+
+[I-13] Group Policy: where server settings really come from
+  AREA: Secure configuration (CIS Control 4)
+  GUI: gpmc.msc (Group Policy Management) on a DC; gpedit.msc on a member server
+  PS> Get-GPO -All | Select-Object DisplayName,GpoStatus,ModificationTime
+  PS> Get-GPOReport -All -ReportType Html -Path C:\Temp\gpo.html
+  CMD> gpupdate /force
+  CMD> gpresult /r /scope computer
+  WHY: In a domain, policy applied by GPO wins over anything you click locally.
+       Password and lockout live in the Default Domain Policy; a planted GPO
+       that disables Defender or the firewall re-applies at every background
+       refresh: about every 90 minutes on member servers, every 5 minutes on
+       domain controllers.
+  NOTE: Look for GPOs modified recently or with odd names; read the HTML report.
+
+[I-14] Event Viewer for investigations
+  AREA: Investigation (forensics basics)
+  GUI: eventvwr.msc, Windows Logs, Security
+  PS> Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4728,4732,4756} | Format-List TimeCreated,Message
+      4720 user created, 4726 deleted, 4728 added to global group, 4732 local group, 4756 universal group, 4740 lockout
+      4624 logon OK, 4625 failed, 4768 Kerberos TGT, 4769 service ticket, 4771 pre-auth failed, 1102 log cleared, 7045 new service
+  WHY: Who was added to Domain Admins and when is a question these IDs answer in
+       one filter.
+
+[I-15] IIS and FTP hardening when the brief requires them
+  AREA: Secure configuration (CIS Control 4)
+  PS> Get-Website | Select-Object Name,State,PhysicalPath
+  PS> Get-WebBinding
+  GUI: inetmgr (IIS Manager), site, Authentication: Anonymous Authentication Disabled unless the brief says the site is public
+  PS> Import-Module WebAdministration; Set-WebConfigurationProperty -Filter /system.webServer/directoryBrowse -Name enabled -Value $false -PSPath 'IIS:\Sites\Default Web Site'
+  GUI: IIS Manager, FTP site, FTP Authentication: Anonymous Disabled; FTP SSL Settings: Require SSL connections
+  GUI: IIS Manager, server node, Request Filtering: deny .exe and .ps1 uploads
+  WHY: A required web or FTP server is kept running and made safe: no directory
+       listing, no anonymous FTP, TLS on, and nothing executable in the upload
+       folder.
+  NOTE: Check the physical path for planted .aspx webshells (B-12).
+
+[I-16] DNS and DHCP hygiene when the server runs them
+  AREA: Secure configuration (CIS Control 4)
+  PS> Get-DnsServerZone | Select-Object ZoneName,ZoneType,DynamicUpdate,SecureSecondaries
+  PS> Set-DnsServerPrimaryZone -Name corp.local -DynamicUpdate Secure -SecureSecondaries NoTransfer
+  PS> Get-DhcpServerInDC
+  PS> Get-DhcpServerv4Scope | Select-Object ScopeId,Name,State
+  WHY: Open zone transfers hand an attacker the whole network map; insecure
+       dynamic updates let anyone overwrite records. DHCP servers not authorized
+       in AD are rogue.
+
+------------------------------ HUNTER ------------------------------------------
+ Hunt and harden. Security baselines, credential-theft hardening, Active
+ Directory attack surface (roastable and stale accounts), persistence hunting,
+ SMB and LDAP signing, and version notes.
+--------------------------------------------------------------------------------
+[A-01] Security policy as a file: secedit
+  AREA: Secure configuration (CIS Control 4)
+  CMD> secedit /export /cfg C:\Temp\secpol.cfg
+      [System Access] MinimumPasswordAge = 1, MaximumPasswordAge = 60, MinimumPasswordLength = 12, PasswordComplexity = 1, PasswordHistorySize = 24, LockoutBadCount = 5, ResetLockoutCount = 30, LockoutDuration = 30, ClearTextPassword = 0, EnableGuestAccount = 0
+  CMD> secedit /configure /db C:\Windows\security\local.sdb /cfg C:\Temp\secpol.cfg /areas SECURITYPOLICY
+  CMD> secedit /analyze /db C:\Windows\security\local.sdb /cfg C:\Temp\secpol.cfg
+  WHY: One file, every account policy, repeatable and auditable, and the only
+       command-line path to complexity and reversible encryption.
+  NOTE: A typo in the .cfg is silently ignored. Verify with net accounts. Member
+        servers only: on a DC the domain policy wins (B-06).
+
+[A-02] LSA and anonymous-access registry hardening
+  AREA: Secure configuration (CIS Control 4)
+  PS> $lsa='HKLM:\SYSTEM\CurrentControlSet\Control\Lsa'
+  PS> Set-ItemProperty -Path $lsa -Name LimitBlankPasswordUse -Value 1 -Type DWord
+  PS> Set-ItemProperty -Path $lsa -Name RestrictAnonymous -Value 1 -Type DWord
+  PS> Set-ItemProperty -Path $lsa -Name RestrictAnonymousSAM -Value 1 -Type DWord
+  PS> Set-ItemProperty -Path $lsa -Name NoLMHash -Value 1 -Type DWord
+  PS> Set-ItemProperty -Path $lsa -Name LmCompatibilityLevel -Value 5 -Type DWord
+  PS> Set-ItemProperty -Path $lsa -Name EveryoneIncludesAnonymous -Value 0 -Type DWord
+  WHY: Null-session enumeration (RestrictAnonymous), LM hash storage that cracks
+       in seconds (NoLMHash), NTLMv1 downgrade (LmCompatibilityLevel 5).
+  NOTE: This is the registry form of the Watchman Security Options.
+
+[A-03] Credential-theft hardening: LLMNR, NetBIOS, WDigest
+  AREA: Secure configuration (CIS Control 4)
+  PS> New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient' -Force | Out-Null
+  PS> Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient' -Name EnableMulticast -Value 0 -Type DWord
+  PS> Get-CimInstance Win32_NetworkAdapterConfiguration -Filter "IPEnabled=TRUE" | Invoke-CimMethod -MethodName SetTcpipNetbios -Arguments @{TcpipNetbiosOptions=2}
+  PS> Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest' -Name UseLogonCredential -Value 0 -Type DWord
+  WHY: LLMNR and NBT-NS are what Responder poisons to collect NTLMv2 hashes for
+       cracking or relay. WDigest set to 1 keeps plaintext passwords in LSASS
+       memory for mimikatz.
+
+[A-04] AutoRun and AutoPlay off everywhere
+  AREA: Malware defenses (CIS Control 10)
+  PS> New-Item -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' -Force | Out-Null
+  PS> Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' -Name NoDriveTypeAutoRun -Value 255 -Type DWord
+  PS> Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' -Name NoAutorun -Value 1 -Type DWord
+  WHY: USB-drop attacks. Conficker-era, still a CIS and STIG requirement.
+
+[A-05] User Rights Assignment
+  AREA: Access control (CIS Control 6)
+  GUI: secpol.msc, Local Policies, User Rights Assignment
+      Access this computer from the network = Administrators, Authenticated Users (remove Everyone and Guest)
+      Deny log on through Remote Desktop Services = Guest
+      Deny access to this computer from the network = Guest
+      Debug programs = empty, or Administrators only
+      Act as part of the operating system = empty
+      Allow log on locally = Administrators, Users
+  CMD> whoami /priv
+  WHY: Debug programs means read LSASS means dump every password. Rights are
+       privileges that bypass ACLs, and attackers plant extra principals here.
+
+[A-06] Deep persistence and backdoor hunt
+  AREA: Malware defenses (CIS Control 10)
+  PS> Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId,CommandLine | Sort-Object Name
+  PS> Get-ChildItem C:\ -Recurse -Include nc.exe,ncat.exe,netcat*,mimikatz*,psexec*,*.ps1,*.vbs -ErrorAction SilentlyContinue | Select-Object FullName,LastWriteTime
+  PS> Get-CimInstance -Namespace root\subscription -ClassName __EventFilter
+  PS> Get-CimInstance -Namespace root\subscription -ClassName __EventConsumer
+  PS> Get-CimInstance -Namespace root\subscription -ClassName __FilterToConsumerBinding
+  PS> $PROFILE | Select-Object *; Get-Content $PROFILE.AllUsersAllHosts -ErrorAction SilentlyContinue
+  CMD> autorunsc.exe -accepteula -a * -c -nobanner   (Sysinternals, public)
+  WHY: WMI event subscriptions and PowerShell profiles are the persistence spots
+       checklists miss. Autoruns shows every auto-start location at once.
+  NOTE: Download Sysinternals tools only from Microsoft
+        (learn.microsoft.com/sysinternals), and only where policy allows third-
+        party tools on the machine.
+
+[A-07] NTFS permissions
+  AREA: Access control (CIS Control 6)
+  CMD> icacls "C:\CompanyData"
+  CMD> icacls "C:\CompanyData" /inheritance:r /grant:r "Administrators:(OI)(CI)F" "Users:(OI)(CI)RX" /t
+  CMD> icacls "C:\CompanyData" /remove:g Everyone /t
+  PS> Get-Acl "C:\CompanyData" | Format-List
+  WHY: Everyone with Full control on a share or a Program Files folder means
+       anyone can replace a binary that a service runs as SYSTEM. (OI) object
+       inherit, (CI) container inherit, /t recurse, /inheritance:r stop
+       inheriting.
+
+[A-08] Fine-grained auditing and PowerShell logging
+  AREA: Audit logging (CIS Control 8)
+  CMD> auditpol /set /subcategory:"Logon" /success:enable /failure:enable
+  CMD> auditpol /set /subcategory:"Account Lockout" /success:enable /failure:enable
+  CMD> auditpol /set /subcategory:"User Account Management" /success:enable /failure:enable
+  CMD> auditpol /set /subcategory:"Security Group Management" /success:enable /failure:enable
+  CMD> auditpol /set /subcategory:"Process Creation" /success:enable
+  CMD> auditpol /set /subcategory:"Audit Policy Change" /success:enable /failure:enable
+  PS> New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging' -Force | Out-Null
+  PS> Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging' -Name EnableScriptBlockLogging -Value 1 -Type DWord
+  WHY: Subcategory auditing overrides the legacy nine categories. Script Block
+       Logging (event 4104) records what every PowerShell script actually did,
+       including the attacker's.
+
+[A-09] Defender beyond on: exclusions, PUA, cloud, ASR
+  AREA: Malware defenses (CIS Control 10)
+  PS> Get-MpPreference | Select-Object ExclusionPath,ExclusionProcess,ExclusionExtension
+  PS> Remove-MpPreference -ExclusionPath "C:\evil"
+  PS> Set-MpPreference -PUAProtection Enabled -MAPSReporting Advanced -SubmitSamplesConsent SendAllSamples
+  PS> Add-MpPreference -AttackSurfaceReductionRules_Ids 9e6c4e1f-7d60-472f-ba1a-a39ef669e4b2 -AttackSurfaceReductionRules_Actions Enabled
+  PS> Get-MpThreatDetection | Select-Object DomainUser,ProcessName,InitialDetectionTime
+  WHY: Attackers rarely turn Defender off, too obvious. They exclude their
+       folder. PUA protection catches junkware; the LSASS rule blocks the
+       mimikatz class of attacks.
+
+[A-10] Active Directory attack surface: roastable and stale accounts
+  AREA: Account management (CIS Control 5)
+  PS> Search-ADAccount -PasswordNeverExpires | Select-Object Name
+  PS> Search-ADAccount -AccountInactive -TimeSpan 90.00:00:00 | Select-Object Name,LastLogonDate
+  PS> Get-ADUser -Filter {PasswordNotRequired -eq $true} | Select-Object Name
+  PS> Get-ADUser -Filter {DoesNotRequirePreAuth -eq $true} | Select-Object Name
+  PS> Set-ADAccountControl -Identity alice -DoesNotRequirePreAuth $false -PasswordNotRequired $false
+  PS> Get-ADUser -Filter {ServicePrincipalName -like "*"} -Properties ServicePrincipalName | Select-Object Name,ServicePrincipalName
+  PS> Get-ADUser -Filter {AdminCount -eq 1} | Select-Object Name
+  PS> Get-ADUser -Filter {TrustedForDelegation -eq $true} | Select-Object Name
+  WHY: No Kerberos pre-auth means AS-REP roasting; an SPN on a user account
+       means Kerberoasting; stale admins and never-expiring passwords are quiet
+       persistence. Each flag is one cmdlet to find and one to fix.
+  NOTE: Only service accounts should carry SPNs, and they need long passwords or
+        group managed service accounts.
+
+[A-11] SMB and LDAP signing
+  AREA: Secure configuration (CIS Control 4)
+  PS> Get-SmbServerConfiguration | Select-Object RequireSecuritySignature; Get-SmbClientConfiguration | Select-Object RequireSecuritySignature
+  PS> Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\NTDS\Parameters' | Select-Object LDAPServerIntegrity,LdapEnforceChannelBinding
+  PS> Set-SmbServerConfiguration -RequireSecuritySignature $true -EncryptData $true -Force
+  PS> Set-SmbClientConfiguration -RequireSecuritySignature $true -Force
+  PS> Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\NTDS\Parameters' -Name LDAPServerIntegrity -Value 2 -Type DWord
+  PS> Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\NTDS\Parameters' -Name LdapEnforceChannelBinding -Value 2 -Type DWord
+  WHY: Required SMB signing kills NTLM relay to the file server; required LDAP
+       signing and channel binding kill relay to the domain controller, which is
+       how one weak host becomes domain admin.
+  NOTE: Verify, do not assume: defaults differ by release and by how the domain
+        was built (see Version notes). Before you require LDAP signing or
+        channel binding on a DC, check that every client supports it.
+
+[A-12] Verify, document, re-check
+  CMD> gpresult /r
+  CMD> net accounts
+  PS> Get-MpComputerStatus | Select-Object RealTimeProtectionEnabled,AntivirusSignatureLastUpdated
+  PS> Get-NetFirewallProfile | Select-Object Name,Enabled
+  PS> Get-LocalGroupMember Administrators
+  CMD> netstat -abno
+  WHY: A change log of what, when and why is how you reverse a change that broke
+       something in thirty seconds instead of thirty minutes, and it is exactly
+       how real incident response works.
+
+[A-13] Version notes: Windows Server 2025
+      This page targets Windows Server 2025 (Windows 11 shell: Settings, Windows Update). Several defaults changed: read the current value instead of assuming.
+      SMB: 2025 requires signing on all outbound SMB connections; domain controllers require it inbound as before
+      LDAP: new 2025 Active Directory deployments require LDAP signing by default; an upgraded domain may not, so read LDAPServerIntegrity (A-11)
+      OpenSSH Server is installed by default; Server Manager, Local Server, Remote SSH Access turns sshd on or off. Unless the brief requires SSH, keep sshd stopped and Disabled
+      Delegated managed service accounts (dMSA) are new: they migrate a legacy service account (A-10) to managed, randomized keys
+      Removed: Windows PowerShell 2.0, NTLMv1, WordPad, SMTP Server, IIS 6 Management Console; WMIC is an optional feature on demand (use Get-CimInstance)
+  WHY: Every other item on this page is written to hold across releases; what
+       changed lives here, so a normal default is not mistaken for a finding and
+       a changed default is not mistaken for a fix.
+
+------------------------------ FIX OR BREAK? (practice cards) ------------------
+  Brief: Authorized administrators: alice. Authorized users: bob, carol.
+  Action: Remove bob from the Administrators group.
+  Call: FIX. Bob is a standard user per the brief. Demoting him is least
+             privilege.
+
+  Brief: Investigation 1: what is the MD5 hash of C:\Users\Public\secret.mp3?
+  Action: Delete every media file on the machine first, then start the
+          investigation questions.
+  Call: CHECK FIRST. Answer the investigation question before you destroy the
+                     evidence. Evidence first, fixes second.
+
+  Brief: You log in as alice. Alice is an authorized administrator.
+  Action: Change the password of every user including alice to a strong one.
+  Call: CHECK FIRST. Changing the sign-in account's password is usually fine but
+                     can lock you out if it is recorded wrong; the brief
+                     decides. Record every password you set.
+
+  Brief: Nothing in the brief mentions the backup agent installed under
+         C:\Program Files\BackupAgent.
+  Action: Delete C:\Program Files\BackupAgent because it looks like unknown
+          software.
+  Call: CHECK FIRST. Unrecognized is not the same as unauthorized. Check the
+                     publisher, the service that runs it and its scheduled
+                     tasks, then ask the owner before removing a backup or
+                     monitoring agent.
+
+  Brief: This is the domain controller for corp.local. Authorized Domain Admins:
+         alice, dsmith.
+  Action: Remove svc_print from Domain Admins.
+  Call: FIX. Unauthorized Domain Admin membership is the single most valuable
+             fix on a domain controller.
+
+  Brief: The DC runs DNS for the whole company.
+  Action: Uninstall-WindowsFeature DNS to reduce attack surface.
+  Call: BREAKS IT. Required role. Harden the zones (no transfers, secure
+                   updates) instead.
+
+  Brief: net accounts on the DC shows minimum password length 0.
+  Action: Run net accounts /minpwlen:12 and move on to the next item.
+  Call: CHECK FIRST. On a DC the Default Domain Policy overrides it. Verify with
+                     Get-ADDefaultDomainPasswordPolicy and change the domain
+                     policy.
+
+  Brief: The Finance share is for the Finance group only.
+  Action: Revoke-SmbShareAccess for Everyone on the Finance share and grant
+          CORP\Finance Change.
+  Call: FIX. Least privilege on a required share: keep it, scope it.
+
+  Brief: IIS hosts the public company website; anonymous visitors must be able
+         to read it.
+  Action: Disable Anonymous Authentication on the Default Web Site.
+  Call: BREAKS IT. That takes the public site offline. Keep anonymous read, turn
+                   off directory browsing, and check the web root for webshells
+                   instead.
+
+  Brief: The DC is not a print server.
+  Action: Stop and disable the Print Spooler service.
+  Call: FIX. PrintNightmare class. Spooler off on any DC that does not print.
+
+  Brief: Investigation 3: which account was added to Domain Admins on 3 October?
+  Action: Clear the Security log to reduce noise before investigating.
+  Call: BREAKS IT. That destroys the evidence (and logs event 1102 against you).
+                   Filter for 4728 and 4756 instead.
+
+  Brief: svc_sql runs the SQL service and must keep working.
+  Action: Set-ADAccountControl -Identity svc_sql -DoesNotRequirePreAuth $false
+          and set a 25-character password.
+  Call: FIX. Removes the AS-REP roast without breaking the service.
+
+------------------------------ SPOT THE FINDING (output snippets) --------------
+  Output of net accounts. Tap the line that is the finding.
+     Minimum password length:                 12
+     Maximum password age (days):             60
+  >> Lockout threshold:                       Never
+     Length of password history maintained:   5
+  WHY: Lockout threshold Never means unlimited password guesses. Set it to 5
+       with net accounts /lockoutthreshold:5.
+
+  Get-NetFirewallProfile output. Tap the finding.
+     Domain    True
+     Private   True
+  >> Public    False
+     DefaultInboundAction  Block
+  WHY: The Public profile is off. A common misconfiguration leaves exactly one
+       profile disabled.
+
+  netstat -abno output. Tap the finding.
+     TCP    0.0.0.0:135    LISTENING   [svchost.exe]
+     TCP    0.0.0.0:445    LISTENING   System
+  >> TCP    0.0.0.0:4444   LISTENING   [nc.exe]
+     TCP    127.0.0.1:5040 LISTENING   [svchost.exe]
+  WHY: A netcat listener on 4444 is a backdoor. Find its PID, its path, and
+       whatever task or Run key starts it.
+
+  Get-MpPreference output. Tap the finding.
+     PUAProtection          : 1
+  >> ExclusionPath          : {C:\Users\Public\Libraries}
+     DisableRealtimeMonitoring : False
+     MAPSReporting          : 2
+  WHY: An exclusion on a Public folder is how malware hides from a running
+       Defender. Remove it with Remove-MpPreference.
+
+  Registry values under HKLM:\SYSTEM\CurrentControlSet\Control\Lsa. Tap the finding.
+     RestrictAnonymous      : 1
+     NoLMHash               : 1
+  >> LmCompatibilityLevel   : 0
+     LimitBlankPasswordUse  : 1
+  WHY: LmCompatibilityLevel 0 sends LM and NTLMv1 responses, which crack in
+       minutes. Set it to 5.
+
+  Get-ADGroupMember "Domain Admins". Brief: authorized Domain Admins are alice and dsmith. Tap the finding.
+     alice
+     dsmith
+  >> svc_print
+     Administrator
+  WHY: A service account in Domain Admins is the highest-value finding on a
+       domain controller. Remove it and investigate what it runs.
+
+  Get-ADUser output. Tap the finding.
+     alice   Enabled True  PasswordNotRequired False
+  >> bob     Enabled True  PasswordNotRequired True
+     carol   Enabled True  PasswordNotRequired False
+     krbtgt  Enabled False PasswordNotRequired False
+  WHY: PasswordNotRequired True allows a blank password regardless of policy.
+       Set-ADAccountControl -PasswordNotRequired $false, then reset the
+       password.
+
+  Get-WindowsFeature output filtered to Installed. The brief requires only AD DS and DNS. Tap the finding.
+     AD-Domain-Services  Installed
+     DNS                 Installed
+  >> FS-SMB1             Installed
+     RSAT-AD-Tools       Installed
+  WHY: SMBv1 on a domain controller. Uninstall-WindowsFeature FS-SMB1 -Remove.
+
+  Get-DnsServerZone output. Tap the finding.
+  >> corp.local   Primary  DynamicUpdate Secure   SecureSecondaries TransferAnyServer
+     _msdcs.corp.local  Primary  DynamicUpdate Secure  SecureSecondaries NoTransfer
+     0.in-addr.arpa  Primary  DynamicUpdate None  SecureSecondaries NoTransfer
+     .  Forwarder
+  WHY: TransferAnyServer lets anyone dump the zone. Set-DnsServerPrimaryZone
+       -SecureSecondaries NoTransfer.
+
+  Get-ADUser -Filter {DoesNotRequirePreAuth -eq $true}. Tap the finding.
+     Name: svc_sql
+     Enabled: True
+  >> DoesNotRequirePreAuth: True
+     SamAccountName: svc_sql
+  WHY: An account without pre-auth can be AS-REP roasted offline. Set-
+       ADAccountControl -DoesNotRequirePreAuth $false.
+
+------------------------------ OFFICIAL SOURCES --------------------------------
+  Microsoft security baselines
+    https://learn.microsoft.com/en-us/windows/security/operating-system-security/device-management/windows-security-configuration-framework/windows-security-baselines
+  What's new in Windows Server 2025
+    https://learn.microsoft.com/en-us/windows-server/get-started/whats-new-windows-server-2025
+  Best practices for securing Active Directory
+    https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/best-practices-for-securing-active-directory
+  Set-ADDefaultDomainPasswordPolicy
+    https://learn.microsoft.com/en-us/powershell/module/activedirectory/set-addefaultdomainpasswordpolicy?view=windowsserver2025-ps
+  auditpol command reference
+    https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/auditpol
+  secedit command reference
+    https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/secedit
+  Microsoft Defender Antivirus PowerShell cmdlets
+    https://learn.microsoft.com/en-us/defender-endpoint/use-powershell-cmdlets-microsoft-defender-antivirus
+  Get started with OpenSSH Server for Windows
+    https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse
+  CIS Critical Security Controls v8
+    https://www.cisecurity.org/controls/v8
+  CIS Benchmarks
+    https://www.cisecurity.org/cis-benchmarks
+
+================================================================================

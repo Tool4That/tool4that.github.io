@@ -1,0 +1,124 @@
+{
+  "category": "cyber",
+  "series": "lockdown-drills",
+  "defaults": {
+    "icon": "lock",
+    "emoji": "🔒",
+    "reference": {
+      "file": "reference.txt",
+      "label": "Reference .txt"
+    },
+    "prep": {
+      "strip_google_fonts": true,
+      "link_series_strip": true
+    }
+  },
+  "tools": [
+    {
+      "slug": "lockdown-drills/windows-11",
+      "match": [
+        "windows[ _-]?11",
+        "(?<![a-z])win[ _-]?11"
+      ],
+      "exclude": [
+        "server"
+      ],
+      "name": "Windows 11 Lockdown",
+      "tagline": "Lock down the workstation.",
+      "description": "Windows 11 baseline hardening in three levels: beginner, intermediate, and advanced. Comes with a command reference that explains why each step matters.",
+      "badges": [
+        "Windows",
+        "Hardening",
+        "Offline",
+        "Private"
+      ],
+      "download_as": "windows-11-lockdown.html"
+    },
+    {
+      "slug": "lockdown-drills/windows-server",
+      "match": [
+        "(?<![a-z])win(?:dows)?[ _-]?(?:server|srv)",
+        "server[ _-]?20[0-9]{2}"
+      ],
+      "name": "Windows Server Lockdown",
+      "tagline": "Lock down the server.",
+      "description": "Windows Server baseline hardening in three levels: beginner, intermediate, and advanced. Comes with a command reference that explains why each step matters.",
+      "badges": [
+        "Windows Server",
+        "Hardening",
+        "Offline",
+        "Private"
+      ],
+      "download_as": "windows-server-lockdown.html"
+    },
+    {
+      "slug": "lockdown-drills/linux-mint",
+      "match": [
+        "(?<![a-z])mint(?![a-z])"
+      ],
+      "name": "Linux Mint Lockdown",
+      "tagline": "Lock down the desktop.",
+      "description": "Linux Mint baseline hardening in three levels: beginner, intermediate, and advanced. Comes with a command reference that explains why each step matters.",
+      "badges": [
+        "Linux",
+        "Hardening",
+        "Offline",
+        "Private"
+      ],
+      "download_as": "linux-mint-lockdown.html"
+    },
+    {
+      "slug": "lockdown-drills/ubuntu",
+      "match": [
+        "ubuntu"
+      ],
+      "exclude": [
+        "(?<![a-z])mint(?![a-z])"
+      ],
+      "name": "Ubuntu Lockdown",
+      "tagline": "Lock down Ubuntu.",
+      "description": "Ubuntu baseline hardening in three levels: beginner, intermediate, and advanced. Comes with a command reference that explains why each step matters.",
+      "badges": [
+        "Linux",
+        "Hardening",
+        "Offline",
+        "Private"
+      ],
+      "download_as": "ubuntu-lockdown.html"
+    },
+    {
+      "slug": "lockdown-drills/freebsd",
+      "match": [
+        "freebsd",
+        "(?<![a-z])bsd(?![a-z])"
+      ],
+      "name": "FreeBSD Lockdown",
+      "tagline": "Lock down FreeBSD.",
+      "description": "FreeBSD baseline hardening in three levels: beginner, intermediate, and advanced. Comes with a command reference that explains why each step matters.",
+      "badges": [
+        "FreeBSD",
+        "Hardening",
+        "Offline",
+        "Private"
+      ],
+      "download_as": "freebsd-lockdown.html"
+    },
+    {
+      "slug": "lockdown-drills/cisco-ios",
+      "match": [
+        "cisco",
+        "(?<![a-z])ios(?![a-z])"
+      ],
+      "name": "Cisco IOS Lockdown",
+      "tagline": "Lock down the router.",
+      "description": "Cisco IOS baseline hardening in three levels: beginner, intermediate, and advanced. Comes with a command reference that explains why each step matters.",
+      "badges": [
+        "Cisco IOS",
+        "Hardening",
+        "Offline",
+        "Private"
+      ],
+      "download_as": "cisco-ios-lockdown.html"
+    }
+  ]
+}

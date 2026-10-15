@@ -1,0 +1,429 @@
+{
+  "site": "https://freeapp4that.store",
+  "name": "Tool4That",
+  "description": "Need a tool for that? Free single-file tools that run in your browser, with no sign-up and no tracking: personal finance calculators, a cybersecurity course with practice drills, and hardening labs that need no virtual machine.",
+  "categories": [
+    {
+      "slug": "finance",
+      "title": "Personal finance",
+      "tagline": "Max your TSP. See where your money goes.",
+      "icon": "dollar",
+      "description": "Calculators for your money: the exact myPay percentages to max your TSP without losing the match, and a personal finance advisor that reads your statements on your own device.",
+      "note": "Planning aids, not financial or tax advice. Nothing you enter leaves your browser."
+    },
+    {
+      "slug": "cyber",
+      "title": "Cybersecurity",
+      "tagline": "Learn cyber defense, then drill it.",
+      "icon": "terminal",
+      "description": "Two ways in: Learning builds the concepts from your first command to confident defender, and Practice is hands-on reps \u2014 Net Drills for subnetting and Cisco IOS, Lockdown Drills for hardening Windows, Linux, FreeBSD, and Cisco IOS, and Lockdown Range for full hardening labs that run in your browser.",
+      "note": "Unofficial practice; not affiliated with or endorsed by Microsoft, Canonical, Linux Mint, the FreeBSD Project, or Cisco. Defensive skills only: practice on machines you own or are authorized to use. Progress stays in your browser."
+    }
+  ],
+  "sections": [
+    {
+      "slug": "learning",
+      "title": "Learning",
+      "category": "cyber",
+      "intro": "Build the concepts and vocabulary, from your first terminal command to confident defender. Start here if cybersecurity is new."
+    },
+    {
+      "slug": "practice",
+      "title": "Practice",
+      "category": "cyber",
+      "intro": "Hands-on reps once you know the ideas: timed drills, baseline-hardening trainers, and full hardening labs you run in your browser."
+    }
+  ],
+  "series": [
+    {
+      "slug": "net-drills",
+      "title": "Net Drills",
+      "category": "cyber",
+      "section": "practice",
+      "description": "Four networking drills: subnetting and IPv6, Cisco IOS configuration, config audits, and troubleshooting from real device output. They pair well with Cisco networking courses such as the NetAcad Network Technician path.",
+      "note": "Unofficial practice; not affiliated with or endorsed by Cisco. Progress stays in your browser."
+    },
+    {
+      "slug": "lockdown-drills",
+      "title": "Lockdown Drills",
+      "category": "cyber",
+      "section": "practice",
+      "description": "Baseline-hardening trainers for Windows 11, Windows Server, Linux Mint, Ubuntu, FreeBSD, and Cisco IOS, each in beginner, intermediate, and advanced levels, with a plain-text command reference that explains why each step matters.",
+      "note": "Unofficial practice; not affiliated with or endorsed by Microsoft, Canonical, Linux Mint, the FreeBSD Project, or Cisco. Try commands on a practice virtual machine, not a computer you depend on."
+    },
+    {
+      "slug": "lockdown-range",
+      "title": "Lockdown Range",
+      "category": "cyber",
+      "section": "practice",
+      "description": "Full hardening labs in your browser, no virtual machine needed: Windows 11 and Windows Server, Ubuntu and Linux Mint, and a Packet Tracer-style Cisco topology. Sign in, read the scenario brief, answer the investigation questions, fix the machine, and watch a live Progress Check.",
+      "note": "Unofficial practice; not affiliated with or endorsed by Microsoft, Canonical, Linux Mint, or Cisco. Simulated machines only: nothing touches your computer, and progress stays in your browser."
+    }
+  ],
+  "tools": [
+    {
+      "slug": "maxed-and-matched",
+      "name": "Maxed & Matched TSP Calculator",
+      "tagline": "Hit the max. Keep the match.",
+      "description": "Your exact myPay TSP percentages, straight from your LES. Reach the IRS limit in your last paycheck without losing a dollar of BRS match.",
+      "badges": [
+        "Military",
+        "Finance",
+        "Runs offline",
+        "Private"
+      ],
+      "file": "maxed-and-matched/index.html",
+      "download_as": "maxed-and-matched.html",
+      "icon": "check",
+      "sha256": "fde32cbf53c14d5b60c9bdc5764ae74b0542258e19bb483126b91591862f049c",
+      "updated": "2026-09-30",
+      "category": "finance"
+    },
+    {
+      "slug": "spend-lens",
+      "name": "PFAT \u2014 Personal Finance Advisor Tool",
+      "tagline": "See where your money goes.",
+      "description": "Add transactions by hand, paste text, or import CSV and PDF bank statements. Get a money-in, money-out HUD, a paycheck plan, a 30-day look ahead, and a plain-language checkup. Everything stays on your device.",
+      "badges": [
+        "Finance",
+        "Budgeting",
+        "Private"
+      ],
+      "file": "spend-lens/index.html",
+      "download_as": "pfat.html",
+      "icon": "chart",
+      "category": "finance",
+      "sha256": "aa58f0ec92812ce871b604ca2b124a7659fe0abc567d7a054cc9bb1db2389005",
+      "updated": "2026-10-12"
+    },
+    {
+      "slug": "defense-ladder",
+      "name": "Defense Ladder",
+      "tagline": "From first command to defender, one grade at a time.",
+      "description": "A four-grade cybersecurity learning ladder, Freshman to Senior, built on Bloom's taxonomy and aligned with the NICE Framework and CIS Controls. Concepts first, then quizzes and config-reading drills, then a hardening checklist and study plan you build yourself. Everything stays in your browser.",
+      "badges": [
+        "Cybersecurity",
+        "Study",
+        "Offline",
+        "Private"
+      ],
+      "file": "defense-ladder/index.html",
+      "download_as": "defense-ladder.html",
+      "icon": "path",
+      "category": "cyber",
+      "section": "learning",
+      "sha256": "1fbaa6a9e2ad2ac377b1003d02523cf38c1452d4452781af78d303099cabdf9c",
+      "updated": "2026-10-14"
+    },
+    {
+      "slug": "net-drills/subnet-sprint",
+      "name": "Subnet Sprint",
+      "tagline": "Calculate it. Then faster.",
+      "description": "Slide the mask in the sandbox and watch every value react, then work out network, broadcast, and host ranges against the clock. Includes VLSM planning and IPv6 drills.",
+      "badges": [
+        "Networking",
+        "IPv4 + IPv6",
+        "Offline",
+        "Private"
+      ],
+      "file": "net-drills/subnet-sprint/index.html",
+      "download_as": "subnet-sprint.html",
+      "icon": "subnet",
+      "category": "cyber",
+      "sha256": "9f3117e44270e387995e2172217f3dd72fc7b62437232113548ea33301849838",
+      "updated": "2026-10-14",
+      "series": "net-drills"
+    },
+    {
+      "slug": "net-drills/ios-cli-lab",
+      "name": "IOS CLI Lab",
+      "tagline": "Configure it. Then prove it.",
+      "description": "Configure a simulated router and switch from their consoles, then prove it from two PCs. Timed missions, from the basics to secure remote access.",
+      "badges": [
+        "Networking",
+        "Cisco IOS",
+        "Offline",
+        "Private"
+      ],
+      "file": "net-drills/ios-cli-lab/index.html",
+      "download_as": "ios-cli-lab.html",
+      "icon": "terminal",
+      "category": "cyber",
+      "sha256": "b09b483696032e4da26e929fd9fbe438139855093f3c9bfe33c9db00cc4c5c2a",
+      "updated": "2026-10-14",
+      "series": "net-drills"
+    },
+    {
+      "slug": "net-drills/config-audit",
+      "name": "Config Audit",
+      "tagline": "Read it like an attacker.",
+      "description": "Flag every risky line in a running-config, choose the best fix, and name the protections that are missing entirely.",
+      "badges": [
+        "Networking",
+        "Cisco IOS",
+        "Offline",
+        "Private"
+      ],
+      "file": "net-drills/config-audit/index.html",
+      "download_as": "config-audit.html",
+      "icon": "search",
+      "category": "cyber",
+      "sha256": "a510ea139cd117af59988b419c6d0dd67044dc9db91613923c9e02540271cc35",
+      "updated": "2026-10-14",
+      "series": "net-drills"
+    },
+    {
+      "slug": "net-drills/trouble-tickets",
+      "name": "Trouble Tickets",
+      "tagline": "Read the output. Find the fault.",
+      "description": "Study the complaint and real device output, then pick the root cause. Every ticket ends with the fix and the configuration habits that prevent it.",
+      "badges": [
+        "Networking",
+        "Cisco IOS",
+        "Offline",
+        "Private"
+      ],
+      "file": "net-drills/trouble-tickets/index.html",
+      "download_as": "trouble-tickets.html",
+      "icon": "wrench",
+      "category": "cyber",
+      "sha256": "d30a1775fc819d48fdd827af8691a813228ec01c015c42bc57c12770af6b1da0",
+      "updated": "2026-10-14",
+      "series": "net-drills"
+    },
+    {
+      "slug": "lockdown-drills/windows-11",
+      "name": "Windows 11 Lockdown",
+      "tagline": "Lock down the workstation.",
+      "description": "Windows 11 baseline hardening in three levels: beginner, intermediate, and advanced. Comes with a command reference that explains why each step matters.",
+      "badges": [
+        "Windows",
+        "Hardening",
+        "Offline",
+        "Private"
+      ],
+      "file": "lockdown-drills/windows-11/index.html",
+      "download_as": "windows-11-lockdown.html",
+      "icon": "lock",
+      "category": "cyber",
+      "series": "lockdown-drills",
+      "extras": [
+        {
+          "label": "Reference .txt",
+          "file": "lockdown-drills/windows-11/reference.txt",
+          "download_as": "windows-11-lockdown-reference.txt"
+        }
+      ],
+      "sha256": "23cb50816b4089d8e00fabe1548e6dbb663034758028dc2889ba8eb429a8d7a3",
+      "updated": "2026-10-14"
+    },
+    {
+      "slug": "lockdown-drills/windows-server",
+      "name": "Windows Server Lockdown",
+      "tagline": "Lock down the server.",
+      "description": "Windows Server baseline hardening in three levels: beginner, intermediate, and advanced. Comes with a command reference that explains why each step matters.",
+      "badges": [
+        "Windows Server",
+        "Hardening",
+        "Offline",
+        "Private"
+      ],
+      "file": "lockdown-drills/windows-server/index.html",
+      "download_as": "windows-server-lockdown.html",
+      "icon": "lock",
+      "category": "cyber",
+      "series": "lockdown-drills",
+      "extras": [
+        {
+          "label": "Reference .txt",
+          "file": "lockdown-drills/windows-server/reference.txt",
+          "download_as": "windows-server-lockdown-reference.txt"
+        }
+      ],
+      "sha256": "38fe1296a2eb6a4f586540c40e65ffbbc1f3807c1f72b56591bd0fb87ca2fee0",
+      "updated": "2026-10-14"
+    },
+    {
+      "slug": "lockdown-drills/linux-mint",
+      "name": "Linux Mint Lockdown",
+      "tagline": "Lock down the desktop.",
+      "description": "Linux Mint baseline hardening in three levels: beginner, intermediate, and advanced. Comes with a command reference that explains why each step matters.",
+      "badges": [
+        "Linux",
+        "Hardening",
+        "Offline",
+        "Private"
+      ],
+      "file": "lockdown-drills/linux-mint/index.html",
+      "download_as": "linux-mint-lockdown.html",
+      "icon": "lock",
+      "category": "cyber",
+      "series": "lockdown-drills",
+      "extras": [
+        {
+          "label": "Reference .txt",
+          "file": "lockdown-drills/linux-mint/reference.txt",
+          "download_as": "linux-mint-lockdown-reference.txt"
+        }
+      ],
+      "sha256": "04dfd948f46ccec8fb6f5a0b83b986fb9d0845d19ccaa2d079c4fc32445c4085",
+      "updated": "2026-10-14"
+    },
+    {
+      "slug": "lockdown-drills/ubuntu",
+      "name": "Ubuntu Lockdown",
+      "tagline": "Lock down Ubuntu.",
+      "description": "Ubuntu baseline hardening in three levels: beginner, intermediate, and advanced. Comes with a command reference that explains why each step matters.",
+      "badges": [
+        "Linux",
+        "Hardening",
+        "Offline",
+        "Private"
+      ],
+      "file": "lockdown-drills/ubuntu/index.html",
+      "download_as": "ubuntu-lockdown.html",
+      "icon": "lock",
+      "category": "cyber",
+      "series": "lockdown-drills",
+      "extras": [
+        {
+          "label": "Reference .txt",
+          "file": "lockdown-drills/ubuntu/reference.txt",
+          "download_as": "ubuntu-lockdown-reference.txt"
+        }
+      ],
+      "sha256": "aca50ea11850da147e911e9f3f1509c725e6b4c615716b2cc7b33b9661e7c5fd",
+      "updated": "2026-10-14"
+    },
+    {
+      "slug": "lockdown-drills/freebsd",
+      "name": "FreeBSD Lockdown",
+      "tagline": "Lock down FreeBSD.",
+      "description": "FreeBSD baseline hardening in three levels: beginner, intermediate, and advanced. Comes with a command reference that explains why each step matters.",
+      "badges": [
+        "FreeBSD",
+        "Hardening",
+        "Offline",
+        "Private"
+      ],
+      "file": "lockdown-drills/freebsd/index.html",
+      "download_as": "freebsd-lockdown.html",
+      "icon": "lock",
+      "category": "cyber",
+      "series": "lockdown-drills",
+      "extras": [
+        {
+          "label": "Reference .txt",
+          "file": "lockdown-drills/freebsd/reference.txt",
+          "download_as": "freebsd-lockdown-reference.txt"
+        }
+      ],
+      "sha256": "abcc9e649b986fd1f5067a4f2b3039ec71b111b093795885614746630fc77c26",
+      "updated": "2026-10-14"
+    },
+    {
+      "slug": "lockdown-drills/cisco-ios",
+      "name": "Cisco IOS Lockdown",
+      "tagline": "Lock down the router.",
+      "description": "Cisco IOS baseline hardening in three levels: beginner, intermediate, and advanced. Comes with a command reference that explains why each step matters.",
+      "badges": [
+        "Cisco IOS",
+        "Hardening",
+        "Offline",
+        "Private"
+      ],
+      "file": "lockdown-drills/cisco-ios/index.html",
+      "download_as": "cisco-ios-lockdown.html",
+      "icon": "lock",
+      "category": "cyber",
+      "series": "lockdown-drills",
+      "sha256": "db7ae8415c5fc07f0ef9c2421f1bcb5ab707cf1538c32c285de46021e37f4e14",
+      "updated": "2026-10-14",
+      "extras": [
+        {
+          "label": "Reference .txt",
+          "file": "lockdown-drills/cisco-ios/reference.txt",
+          "download_as": "cisco-ios-lockdown-reference.txt"
+        }
+      ]
+    },
+    {
+      "slug": "lockdown-range/windows",
+      "name": "Windows Range",
+      "tagline": "Harden the workstation. Then the server.",
+      "description": "A Windows 11 and Windows Server 2025 hardening lab in your browser: sign in, read the scenario brief, answer the investigation questions, then fix it with the real panels or the command line while a live Progress Check keeps count.",
+      "badges": [
+        "Windows",
+        "Hardening",
+        "No VM",
+        "Private"
+      ],
+      "file": "lockdown-range/windows/index.html",
+      "download_as": "windows-range.html",
+      "icon": "screen",
+      "category": "cyber",
+      "series": "lockdown-range",
+      "extras": [
+        {
+          "label": "Walkthrough .txt",
+          "file": "lockdown-range/windows/reference.txt",
+          "download_as": "windows-range-walkthrough.txt"
+        }
+      ],
+      "sha256": "b91170b1b2162582bcad9d47c7d2fae7250d5276d0ce5ce2815f25741a9e3222",
+      "updated": "2026-10-14"
+    },
+    {
+      "slug": "lockdown-range/linux",
+      "name": "Linux Range",
+      "tagline": "Harden the box from the shell.",
+      "description": "Ubuntu, Linux Mint, and Ubuntu Server hardening labs in your browser: a real-feeling bash terminal with sudo, apt, systemctl, ufw, PAM, cron, and nano, three scenarios, and a live Progress Check with availability checks.",
+      "badges": [
+        "Linux",
+        "Hardening",
+        "No VM",
+        "Private"
+      ],
+      "file": "lockdown-range/linux/index.html",
+      "download_as": "linux-range.html",
+      "icon": "screen",
+      "category": "cyber",
+      "series": "lockdown-range",
+      "extras": [
+        {
+          "label": "Walkthrough .txt",
+          "file": "lockdown-range/linux/reference.txt",
+          "download_as": "linux-range-walkthrough.txt"
+        }
+      ],
+      "sha256": "8009f93089b4b26b64df8f5c8c41623c05e29d9c4764d454ea36d26fde3b0258",
+      "updated": "2026-10-14"
+    },
+    {
+      "slug": "lockdown-range/cisco-ios",
+      "name": "Cisco Range",
+      "tagline": "Secure the topology. Prove it with ping.",
+      "description": "A Packet Tracer-style topology in your browser: IOS consoles with ? help, abbreviations, and the exact error messages, PC command prompts, three scenarios from one router to a two-switch network, and a live Progress Check.",
+      "badges": [
+        "Cisco IOS",
+        "Hardening",
+        "No VM",
+        "Private"
+      ],
+      "file": "lockdown-range/cisco-ios/index.html",
+      "download_as": "cisco-range.html",
+      "icon": "screen",
+      "category": "cyber",
+      "series": "lockdown-range",
+      "extras": [
+        {
+          "label": "Walkthrough .txt",
+          "file": "lockdown-range/cisco-ios/reference.txt",
+          "download_as": "cisco-range-walkthrough.txt"
+        }
+      ],
+      "sha256": "1b38f85875b5d127974dc3c458ee63c0e79ffe0a09a085a3f9f2eab0cc8a43fa",
+      "updated": "2026-10-14"
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "category": "cyber",
+  "series": "net-drills",
+  "defaults": {
+    "prep": {
+      "strip_google_fonts": true,
+      "link_series_strip": true
+    }
+  },
+  "tools": [
+    {
+      "slug": "net-drills/subnet-sprint",
+      "name": "Subnet Sprint",
+      "tagline": "Calculate it. Then faster.",
+      "description": "Slide the mask in the sandbox and watch every value react, then work out network, broadcast, and host ranges against the clock. Includes VLSM planning and IPv6 drills.",
+      "badges": [
+        "Networking",
+        "IPv4 + IPv6",
+        "Offline",
+        "Private"
+      ],
+      "icon": "subnet",
+      "download_as": "subnet-sprint.html",
+      "match": [
+        "subnet[ _-]?sprint"
+      ],
+      "exclude": [
+        "v2",
+        "preview"
+      ],
+      "emoji": "🔢"
+    },
+    {
+      "slug": "net-drills/ios-cli-lab",
+      "name": "IOS CLI Lab",
+      "tagline": "Configure it. Then prove it.",
+      "description": "Configure a simulated router and switch from their consoles, then prove it from two PCs. Timed missions, from the basics to secure remote access.",
+      "badges": [
+        "Networking",
+        "Cisco IOS",
+        "Offline",
+        "Private"
+      ],
+      "icon": "terminal",
+      "download_as": "ios-cli-lab.html",
+      "match": [
+        "ios[ _-]?cli"
+      ],
+      "exclude": [
+        "v2",
+        "preview"
+      ],
+      "emoji": "💻"
+    },
+    {
+      "slug": "net-drills/config-audit",
+      "name": "Config Audit",
+      "tagline": "Read it like an attacker.",
+      "description": "Flag every risky line in a running-config, choose the best fix, and name the protections that are missing entirely.",
+      "badges": [
+        "Networking",
+        "Cisco IOS",
+        "Offline",
+        "Private"
+      ],
+      "icon": "search",
+      "download_as": "config-audit.html",
+      "match": [
+        "config[ _-]?audit"
+      ],
+      "exclude": [
+        "v2",
+        "preview"
+      ],
+      "emoji": "🔍"
+    },
+    {
+      "slug": "net-drills/trouble-tickets",
+      "name": "Trouble Tickets",
+      "tagline": "Read the output. Find the fault.",
+      "description": "Study the complaint and real device output, then pick the root cause. Every ticket ends with the fix and the configuration habits that prevent it.",
+      "badges": [
+        "Networking",
+        "Cisco IOS",
+        "Offline",
+        "Private"
+      ],
+      "icon": "wrench",
+      "download_as": "trouble-tickets.html",
+      "match": [
+        "trouble[ _-]?tickets?"
+      ],
+      "exclude": [
+        "v2",
+        "preview"
+      ],
+      "emoji": "🛠️"
+    }
+  ]
+}

@@ -1,0 +1,825 @@
+LOCKDOWN RANGE: WINDOWS - SOLUTION WALKTHROUGH
+================================================================================
+Companion to windows-range.html (Tool4That, Lockdown Range series).
+For instructors and study groups, and for learners AFTER they have tried a
+scenario on their own.
+All names, companies and addresses are fictional practice material.
+Unofficial practice; not affiliated with or endorsed by Microsoft.
+
+CONTENTS
+  1. What the lab is (and is not)
+  2. The routine: power-on to Progress Check
+  3. Scenario 1 - Recruit:  Kaimana Dental Clinic — front desk PC
+  4. Scenario 2 - Operator: Hale Kula Robotics Lab — station 4
+  5. Scenario 3 - Captain:  Makai Logistics — portal server
+  6. Windows hardening quick reference (GUI paths and commands)
+  7. Where the real machine differs from the lab
+  8. Sources
+
+Format of the check lists below:
+  [points] Check title as it appears in the Progress Check
+       area: the hardening area (CIS Critical Security Controls v8)
+       fix: the GUI path
+       or:  the Command Prompt / PowerShell equivalent
+       why: one line on why it matters
+
+--------------------------------------------------------------------------------
+1. WHAT THE LAB IS (AND IS NOT)
+--------------------------------------------------------------------------------
+Windows Range is a single HTML page that behaves like a small Windows machine
+you have been asked to secure: OEM boot screen, lock screen, sign-in, and a
+Windows 11 (version 26H2) or Windows Server 2025 desktop with taskbar, Start,
+Search and a Run box. The administration tools are faithful subsets of the real
+ones, with the real names, menu paths and control types: Local Users and Groups
+(lusrmgr.msc), Local Security Policy (secpol.msc), Local Group Policy Editor
+(gpedit.msc), Services, Task Scheduler, Windows Defender Firewall with Advanced
+Security (wf.msc), Programs and Features (appwiz.cpl), Windows Features
+(optionalfeatures), Settings (Accounts, Windows Update, Remote Desktop,
+Installed apps), Windows Security, the UAC slider, System Properties, File
+Explorer, Notepad and Server Manager. Windows Terminal has Command Prompt and
+PowerShell tabs with the commands in section 6, including pipes, findstr,
+redirection (> and >>), secedit /export and /configure, and reg query/add for
+the security registry values that hardening guides such as the CIS Benchmarks
+use.
+
+Every panel and every command changes ONE machine state, and the Progress Check
+re-runs the checks after each change. Security includes availability: breaking
+something the Scenario Brief says the business needs (an authorized user, an
+administrator, a required service) fails an availability check and costs points.
+Nothing on the page touches the real computer. Progress is saved in the browser;
+"Reset lab" restores the scenario's original state and keeps the best score
+(like reverting a VM snapshot).
+
+Levels: 1 Recruit lists every check as a to-do with hints (training wheels); 2
+Operator shows only the remaining count per hardening area; 3 Captain shows
+nothing but the checks already passed.
+
+--------------------------------------------------------------------------------
+2. THE ROUTINE: POWER-ON TO PROGRESS CHECK
+--------------------------------------------------------------------------------
+  [ ] 1. Pick the scenario (level pill in the header). Click the lock screen.
+  [ ] 2. Sign in with the lab account shown under the password box (it is also
+         in the Scenario Brief). If "Do not display last user name" is on, type
+         the user name too.
+  [ ] 3. Open Scenario Brief.txt on the Desktop. Write down the authorized
+         administrators, users, required services and policy numbers: those must
+         stay available.
+  [ ] 4. Answer the two investigation questions FIRST: open Investigation 1.txt
+         and 2.txt in Notepad, type the answer after "ANSWER:", press Ctrl+S.
+         Reading the machine before changing it preserves the evidence.
+  [ ] 5. Snapshot mentality: read before you change (net user, net localgroup
+         Administrators, services.msc, wf.msc).
+  [ ] 6. Work by hardening area, in the same order every time (see the list
+         below).
+  [ ] 7. Elevate when needed: right-click a tool > Run as administrator, or
+         Ctrl+Shift+Enter in Start/Run. Commands that change the machine need an
+         administrator window.
+  [ ] 8. Verify each area (net accounts, auditpol /get /category:*, sc query,
+         netsh advfirewall show allprofiles).
+  [ ] 9. Install updates and restart when Windows asks; sign in again and
+         confirm the progress is still there.
+  [ ] 10. Finish / Debrief: read every miss and its fix. Reset lab and run it
+         again faster.
+
+Hardening areas (aligned with the CIS Critical Security Controls v8):
+  - Account management (CIS Control 5): who has an account, passwords, expiry,
+    history
+  - Access control (CIS Control 6): who is an administrator, lockout, sign-in
+    and UAC settings, NLA
+  - Secure configuration (CIS Controls 4 and 2): services, firewall, features,
+    remote access, unauthorized software
+  - Patching (CIS Control 7): Windows Update
+  - Malware defenses (CIS Control 10): Defender, planted services and scheduled
+    tasks
+  - Audit logging (CIS Control 8): audit policy
+  - Data protection (CIS Control 3): prohibited media files
+  - Investigation: the two questions on the Desktop (forensics basics).
+
+--------------------------------------------------------------------------------
+3. SCENARIO 1 - RECRUIT: KAIMANA DENTAL CLINIC — FRONT DESK PC
+--------------------------------------------------------------------------------
+Sign-in  labuser / Easy!2026        Host  KAIMANA-FD1
+System   Windows 11 Pro, version 26H2, build 26300.9550
+
+Scenario Brief summary
+  Kaimana Dental Clinic, a two-dentist practice in Kailua. This Windows 11 PC
+  sits at the front desk and runs the appointment book. The office manager
+  (nalani) is the only other administrator. A temp receptionist used it over the
+  summer and the dentists suspect "helpful" changes were made.
+  Authorized administrators: labuser (you) - password: Easy!2026; nalani
+  Authorized users: kekoa, ailani, moana, leilani
+  Required services and settings:
+    - No remote access of any kind is needed on this PC (no Remote Desktop, no
+      remote registry).
+    - The firewall must be on and Microsoft Defender must stay on.
+    - Windows Update must be allowed to install updates.
+  Security policy:
+    - Only the two Authorized Administrators may be in the Administrators group.
+    - The Guest account must be disabled.
+    - Passwords must be at least 10 characters, complex, and expire regularly;
+      no account may have "Password never expires".
+    - Account lockout must be configured.
+    - Sign-in attempts must be audited.
+    - No media files (music, video) and no unauthorized software (file-sharing
+      clients, games, network scanners).
+
+Investigation questions
+  Q1  A scheduled task on this PC runs a batch file from C:\Users\Public. What
+      is the name of that task?
+      ANSWER: SystemUpdaterSvc
+      (Hint: Task Scheduler (taskschd.msc) > Task Scheduler Library, or:
+       schtasks /query /fo LIST /v)
+  Q2  Which user account (not a built-in account) has "Password never expires"
+      set?
+      ANSWER: kekoa
+      (Hint: net user <name> shows "Password expires"; or lusrmgr.msc > Users >
+       Properties)
+
+Checks (100 points)
+  [7]  Unauthorized user "dwight" removed
+       area: Account management
+       fix: lusrmgr.msc > Users > dwight > Delete
+       or:  net user dwight /delete
+       why: An account nobody authorized is a door into the machine.
+  [6]  Unauthorized user "techsupport" removed
+       area: Account management
+       fix: lusrmgr.msc > Users > techsupport > Delete
+       or:  net user techsupport /delete
+       why: An account nobody authorized is a door into the machine.
+  [6]  "moana" removed from the Administrators group (not an authorized
+       administrator)
+       area: Access control
+       fix: lusrmgr.msc > Groups > Administrators > Properties > moana > Remove
+       or:  net localgroup Administrators moana /delete
+       why: Administrators can undo every other fix; only the administrators
+            named in the Scenario Brief belong there (least privilege).
+  [6]  Guest account disabled
+       area: Account management
+       fix: lusrmgr.msc > Guest > Properties > check "Account is disabled"
+       or:  net user Guest /active:no
+       why: Guest is an anonymous login with no password.
+  [3]  "Password never expires" cleared on kekoa
+       area: Account management
+       fix: lusrmgr.msc > kekoa > Properties > uncheck "Password never expires"
+       or:  Set-LocalUser -Name kekoa -PasswordNeverExpires $false
+       why: A password that never expires stays valid forever once leaked.
+  [6]  Minimum password length is 10 or more
+       area: Account management
+       fix: secpol.msc > Password Policy > Minimum password length = 12
+       or:  net accounts /minpwlen:12
+       why: Short passwords fall to guessing in minutes.
+  [5]  Password complexity requirements enabled
+       area: Account management
+       fix: secpol.msc > Password Policy > "Password must meet complexity
+            requirements" = Enabled
+       or:  secedit /export /cfg C:\sec.inf, set PasswordComplexity = 1 in
+            Notepad, then secedit /configure /db C:\Windows\security\local.sdb
+            /cfg C:\sec.inf
+       why: Complexity blocks "password1" and the user's own name.
+  [6]  Account lockout threshold set (1 to 10 attempts)
+       area: Access control
+       fix: secpol.msc > Account Lockout Policy > threshold 5, duration 30,
+            reset 30
+       or:  net accounts /lockoutthreshold:5 /lockoutduration:30
+            /lockoutwindow:30
+       why: Lockout turns a million guesses into five.
+  [5]  Audit logon events audited for Success and Failure
+       area: Audit logging
+       fix: secpol.msc > Audit Policy > Audit logon events = Success, Failure
+       or:  auditpol /set /category:"Logon/Logoff" /success:enable
+            /failure:enable
+       why: No audit trail means no way to see who signed in or what changed.
+  [6]  Windows Defender Firewall on for all profiles
+       area: Secure configuration
+       fix: Windows Security > Firewall & network protection > Domain, Private,
+            Public = On
+       or:  netsh advfirewall set allprofiles state on
+       why: A profile that is off exposes every listening service on that
+            network.
+  [6]  Microsoft Defender real-time protection on
+       area: Malware defenses
+       fix: Windows Security > Virus & threat protection > Manage settings >
+            Real-time protection = On
+       or:  Set-MpPreference -DisableRealtimeMonitoring $false
+       why: With real-time protection off, malware runs unchallenged.
+  [6]  Windows updates installed and not paused
+       area: Patching
+       fix: Settings > Windows Update > Resume updates > Check for updates >
+            Install all > Restart now
+       why: The pending updates include fixes for publicly known
+            vulnerabilities.
+  [4]  Remote Registry service stopped and disabled
+       area: Secure configuration
+       fix: services.msc > Remote Registry > Stop, Startup type = Disabled
+       or:  sc stop RemoteRegistry && sc config RemoteRegistry start= disabled
+       why: Unneeded listening services are ways in; Disabled keeps them off
+            after a reboot.
+  [6]  Planted scheduled task "SystemUpdaterSvc" removed or disabled
+       area: Malware defenses
+       fix: taskschd.msc > "SystemUpdaterSvc" > Delete
+       or:  schtasks /delete /tn "SystemUpdaterSvc" /f
+       why: A task that runs a .bat from a public folder re-infects the machine
+            on schedule.
+  [6]  Unauthorized software removed (TorrentBolt 3.1, GameLoop Arcade,
+       PortProbe Toolkit)
+       area: Secure configuration
+       fix: Settings > Apps > Installed apps > ... > Uninstall (each):
+            TorrentBolt 3.1, GameLoop Arcade, PortProbe Toolkit
+       or:  appwiz.cpl
+       why: File-sharing clients, miners and scanners are banned by policy and
+            often carry malware.
+  [6]  Prohibited media files removed from user folders
+       area: Data protection
+       fix: File Explorer > C:\Users\<user>\Music, Videos > Delete
+       or:  del /s C:\Users\*.mp3 C:\Users\*.mp4
+       why: Policy bans media; it is also where pirated and malicious files
+            hide.
+  [5]  Investigation 1 answered
+       fix: Answer: SystemUpdaterSvc
+  [5]  Investigation 2 answered
+       fix: Answer: kekoa
+
+Availability checks (points lost if you break what the business needs)
+  -6  Authorized user removed or disabled
+  -5  Authorized administrator removed from Administrators
+  -10  Your own account deleted, disabled or locked out
+  -5  Required service "Windows Defender Firewall" stopped or disabled
+  -5  Required service "Microsoft Defender Antivirus" stopped or disabled
+  -5  Windows Update service disabled
+
+--------------------------------------------------------------------------------
+4. SCENARIO 2 - OPERATOR: HALE KULA ROBOTICS LAB — STATION 4
+--------------------------------------------------------------------------------
+Sign-in  labuser / Medium!2026        Host  HKROBOTICS-04
+System   Windows 11 Pro, version 26H2, build 26300.9550
+
+Scenario Brief summary
+  Hale Kula High School robotics lab, shared workstation #4. Students sign in
+  with their own accounts to program the team robots. The coach (coachk)
+  maintains the lab PCs. Someone installed "helper" software, a student account
+  seems to have become an administrator, and the PC has been slow and noisy at
+  night.
+  Authorized administrators: labuser (you) - password: Medium!2026; coachk
+  Authorized users: tavita, hiro, pua, mele, keahi
+  Required services and settings:
+    - No remote access is needed: no Remote Desktop, no Remote Registry.
+    - The firewall must be on for every profile; Microsoft Defender must stay
+      on; Windows Update must run.
+  Security policy:
+    - Only the Authorized Administrators may be in the Administrators group.
+    - Guest must be disabled; every account must have a password of at least 10
+      characters, complex, with history and expiry.
+    - Account lockout and auditing of logons and account changes are required.
+    - The last signed-in user must not be shown and CTRL+ALT+DEL must be
+      required.
+    - User Account Control must not be turned off.
+    - SMB 1.0 and the Telnet client are not allowed. No media files, no
+      unauthorized software (file sharing, miners, scanners, games).
+
+Investigation questions
+  Q1  One student account (not a built-in account) was set up so that it does
+      not require a password, and its password is blank. Which account is it?
+      ANSWER: pua
+      (Hint: net user <name> shows "Password required" (No means the account may
+       have a blank password); in PowerShell, Get-LocalUser <name> lists
+       PasswordRequired.)
+  Q2  An inbound firewall rule was added that is not part of Windows. What TCP
+      port does it allow?
+      ANSWER: 4444
+      (Hint: wf.msc > Inbound Rules (sort by Group), or: netsh advfirewall
+       firewall show rule name=all | findstr /i helper)
+
+Checks (100 points)
+  [6]  Unauthorized user "svc_backup" removed
+       area: Account management
+       fix: lusrmgr.msc > Users > svc_backup > Delete
+       or:  net user svc_backup /delete
+       why: An account nobody authorized is a door into the machine.
+  [5]  "hiro" removed from the Administrators group (not an authorized
+       administrator)
+       area: Access control
+       fix: lusrmgr.msc > Groups > Administrators > Properties > hiro > Remove
+       or:  net localgroup Administrators hiro /delete
+       why: Administrators can undo every other fix; only the administrators
+            named in the Scenario Brief belong there (least privilege).
+  [5]  Blank password on account "pua" replaced with a real one
+       area: Account management
+       fix: lusrmgr.msc > pua > Set Password...
+       or:  net user pua Str0ng-Passw0rd! /passwordreq:yes
+       why: An empty password lets anyone sign in with Enter. /passwordreq:yes
+            also stops the password being set back to blank.
+  [4]  Guest account disabled
+       area: Account management
+       fix: lusrmgr.msc > Guest > Properties > check "Account is disabled"
+       or:  net user Guest /active:no
+       why: Guest is an anonymous login with no password.
+  [4]  Minimum password length is 10 or more
+       area: Account management
+       fix: secpol.msc > Password Policy > Minimum password length = 12
+       or:  net accounts /minpwlen:12
+       why: Short passwords fall to guessing in minutes.
+  [3]  Password complexity requirements enabled
+       area: Account management
+       fix: secpol.msc > Password Policy > "Password must meet complexity
+            requirements" = Enabled
+       or:  secedit /export /cfg C:\sec.inf, set PasswordComplexity = 1 in
+            Notepad, then secedit /configure /db C:\Windows\security\local.sdb
+            /cfg C:\sec.inf
+       why: Complexity blocks "password1" and the user's own name.
+  [3]  Password history of 5 or more enforced
+       area: Account management
+       fix: secpol.msc > Password Policy > Enforce password history = 5
+       or:  net accounts /uniquepw:5
+       why: Stops toggling between two favourite passwords.
+  [2]  Maximum password age between 30 and 90 days
+       area: Account management
+       fix: secpol.msc > Password Policy > Maximum password age = 60
+       or:  net accounts /maxpwage:60
+       why: 0 means passwords never expire.
+  [2]  Minimum password age of 1 day or more
+       area: Account management
+       fix: secpol.msc > Password Policy > Minimum password age = 1
+       or:  net accounts /minpwage:1
+       why: Without it users cycle through history in seconds to reuse an old
+            password.
+  [4]  Account lockout threshold set (1 to 10 attempts)
+       area: Access control
+       fix: secpol.msc > Account Lockout Policy > threshold 5, duration 30,
+            reset 30
+       or:  net accounts /lockoutthreshold:5 /lockoutduration:30
+            /lockoutwindow:30
+       why: Lockout turns a million guesses into five.
+  [3]  Audit logon events audited for Success and Failure
+       area: Audit logging
+       fix: secpol.msc > Audit Policy > Audit logon events = Success, Failure
+       or:  auditpol /set /category:"Logon/Logoff" /success:enable
+            /failure:enable
+       why: No audit trail means no way to see who signed in or what changed.
+  [3]  Audit account management audited for Success and Failure
+       area: Audit logging
+       fix: secpol.msc > Audit Policy > Audit account management = Success,
+            Failure
+       or:  auditpol /set /category:"Account Management" /success:enable
+            /failure:enable
+       why: No audit trail means no way to see who signed in or what changed.
+  [2]  "Do not display last user name" enabled
+       area: Access control
+       fix: secpol.msc > Security Options > "Interactive logon: Do not display
+            last user name" = Enabled
+       or:  reg add
+            HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v
+            DontDisplayLastUserName /t REG_DWORD /d 1 /f
+       why: Showing the last user hands an attacker half of the credentials.
+  [2]  CTRL+ALT+DEL required to sign in
+       area: Access control
+       fix: secpol.msc > Security Options > "Interactive logon: Do not require
+            CTRL+ALT+DEL" = Disabled
+       or:  reg add
+            HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v
+            DisableCAD /t REG_DWORD /d 0 /f
+       why: The secure attention sequence defeats fake login screens.
+  [3]  User Account Control set to notify (not "Never notify")
+       area: Access control
+       fix: Control Panel > User Accounts > Change User Account Control settings
+            > default or "Always notify"
+       or:  reg add
+            HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v
+            ConsentPromptBehaviorAdmin /t REG_DWORD /d 5 /f  and  /v
+            PromptOnSecureDesktop /d 1
+       why: With UAC off, any program the user runs silently gets administrator
+            power.
+  [4]  Windows Defender Firewall on for all profiles
+       area: Secure configuration
+       fix: Windows Security > Firewall & network protection > Domain, Private,
+            Public = On
+       or:  netsh advfirewall set allprofiles state on
+       why: A profile that is off exposes every listening service on that
+            network.
+  [3]  Suspicious inbound firewall rule "Remote Helper (TCP-In)" removed or
+       disabled
+       area: Secure configuration
+       fix: wf.msc > Inbound Rules > "Remote Helper (TCP-In)" > Delete
+       or:  netsh advfirewall firewall delete rule name="Remote Helper (TCP-In)"
+       why: An allow-anything rule on an odd port is a planted back door.
+  [4]  Microsoft Defender real-time protection on
+       area: Malware defenses
+       fix: Windows Security > Virus & threat protection > Manage settings >
+            Real-time protection = On
+       or:  Set-MpPreference -DisableRealtimeMonitoring $false
+       why: With real-time protection off, malware runs unchallenged.
+  [4]  Windows updates installed and not paused
+       area: Patching
+       fix: Settings > Windows Update > Resume updates > Check for updates >
+            Install all > Restart now
+       why: The pending updates include fixes for publicly known
+            vulnerabilities.
+  [3]  Remote Registry service stopped and disabled
+       area: Secure configuration
+       fix: services.msc > Remote Registry > Stop, Startup type = Disabled
+       or:  sc stop RemoteRegistry && sc config RemoteRegistry start= disabled
+       why: Unneeded listening services are ways in; Disabled keeps them off
+            after a reboot.
+  [3]  Remote Desktop disabled (not required on this machine)
+       area: Secure configuration
+       fix: Settings > System > Remote Desktop = Off
+       or:  reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v
+            fDenyTSConnections /t REG_DWORD /d 1 /f
+       why: RDP exposed on a workstation is the most common ransomware entry
+            point.
+  [2]  Telnet Client feature turned off
+       area: Secure configuration
+       fix: optionalfeatures > uncheck "Telnet Client"
+       or:  Disable-WindowsOptionalFeature -Online -FeatureName TelnetClient
+       why: Telnet sends every keystroke, passwords included, in clear text.
+  [3]  SMB 1.0/CIFS File Sharing Support feature turned off
+       area: Secure configuration
+       fix: optionalfeatures > uncheck "SMB 1.0/CIFS File Sharing Support"
+       or:  Disable-WindowsOptionalFeature -Online -FeatureName SMB1Protocol
+       why: SMBv1 is the protocol WannaCry spread over.
+  [5]  Unauthorized software removed (CoinSweeper Miner, TorrentBolt 3.1,
+       PortProbe Toolkit, ArcadeLoop)
+       area: Secure configuration
+       fix: Settings > Apps > Installed apps > ... > Uninstall (each):
+            CoinSweeper Miner, TorrentBolt 3.1, PortProbe Toolkit, ArcadeLoop
+       or:  appwiz.cpl
+       why: File-sharing clients, miners and scanners are banned by policy and
+            often carry malware.
+  [4]  Prohibited media files removed from user folders
+       area: Data protection
+       fix: File Explorer > C:\Users\<user>\Music, Videos > Delete
+       or:  del /s C:\Users\*.mp3 C:\Users\*.mp4
+       why: Policy bans media; it is also where pirated and malicious files
+            hide.
+  [4]  Planted scheduled task "DriverCleanupSvc" removed or disabled
+       area: Malware defenses
+       fix: taskschd.msc > "DriverCleanupSvc" > Delete
+       or:  schtasks /delete /tn "DriverCleanupSvc" /f
+       why: A task that runs a .bat from a public folder re-infects the machine
+            on schedule.
+  [5]  Investigation 1 answered
+       fix: Answer: pua
+  [5]  Investigation 2 answered
+       fix: Answer: 4444
+
+Availability checks (points lost if you break what the business needs)
+  -6  Authorized user removed or disabled
+  -5  Authorized administrator removed from Administrators
+  -10  Your own account deleted, disabled or locked out
+  -5  Required service "Windows Defender Firewall" stopped or disabled
+  -5  Required service "Microsoft Defender Antivirus" stopped or disabled
+  -5  Windows Update service disabled
+
+--------------------------------------------------------------------------------
+5. SCENARIO 3 - CAPTAIN: MAKAI LOGISTICS — PORTAL SERVER
+--------------------------------------------------------------------------------
+Sign-in  labuser / Hard!2026        Host  MAKAI-SRV1
+System   Windows Server 2025 Standard, version 24H2, build 26100.33296
+
+Scenario Brief summary
+  Makai Logistics, a freight forwarder with a small office on Sand Island. This
+  Windows Server 2025 machine hosts the internal web portal (IIS) and the HR and
+  Ops file shares. Administrators manage it over Remote Desktop from the office
+  LAN. The previous administrator left in a hurry and the owner wants the server
+  audited.
+  Authorized administrators: labuser (you) - password: Hard!2026; kahale;
+    Administrator (built-in; must stay enabled on this server)
+  Authorized users: dispatch1, dispatch2, hrclerk, opsmgr
+  Required services and settings:
+    - Remote Desktop MUST stay enabled (with Network Level Authentication) and
+      reachable through the firewall.
+    - The IIS web portal (World Wide Web Publishing Service) must stay running
+      and allowed on port 80.
+    - FTP is NOT authorized on this server; neither is SMB 1.0 or the Telnet
+      client.
+    - Windows Update, Microsoft Defender and the firewall must stay on.
+  Security policy:
+    - Only the Authorized Administrators may be in the Administrators group.
+    - Guest must be disabled. Passwords: at least 12 characters, complex, 5
+      remembered, expiring within 90 days; no "Password never expires".
+    - Account lockout, logon auditing and account-management auditing are
+      required.
+    - NTLMv2 only; the last signed-in user must not be shown; UAC must stay on.
+    - No unauthorized software or scheduled jobs.
+
+Investigation questions
+  Q1  Which account is a member of the Administrators group but is NOT listed in
+      the Scenario Brief as an authorized administrator?
+      ANSWER: backup_admin
+      (Hint: net localgroup Administrators, or lusrmgr.msc > Groups >
+       Administrators)
+  Q2  A scheduled task runs a .bat file from C:\Users\Public. What is the name
+      of that task?
+      ANSWER: IISLogCleaner
+      (Hint: schtasks /query /fo LIST /v | findstr /i "TaskName Task To Run")
+
+Checks (100 points)
+  [6]  Unauthorized user "backup_admin" removed
+       area: Account management
+       fix: lusrmgr.msc > Users > backup_admin > Delete
+       or:  net user backup_admin /delete
+       why: An account nobody authorized is a door into the machine.
+  [3]  "Password never expires" cleared on dispatch2
+       area: Account management
+       fix: lusrmgr.msc > dispatch2 > Properties > uncheck "Password never
+            expires"
+       or:  Set-LocalUser -Name dispatch2 -PasswordNeverExpires $false
+       why: A password that never expires stays valid forever once leaked.
+  [4]  Guest account disabled
+       area: Account management
+       fix: lusrmgr.msc > Guest > Properties > check "Account is disabled"
+       or:  net user Guest /active:no
+       why: Guest is an anonymous login with no password.
+  [4]  Minimum password length is 10 or more
+       area: Account management
+       fix: secpol.msc > Password Policy > Minimum password length = 12
+       or:  net accounts /minpwlen:12
+       why: Short passwords fall to guessing in minutes.
+  [3]  Password complexity requirements enabled
+       area: Account management
+       fix: secpol.msc > Password Policy > "Password must meet complexity
+            requirements" = Enabled
+       or:  secedit /export /cfg C:\sec.inf, set PasswordComplexity = 1 in
+            Notepad, then secedit /configure /db C:\Windows\security\local.sdb
+            /cfg C:\sec.inf
+       why: Complexity blocks "password1" and the user's own name.
+  [3]  Password history of 5 or more enforced
+       area: Account management
+       fix: secpol.msc > Password Policy > Enforce password history = 5
+       or:  net accounts /uniquepw:5
+       why: Stops toggling between two favourite passwords.
+  [3]  Maximum password age between 30 and 90 days
+       area: Account management
+       fix: secpol.msc > Password Policy > Maximum password age = 60
+       or:  net accounts /maxpwage:60
+       why: 0 means passwords never expire.
+  [2]  Minimum password age of 1 day or more
+       area: Account management
+       fix: secpol.msc > Password Policy > Minimum password age = 1
+       or:  net accounts /minpwage:1
+       why: Without it users cycle through history in seconds to reuse an old
+            password.
+  [5]  Account lockout threshold set (1 to 10 attempts)
+       area: Access control
+       fix: secpol.msc > Account Lockout Policy > threshold 5, duration 30,
+            reset 30
+       or:  net accounts /lockoutthreshold:5 /lockoutduration:30
+            /lockoutwindow:30
+       why: Lockout turns a million guesses into five.
+  [3]  Audit logon events audited for Success and Failure
+       area: Audit logging
+       fix: secpol.msc > Audit Policy > Audit logon events = Success, Failure
+       or:  auditpol /set /category:"Logon/Logoff" /success:enable
+            /failure:enable
+       why: No audit trail means no way to see who signed in or what changed.
+  [3]  Audit account management audited for Success and Failure
+       area: Audit logging
+       fix: secpol.msc > Audit Policy > Audit account management = Success,
+            Failure
+       or:  auditpol /set /category:"Account Management" /success:enable
+            /failure:enable
+       why: No audit trail means no way to see who signed in or what changed.
+  [2]  "Do not display last user name" enabled
+       area: Access control
+       fix: secpol.msc > Security Options > "Interactive logon: Do not display
+            last user name" = Enabled
+       or:  reg add
+            HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v
+            DontDisplayLastUserName /t REG_DWORD /d 1 /f
+       why: Showing the last user hands an attacker half of the credentials.
+  [3]  LAN Manager authentication level set to NTLMv2 only
+       area: Access control
+       fix: secpol.msc > Security Options > "Network security: LAN Manager
+            authentication level" = Send NTLMv2 response only. Refuse LM & NTLM
+       or:  reg add HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v
+            LmCompatibilityLevel /t REG_DWORD /d 5 /f
+       why: Windows Server 2025 has removed NTLMv1, but the setting is still
+            there and hardening baselines still require level 5: a lower value
+            is a deliberate downgrade to undo, and on older systems the same
+            policy reaches, LM and NTLMv1 responses crack in seconds.
+  [3]  User Account Control set to notify (not "Never notify")
+       area: Access control
+       fix: Control Panel > User Accounts > Change User Account Control settings
+            > default or "Always notify"
+       or:  reg add
+            HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v
+            ConsentPromptBehaviorAdmin /t REG_DWORD /d 5 /f  and  /v
+            PromptOnSecureDesktop /d 1
+       why: With UAC off, any program the user runs silently gets administrator
+            power.
+  [4]  Windows Defender Firewall on for all profiles
+       area: Secure configuration
+       fix: Windows Security > Firewall & network protection > Domain, Private,
+            Public = On
+       or:  netsh advfirewall set allprofiles state on
+       why: A profile that is off exposes every listening service on that
+            network.
+  [4]  Suspicious inbound firewall rule "Ops Remote Helper (TCP-In)" removed or
+       disabled
+       area: Secure configuration
+       fix: wf.msc > Inbound Rules > "Ops Remote Helper (TCP-In)" > Delete
+       or:  netsh advfirewall firewall delete rule name="Ops Remote Helper
+            (TCP-In)"
+       why: An allow-anything rule on an odd port is a planted back door.
+  [6]  FTP server removed (service stopped and feature off)
+       area: Secure configuration
+       fix: optionalfeatures > Internet Information Services > uncheck "FTP
+            Server"
+       or:  Disable-WindowsOptionalFeature -Online -FeatureName IIS-FTPServer
+       why: FTP sends credentials in clear text, and the Scenario Brief does not
+            authorize it.
+  [3]  SMB 1.0/CIFS File Sharing Support feature turned off
+       area: Secure configuration
+       fix: optionalfeatures > uncheck "SMB 1.0/CIFS File Sharing Support"
+       or:  Disable-WindowsOptionalFeature -Online -FeatureName SMB1Protocol
+       why: SMBv1 is the protocol WannaCry spread over.
+  [2]  Telnet Client feature turned off
+       area: Secure configuration
+       fix: optionalfeatures > uncheck "Telnet Client"
+       or:  Disable-WindowsOptionalFeature -Online -FeatureName TelnetClient
+       why: Telnet sends every keystroke, passwords included, in clear text.
+  [4]  Remote Desktop requires Network Level Authentication
+       area: Access control
+       fix: Settings > System > Remote Desktop > check "Require devices to use
+            Network Level Authentication"
+       or:  reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal
+            Server\WinStations\RDP-Tcp" /v UserAuthentication /t REG_DWORD /d 1
+            /f
+       why: NLA authenticates before a session is created, blocking pre-auth
+            exploits.
+  [4]  Microsoft Defender real-time protection on
+       area: Malware defenses
+       fix: Windows Security > Virus & threat protection > Manage settings >
+            Real-time protection = On
+       or:  Set-MpPreference -DisableRealtimeMonitoring $false
+       why: With real-time protection off, malware runs unchallenged.
+  [4]  Windows updates installed and not paused
+       area: Patching
+       fix: Settings > Windows Update > Resume updates > Check for updates >
+            Install all > Restart now
+       why: The pending updates include fixes for publicly known
+            vulnerabilities.
+  [4]  Planted scheduled task "IISLogCleaner" removed or disabled
+       area: Malware defenses
+       fix: taskschd.msc > "IISLogCleaner" > Delete
+       or:  schtasks /delete /tn "IISLogCleaner" /f
+       why: A task that runs a .bat from a public folder re-infects the machine
+            on schedule.
+  [3]  Rogue service "Server Health Monitor" disabled or removed
+       area: Malware defenses
+       fix: services.msc > "Server Health Monitor" > Stop, Startup type =
+            Disabled
+       or:  sc stop SrvHealthMon && sc delete SrvHealthMon
+       why: A homemade service running from a user folder is persistence for an
+            intruder.
+  [5]  Unauthorized software removed (PortProbe Toolkit, TorrentBolt 3.1)
+       area: Secure configuration
+       fix: Settings > Apps > Installed apps > ... > Uninstall (each): PortProbe
+            Toolkit, TorrentBolt 3.1
+       or:  appwiz.cpl
+       why: File-sharing clients, miners and scanners are banned by policy and
+            often carry malware.
+  [5]  Investigation 1 answered
+       fix: Answer: backup_admin
+  [5]  Investigation 2 answered
+       fix: Answer: IISLogCleaner
+
+Availability checks (points lost if you break what the business needs)
+  -8  Authorized user removed or disabled
+  -6  Authorized administrator removed from Administrators
+  -10  Your own account deleted, disabled or locked out
+  -10  Remote Desktop disabled on a server that requires it
+  -10  Web server (IIS) stopped, removed, or blocked by the firewall
+  -5  Required service "Windows Defender Firewall" stopped or disabled
+  -5  Required service "Microsoft Defender Antivirus" stopped or disabled
+  -5  Windows Update service disabled
+
+--------------------------------------------------------------------------------
+6. WINDOWS HARDENING QUICK REFERENCE
+--------------------------------------------------------------------------------
+Open the tools (Start > Run, or Alt+R in this lab)
+  lusrmgr.msc            Local Users and Groups
+  secpol.msc             Local Security Policy (password, lockout, audit,
+    security options)
+  gpedit.msc             Local Group Policy Editor (same security settings +
+    admin templates)
+  services.msc           Services (startup type, stop/start)
+  taskschd.msc           Task Scheduler
+  wf.msc                 Windows Defender Firewall with Advanced Security
+  appwiz.cpl             Programs and Features (uninstall)
+  optionalfeatures       Windows Features (Telnet Client, SMB 1.0, IIS, FTP)
+  UserAccountControlSettings   UAC slider
+  SystemPropertiesRemote Remote Desktop / Remote Assistance
+  ms-settings:windowsupdate    Settings > Windows Update
+  windowsdefender:       Windows Security
+
+Accounts (Command Prompt as administrator)
+  net user                          list accounts
+  net user NAME                     full account details ("Password required")
+  net user NAME /delete             remove an account
+  net user NAME NewP@ssw0rd!        set a password
+  net user NAME /passwordreq:yes    the account must have a password
+  net user NAME /active:no          disable (Guest, built-in Administrator)
+  net localgroup Administrators     who is an administrator
+  net localgroup Administrators NAME /delete    remove administrator rights
+  PowerShell: Get-LocalUser; Get-LocalGroupMember Administrators;
+    Set-LocalUser -Name NAME -PasswordNeverExpires $false
+
+Password and lockout policy
+  net accounts                      show the policy
+  net accounts /minpwlen:12 /maxpwage:60 /minpwage:1 /uniquepw:5
+  net accounts /lockoutthreshold:5 /lockoutduration:30 /lockoutwindow:30
+    (the lockout switches work but are not in "net help accounts")
+  Complexity has no net switch: secpol.msc, or
+    secedit /export /cfg C:\sec.inf   (edit PasswordComplexity = 1)
+    secedit /configure /db C:\Windows\security\local.sdb /cfg C:\sec.inf
+
+Audit policy
+  auditpol /get /category:*
+  auditpol /set /category:"Logon/Logoff" /success:enable /failure:enable
+  auditpol /set /category:"Account Management" /success:enable /failure:enable
+
+Security options and remote access (reg add needs /t REG_DWORD /d N /f)
+  HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System
+    DontDisplayLastUserName = 1     DisableCAD = 0
+    ConsentPromptBehaviorAdmin = 5  PromptOnSecureDesktop = 1   (UAC default)
+  HKLM\SYSTEM\CurrentControlSet\Control\Lsa   LmCompatibilityLevel = 5
+  "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server"
+    fDenyTSConnections = 1 (RDP off)   ...\WinStations\RDP-Tcp
+    UserAuthentication = 1 (NLA)
+
+Services and tasks
+  sc query NAME; sc qc NAME          state and startup type
+  sc stop NAME && sc config NAME start= disabled   (the space after = matters)
+  PowerShell: Get-Service; Set-Service -Name NAME -StartupType Disabled
+  schtasks /query /fo LIST /v | findstr /i "TaskName Task.To.Run"
+  schtasks /delete /tn "NAME" /f
+
+Firewall, Defender, features
+  netsh advfirewall show allprofiles
+  netsh advfirewall set allprofiles state on
+  netsh advfirewall firewall delete rule name="RULE NAME"
+  PowerShell: Set-MpPreference -DisableRealtimeMonitoring $false
+  PowerShell: Disable-WindowsOptionalFeature -Online -FeatureName TelnetClient
+              (SMB1Protocol, IIS-FTPServer the same way)
+
+Files
+  dir C:\Users\*.mp3 /s /b         find media files
+  del /s C:\Users\*.mp3 C:\Users\*.mp4
+  File Explorer: View > Show > Hidden items to see hidden folders
+  PowerShell: Get-ChildItem C:\Users -Recurse -Include *.mp3,*.mp4 -Force
+
+--------------------------------------------------------------------------------
+7. WHERE THE REAL MACHINE DIFFERS
+--------------------------------------------------------------------------------
+  - Real VMs are slow: updates take many minutes and a restart takes a minute or
+    two. Take a VM snapshot before big changes; Reset lab is the equivalent
+    here.
+  - UAC prompts on a real machine appear for every elevation; the lab asks once
+    per sign-in.
+  - Windows+R cannot be captured by a web page: use Alt+R or the Run tile.
+  - Registry Editor, Event Viewer, Task Manager and most third-party programs
+    are not simulated. reg.exe covers only the values listed in section 6.
+  - Compliance scanners and Group Policy read the same settings the lab checks,
+    but some changes only take effect after a policy refresh (gpupdate /force)
+    or a restart.
+  - On a real network, change only machines you own or are authorized to manage,
+    and record each change in a change log.
+  - Never run these commands on a computer you depend on. Practice VMs and this
+    lab are the places to experiment.
+  - Version notes (Windows 11 version 26H2, Windows Server 2025): WMIC is
+    removed from Windows 11, so use PowerShell instead (Get-CimInstance,
+    Get-HotFix, Get-LocalUser, Get-Service); Windows PowerShell 2.0, Microsoft
+    Defender Application Guard and NTLMv1 are removed; new installs of Windows
+    11 22H2 and later lock an account after 10 failed sign-ins for 10 minutes by
+    default.
+
+--------------------------------------------------------------------------------
+8. SOURCES
+--------------------------------------------------------------------------------
+  - Windows security policy settings reference (Microsoft Learn archive; applies
+    to Windows 11; no newer edition exists)
+https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/security-policy-settings/security-policy-settings-reference
+  - Policy CSP - LocalPoliciesSecurityOptions (current Microsoft Learn reference
+    for the Security Options)
+https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-localpoliciessecurityoptions
+  - Windows 11 release information (versions and OS builds)
+https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information
+  - Windows Server release information (versions and OS builds)
+https://learn.microsoft.com/en-us/windows/release-health/windows-server-release-info
+  - Features removed in Windows client (WMIC, PowerShell 2.0, Application Guard,
+    NTLMv1)
+    https://learn.microsoft.com/en-us/windows/whats-new/removed-features
+  - Features removed or no longer developed in Windows Server
+https://learn.microsoft.com/en-us/windows-server/get-started/removed-deprecated-features-windows-server
+  - KB5020282: account lockout defaults (10/10/10) on new Windows 11 installs
+https://support.microsoft.com/en-us/servicing/os/windows/2022/10/kb5020282-account-lockout-available-for-built-in-local-administrators
+  - Windows Commands reference: net, auditpol, sc, schtasks, secedit, reg
+https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/windows-commands
+  - net user (Microsoft Learn)
+https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/net-user
+  - LocalAccounts PowerShell module (Get-LocalUser, Set-LocalUser)
+https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.localaccounts/?view=powershell-5.1
+  - Set-MpPreference (Microsoft Defender)
+https://learn.microsoft.com/en-us/powershell/module/defender/set-mppreference?view=windowsserver2025-ps
+  - CIS Critical Security Controls v8
+    https://www.cisecurity.org/controls/v8

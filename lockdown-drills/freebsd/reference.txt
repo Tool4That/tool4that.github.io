@@ -1,0 +1,586 @@
+================================================================================
+ 06: FREEBSD HARDENING: SOLUTION WALKTHROUGH
+     FreeBSD 15.1, with 14.x notes
+ Training reference for virtual machines you own or are authorized to change.
+ Three levels: L1 Doorman, L2 Watchman, L3 Hunter. Every item = COMMAND, WHY,
+ NOTE and the hardening AREA it belongs to. No scripts by design: type it,
+ read it, explain it. Item IDs match the Lockdown Drills trainer for this OS.
+ Unofficial practice; not affiliated with or endorsed by the FreeBSD Project.
+
+ HARDENING AREAS (CIS Critical Security Controls v8)
+   Account management ........ CIS Control 5
+   Access control ............ CIS Control 6
+   Secure configuration ...... CIS Control 4 (software inventory: Control 2)
+   Patching .................. CIS Control 7
+   Malware defenses .......... CIS Control 10
+   Audit logging ............. CIS Control 8
+   Also tagged: Data protection (CIS Control 3); Investigation (forensics
+   basics: answer questions and preserve evidence before you change things).
+================================================================================
+
+------------------------------ DOORMAN -----------------------------------------
+ Lock the doors, BSD style. Users and the wheel group, master.passwd, login.conf
+ policy, pf, freebsd-update and pkg, rc.conf services, the console. Commands
+ below run as root (prefix with sudo or doas if the brief gives you a wheel user
+ instead).
+--------------------------------------------------------------------------------
+[B-00] Scenario brief and evidence first
+  AREA: Investigation (forensics basics)
+      Read the scenario brief (the documented requirements for this machine): authorized users, wheel members, required services, anything forbidden
+  # freebsd-version -kru; uname -a
+  # cat /etc/rc.conf
+  WHY: Authorized users, wheel members and required services decide what is a
+       fix and what breaks the business. rc.conf is the service list on FreeBSD;
+       read it before touching anything.
+  NOTE: Unfamiliar is not the same as unauthorized: leave backup and monitoring
+        agents alone until the system owner confirms what they are. Keep a
+        second root shell open before editing pam, login.conf or sshd_config.
+
+[B-01] List users, UID 0 accounts, and the wheel group
+  AREA: Account management (CIS Control 5)
+  # pw usershow -a | awk -F: '$3>=1000 && $3<65534 {print $1" uid="$3" shell="$10}'
+  # awk -F: '$3==0 {print $1}' /etc/passwd
+  # awk -F: '$1=="toor" {print $1": "$2}' /etc/master.passwd
+  # pw groupshow wheel
+  WHY: wheel is the admin group on FreeBSD (su and sudo both key off it). A
+       UID-0 account other than root is a second root, with one exception: toor
+       is FreeBSD's default disabled alternate root and is normal while its hash
+       is a star.
+  NOTE: toor with a real hash instead of * means someone set it a password. That
+        is a finding.
+
+[B-02] Remove or lock an unauthorized user
+  AREA: Account management (CIS Control 5)
+  # pw userdel -n baduser -r
+  # pw lock baduser
+  # pw unlock baduser
+  # pw usermod baduser -s /usr/sbin/nologin
+  WHY: userdel -r removes the home directory and its planted files; pw lock
+       keeps the account for the investigation but no password works.
+  NOTE: Check ps -U baduser first and kill their processes. The brief decides.
+
+[B-03] Fix wheel membership
+  AREA: Account management (CIS Control 5)
+  # pw groupmod wheel -d mallory
+  # pw groupmod wheel -m alice
+  # pw groupshow wheel
+  # id alice
+  WHY: Least privilege. Anyone in wheel can su to root with root's password and,
+       if sudo is installed, usually run anything.
+
+[B-04] Passwords: strong, forced change, no empties
+  AREA: Account management (CIS Control 5)
+  # passwd alice
+  # pw usermod alice -p +0d
+  # awk -F: '$2=="" {print $1" HAS NO PASSWORD"}' /etc/master.passwd
+  # passwd root
+  WHY: master.passwd is the real password file (passwd is the public copy). An
+       empty second field is login with Enter. -p +0d expires the password now,
+       so the next login must change it.
+  NOTE: Write changed passwords down. Do not lock root: wheel users su with
+        root's password, so a locked root breaks su. Give it a strong password
+        instead.
+
+[B-05] Password policy: login.conf and pam_passwdqc
+  AREA: Account management (CIS Control 5)
+  # vi /etc/login.conf
+      default:  ... :passwordtime=60d:\   (each capability on its own line, ending in :\)
+  # cap_mkdb /etc/login.conf
+  # vi /etc/pam.d/passwd
+      password  requisite  pam_passwdqc.so  min=disabled,disabled,disabled,12,10 max=64 similar=deny retry=3 enforce=everyone
+  # pw usershow alice -P
+  WHY: login.conf carries password aging per login class (passwordtime);
+       cap_mkdb rebuilds the database or nothing changes. Length and complexity
+       come from pam_passwdqc at change time (min= is per character-class count:
+       4-class passwords may be 10, 3-class need 12, fewer classes disabled).
+       login.conf also lists minpasswordlen and mixpasswordcase, but they are
+       reserved and not implemented in the base system.
+  NOTE: Users must belong to the class you edited (default unless pw usermod -L
+        set another).
+
+[B-06] Lockout: login.conf retries and blocklistd for sshd
+  AREA: Account management (CIS Control 5)
+  # vi /etc/login.conf
+      default:  ... :login-retries=5:  :login-backoff=10:   (same file, same continuation style)
+  # cap_mkdb /etc/login.conf
+  # sysrc blocklistd_enable=YES
+  # vi /etc/blocklistd.conf
+      ssh  stream  *  *  *  3  24h
+  # echo 'UseBlocklist yes' >> /etc/ssh/sshd_config; sshd -t && service sshd restart
+  # service blocklistd start; blocklistctl dump -b
+  WHY: There is no pam_faillock here. login.conf limits console retries;
+       blocklistd blocks an IP in pf after repeated sshd failures, which is the
+       brute force that actually happens.
+  NOTE: blocklistd needs the pf anchor from B-07 to enforce anything. Older
+        releases call it blacklistd, with matching old names for every knob (see
+        Version notes); use one set of names, never a mix.
+
+[B-07] Firewall: pf
+  AREA: Secure configuration (CIS Control 4)
+  # ifconfig | grep -B1 'inet '           (find the interface name, e.g. vtnet0 or em0)
+  # vi /etc/pf.conf
+      ext_if="vtnet0"
+      set skip on lo0
+      block in all
+      pass out all keep state
+      pass in on $ext_if proto tcp to port 22 keep state     (only if SSH is required)
+      anchor "blocklistd/*" in on $ext_if
+  # sysrc pf_enable=YES pflog_enable=YES
+  # pfctl -nf /etc/pf.conf
+  # service pf start
+  # pfctl -sr; pfctl -si
+  WHY: Default-deny inbound covers the service you have not found yet. pfctl -nf
+       parses without loading, so a typo cannot leave you with no rules.
+  NOTE: Enabling pf over SSH without the pass rule for 22 drops your session.
+        Add pass rules for the ports the brief requires (80, 443, 21). ipfw
+        alternative: sysrc firewall_enable=YES firewall_type=workstation
+        firewall_myservices="22/tcp" firewall_allowservices="any"; service ipfw
+        start.
+
+[B-08] Updates: base system and packages
+  AREA: Patching (CIS Control 7)
+  # pkg which /bin/sh            (names a FreeBSD- base package only on a pkgbase install)
+  # freebsd-update fetch install            (classic install: base system and kernel)
+  # pkg update && pkg upgrade -y            (packages; on a pkgbase install, the base system too)
+  # pkg audit -F
+  # freebsd-version -kru
+  WHY: Know how the base system is managed before you patch it. On a classic
+       install freebsd-update patches the base system and kernel and pkg
+       upgrades packages; on a pkgbase install the base is packages too, so pkg
+       upgrade covers both and freebsd-update is not used. pkg audit fetches the
+       vulnerability database and names installed packages with known CVEs.
+  NOTE: A kernel update needs a reboot to take effect; save work first.
+
+[B-09] Remove unapproved software
+  AREA: Secure configuration: software (CIS Controls 2 and 4)
+  # pkg info
+  # pkg info | grep -Ei 'nmap|john|hydra|medusa|wireshark|aircrack|netcat|socat|nikto|metasploit|hashcat|sqlmap|torrent|transmission|game'
+  # pkg delete -y nmap
+  # pkg autoremove -y
+  WHY: Hacking tools, games and P2P clients are acceptable-use violations and
+       attack surface. pkg autoremove drops the dependencies nothing needs
+       anymore.
+  NOTE: Packages the brief requires (apache24, samba, mysql-server) stay; harden
+        them in I-12.
+
+[B-10] Find unapproved media files
+  AREA: Data protection (CIS Control 3)
+  # find / -type f \( -iname '*.mp3' -o -iname '*.mp4' -o -iname '*.wav' -o -iname '*.mkv' -o -iname '*.avi' -o -iname '*.flac' -o -iname '*.mov' -o -iname '*.m4a' \) -not -path '/usr/*' 2>/dev/null
+  WHY: Many acceptable-use policies ban personal media on work machines, and the
+       search also surfaces hidden directories in /home, /tmp and /var/tmp.
+  NOTE: Confirm, then rm. Write the path down for a possible investigation
+        question.
+
+[B-11] Services: rc.conf, inetd, what listens
+  AREA: Secure configuration (CIS Control 4)
+  # service -e
+  # sysrc -a | grep -i enable
+  # sockstat -46l
+  # sysrc rpcbind_enable=NO; service rpcbind stop     (when nothing needs NFS or NIS)
+  # grep -vE '^#' /etc/inetd.conf
+  # sysrc inetd_enable=NO; service inetd stop
+  WHY: rc.conf decides what starts at boot; service -e shows it. Daemons started
+       by inetd (telnetd, ftpd, the old r-services) never appear there, so read
+       inetd.conf too. sockstat -46l is the ss -tulpn of FreeBSD.
+  NOTE: Required services stay (sshd, apache24, samba, mysql). Disable in
+        rc.conf AND stop the running service.
+
+[B-12] Console, tmp and syslog hardening in rc.conf and ttys
+  AREA: Secure configuration (CIS Control 4)
+  # vi /etc/ttys
+      console  none  unknown  off  insecure
+  # sysrc clear_tmp_enable=YES
+  # sysrc syslogd_flags="-ss"
+  # sysrc sendmail_enable=NONE
+  # cat /etc/rc.local 2>/dev/null
+  WHY: An insecure console makes single-user mode ask for root's password.
+       syslogd -ss stops syslog from listening on the network; clear_tmp wipes
+       planted files in /tmp at boot; sendmail_enable=NONE (the default now that
+       dma is the mail agent) keeps sendmail listeners off.
+  NOTE: If the machine has a desktop (slim, lightdm, gdm), also turn off auto-
+        login in its config under /usr/local/etc.
+
+------------------------------ WATCHMAN ----------------------------------------
+ Check the windows. sshd, sudo and doas, cron and periodic, rc.d and shell
+ startup files, master.passwd permissions and SUID, file flags, processes,
+ auditd, account hygiene, pkg repositories, and the services you must keep.
+--------------------------------------------------------------------------------
+[I-01] sshd hardening, only when SSH is required
+  AREA: Access control (CIS Control 6)
+  # vi /etc/ssh/sshd_config
+      PermitRootLogin no        PermitEmptyPasswords no     MaxAuthTries 3
+      LoginGraceTime 30         X11Forwarding no            UseBlocklist yes
+      PasswordAuthentication yes or no per the brief      AllowUsers alice bob
+  # sshd -t && service sshd restart
+  # find / -name authorized_keys -exec ls -l {} \; -exec cat {} \; 2>/dev/null
+  WHY: Root over SSH means no accountability and the prime brute-force target. A
+       planted authorized_keys file is a password-less backdoor that survives
+       every password you fix.
+  NOTE: Not required: sysrc sshd_enable=NO; service sshd stop.
+
+[I-02] sudo and doas audit
+  AREA: Access control (CIS Control 6)
+  # pkg info sudo doas 2>/dev/null
+  # grep -R -nE 'NOPASSWD|!authenticate|ALL=\(ALL' /usr/local/etc/sudoers /usr/local/etc/sudoers.d/ 2>/dev/null
+  # visudo
+  # cat /usr/local/etc/doas.conf 2>/dev/null
+      permit persist :wheel          (sane)   |   permit nopass mallory   (backdoor)
+  WHY: sudo and doas live under /usr/local/etc on FreeBSD, not /etc. A NOPASSWD
+       line or a nopass doas rule is a silent root backdoor. visudo checks
+       syntax; vi does not.
+
+[I-03] Cron, at and periodic
+  AREA: Malware defenses (CIS Control 10)
+  # cat /etc/crontab; ls -la /var/cron/tabs/
+  # for u in $(cut -d: -f1 /etc/passwd); do crontab -l -u "$u" 2>/dev/null | sed "s/^/$u: /"; done
+  # cat /etc/periodic.conf 2>/dev/null; ls /etc/periodic/daily /usr/local/etc/periodic/* 2>/dev/null
+  # atq
+  # crontab -r -u baduser
+  WHY: Cron re-creates users and re-opens ports every few minutes. periodic(8)
+       is the BSD extra: scripts under /etc/periodic and /usr/local/etc/periodic
+       run daily, weekly and monthly from root's crontab.
+
+[I-04] Startup and shell persistence
+  AREA: Malware defenses (CIS Control 10)
+  # cat /etc/rc.conf /etc/rc.conf.d/* /etc/rc.local 2>/dev/null
+  # ls -la /etc/rc.d/ /usr/local/etc/rc.d/
+  # grep -nE 'alias|nc |ncat|socat|/dev/tcp|curl .*\| *sh|fetch .*\| *sh' /etc/csh.cshrc /etc/profile /root/.cshrc /root/.profile /root/.shrc /home/*/.cshrc /home/*/.profile /home/*/.shrc 2>/dev/null
+  WHY: A rogue script in /usr/local/etc/rc.d with an _enable line in rc.conf
+       starts at every boot. Root's shell may be sh or csh (older installs,
+       other users), so check both families of startup files.
+  NOTE: fetch is FreeBSD's curl; look for it in the same places.
+
+[I-05] Password database permissions, world-writable, SUID
+  AREA: Access control (CIS Control 6)
+  # ls -l /etc/master.passwd /etc/spwd.db /etc/passwd /etc/pwd.db /etc/group
+  # chmod 600 /etc/master.passwd /etc/spwd.db; chown root:wheel /etc/master.passwd /etc/spwd.db
+  # chmod 644 /etc/passwd /etc/pwd.db /etc/group
+  # pwd_mkdb -p /etc/master.passwd
+  # find / -xdev -type f -perm -0002 2>/dev/null
+  # find / -xdev -type d -perm -0002 ! -perm -1000 2>/dev/null
+  # find / -xdev -type f \( -perm -4000 -o -perm -2000 \) 2>/dev/null
+  # chmod u-s /path/to/evil
+  WHY: master.passwd and spwd.db hold the hashes; readable means offline
+       cracking. pwd_mkdb rebuilds the db files after any hand edit (vipw does
+       it for you). Unexpected SUID binaries are instant root.
+  NOTE: Normal SUID set includes su, sudo, passwd, chpass, login, ping, and
+        mount-related helpers. Anything in /tmp, /home or /usr/local/bin that is
+        SUID: investigate.
+
+[I-06] File flags: the chattr of FreeBSD
+  AREA: Secure configuration (CIS Control 4)
+  # ls -lo /etc/master.passwd /etc/passwd /etc/group /etc/rc.conf /etc/ssh/sshd_config
+  # chflags noschg /etc/master.passwd
+  # chflags -R noschg /tmp/evil && rm -rf /tmp/evil
+  # sysctl kern.securelevel
+  WHY: schg (system immutable) makes pw, passwd and vi fail silently; sappnd
+       makes a log or rc file append-only. ls -lo shows the flags. If
+       kern.securelevel is 1 or higher the flags cannot be cleared until a
+       reboot in single-user mode.
+
+[I-07] Processes and connections: find the backdoor
+  AREA: Malware defenses (CIS Control 10)
+  # ps -ax -o pid,ppid,user,command | head -40
+  # ps -ax | grep -Ei 'nc |ncat|socat|sh -i|python.* -c|perl -e|xmrig|miner' | grep -v grep
+  # sockstat -46 -c
+  # procstat -b <pid>
+  # kill -9 <pid>
+  WHY: procstat -b prints the binary path behind a PID. Killing a process is
+       pointless unless you also remove what starts it (rc.conf, rc.d, cron,
+       shell files).
+
+[I-08] Hosts file and resolver
+  AREA: Secure configuration (CIS Control 4)
+  # cat /etc/hosts
+  # cat /etc/resolv.conf
+  WHY: Redirecting update.freebsd.org or pkg.freebsd.org to 127.0.0.1 breaks
+       updates silently.
+
+[I-09] Logging and the audit daemon
+  AREA: Audit logging (CIS Control 8)
+  # tail -40 /var/log/auth.log; tail /var/log/messages; tail /var/log/security
+  # last | head; lastlogin; w
+  # cat /etc/syslog.conf
+  # sysrc auditd_enable=YES; service auditd start
+  # vi /etc/security/audit_control
+      flags:lo,aa,ad,ex
+  # praudit /var/audit/current | tail -20
+  WHY: auth.log answers who logged in and who used su. OpenBSM auditd (built in)
+       records logins, authentication, administrative actions and, with ex,
+       every exec. praudit makes the trail readable.
+
+[I-10] Account hygiene: shells, classes, operator group, SSH keys
+  AREA: Account management (CIS Control 5)
+  # grep -vE 'nologin|/bin/false|/usr/sbin/nologin' /etc/passwd
+  # pw usermod www -s /usr/sbin/nologin
+  # pw usershow alice -P
+  # pw groupshow operator; pw groupshow wheel
+  # ls -l /root/.ssh/authorized_keys /home/*/.ssh/authorized_keys 2>/dev/null
+  WHY: A service account with a real shell is a login. operator can read raw
+       disk devices, which means the password hashes. The login class shown by
+       pw usershow -P decides which policy from login.conf applies.
+
+[I-11] pkg repository hygiene
+  AREA: Patching (CIS Control 7)
+  # cat /etc/pkg/FreeBSD.conf /usr/local/etc/pkg/repos/*.conf 2>/dev/null
+  # pkg -vv | grep -A6 Repositories
+  # pkg update -f
+  WHY: A planted repo under /usr/local/etc/pkg/repos overrides the official one,
+       so pkg upgrade installs the attacker's packages. Keep the official
+       pkg.FreeBSD.org repositories (on a pkgbase install that includes the
+       base-system repository) with signature_type fingerprints.
+
+[I-12] Harden required services instead of removing them
+  AREA: Secure configuration (CIS Control 4)
+      FTP (only if required): anonymous login off, local users chrooted, TLS where the server supports it; a packaged FTP server keeps its config under /usr/local/etc
+      apache24: /usr/local/etc/apache24/httpd.conf: ServerTokens Prod  ServerSignature Off  TraceEnable Off; Options -Indexes in the DocumentRoot block; apachectl configtest && service apache24 restart
+      samba: /usr/local/etc/smb4.conf [global]: map to guest = Never  restrict anonymous = 2; testparm && service samba_server restart
+      mysql: mysql_secure_installation; /usr/local/etc/mysql/my.cnf bind-address = 127.0.0.1; service mysql-server restart
+      sshd: see I-01
+  WHY: Keeping the service running and making it safe is the job. Third-party
+       configs live under /usr/local/etc, which is where checklists written for
+       Linux go wrong.
+
+------------------------------ HUNTER ------------------------------------------
+ Hunt and harden. sysctl and securelevel, pkg check and audit, rootkit hunting,
+ PAM internals, forensics with the BSD toolset, pf depth, the Linux-to-BSD
+ translation table, and version notes.
+--------------------------------------------------------------------------------
+[A-01] Kernel and network hardening with sysctl
+  AREA: Secure configuration (CIS Control 4)
+  # vi /etc/sysctl.conf
+      security.bsd.see_other_uids=0        security.bsd.see_other_gids=0
+      security.bsd.unprivileged_read_msgbuf=0   security.bsd.unprivileged_proc_debug=0
+      kern.randompid=1                     net.inet.ip.forwarding=0
+      net.inet.ip.redirect=0               net.inet.icmp.drop_redirect=1
+      net.inet.ip.sourceroute=0            net.inet.ip.accept_sourceroute=0
+      net.inet.icmp.bmcastecho=0           net.inet.tcp.blackhole=2   net.inet.udp.blackhole=1
+  # service sysctl restart
+  # sysctl net.inet.ip.forwarding security.bsd.see_other_uids
+  # sysrc kern_securelevel_enable=YES kern_securelevel=1   (optional, after all file-flag work is done)
+  WHY: see_other_uids stops users from watching each other's processes;
+       blackhole drops probes to closed ports without a reply; forwarding=0
+       removes a pivot; securelevel 1 locks file flags and kernel modules after
+       boot.
+  NOTE: Set securelevel last: once it is on you cannot clear schg flags until a
+        single-user reboot.
+
+[A-02] Package integrity, vulnerable packages, rootkits
+  AREA: Malware defenses (CIS Control 10)
+  # pkg check -s -a
+  # pkg audit -F
+  # pkg install -y rkhunter chkrootkit clamav
+  # rkhunter --propupd && rkhunter -c --sk
+  # chkrootkit
+  # freshclam && clamscan -r -i /home /tmp /var/tmp /usr/local/www
+  # which nc ncat socat; find / -xdev -type f \( -name nc -o -name ncat -o -name socat \) 2>/dev/null
+  WHY: pkg check -s verifies the checksum of every installed file against the
+       package database, so a replaced sshd or ls shows up. pkg audit names
+       packages with known CVEs. nc ships in base; a second copy somewhere odd
+       is the backdoor kit.
+
+[A-03] PAM deep dive
+  AREA: Access control (CIS Control 6)
+      Files: /etc/pam.d/system (shared), login, sshd, su, passwd, sudo (under /usr/local/etc/pam.d for ports)
+  # grep -nE 'pam_permit|nullok|pam_rootok' /etc/pam.d/* /usr/local/etc/pam.d/* 2>/dev/null
+  # grep -n pam_unix /etc/pam.d/passwd /etc/pam.d/system
+  # grep -n pam_group /etc/pam.d/su
+  WHY: auth sufficient pam_permit.so near the top of system or sshd means any
+       password works. pam_group in su is what restricts su to wheel; if that
+       line is gone, anyone can su.
+  NOTE: Control flags: required, requisite, sufficient, optional, same meaning
+        as on Linux.
+
+[A-04] Forensics with the BSD toolset
+  AREA: Investigation (forensics basics)
+  # find / -xdev -type f -newermt "2026-10-01" -not -path '/var/db/*' 2>/dev/null | head -60
+  # find / -xdev \( -nouser -o -nogroup \) 2>/dev/null
+  # find /home /root /tmp /var/tmp -name '.*' -type f 2>/dev/null
+  # stat <file>; file <file>; strings <file> | head; md5 <file>; sha256 <file>
+  # grep -E 'su:|sshd|login' /var/log/auth.log | tail -40
+  # lastlogin; last | head -30
+  WHY: The hash commands are md5 and sha256 here, not md5sum and sha256sum.
+       -newermt finds what changed most recently; auth.log holds su and ssh
+       history.
+
+[A-05] pf depth
+  AREA: Secure configuration (CIS Control 4)
+  # pfctl -vnf /etc/pf.conf
+  # pfctl -sr; pfctl -ss | head; pfctl -sa | head -40
+  # pfctl -a 'blocklistd/22' -t port22 -T show
+  # tcpdump -n -e -ttt -i pflog0
+  # grep -nE '^pass in' /etc/pf.conf
+  WHY: A planted pass in rule or anchor never shows in a casual look; pfctl -sr
+       prints every loaded rule. pflog0 shows what is being blocked live, which
+       also answers investigation questions about scanning.
+
+[A-06] Translation table: Linux habit to FreeBSD reality
+      sudo group -> wheel          /etc/shadow -> /etc/master.passwd (+ pwd_mkdb)
+      systemctl -> service + rc.conf (sysrc)     apt -> pkg (+ freebsd-update for base, unless the base is pkgbase)
+      ufw -> pf (or ipfw)          chattr/lsattr -> chflags / ls -lo
+      /etc/login.defs -> /etc/login.conf (+ cap_mkdb)    pam_faillock -> login-retries + blocklistd
+      ss -tulpn -> sockstat -46l   /etc/sudoers -> /usr/local/etc/sudoers    md5sum -> md5
+      journalctl -> /var/log/*     auditd (Linux) -> auditd (OpenBSM) + praudit
+      useradd/userdel -> pw useradd / pw userdel -r   nologin -> /usr/sbin/nologin
+  WHY: Most people meet FreeBSD after learning Linux. The concepts are
+       identical; the file paths and command names are not. This table is the
+       shortcut.
+
+[A-07] Verify loop, every thirty minutes
+  # sockstat -46l; pw groupshow wheel; awk -F: '$3==0' /etc/passwd
+  # pfctl -sr | head; service -e; sysctl kern.securelevel
+  # awk -F: '$2==""' /etc/master.passwd; ls -lo /etc/master.passwd /etc/rc.conf
+  WHY: Cron and periodic undo fixes. Re-checking catches the undo, and anything
+       you broke, before a user does.
+
+[A-08] Version notes: FreeBSD 15.1 and 14.x
+      This page targets FreeBSD 15.1; 14.x is still supported and differs as below.
+      blocklistd (15.0 and later) was blacklistd: blacklistd_enable, /etc/blacklistd.conf, blacklistctl, UseBlacklist, pf anchor "blacklistd/*". 15 still accepts the old names with a warning
+      ftpd left the base system in 15.0 (port ftp/freebsd-ftpd, /usr/local/libexec/ftpd); on 14.x it is /usr/libexec/ftpd. telnetd, rshd and rlogind are packages on both
+      pkgbase: a technology preview in 15.0 and the 15.1 installer default. The base system then updates with pkg upgrade from the FreeBSD-base repository, not freebsd-update; pkg which /bin/sh tells you which kind you have
+      Both: dma is the mail agent (sendmail_enable=NONE is the default) and OPIE is gone
+  WHY: Every other item on this page is written to hold on 14.x and 15.x; the
+       release differences live here, so a learner on either release knows which
+       name or tool to expect.
+
+------------------------------ FIX OR BREAK? (practice cards) ------------------
+  Brief: Authorized administrators: alice. Authorized users: bob, carol.
+  Action: Run pw groupmod wheel -d carol after seeing carol in wheel.
+  Call: FIX. Carol is a user, not an admin. Least privilege.
+
+  Brief: SSH must remain available for the admins.
+  Action: Load a pf.conf with block in all and no pass rule, then service pf
+          start.
+  Call: BREAKS IT. That drops SSH (and your own session). Add pass in proto tcp
+                   to port 22 before enabling pf.
+
+  Brief: Nothing in the brief mentions toor.
+  Action: Delete the toor account because it has UID 0.
+  Call: CHECK FIRST. toor is FreeBSD's default disabled alternate root while its
+                     hash is *. Check master.passwd first; act only if it has a
+                     real password.
+
+  Brief: Investigation 1: what is the SHA-256 of /home/bob/plans.txt?
+  Action: Delete bob's unauthorized files first, then answer the questions.
+  Call: CHECK FIRST. Hash it first with sha256, then clean up. Evidence before
+                     cleanup.
+
+  Brief: The base system must be fully patched.
+  Action: Run pkg upgrade -y and consider the system patched.
+  Call: CHECK FIRST. Check how the base system is managed first. On a classic
+                     install pkg only updates packages and freebsd-update fetch
+                     install patches the base system and kernel; only on a
+                     pkgbase install does pkg upgrade cover the base too.
+
+  Brief: The company runs its website on apache24 on this host.
+  Action: Run pkg delete -y apache24 to reduce attack surface.
+  Call: BREAKS IT. Required service. Harden httpd.conf (ServerTokens Prod, no
+                   indexes) and keep it running.
+
+  Brief: Nothing is said about the console.
+  Action: Set the console to insecure in /etc/ttys so single-user mode asks for
+          the root password.
+  Call: FIX. Standard hardening with no downside on a server.
+
+  Brief: Your chflags noschg keeps failing on /etc/master.passwd.
+  Action: Reboot into single-user mode immediately to clear the flag.
+  Call: CHECK FIRST. Check sysctl kern.securelevel first. If it is -1 or 0 the
+                     flag clears from a normal shell; a reboot wastes time and
+                     drops every session for nothing.
+
+  Brief: Only alice and bob may use su to become root.
+  Action: Remove the pam_group line from /etc/pam.d/su to simplify the config.
+  Call: BREAKS IT. pam_group is what restricts su to wheel. Removing it lets
+                   everyone su. Keep it and fix wheel membership instead.
+
+  Brief: Nothing in the brief mentions securelevel.
+  Action: Set kern_securelevel=1 as the very first step of the job.
+  Call: CHECK FIRST. Once securelevel is on you cannot clear file flags until a
+                     single-user reboot. Do all chflags work first, then raise
+                     it as a last step if at all.
+
+------------------------------ SPOT THE FINDING (output snippets) --------------
+  Lines from /etc/master.passwd. Tap the finding.
+     root:$6$...:0:0::0:0:Charlie &:/root:/bin/sh
+  >> toor:$6$Qx9...:0:0::0:0:Bourne-again Superuser:/root:/bin/sh
+     daemon:*:1:1::0:0:Owner of many system processes:/root:/usr/sbin/nologin
+     alice:$6$...:1001:1001::0:0:Alice:/home/alice:/bin/sh
+  WHY: toor is normal only while its hash is *. A real hash means a second root
+       with a password someone set. Lock it or clear the hash with vipw.
+
+  Output of pw groupshow wheel. Brief: alice is the only admin. Tap the finding.
+  >> wheel:*:0:root,alice,mallory
+     operator:*:5:root
+     staff:*:20:
+     alice:*:1001:
+  WHY: mallory in wheel can su to root. pw groupmod wheel -d mallory.
+
+  Lines from /etc/inetd.conf; rc.conf has inetd_enable=YES. Tap the finding.
+     #ftp    stream  tcp  nowait  root  /usr/local/libexec/ftpd     ftpd -l
+  >> telnet  stream  tcp  nowait  root  /usr/local/libexec/telnetd  telnetd
+     #shell  stream  tcp  nowait  root  /usr/local/sbin/rshd        rshd
+     #login  stream  tcp  nowait  root  /usr/local/sbin/rlogind     rlogind
+  WHY: telnetd is live: cleartext logins. Comment it out, sysrc inetd_enable=NO
+       if nothing else is needed, and remove the package that installed telnetd.
+
+  Lines from /etc/ssh/sshd_config. Tap the finding.
+     Port 22
+  >> PermitRootLogin yes
+     PasswordAuthentication yes
+     UseBlocklist yes
+  WHY: PermitRootLogin yes lets attackers brute-force root directly. Set it to
+       no, sshd -t, service sshd restart.
+
+  Output of ls -lo. Tap the finding.
+  >> -rw-------  1 root  wheel  schg  /etc/master.passwd
+     -rw-r--r--  1 root  wheel  -     /etc/passwd
+     -rw-r--r--  1 root  wheel  -     /etc/rc.conf
+     -rw-r--r--  1 root  wheel  -     /etc/group
+  WHY: schg on master.passwd makes every password and user change fail silently.
+       chflags noschg /etc/master.passwd (check kern.securelevel first).
+
+  Output of sockstat -46l. Brief: no Telnet on this machine. Tap the finding.
+     root  sshd   655  4  tcp46  *:22   *:*
+  >> root  inetd  812  5  tcp4   *:23   *:*
+     root  syslogd 401 7  udp4   *:514  *:*
+     root  sendmail 700 4 tcp4   127.0.0.1:25  *:*
+  WHY: inetd is listening on 23, the telnet port. Find the live telnet line in
+       inetd.conf and comment it out; if inetd serves nothing else, sysrc
+       inetd_enable=NO; service inetd stop. (syslogd on *:514 is the next
+       finding: syslogd_flags=-ss.)
+
+  Lines from /etc/sysctl.conf. Tap the finding.
+     security.bsd.see_other_uids=0
+  >> net.inet.ip.forwarding=1
+     net.inet.tcp.blackhole=2
+     kern.randompid=1
+  WHY: forwarding=1 turns the host into a router and a pivot. Set it to 0 and
+       service sysctl restart.
+
+  Lines from /etc/pam.d/system. Tap the finding.
+     #auth  sufficient  pam_krb5.so  no_warn try_first_pass
+  >> auth  sufficient  pam_permit.so
+     auth  required    pam_unix.so  no_warn try_first_pass nullok
+     account  required  pam_login_access.so
+  WHY: pam_permit as sufficient means any password is accepted for everyone.
+       Remove the line (and the nullok on pam_unix while you are there).
+
+------------------------------ OFFICIAL SOURCES --------------------------------
+  FreeBSD Handbook: Security
+    https://docs.freebsd.org/en/books/handbook/security/
+  FreeBSD Handbook: Firewalls (pf, blocklistd)
+    https://docs.freebsd.org/en/books/handbook/firewalls/
+  FreeBSD 15.0 release notes
+    https://www.freebsd.org/releases/15.0R/relnotes/
+  FreeBSD Handbook: Updating and upgrading (pkgbase)
+    https://docs.freebsd.org/en/books/handbook/cutting-edge/
+  pw(8) manual
+    https://man.freebsd.org/cgi/man.cgi?query=pw&sektion=8
+  login.conf(5) manual
+    https://man.freebsd.org/cgi/man.cgi?query=login.conf&sektion=5
+  CIS Critical Security Controls v8
+    https://www.cisecurity.org/controls/v8
+  CIS Benchmarks
+    https://www.cisecurity.org/cis-benchmarks
+
+================================================================================

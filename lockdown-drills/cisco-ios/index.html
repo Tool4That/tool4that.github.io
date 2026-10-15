@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- tool4that:head -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-mq377PSw65V8T1vqJAddcxllyhg9LHqyFt1/5yq/VOE='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="Cisco IOS baseline hardening in three levels: beginner, intermediate, and advanced. Comes with a command reference that explains why each step matters.">
+<link rel="canonical" href="https://freeapp4that.store/lockdown-drills/cisco-ios/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%94%92%3C%2Ftext%3E%3C%2Fsvg%3E">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tool4That">
+<meta property="og:title" content="Cisco IOS Lockdown">
+<meta property="og:description" content="Cisco IOS baseline hardening in three levels: beginner, intermediate, and advanced. Comes with a command reference that explains why each step matters.">
+<meta property="og:url" content="https://freeapp4that.store/lockdown-drills/cisco-ios/">
+<meta property="og:image" content="https://freeapp4that.store/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<!-- /tool4that:head -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lockdown Drills: Cisco IOS</title>
+<style>
+:root{
+  --bg:#EDF0F4; --panel:#FFFFFF; --ink:#16212D; --muted:#5F6E7E; --line:#CFD7E0; --soft:#F4F6F9;
+  --term:#0E1A2B; --termink:#D9E4F1; --prompt:#7FA6D6; --accent:#B8690E; --accent-ink:#FFFFFF;
+  --ok:#1C8A57; --okbg:#E3F5EB; --bad:#C03A3A; --badbg:#FBE7E7; --warn:#A8690F; --warnbg:#FBF0DA; --focus:#FFB300;
+  --sans:"Segoe UI Variable Text","Segoe UI","Avenir Next",Avenir,Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono","Fira Code","SF Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){ --bg:#111922; --panel:#182330; --ink:#E7EEF6; --muted:#9DACBC; --line:#2B3A4B; --soft:#1F2B3A; --term:#0A121D; --termink:#D6E2F0; --okbg:#143524; --badbg:#3A1B1B; --warnbg:#3A2C12; } }
+:root[data-theme="dark"]{ --bg:#111922; --panel:#182330; --ink:#E7EEF6; --muted:#9DACBC; --line:#2B3A4B; --soft:#1F2B3A; --term:#0A121D; --termink:#D6E2F0; --okbg:#143524; --badbg:#3A1B1B; --warnbg:#3A2C12; }
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--sans)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+a{color:var(--accent)}
+code,.mono{font-family:var(--mono)}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panel);border-bottom:1px solid var(--line);padding:env(safe-area-inset-top,0px) 16px 0}
+.bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 0}
+.brand{font-weight:800;letter-spacing:-.01em;font-size:1.15rem;line-height:1.1}
+.brand span{display:block;font-weight:500;color:var(--muted);font-size:.85rem;letter-spacing:0}
+.levels{display:flex;border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px;margin-left:auto}
+.levels button{border:0;background:transparent;border-radius:999px;padding:6px 12px;font-weight:600;color:var(--muted);display:flex;gap:6px;align-items:center}
+.levels button.on{background:var(--accent);color:var(--accent-ink)}
+.levels button .b{font-size:1rem}
+.score{font-family:var(--mono);font-size:.95rem;white-space:nowrap}
+.score b{font-size:1.2rem}
+.theme{border:1px solid var(--line);background:transparent;border-radius:8px;padding:5px 10px;font-size:.85rem}
+.modes{display:flex;gap:2px;overflow-x:auto}
+.modes button{border:0;background:transparent;padding:8px 12px 10px;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap}
+.modes button.on{color:var(--ink);border-bottom-color:var(--accent)}
+.series{display:flex;flex-wrap:wrap;gap:4px 14px;padding:6px 0 8px;font-size:.82rem;color:var(--muted)}
+.series a{color:var(--muted);text-decoration:none}.series a:hover{text-decoration:underline}.series b{color:var(--ink)}
+.wrap{display:grid;grid-template-columns:minmax(0,1fr) 320px;min-height:calc(100vh - 110px)}
+main{padding:18px 16px 40px;min-width:0}
+aside.report{border-left:1px solid var(--line);background:var(--panel);padding:16px}
+footer{padding:14px 16px 30px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line);background:var(--panel)}
+footer button{border:1px solid var(--line);background:transparent;border-radius:8px;padding:4px 10px;font-size:.85rem;margin-left:8px}
+h1{font-size:1.5rem;margin:0 0 4px;letter-spacing:-.01em}
+h2{font-size:1.3rem;margin:0 0 6px;letter-spacing:-.01em}
+h3{font-size:1.05rem;margin:18px 0 6px}
+p{margin:0 0 10px;max-width:68ch}
+.lead{color:var(--muted);max-width:70ch;margin-bottom:16px}
+/* learn */
+.learn{display:grid;grid-template-columns:270px minmax(0,1fr);gap:22px}
+.list{display:flex;flex-direction:column;gap:2px}
+.list button{display:grid;grid-template-columns:18px 54px 1fr;gap:8px;align-items:center;text-align:left;border:0;background:transparent;padding:7px 8px;border-radius:8px;line-height:1.25}
+.list button.on{background:var(--soft)}
+.list button .id{font-family:var(--mono);font-size:.8rem;color:var(--muted)}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--line);display:inline-block}
+.dot.learned{background:var(--accent)}.dot.drilled{background:var(--warn)}.dot.mastered{background:var(--ok)}
+.item .meta{font-family:var(--mono);color:var(--muted);font-size:.85rem;margin-bottom:2px}
+.term{background:var(--term);color:var(--termink);font-family:var(--mono);font-size:.86rem;line-height:1.5;border-radius:10px;padding:8px 14px 12px;margin:12px 0;overflow-x:auto}
+.term .tb{display:flex;justify-content:flex-end;min-height:22px;margin-bottom:4px}
+.term .ln{white-space:pre-wrap;word-break:break-word;padding-left:1.4em;text-indent:-1.4em;margin:2px 0}
+.term .p{color:var(--prompt)}
+.term .ln.c{color:#9DB0C6;font-style:italic}
+.term .copy{border:1px solid #2E4158;background:#17283D;color:var(--termink);border-radius:6px;padding:2px 9px;font:600 .75rem var(--sans)}
+.term .copy.done{border-color:var(--ok);color:#8BE0B4}
+.run-in b{font-weight:700}
+.explain{margin-top:18px;padding:14px;border:1px dashed var(--line);border-radius:10px;background:var(--soft)}
+.explain textarea{width:100%;min-height:64px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--panel);resize:vertical}
+.explain label{display:flex;gap:10px;align-items:center;margin-top:8px;font-weight:600}
+.explain input{width:20px;height:20px;accent-color:var(--ok)}
+.nav{display:flex;gap:8px;margin-top:16px}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:9px 14px;font-weight:600}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.small{padding:5px 10px;font-size:.85rem}
+.btn:disabled{opacity:.5;cursor:default}
+/* drill */
+.q{max-width:720px}
+.q .count{font-family:var(--mono);color:var(--muted);font-size:.85rem}
+.opts{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.opts button{text-align:left;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:11px 14px;line-height:1.35}
+.opts button.cmd{font-family:var(--mono);font-size:.88rem;white-space:pre-wrap;word-break:break-word}
+.opts button.ok{border-color:var(--ok);background:var(--okbg)}
+.opts button.bad{border-color:var(--bad);background:var(--badbg)}
+.opts button:disabled{cursor:default}
+.fb{border-radius:10px;padding:12px 14px;margin:12px 0}
+.fb.ok{background:var(--okbg)}.fb.bad{background:var(--badbg)}
+.typein{width:100%;max-width:560px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:var(--mono);background:var(--panel)}
+.result{padding:18px;border:1px solid var(--line);border-radius:12px;background:var(--panel);max-width:560px}
+.result .big{font-size:2.4rem;font-weight:800;font-family:var(--mono)}
+/* run */
+.timer{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:8px 0 14px}
+.timer .clock{font-family:var(--mono);font-size:2rem;font-weight:700;min-width:120px}
+.timer select{border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--panel)}
+.chk{display:grid;grid-template-columns:26px 1fr;gap:10px;padding:10px 0;border-top:1px solid var(--line);align-items:start}
+.chk input[type=checkbox]{width:20px;height:20px;margin-top:4px;accent-color:var(--ok)}
+.chk .t{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.chk .t .id{font-family:var(--mono);color:var(--muted);font-size:.8rem}
+.chk .note{width:100%;border:1px solid var(--line);border-radius:8px;padding:6px 8px;margin-top:6px;background:var(--panel);font-size:.9rem}
+.chk.done .t{color:var(--muted);text-decoration:line-through}
+.chk .stamp{font-family:var(--mono);font-size:.8rem;color:var(--ok)}
+.toggle{display:inline-flex;gap:8px;align-items:center;font-size:.9rem;color:var(--muted)}
+/* games */
+.tabs{display:flex;gap:8px;margin-bottom:14px}
+.brief{border-left:4px solid var(--accent);background:var(--soft);padding:10px 14px;border-radius:0 10px 10px 0;margin:10px 0 14px;max-width:720px}
+.brief ul{margin:4px 0 0 18px;padding:0}
+.acct{display:grid;grid-template-columns:minmax(120px,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line);max-width:720px}
+.acct .n{font-family:var(--mono)}
+.acct .n small{color:var(--muted);font-family:var(--sans);display:block}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:transparent;padding:6px 10px;font-size:.85rem;font-weight:600;color:var(--muted)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{background:var(--accent);color:var(--accent-ink)}
+.acct.ok .n{color:var(--ok)}.acct.bad .n{color:var(--bad)}
+.streak{font-family:var(--mono);color:var(--muted);font-size:.9rem}
+/* report */
+.report h2{font-size:1.05rem;margin-bottom:10px}
+.lv{margin:10px 0 14px}
+.lv .row{display:flex;justify-content:space-between;font-size:.9rem}
+.lv .bar2{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:4px}
+.lv .bar2 i{display:block;height:100%;background:var(--accent)}
+.lv .bar2.earned i{background:var(--ok)}
+.rr{display:grid;grid-template-columns:18px 52px 1fr 26px;gap:6px;align-items:center;font-size:.85rem;padding:3px 0;border-top:1px solid var(--line)}
+.rr .id{font-family:var(--mono);color:var(--muted);font-size:.78rem}
+.rr .pt{font-family:var(--mono);text-align:right;color:var(--muted)}
+.rr.mastered .g{color:var(--ok);font-weight:800}.rr.mastered .pt{color:var(--ok)}
+.rr.learned .g{color:var(--accent);font-weight:800}
+.rr.drilled .g{color:var(--warn);font-weight:800}
+.rr .g{text-align:center}
+.rr.flip{animation:flip .35s ease-out}
+@keyframes flip{0%{background:var(--okbg)}100%{background:transparent}}
+.total{display:flex;justify-content:space-between;font-family:var(--mono);margin-top:10px;padding-top:8px;border-top:2px solid var(--ink)}
+.chip{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:.8rem;color:var(--muted);margin-left:6px}
+.empty{color:var(--muted);padding:20px 0}
+@media (prefers-reduced-motion:reduce){ .rr.flip{animation:none} }
+@media (max-width:1100px){ .wrap{grid-template-columns:1fr} aside.report{display:none;border-left:0;border-top:1px solid var(--line)} body[data-mode="report"] aside.report{display:block} body[data-mode="report"] main{display:none} .modes .rep{display:inline-block} }
+@media (min-width:1101px){ .modes .rep{display:none} }
+@media (max-width:760px){ header.top{position:static} .learn{grid-template-columns:1fr} .list{flex-direction:row;overflow-x:auto;padding-bottom:6px;gap:6px} .list button{grid-template-columns:auto auto;white-space:nowrap;border:1px solid var(--line)} .list button.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)} .list button .ttl{display:none} .levels{margin-left:0} .score{margin-left:auto} }
+</style>
+</head>
+<body data-mode="learn">
+<header class="top">
+  <div class="bar">
+    <div class="brand" id="brand"></div>
+    <div class="levels" id="levels" role="tablist" aria-label="Level"></div>
+    <div class="score" id="score"></div>
+    <button class="theme" id="theme" aria-label="Switch color theme">Theme</button>
+  </div>
+  <nav class="modes" id="modes" aria-label="Mode"></nav>
+  <nav class="series" id="series" aria-label="Lockdown Drills series" hidden></nav>
+</header>
+<div class="wrap">
+  <main id="view"></main>
+  <aside class="report" id="report" aria-label="Progress report"></aside>
+</div>
+<footer id="foot"></footer>
+<script>
+const APP = {"key": "cisco", "os": "Cisco IOS / Packet Tracer", "accent": "#B8690E", "footer": "Training tool for Packet Tracer and lab gear you own or are authorized to change. No scripts here on purpose: type it, read it, explain it, and write your own checklist. Unofficial practice; not affiliated with or endorsed by Cisco.", "levels": [{"name": "Doorman", "badge": "🚪", "blurb": "Lock the doors. Hostname, enable secret, console and VTY logins, idle timeouts, password encryption, a legal banner, and save. The basics every device needs.", "items": [{"id": "B-01", "title": "Name the device and lock privileged mode", "cmds": ["Router> enable", "Router# configure terminal", "Router(config)# hostname R1", "R1(config)# enable secret Str0ng-Enable-2026!"], "why": "enable secret stores a hash. enable password stores plaintext or Type 7, which reverses in seconds. Never use enable password.", "task": "set the privileged-mode password (hashed) to Str0ng-Enable-2026!", "t": "enable secret Str0ng-Enable-2026!", "note": "On older IOS releases enable secret stores an MD5 (Type 5) hash. Where the release supports it, enable algorithm-type scrypt secret stores a Type 9 hash, which the Cisco hardening guide recommends.", "area": "access"}, {"id": "B-02", "title": "Console and VTY lines: require login, time out idle sessions", "cmds": ["R1(config)# line console 0", "R1(config-line)# password C0nsole-2026!", "R1(config-line)# login", "R1(config-line)# exec-timeout 5 0", "R1(config-line)# logging synchronous", "R1(config-line)# exit", "R1(config)# line vty 0 4", "R1(config-line)# password Vty-2026!", "R1(config-line)# login", "R1(config-line)# exec-timeout 5 0", "R1(config-line)# exit"], "why": "Without login, a line password is not even checked. exec-timeout 5 0 logs out an unattended console after five idle minutes. logging synchronous keeps log lines from mangling what you type.", "note": "Watchman replaces line passwords with local usernames and SSH. Switches with 16 VTY lines use line vty 0 15.", "task": "log out idle sessions after 5 minutes (line command)", "t": "exec-timeout 5 0", "area": "access"}, {"id": "B-03", "title": "Hide passwords in the config", "cmds": ["R1(config)# service password-encryption"], "why": "Encodes line and username passwords (Type 7). Weak, but it beats plaintext in show run over someone's shoulder. Use secret wherever a command offers it.", "task": "obscure the plaintext passwords in the running config", "t": "service password-encryption", "area": "config"}, {"id": "B-04", "title": "Legal banner", "cmds": ["R1(config)# banner motd #Unauthorized access is prohibited and monitored.#"], "why": "A legal notice that access is restricted and monitored. Have the wording reviewed by legal counsel, and leave out the device name, model, software and owner. Never write Welcome.", "note": "The delimiter character cannot appear inside the text.", "task": "set a message-of-the-day banner with # as the delimiter", "t": "banner motd #Unauthorized access is prohibited and monitored.#", "ta": ["banner motd #unauthorized access is prohibited#", "banner motd #unauthorized access prohibited#"], "area": "config"}, {"id": "B-05", "title": "Save the config", "cmds": ["R1# copy running-config startup-config", "R1# write memory", "R1# show running-config | include enable|password|hostname|banner|exec-timeout"], "why": "Unsaved config means every fix is gone on reload. Save after every block.", "task": "save the running config so it survives a reload", "t": "copy running-config startup-config", "ta": ["write memory", "wr", "copy run start", "write"], "area": "config"}]}, {"name": "Watchman", "badge": "🔦", "blurb": "Check the windows. Local user accounts, SSH version 2 only, unneeded services off, port security, VLAN hygiene, login attack protection, logging and time.", "items": [{"id": "I-01", "title": "Local user accounts and login local", "cmds": ["R1(config)# username admin privilege 15 secret Adm1n-Secret-2026!", "R1(config)# line console 0", "R1(config-line)# login local", "R1(config-line)# exit", "R1(config)# line vty 0 4", "R1(config-line)# login local", "R1(config-line)# exit", "R1(config)# no username bob"], "why": "Named accounts give accountability and per-user removal; secret hashes the password. Remove usernames the brief does not list.", "task": "make the VTY lines authenticate against the local user database (line command)", "t": "login local", "note": "Where supported, username admin privilege 15 algorithm-type scrypt secret <password> stores a Type 9 hash instead of Type 5.", "area": "acct"}, {"id": "I-02", "title": "SSH version 2 only, Telnet gone", "cmds": ["R1(config)# ip domain-name corp.local", "R1(config)# crypto key generate rsa general-keys modulus 2048", "R1(config)# ip ssh version 2", "R1(config)# ip ssh time-out 60", "R1(config)# ip ssh authentication-retries 3", "R1(config)# line vty 0 4", "R1(config-line)# transport input ssh", "R1(config-line)# exit", "R1# show ip ssh", "R1# show crypto key mypubkey rsa"], "why": "Telnet sends passwords in cleartext and SSHv1 is broken. Key generation requires a hostname and domain name first, the classic lab trap.", "task": "allow only SSH on the VTY lines (line command)", "t": "transport input ssh", "area": "access"}, {"id": "I-03", "title": "Disable unneeded services", "cmds": ["R1(config)# no ip http server", "R1(config)# no ip http secure-server", "R1(config)# no cdp run", "R1(config)# no lldp run", "R1(config)# no service tcp-small-servers", "R1(config)# no service udp-small-servers", "R1(config)# no ip source-route", "R1(config)# no ip finger", "R1(config)# no ip bootp server"], "why": "Each one is a listening service or an information leak. CDP tells an attacker the IOS version and IP of every neighbor.", "note": "Packet Tracer may not accept every one of these; real IOS does, so know them anyway. Keep ip http secure-server only if the brief needs web management.", "task": "turn off the HTTP management server", "t": "no ip http server", "area": "config"}, {"id": "I-04", "title": "Switch port security and shut unused ports", "cmds": ["S1(config)# interface range fastEthernet 0/5 - 24", "S1(config-if-range)# shutdown", "S1(config-if-range)# switchport mode access", "S1(config-if-range)# switchport access vlan 999", "S1(config-if-range)# exit", "S1(config)# interface fastEthernet 0/1", "S1(config-if)# switchport mode access", "S1(config-if)# switchport port-security", "S1(config-if)# switchport port-security maximum 2", "S1(config-if)# switchport port-security mac-address sticky", "S1(config-if)# switchport port-security violation shutdown", "S1(config-if)# exit", "S1# show port-security interface fastEthernet 0/1"], "why": "An open port means plug in and you are on the LAN. Port security pins MAC addresses; shutting unused ports is the cheapest control there is.", "task": "turn on port security on the current interface", "t": "switchport port-security", "area": "config"}, {"id": "I-05", "title": "VLAN hygiene: never VLAN 1, change the native VLAN", "cmds": ["S1(config)# vlan 10", "S1(config-vlan)# name USERS", "S1(config-vlan)# vlan 99", "S1(config-vlan)# name MGMT", "S1(config-vlan)# vlan 999", "S1(config-vlan)# name BLACKHOLE", "S1(config-vlan)# exit", "S1(config)# interface gigabitEthernet 0/1", "S1(config-if)# switchport mode trunk", "S1(config-if)# switchport trunk native vlan 99", "S1(config-if)# switchport trunk allowed vlan 10,20,99", "S1(config-if)# switchport nonegotiate"], "why": "VLAN hopping by double tagging relies on native VLAN 1. DTP negotiation lets an attacker form a trunk; nonegotiate stops it.", "task": "set the trunk's native VLAN to 99 (interface command)", "t": "switchport trunk native vlan 99", "area": "config"}, {"id": "I-06", "title": "Login attack protection and minimum password length", "cmds": ["R1(config)# security passwords min-length 10", "R1(config)# login block-for 120 attempts 3 within 60", "R1(config)# login on-failure log"], "why": "Lockout for brute force; min-length enforces the password policy at the moment a password is set.", "task": "block logins for 120 seconds after 3 failures within 60 seconds", "t": "login block-for 120 attempts 3 within 60", "area": "acct"}, {"id": "I-07", "title": "Logging and time", "cmds": ["R1(config)# service timestamps log datetime msec", "R1(config)# logging buffered 16384", "R1(config)# logging host 10.0.0.50", "R1(config)# ntp server 10.0.0.1", "R1(config)# clock timezone HST -10", "R1# show logging"], "why": "Logs without correct time are useless in an investigation.", "task": "send log messages to the syslog server 10.0.0.50", "t": "logging host 10.0.0.50", "ta": ["logging 10.0.0.50"], "area": "audit"}]}, {"name": "Hunter", "badge": "🎯", "blurb": "Hunt and harden. Management ACLs, edge ACLs, interface hardening, layer-2 attack defenses, SNMP and AAA, protecting the config itself, and auditing a config fast.", "items": [{"id": "A-01", "title": "Restrict management access with an ACL on the VTY lines", "cmds": ["R1(config)# access-list 10 remark MGMT-ONLY", "R1(config)# access-list 10 permit 192.168.99.0 0.0.0.255", "R1(config)# access-list 10 deny any log", "R1(config)# line vty 0 4", "R1(config-line)# access-class 10 in", "R1(config-line)# exit"], "why": "Even with SSH, anyone on any subnet could try to log in. access-class limits who can even reach the prompt. The wildcard mask is the inverse of the subnet mask.", "task": "apply standard ACL 10 to inbound VTY connections (line command)", "t": "access-class 10 in", "area": "access"}, {"id": "A-02", "title": "Extended ACL on an interface: allow only what the scenario needs", "cmds": ["R1(config)# ip access-list extended OUTSIDE-IN", "R1(config-ext-nacl)# permit tcp any host 10.0.0.80 eq 443", "R1(config-ext-nacl)# permit tcp any host 10.0.0.80 eq 80", "R1(config-ext-nacl)# permit icmp any any echo-reply", "R1(config-ext-nacl)# deny ip any any log", "R1(config-ext-nacl)# exit", "R1(config)# interface gigabitEthernet 0/0", "R1(config-if)# ip access-group OUTSIDE-IN in", "R1(config-if)# exit", "R1# show access-lists"], "why": "Default deny at the edge. The implicit deny exists anyway, but an explicit deny with log gives visibility. Direction is relative to the router.", "task": "apply the OUTSIDE-IN ACL to inbound traffic on the current interface", "t": "ip access-group OUTSIDE-IN in", "area": "config"}, {"id": "A-03", "title": "Interface-level hardening", "cmds": ["R1(config)# interface gigabitEthernet 0/0", "R1(config-if)# no ip redirects", "R1(config-if)# no ip proxy-arp", "R1(config-if)# no ip directed-broadcast", "R1(config-if)# no ip unreachables", "R1(config-if)# no ip mask-reply", "R1(config-if)# exit", "R1(config)# interface range gigabitEthernet 0/2 - 3", "R1(config-if-range)# shutdown"], "why": "Proxy ARP and directed broadcasts enable spoofing and amplification (Smurf). Redirects and unreachables leak topology. Unused router ports get shut.", "note": "no ip unreachables is optional; it can interfere with path MTU discovery.", "task": "stop the interface from answering ARP on behalf of other hosts", "t": "no ip proxy-arp", "area": "config"}, {"id": "A-04", "title": "Layer-2 attack defenses", "cmds": ["S1(config)# ip dhcp snooping", "S1(config)# ip dhcp snooping vlan 10", "S1(config)# interface gigabitEthernet 0/1", "S1(config-if)# ip dhcp snooping trust", "S1(config-if)# exit", "S1(config)# ip arp inspection vlan 10", "S1(config)# interface range fastEthernet 0/1 - 4", "S1(config-if-range)# spanning-tree portfast", "S1(config-if-range)# spanning-tree bpduguard enable", "S1(config-if-range)# storm-control broadcast level 20", "S1(config-if-range)# exit", "S1(config)# spanning-tree portfast bpduguard default"], "why": "Rogue DHCP servers (snooping), ARP poisoning (dynamic ARP inspection builds on the snooping table), rogue switches taking over STP root (BPDU guard), broadcast storms.", "note": "Packet Tracer support for DAI and storm control varies by version.", "task": "trust DHCP replies on the current uplink interface", "t": "ip dhcp snooping trust", "area": "config"}, {"id": "A-05", "title": "SNMP and AAA", "cmds": ["R1(config)# no snmp-server community public", "R1(config)# no snmp-server community private", "R1(config)# no snmp-server", "R1(config)# snmp-server group ADMINS v3 priv", "R1(config)# snmp-server user noc ADMINS v3 auth sha AuthPass-2026 priv aes 128 PrivPass-2026", "R1(config)# aaa new-model", "R1(config)# aaa authentication login default local"], "why": "SNMP v1 and v2c with public or private community strings let anyone read, or write, the whole config. v3 adds authentication and encryption. AAA centralizes accounts.", "note": "After aaa new-model, lines use the default method list. Create a local user before enabling it or you lock yourself out.", "task": "remove the public SNMP community string", "t": "no snmp-server community public", "area": "access"}, {"id": "A-06", "title": "Protect the config itself", "cmds": ["R1(config)# service tcp-keepalives-in", "R1(config)# service tcp-keepalives-out", "R1(config)# no boot network", "R1(config)# no service config", "R1(config)# secure boot-image", "R1(config)# secure boot-config", "R1(config)# archive", "R1(config-archive)# log config", "R1(config-archive-log-cfg)# logging enable", "R1(config-archive-log-cfg)# hidekeys"], "why": "Keepalives drop dead sessions and free VTY lines. Resilient configuration stops an attacker from erasing the IOS image or startup config. The archive log records who changed what.", "note": "Several of these are not in Packet Tracer; know them for real devices.", "area": "config"}, {"id": "A-07", "title": "Audit a given config fast", "cmds": ["R1# show running-config | include password|secret", "R1# show running-config | section line vty", "R1# show running-config | include http|cdp|snmp|small", "R1# show ip interface brief", "S1# show port-security", "S1# show vlan brief", "R1# show access-lists", "R1# show ip ssh", "R1# show users"], "why": "The common config faults are nearly always visible in these outputs: plaintext passwords, VTY lines without login local or SSH, services still on, unused ports up, VLAN 1 in use.", "task": "show only the VTY line section of the running config", "t": "show running-config | section line vty", "ta": ["show run | section line vty", "show run | section vty", "show running-config | section vty"]}]}], "spot": [{"lvl": 0, "ask": "Lines from show running-config. Tap the finding.", "lines": ["hostname R1", "enable password cisco123", "service password-encryption", "banner motd ^CUnauthorized access prohibited^C"], "finding": 1, "why": "enable password is reversible Type 7 at best. Replace it with enable secret."}, {"lvl": 0, "ask": "The vty section of show running-config. Tap the finding.", "lines": ["line vty 0 4", " password Vty-2026!", " no login", " exec-timeout 5 0"], "finding": 2, "why": "no login means the password is never asked for. Set login (or login local)."}, {"lvl": 1, "ask": "The vty section of show running-config. Tap the finding.", "lines": ["line vty 0 4", " login local", " transport input telnet ssh", " exec-timeout 5 0"], "finding": 2, "why": "Telnet is still allowed. transport input ssh removes the cleartext path."}, {"lvl": 1, "ask": "Global config lines. Tap the finding.", "lines": ["ip ssh version 2", "ip http server", "no cdp run", "login block-for 120 attempts 3 within 60"], "finding": 1, "why": "The HTTP management server is on. no ip http server (and no ip http secure-server unless required)."}, {"lvl": 1, "ask": "Output of show ip interface brief on a switch where only Fa0/1 to Fa0/4 are in use. Tap the finding.", "lines": ["FastEthernet0/1   up    up", "FastEthernet0/4   up    up", "FastEthernet0/12  up    up", "FastEthernet0/24  administratively down  down"], "finding": 2, "why": "An unused port that is up is an open door. Shut it and put it in the black-hole VLAN."}, {"lvl": 2, "ask": "Global config lines. Tap the finding.", "lines": ["snmp-server community public RW", "service tcp-keepalives-in", "no ip source-route", "ntp server 10.0.0.1"], "finding": 0, "why": "A public read-write community string lets anyone rewrite the config. Remove it; use SNMPv3 if monitoring is required."}, {"lvl": 2, "ask": "Trunk interface config. Tap the finding.", "lines": ["interface GigabitEthernet0/1", " switchport mode trunk", " switchport trunk native vlan 1", " switchport nonegotiate"], "finding": 2, "why": "Native VLAN 1 enables double-tagging VLAN hopping. Move it to an unused VLAN such as 99."}], "judge": [{"lvl": 0, "brief": "Authorized network admin accounts: admin, jlee. Management over SSH only.", "action": "Run no username guest after seeing username guest privilege 15 in the config.", "answer": "fix", "why": "An unlisted privilege-15 account is an admin backdoor. Remove it."}, {"lvl": 0, "brief": "The web server on 10.0.0.80 must stay reachable from the internet on ports 80 and 443.", "action": "Apply an inbound ACL on the outside interface with only deny ip any any.", "answer": "breaks", "why": "That breaks the required service. Permit 80 and 443 to the host, then deny everything else."}, {"lvl": 0, "brief": "Management over SSH only.", "action": "Configure transport input telnet ssh on the vty lines so the helpdesk's old client still works.", "answer": "breaks", "why": "The brief says SSH only. transport input ssh."}, {"lvl": 1, "brief": "The company uses CDP for its IP phones on the access switch.", "action": "Run no cdp run on the access switch.", "answer": "breaks", "why": "CDP is required there. Disable it per port on non-phone edge ports (no cdp enable) or on the router instead."}, {"lvl": 1, "brief": "Ports Fa0/1 to Fa0/4 are in use; the rest are spare.", "action": "interface range Fa0/5 - 24, shutdown, switchport access vlan 999.", "answer": "fix", "why": "Unused ports shut and parked in a black-hole VLAN. Cheapest control on the switch."}, {"lvl": 1, "brief": "An investigation question asks which VLAN was the native VLAN on the trunk before any changes were made.", "action": "Change the native VLAN to 99 first, then answer the question from the new config.", "answer": "check", "why": "Answer from the original config first. Evidence before changes."}, {"lvl": 2, "brief": "The monitoring server at 10.0.0.60 polls the router with SNMP.", "action": "Run no snmp-server to remove SNMP completely.", "answer": "breaks", "why": "Monitoring is required. Remove public and private community strings and configure SNMPv3 instead."}, {"lvl": 2, "brief": "Management must only be possible from the 192.168.99.0/24 network.", "action": "access-list 10 permit 192.168.99.0 0.0.0.255, then access-class 10 in on the vty lines.", "answer": "fix", "why": "Exactly what access-class is for."}, {"lvl": 2, "brief": "Nothing in the brief mentions AAA.", "action": "Run aaa new-model before any username exists in the config.", "answer": "check", "why": "With no local user, aaa new-model can lock you out of the device. Create the local user first, then enable AAA."}], "imposter": [{"title": "Who is the imposter? Router R1", "brief": ["Authorized admin accounts: admin, jlee (both privilege 15)", "Authorized read-only operator: noc (privilege 1)"], "output": ["R1# show running-config | include username", "username admin privilege 15 secret 5 $1$...", "username jlee privilege 15 secret 5 $1$...", "username noc privilege 15 password 7 0822455D0A16", "username backup privilege 15 secret 5 $1$..."], "accounts": [{"name": "admin", "info": "privilege 15, secret", "admin": true, "truth": "keep", "why": "Listed admin."}, {"name": "jlee", "info": "privilege 15, secret", "admin": true, "truth": "keep", "why": "Listed admin."}, {"name": "noc", "info": "privilege 15, password 7", "admin": true, "truth": "demote", "why": "Authorized as privilege 1 only, and it uses password instead of secret. Set privilege 1 and a secret."}, {"name": "backup", "info": "privilege 15, not in the brief", "admin": true, "truth": "remove", "why": "Unlisted admin account. no username backup."}], "debrief": "Privilege level is the admin flag on IOS. password 7 is a second finding on the same line."}, {"title": "Who is the imposter? Switch S1", "brief": ["Authorized admin accounts: netadmin", "Authorized operator: helpdesk (privilege 5 for show commands)"], "output": ["S1# show running-config | include username", "username netadmin privilege 15 secret 9 $9$...", "username helpdesk privilege 15 secret 9 $9$...", "username cisco privilege 15 password 0 cisco", "username netadmin2 privilege 15 secret 9 $9$..."], "accounts": [{"name": "netadmin", "info": "privilege 15", "admin": true, "truth": "keep", "why": "Listed admin."}, {"name": "helpdesk", "info": "privilege 15", "admin": true, "truth": "demote", "why": "Authorized at privilege 5. Set privilege 5."}, {"name": "cisco", "info": "privilege 15, plaintext password cisco", "admin": true, "truth": "remove", "why": "Default-style vendor account with a plaintext password. Remove it."}, {"name": "netadmin2", "info": "privilege 15, not in the brief", "admin": true, "truth": "remove", "why": "Lookalike of netadmin. Remove it."}], "debrief": "cisco/cisco style accounts are the first thing an attacker tries. Lookalikes are planted on purpose."}], "slug": "cisco-ios"};
+(function(){
+const LEVEL_PTS=[2,3,4];
+const AREAS={"acct": "Account management (CIS Control 5)", "access": "Access control (CIS Control 6)", "config": "Secure configuration (CIS Control 4)", "software": "Secure configuration: software (CIS Controls 2 and 4)", "patch": "Patching (CIS Control 7)", "malware": "Malware defenses (CIS Control 10)", "audit": "Audit logging (CIS Control 8)", "data": "Data protection (CIS Control 3)", "inv": "Investigation (forensics basics)"};
+const KEY='lockdown-drills-'+APP.key+'-v1';
+const SERIES=[['windows-11','Windows 11'],['windows-server','Windows Server'],['linux-mint','Linux Mint'],['ubuntu','Ubuntu'],['freebsd','FreeBSD'],['cisco-ios','Cisco IOS']];
+const MODES=[['learn','Learn'],['drill','Drill'],['run','Run'],['games','Games'],['report','Report']];
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const allItems=APP.levels.flatMap((L,li)=>L.items.map(it=>Object.assign({li},it)));
+const byId=Object.fromEntries(allItems.map(i=>[i.id,i]));
+const maxScore=allItems.reduce((a,i)=>a+LEVEL_PTS[i.li],0);
+function defaults(){return {learned:{},explain:{},drilled:{},best:{},run:{done:{},notes:{},elapsed:0,mins:20,lower:true},level:0,mode:'learn',sel:{},theme:'auto'};}
+let S=defaults();
+try{const j=localStorage.getItem(KEY);if(j){const o=JSON.parse(j);S=Object.assign(defaults(),o);S.run=Object.assign(defaults().run,o.run||{});}}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+const PRE=/^(PS>|CMD>|GUI:|\$|#)\s?|^[A-Za-z0-9]+(\([\w\-]+\))?[#>]\s?/;
+function splitCmd(c){const m=c.match(PRE);return m?[m[0].trim(),c.slice(m[0].length)]:['',c];}
+function stripped(c){return splitCmd(c)[1];}
+function firstCmd(it){return (it.cmds||[]).find(c=>!/^GUI:/.test(c)&&PRE.test(c))||(it.cmds||[])[0]||'';}
+function status(it){const l=!!S.learned[it.id],d=(S.drilled[it.id]||0)>0;return l&&d?'mastered':l?'learned':d?'drilled':'none';}
+function itemScore(it){const st=status(it);return st==='mastered'?LEVEL_PTS[it.li]:st==='none'?0:1;}
+function score(){return allItems.reduce((a,i)=>a+itemScore(i),0);}
+function badge(li){const L=APP.levels[li];const learned=L.items.filter(i=>S.learned[i.id]).length;const best=S.best[li]||0;return {learned,total:L.items.length,best,earned:best>=80&&learned>=Math.ceil(L.items.length*.8)};}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function norm(s){return String(s).toLowerCase().replace(/["'`]/g,'').replace(/\s+/g,' ').trim();}
+function termBlock(lines,withCopy){
+  const html=lines.map(c=>{if(/^GUI:/.test(c))return '<div class="ln c">'+esc(c)+'</div>';const [p,r]=splitCmd(c);return '<div class="ln'+(p?'':' c')+'">'+(p?'<span class="p">'+esc(p)+'</span> ':'')+esc(r)+'</div>';}).join('');
+  return '<div class="term">'+(withCopy?'<div class="tb"><button class="copy" data-act="copy">Copy</button></div>':'')+html+'</div>';
+}
+function copyText(t,btn){const done=()=>{if(btn){btn.textContent='Copied';btn.classList.add('done');setTimeout(()=>{btn.textContent='Copy';btn.classList.remove('done');},1400);}};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,()=>fallback());}else fallback();
+  function fallback(){const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done();}catch(e){}ta.remove();}}
+/* header */
+function renderHeader(){
+  $('#brand').innerHTML='Lockdown Drills <span>'+esc(APP.os)+' hardening trainer</span>';
+  $('#levels').innerHTML=APP.levels.map((L,i)=>{const b=badge(i);return '<button role="tab" data-level="'+i+'" class="'+(i===S.level?'on':'')+'" aria-selected="'+(i===S.level)+'" title="'+esc(L.blurb)+'"><span class="b">'+(b.earned?L.badge:'')+'</span>'+esc(L.name)+'</button>';}).join('');
+  $('#score').innerHTML='<b>'+score()+'</b> / '+maxScore+' pts';
+  $('#modes').innerHTML=MODES.map(([k,n])=>'<button data-mode="'+k+'" class="'+(k===S.mode?'on':'')+(k==='report'?' rep':'')+'">'+n+'</button>').join('');
+  const ser=$('#series');if(location.protocol!=='file:'&&APP.slug){ser.hidden=false;ser.innerHTML='<span>Lockdown Drills series</span>'+SERIES.map(([sl,n])=>sl===APP.slug?'<b>'+esc(n)+'</b>':'<a href="../'+sl+'/">'+esc(n)+'</a>').join('');}
+  document.body.dataset.mode=S.mode;
+  document.documentElement.dataset.theme=S.theme==='auto'?'':S.theme;
+  $('#theme').textContent='Theme: '+S.theme;
+}
+/* learn */
+function renderLearn(){
+  const L=APP.levels[S.level];const sel=S.sel[S.level]||L.items[0].id;const it=byId[sel]||L.items[0];
+  const list='<div class="list" role="tablist">'+L.items.map(i=>'<button role="tab" data-sel="'+i.id+'" class="'+(i.id===it.id?'on':'')+'"><span class="dot '+status(i)+'"></span><span class="id">'+esc(i.id)+'</span><span class="ttl">'+esc(i.title)+'</span></button>').join('')+'</div>';
+  const idx=L.items.indexOf(it);
+  const detail='<div class="item"><div class="meta">'+esc(L.name)+' · '+esc(it.id)+(it.area&&AREAS[it.area]?' · '+esc(AREAS[it.area]):'')+'</div><h2>'+esc(it.title)+'</h2>'
+    +termBlock(it.cmds,true)
+    +(it.gui?'<p class="run-in"><b>In the GUI.</b> '+esc(it.gui)+'</p>':'')
+    +'<p class="run-in"><b>Why it matters.</b> '+esc(it.why)+'</p>'
+    +(it.note?'<p class="run-in"><b>Watch out.</b> '+esc(it.note)+'</p>':'')
+    +'<div class="explain"><div><b>Explain it in one sentence, no jargon.</b> If you can say why, you own it.</div><textarea data-explain="'+esc(it.id)+'" placeholder="Example: this stops someone from guessing passwords all day">'+esc(S.explain[it.id]||'')+'</textarea><label><input type="checkbox" data-learn="'+esc(it.id)+'" '+(S.learned[it.id]?'checked':'')+'> I can explain this</label></div>'
+    +'<div class="nav"><button class="btn" data-step="-1" '+(idx===0?'disabled':'')+'>Previous</button><button class="btn" data-step="1" '+(idx===L.items.length-1?'disabled':'')+'>Next</button></div></div>';
+  return '<p class="lead">'+esc(L.blurb)+'</p><div class="learn">'+list+detail+'</div>';
+}
+/* drill */
+let Q=null;
+function makeQuiz(li){
+  const items=shuffle(APP.levels[li].items.slice());const pool=allItems;const qs=[];
+  const distract=(it,fn,n)=>shuffle(pool.filter(o=>o.id!==it.id&&fn(o)).map(fn)).filter((v,i,a)=>v&&a.indexOf(v)===i).slice(0,n);
+  const cmdOf=it=>stripped(firstCmd(it));
+  items.slice(0,4).forEach(it=>{const c=cmdOf(it);const opts=shuffle([{t:c,ok:true},...distract(it,cmdOf,3).map(t=>({t,ok:false}))]);qs.push({type:'which',item:it,prompt:'Which command does this?  '+it.title,opts,cmd:true});});
+  items.slice(4,6).forEach(it=>{const opts=shuffle([{t:it.title,ok:true},...distract(it,o=>o.title,3).map(t=>({t,ok:false}))]);qs.push({type:'what',item:it,prompt:'What does this command do?',block:[firstCmd(it)],opts});});
+  const typed=items.filter(i=>i.t).slice(0,2);typed.forEach(it=>qs.push({type:'type',item:it,prompt:'Type the command: '+(it.task||it.title)}));
+  const sp=shuffle((APP.spot||[]).filter(s=>(s.lvl==null?0:s.lvl)<=li));if(sp.length)qs.push(Object.assign({type:'spot'},sp[0]));
+  const jd=shuffle((APP.judge||[]).filter(s=>(s.lvl==null?0:s.lvl)<=li));jd.slice(0,2).forEach(j=>qs.push(Object.assign({type:'judge'},j)));
+  return {li,qs:shuffle(qs).slice(0,10),i:0,correct:0,done:false,fb:null};
+}
+function renderDrill(){
+  const L=APP.levels[S.level];
+  if(!Q||Q.li!==S.level||Q.finished){const b=badge(S.level);return '<div class="q"><h2>'+esc(L.name)+' drill</h2><p class="lead">Ten questions pulled from this level: pick the command, read a command, type one from memory, spot the finding in real output, and call fix or break. 80% earns the '+esc(L.name)+' badge once you have learned '+Math.ceil(L.items.length*.8)+' of '+L.items.length+' items.</p><p>Best so far: <b class="mono">'+(b.best||0)+'%</b>'+(b.earned?' <span class="chip">badge earned '+L.badge+'</span>':'')+'</p><button class="btn primary" data-act="startq">Start the drill</button></div>';}
+  const q=Q.qs[Q.i];let body='';
+  if(q.type==='which'||q.type==='what'){body=(q.block?termBlock(q.block,false):'')+'<div class="opts">'+q.opts.map((o,i)=>'<button data-opt="'+i+'" class="'+(q.cmd?'cmd ':'')+(Q.fb?(o.ok?'ok':(Q.fb.pick===i?'bad':'')):'')+'" '+(Q.fb?'disabled':'')+'>'+esc(o.t)+'</button>').join('')+'</div>';}
+  else if(q.type==='type'){body='<input class="typein" data-type="1" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="type it here" '+(Q.fb?'disabled value="'+esc(Q.fb.given)+'"':'')+'>'+(Q.fb?'':'<div class="nav"><button class="btn primary" data-act="check">Check</button><button class="btn" data-act="skip">Show me</button></div>');}
+  else if(q.type==='spot'){body='<p>'+esc(q.ask||'Tap the line that is the finding.')+'</p><div class="opts">'+q.lines.map((l,i)=>'<button data-opt="'+i+'" class="cmd '+(Q.fb?(i===q.finding?'ok':(Q.fb.pick===i?'bad':'')):'')+'" '+(Q.fb?'disabled':'')+'>'+esc(l)+'</button>').join('')+'</div>';}
+  else if(q.type==='judge'){body='<div class="brief"><b>Scenario brief says:</b> '+esc(q.brief)+'</div><p><b>You do this:</b> '+esc(q.action)+'</p><div class="opts">'+['fix','breaks','check'].map((k,i)=>'<button data-opt="'+i+'" class="'+(Q.fb?(k===q.answer?'ok':(Q.fb.pick===i?'bad':'')):'')+'" '+(Q.fb?'disabled':'')+'>'+({fix:'Fix: do it',breaks:'Do not: it breaks a requirement',check:'Check the brief or preserve evidence first'})[k]+'</button>').join('')+'</div>';}
+  const fb=Q.fb?'<div class="fb '+(Q.fb.ok?'ok':'bad')+'" aria-live="polite"><b>'+(Q.fb.ok?'Right.':'Not this time.')+'</b> '+esc(Q.fb.text)+'</div><button class="btn primary" data-act="next">'+(Q.i===Q.qs.length-1?'See results':'Next question')+'</button>':'';
+  return '<div class="q"><div class="count">Question '+(Q.i+1)+' of '+Q.qs.length+' · '+Q.correct+' correct</div><h2>'+esc(q.prompt||(q.type==='spot'?'Spot the finding':'Fix or break?'))+'</h2>'+body+fb+'</div>';
+}
+function answer(pick,given){
+  const q=Q.qs[Q.i];let ok=false,text='';
+  if(q.type==='which'||q.type==='what'){ok=q.opts[pick].ok;text=q.item.why;}
+  else if(q.type==='spot'){ok=pick===q.finding;text=q.why;}
+  else if(q.type==='judge'){ok=['fix','breaks','check'][pick]===q.answer;text=q.why;}
+  else if(q.type==='type'){const g=norm(given);const acc=[q.item.t].concat(q.item.ta||[]).map(norm);ok=acc.includes(g);text=(ok?'':'Answer: '+q.item.t+'. ')+q.item.why;}
+  if(ok){Q.correct++;if(q.item){S.drilled[q.item.id]=(S.drilled[q.item.id]||0)+1;save();}}
+  Q.fb={ok,text,pick,given:given||''};
+}
+function finishQuiz(){const pct=Math.round(100*Q.correct/Q.qs.length);S.best[Q.li]=Math.max(S.best[Q.li]||0,pct);save();Q.finished=true;const b=badge(Q.li);const L=APP.levels[Q.li];
+  return '<div class="result"><div class="big">'+pct+'%</div><p>'+Q.correct+' of '+Q.qs.length+' right. '+(b.earned?'The '+esc(L.name)+' badge is yours: '+L.badge:(pct>=80?'Score is there; learn '+(Math.ceil(L.items.length*.8)-b.learned)+' more items for the badge.':'Reread the misses in Learn and run it again.'))+'</p><div class="nav"><button class="btn primary" data-act="startq">Run it again</button><button class="btn" data-mode-go="learn">Back to Learn</button></div></div>';}
+/* run */
+let tick=null;const OPEN=new Set();
+function fmt(s){const m=Math.floor(s/60),x=s%60;return (m<10?'0':'')+m+':'+(x<10?'0':'')+x;}
+function renderRun(){
+  const R=S.run;const items=allItems.filter(i=>i.li===S.level||(R.lower&&i.li<S.level));
+  const remain=Math.max(0,R.mins*60-R.elapsed);
+  const rows=items.map(i=>'<div class="chk '+(R.done[i.id]!=null?'done':'')+'"><input type="checkbox" data-done="'+i.id+'" '+(R.done[i.id]!=null?'checked':'')+' aria-label="Done: '+esc(i.title)+'"><div><div class="t"><span class="id">'+esc(i.id)+'</span><span>'+esc(i.title)+'</span>'+(R.done[i.id]!=null?'<span class="stamp">'+fmt(R.done[i.id])+'</span>':'')+'<button class="btn small" data-show="'+i.id+'">Commands</button></div><div id="show-'+i.id+'"'+(OPEN.has(i.id)?'':' hidden')+'>'+termBlock(i.cmds,true)+'</div><input class="note" data-note="'+i.id+'" placeholder="Change log: what you changed and why" value="'+esc(R.notes[i.id]||'')+'"></div></div>').join('');
+  return '<h2>Run the checklist on your VM</h2><p class="lead">Set the clock, work the list top to bottom, tick each item when it is actually done on the machine, and write a one-line change log. The log is what lets you undo a change that broke something in thirty seconds.</p>'
+   +'<div class="timer"><div class="clock" aria-live="off">'+fmt(remain)+'</div><select data-mins>'+[20,45,60,90,120].map(m=>'<option value="'+m+'" '+(m===R.mins?'selected':'')+'>'+m+' min</option>').join('')+'</select><button class="btn primary" data-act="timer">'+(tick?'Pause':'Start')+'</button><button class="btn" data-act="resetclock">Reset clock</button><label class="toggle"><input type="checkbox" data-lower '+(R.lower?'checked':'')+'> include lower levels</label></div>'
+   +'<div class="nav" style="margin:0 0 10px"><button class="btn small" data-act="copylog">Copy change log</button><button class="btn small" data-act="dlog">Download change log</button><button class="btn small" data-act="clearrun">Clear this run</button></div>'
+   +rows;
+}
+function changeLog(){const R=S.run;const lines=allItems.filter(i=>R.done[i.id]!=null||R.notes[i.id]).sort((a,b)=>(R.done[a.id]??1e9)-(R.done[b.id]??1e9)).map(i=>'['+(R.done[i.id]!=null?fmt(R.done[i.id]):'--:--')+'] '+i.id+' '+i.title+(R.notes[i.id]?' -- '+R.notes[i.id]:''));
+  return '# Change log - '+APP.os+' - '+new Date().toLocaleString()+'\n'+(lines.join('\n')||'(nothing logged yet)')+'\n';}
+function startTimer(){if(tick)return;tick=setInterval(()=>{S.run.elapsed++;if(S.run.elapsed%5===0)save();const c=document.querySelector('.clock');if(c)c.textContent=fmt(Math.max(0,S.run.mins*60-S.run.elapsed));if(S.run.elapsed>=S.run.mins*60){stopTimer();render();}},1000);}
+function stopTimer(){clearInterval(tick);tick=null;save();}
+/* games */
+let G={tab:'imposter',sc:0,picks:{},checked:false,jq:null,streak:0,jfb:null};
+function renderGames(){
+  const tabs='<div class="tabs"><button class="btn '+(G.tab==='imposter'?'primary':'')+'" data-gtab="imposter">Who is the imposter?</button><button class="btn '+(G.tab==='judge'?'primary':'')+'" data-gtab="judge">Fix or break?</button></div>';
+  if(G.tab==='imposter'){const sc=APP.imposter[G.sc];
+    const rows=sc.accounts.map((a,i)=>{const p=G.picks[i]||'keep';const cls=G.checked?(p===a.truth?'ok':'bad'):'';return '<div class="acct '+cls+'"><div class="n">'+esc(a.name)+'<small>'+esc(a.info)+'</small></div><div class="seg">'+['keep','remove'].concat(a.admin?['demote']:[]).map(k=>'<button data-pick="'+i+'" data-val="'+k+'" class="'+(p===k?'on':'')+'" '+(G.checked?'disabled':'')+'>'+({keep:'Keep',remove:'Remove',demote:'Demote'})[k]+'</button>').join('')+'</div></div>'+(G.checked&&p!==a.truth?'<div class="fb bad">'+esc(a.why)+'</div>':'');}).join('');
+    const right=G.checked?sc.accounts.filter((a,i)=>(G.picks[i]||'keep')===a.truth).length:0;
+    return tabs+'<h2>'+esc(sc.title)+'</h2><p class="lead">Read the scenario brief, then decide for every account: keep it, remove it, or demote it from admin. The brief is the documented source of truth; when it is unclear, ask the system owner before you delete anything.</p><div class="brief"><b>Scenario brief</b><ul>'+sc.brief.map(r=>'<li>'+esc(r)+'</li>').join('')+'</ul></div>'+termBlock(sc.output,false)+rows
+      +(G.checked?'<div class="fb '+(right===sc.accounts.length?'ok':'bad')+'" style="max-width:720px">'+right+' of '+sc.accounts.length+' correct. '+esc(sc.debrief)+'</div>':'')+'<div class="nav"><button class="btn primary" data-act="'+(G.checked?'nextsc':'checksc')+'">'+(G.checked?'Next scenario':'Check my calls')+'</button></div>';
+  }
+  if(!G.jq){G.jq=shuffle(APP.judge.slice());}const j=G.jq[0];
+  const fb=G.jfb?'<div class="fb '+(G.jfb.ok?'ok':'bad')+'"><b>'+(G.jfb.ok?'Right.':'Not this time.')+'</b> '+esc(j.why)+'</div><button class="btn primary" data-act="jnext">Next</button>':'';
+  return tabs+'<div class="q"><div class="streak">streak '+G.streak+'</div><h2>Fix or break?</h2><div class="brief"><b>Scenario brief says:</b> '+esc(j.brief)+'</div><p><b>You do this:</b> '+esc(j.action)+'</p><div class="opts">'+['fix','penalty','check'].map((k,i)=>'<button data-jopt="'+k+'" class="'+(G.jfb?(k===j.answer?'ok':(G.jfb.pick===k?'bad':'')):'')+'" '+(G.jfb?'disabled':'')+'>'+({fix:'Fix: do it',breaks:'Do not: it breaks a requirement',check:'Check the brief or preserve evidence first'})[k]+'</button>').join('')+'</div>'+fb+'</div>';
+}
+/* report */
+function renderReport(){
+  const lv=APP.levels.map((L,i)=>{const b=badge(i);return '<div class="lv"><div class="row"><span>'+(b.earned?L.badge+' ':'')+esc(L.name)+'</span><span class="mono">'+b.learned+'/'+b.total+' learned · best '+(b.best||0)+'%</span></div><div class="bar2 '+(b.earned?'earned':'')+'"><i style="width:'+Math.round(100*b.learned/b.total)+'%"></i></div></div>';}).join('');
+  const rows=allItems.map(i=>{const st=status(i);const g={mastered:'✓',learned:'◐',drilled:'◔',none:'·'}[st];return '<div class="rr '+st+'" data-rr="'+i.id+'"><span class="g">'+g+'</span><span class="id">'+esc(i.id)+'</span><span>'+esc(i.title)+'</span><span class="pt">'+itemScore(i)+'</span></div>';}).join('');
+  return '<h2>Progress report</h2>'+lv+'<p style="font-size:.8rem;color:var(--muted)">✓ learned and drilled · ◐ learned · ◔ drilled only</p>'+rows+'<div class="total"><span>Total</span><span>'+score()+' / '+maxScore+'</span></div>';
+}
+function renderFoot(){$('#foot').innerHTML=esc(APP.footer||'Training tool for virtual machines you own or are authorized to change. No scripts here on purpose: type it, read it, explain it, and write your own checklist.')+' <button data-act="reset">Reset my progress</button>';}
+function render(){
+  if(S.mode==='report'&&window.matchMedia('(min-width:1101px)').matches)S.mode='learn';
+  renderHeader();
+  const v=$('#view');const m=S.mode;
+  v.innerHTML=m==='learn'?renderLearn():m==='drill'?renderDrill():m==='run'?renderRun():m==='games'?renderGames():'';
+  $('#report').innerHTML=renderReport();renderFoot();
+  if(m==='drill'&&Q&&!Q.finished&&!Q.fb){const t=v.querySelector('.typein');if(t)t.focus();}
+  if(m==='learn'){const on=v.querySelector('.list button.on');if(on&&on.scrollIntoView)on.scrollIntoView({block:'nearest',inline:'center'});}
+}
+/* events */
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;const d=b.dataset;
+  if(d.level!=null){S.level=+d.level;if(S.mode==='drill'&&Q&&Q.li!==S.level)Q=null;save();render();return;}
+  if(d.mode){S.mode=d.mode;save();render();return;}
+  if(d.modeGo){S.mode=d.modeGo;save();render();return;}
+  if(d.sel){S.sel[S.level]=d.sel;save();render();return;}
+  if(d.step){const L=APP.levels[S.level];const cur=S.sel[S.level]||L.items[0].id;const i=L.items.findIndex(x=>x.id===cur)+(+d.step);if(L.items[i]){S.sel[S.level]=L.items[i].id;save();render();}return;}
+  if(d.act==='copy'){const term=b.closest('.term');const lines=[...term.querySelectorAll('.ln:not(.c)')].map(n=>n.textContent.replace(PRE,'')).filter(l=>l.trim()).join('\n');copyText(lines,b);return;}
+  if(d.act==='startq'){Q=makeQuiz(S.level);render();return;}
+  if(d.opt!=null&&S.mode==='drill'&&Q&&!Q.fb){answer(+d.opt);render();return;}
+  if(d.act==='check'){const t=$('.typein');answer(null,t?t.value:'');render();return;}
+  if(d.act==='skip'){answer(null,'');render();return;}
+  if(d.act==='next'){if(Q.i===Q.qs.length-1){$('#view').innerHTML=finishQuiz();renderHeader();$('#report').innerHTML=renderReport();}else{Q.i++;Q.fb=null;render();}return;}
+  if(d.act==='timer'){tick?stopTimer():startTimer();render();return;}
+  if(d.act==='resetclock'){stopTimer();S.run.elapsed=0;save();render();return;}
+  if(d.act==='clearrun'){if(confirm('Clear all ticks, timestamps and notes for this run?')){stopTimer();S.run.done={};S.run.notes={};S.run.elapsed=0;save();render();}return;}
+  if(d.act==='copylog'){copyText(changeLog(),b);return;}
+  if(d.act==='dlog'){const blob=new Blob([changeLog()],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='change-log-'+APP.key+'.txt';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);return;}
+  if(d.show){const el=document.getElementById('show-'+d.show);if(el){el.hidden=!el.hidden;if(el.hidden)OPEN.delete(d.show);else OPEN.add(d.show);}return;}
+  if(d.gtab){G.tab=d.gtab;G.jfb=null;render();return;}
+  if(d.pick!=null&&!G.checked){G.picks[d.pick]=d.val;render();return;}
+  if(d.act==='checksc'){G.checked=true;render();return;}
+  if(d.act==='nextsc'){G.sc=(G.sc+1)%APP.imposter.length;G.picks={};G.checked=false;render();return;}
+  if(d.jopt&&!G.jfb){const j=G.jq[0];const ok=d.jopt===j.answer;G.streak=ok?G.streak+1:0;G.jfb={ok,pick:d.jopt};render();return;}
+  if(d.act==='jnext'){G.jq.push(G.jq.shift());G.jfb=null;render();return;}
+  if(d.act==='reset'){if(confirm('Erase all progress for this trainer on this browser?')){stopTimer();S=defaults();save();Q=null;render();}return;}
+  if(b.id==='theme'){S.theme=S.theme==='auto'?'light':S.theme==='light'?'dark':'auto';save();renderHeader();return;}
+});
+document.addEventListener('change',e=>{const d=e.target.dataset;
+  if(d.learn){const was=status(byId[d.learn]);S.learned[d.learn]=e.target.checked;if(!e.target.checked)delete S.learned[d.learn];save();render();const now=status(byId[d.learn]);if(now==='mastered'&&was!=='mastered'){const r=document.querySelector('[data-rr="'+d.learn+'"]');if(r)r.classList.add('flip');}return;}
+  if(d.done){if(e.target.checked)S.run.done[d.done]=S.run.elapsed;else delete S.run.done[d.done];save();render();return;}
+  if(d.mins!=null){S.run.mins=+e.target.value;S.run.elapsed=0;save();render();return;}
+  if(d.lower!=null){S.run.lower=e.target.checked;save();render();return;}
+});
+document.addEventListener('input',e=>{const d=e.target.dataset;
+  if(d.explain){S.explain[d.explain]=e.target.value;save();return;}
+  if(d.note){S.run.notes[d.note]=e.target.value;save();return;}
+});
+window.addEventListener('resize',()=>{if(S.mode==='report'&&window.matchMedia('(min-width:1101px)').matches){S.mode='learn';render();}});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.classList&&e.target.classList.contains('typein')&&Q&&!Q.fb){answer(null,e.target.value);render();}});
+render();
+})();
+</script>
+<!-- tool4that:foot --><p style="text-align:center;margin:28px 0 22px;font:14px/1.4 system-ui,-apple-system,Segoe UI,Arial,sans-serif"><a href="../../">More free tools at Tool4That</a></p><!-- /tool4that:foot -->
+</body>
+</html>

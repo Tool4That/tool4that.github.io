@@ -1,0 +1,420 @@
+================================================================================
+ 03: CISCO IOS HARDENING: SOLUTION WALKTHROUGH
+     Cisco IOS 15.x routers and switches (Packet Tracer compatible)
+ Training reference for lab devices you own or are authorized to change.
+ Three levels: L1 Doorman, L2 Watchman, L3 Hunter. Every item = COMMAND, WHY,
+ NOTE and the hardening AREA it belongs to. No scripts by design: type it,
+ read it, explain it. Item IDs match the Lockdown Drills trainer for this OS.
+ Unofficial practice; not affiliated with or endorsed by Cisco.
+
+ HARDENING AREAS (CIS Critical Security Controls v8)
+   Account management ........ CIS Control 5
+   Access control ............ CIS Control 6
+   Secure configuration ...... CIS Control 4 (software inventory: Control 2)
+   Patching .................. CIS Control 7
+   Malware defenses .......... CIS Control 10
+   Audit logging ............. CIS Control 8
+   Also tagged: Data protection (CIS Control 3); Investigation (forensics
+   basics: answer questions and preserve evidence before you change things).
+================================================================================
+
+------------------------------ DOORMAN -----------------------------------------
+ Lock the doors. Hostname, enable secret, console and VTY logins, idle timeouts,
+ password encryption, a legal banner, and save. The basics every device needs.
+--------------------------------------------------------------------------------
+[B-01] Name the device and lock privileged mode
+  AREA: Access control (CIS Control 6)
+  Router> enable
+  Router# configure terminal
+  Router(config)# hostname R1
+  R1(config)# enable secret Str0ng-Enable-2026!
+  WHY: enable secret stores a hash. enable password stores plaintext or Type 7,
+       which reverses in seconds. Never use enable password.
+  NOTE: On older IOS releases enable secret stores an MD5 (Type 5) hash. Where
+        the release supports it, enable algorithm-type scrypt secret stores a
+        Type 9 hash, which the Cisco hardening guide recommends.
+
+[B-02] Console and VTY lines: require login, time out idle sessions
+  AREA: Access control (CIS Control 6)
+  R1(config)# line console 0
+  R1(config-line)# password C0nsole-2026!
+  R1(config-line)# login
+  R1(config-line)# exec-timeout 5 0
+  R1(config-line)# logging synchronous
+  R1(config-line)# exit
+  R1(config)# line vty 0 4
+  R1(config-line)# password Vty-2026!
+  R1(config-line)# login
+  R1(config-line)# exec-timeout 5 0
+  R1(config-line)# exit
+  WHY: Without login, a line password is not even checked. exec-timeout 5 0 logs
+       out an unattended console after five idle minutes. logging synchronous
+       keeps log lines from mangling what you type.
+  NOTE: Watchman replaces line passwords with local usernames and SSH. Switches
+        with 16 VTY lines use line vty 0 15.
+
+[B-03] Hide passwords in the config
+  AREA: Secure configuration (CIS Control 4)
+  R1(config)# service password-encryption
+  WHY: Encodes line and username passwords (Type 7). Weak, but it beats
+       plaintext in show run over someone's shoulder. Use secret wherever a
+       command offers it.
+
+[B-04] Legal banner
+  AREA: Secure configuration (CIS Control 4)
+  R1(config)# banner motd #Unauthorized access is prohibited and monitored.#
+  WHY: A legal notice that access is restricted and monitored. Have the wording
+       reviewed by legal counsel, and leave out the device name, model, software
+       and owner. Never write Welcome.
+  NOTE: The delimiter character cannot appear inside the text.
+
+[B-05] Save the config
+  AREA: Secure configuration (CIS Control 4)
+  R1# copy running-config startup-config
+  R1# write memory
+  R1# show running-config | include enable|password|hostname|banner|exec-timeout
+  WHY: Unsaved config means every fix is gone on reload. Save after every block.
+
+------------------------------ WATCHMAN ----------------------------------------
+ Check the windows. Local user accounts, SSH version 2 only, unneeded services
+ off, port security, VLAN hygiene, login attack protection, logging and time.
+--------------------------------------------------------------------------------
+[I-01] Local user accounts and login local
+  AREA: Account management (CIS Control 5)
+  R1(config)# username admin privilege 15 secret Adm1n-Secret-2026!
+  R1(config)# line console 0
+  R1(config-line)# login local
+  R1(config-line)# exit
+  R1(config)# line vty 0 4
+  R1(config-line)# login local
+  R1(config-line)# exit
+  R1(config)# no username bob
+  WHY: Named accounts give accountability and per-user removal; secret hashes
+       the password. Remove usernames the brief does not list.
+  NOTE: Where supported, username admin privilege 15 algorithm-type scrypt
+        secret <password> stores a Type 9 hash instead of Type 5.
+
+[I-02] SSH version 2 only, Telnet gone
+  AREA: Access control (CIS Control 6)
+  R1(config)# ip domain-name corp.local
+  R1(config)# crypto key generate rsa general-keys modulus 2048
+  R1(config)# ip ssh version 2
+  R1(config)# ip ssh time-out 60
+  R1(config)# ip ssh authentication-retries 3
+  R1(config)# line vty 0 4
+  R1(config-line)# transport input ssh
+  R1(config-line)# exit
+  R1# show ip ssh
+  R1# show crypto key mypubkey rsa
+  WHY: Telnet sends passwords in cleartext and SSHv1 is broken. Key generation
+       requires a hostname and domain name first, the classic lab trap.
+
+[I-03] Disable unneeded services
+  AREA: Secure configuration (CIS Control 4)
+  R1(config)# no ip http server
+  R1(config)# no ip http secure-server
+  R1(config)# no cdp run
+  R1(config)# no lldp run
+  R1(config)# no service tcp-small-servers
+  R1(config)# no service udp-small-servers
+  R1(config)# no ip source-route
+  R1(config)# no ip finger
+  R1(config)# no ip bootp server
+  WHY: Each one is a listening service or an information leak. CDP tells an
+       attacker the IOS version and IP of every neighbor.
+  NOTE: Packet Tracer may not accept every one of these; real IOS does, so know
+        them anyway. Keep ip http secure-server only if the brief needs web
+        management.
+
+[I-04] Switch port security and shut unused ports
+  AREA: Secure configuration (CIS Control 4)
+  S1(config)# interface range fastEthernet 0/5 - 24
+  S1(config-if-range)# shutdown
+  S1(config-if-range)# switchport mode access
+  S1(config-if-range)# switchport access vlan 999
+  S1(config-if-range)# exit
+  S1(config)# interface fastEthernet 0/1
+  S1(config-if)# switchport mode access
+  S1(config-if)# switchport port-security
+  S1(config-if)# switchport port-security maximum 2
+  S1(config-if)# switchport port-security mac-address sticky
+  S1(config-if)# switchport port-security violation shutdown
+  S1(config-if)# exit
+  S1# show port-security interface fastEthernet 0/1
+  WHY: An open port means plug in and you are on the LAN. Port security pins MAC
+       addresses; shutting unused ports is the cheapest control there is.
+
+[I-05] VLAN hygiene: never VLAN 1, change the native VLAN
+  AREA: Secure configuration (CIS Control 4)
+  S1(config)# vlan 10
+  S1(config-vlan)# name USERS
+  S1(config-vlan)# vlan 99
+  S1(config-vlan)# name MGMT
+  S1(config-vlan)# vlan 999
+  S1(config-vlan)# name BLACKHOLE
+  S1(config-vlan)# exit
+  S1(config)# interface gigabitEthernet 0/1
+  S1(config-if)# switchport mode trunk
+  S1(config-if)# switchport trunk native vlan 99
+  S1(config-if)# switchport trunk allowed vlan 10,20,99
+  S1(config-if)# switchport nonegotiate
+  WHY: VLAN hopping by double tagging relies on native VLAN 1. DTP negotiation
+       lets an attacker form a trunk; nonegotiate stops it.
+
+[I-06] Login attack protection and minimum password length
+  AREA: Account management (CIS Control 5)
+  R1(config)# security passwords min-length 10
+  R1(config)# login block-for 120 attempts 3 within 60
+  R1(config)# login on-failure log
+  WHY: Lockout for brute force; min-length enforces the password policy at the
+       moment a password is set.
+
+[I-07] Logging and time
+  AREA: Audit logging (CIS Control 8)
+  R1(config)# service timestamps log datetime msec
+  R1(config)# logging buffered 16384
+  R1(config)# logging host 10.0.0.50
+  R1(config)# ntp server 10.0.0.1
+  R1(config)# clock timezone HST -10
+  R1# show logging
+  WHY: Logs without correct time are useless in an investigation.
+
+------------------------------ HUNTER ------------------------------------------
+ Hunt and harden. Management ACLs, edge ACLs, interface hardening, layer-2
+ attack defenses, SNMP and AAA, protecting the config itself, and auditing a
+ config fast.
+--------------------------------------------------------------------------------
+[A-01] Restrict management access with an ACL on the VTY lines
+  AREA: Access control (CIS Control 6)
+  R1(config)# access-list 10 remark MGMT-ONLY
+  R1(config)# access-list 10 permit 192.168.99.0 0.0.0.255
+  R1(config)# access-list 10 deny any log
+  R1(config)# line vty 0 4
+  R1(config-line)# access-class 10 in
+  R1(config-line)# exit
+  WHY: Even with SSH, anyone on any subnet could try to log in. access-class
+       limits who can even reach the prompt. The wildcard mask is the inverse of
+       the subnet mask.
+
+[A-02] Extended ACL on an interface: allow only what the scenario needs
+  AREA: Secure configuration (CIS Control 4)
+  R1(config)# ip access-list extended OUTSIDE-IN
+  R1(config-ext-nacl)# permit tcp any host 10.0.0.80 eq 443
+  R1(config-ext-nacl)# permit tcp any host 10.0.0.80 eq 80
+  R1(config-ext-nacl)# permit icmp any any echo-reply
+  R1(config-ext-nacl)# deny ip any any log
+  R1(config-ext-nacl)# exit
+  R1(config)# interface gigabitEthernet 0/0
+  R1(config-if)# ip access-group OUTSIDE-IN in
+  R1(config-if)# exit
+  R1# show access-lists
+  WHY: Default deny at the edge. The implicit deny exists anyway, but an
+       explicit deny with log gives visibility. Direction is relative to the
+       router.
+
+[A-03] Interface-level hardening
+  AREA: Secure configuration (CIS Control 4)
+  R1(config)# interface gigabitEthernet 0/0
+  R1(config-if)# no ip redirects
+  R1(config-if)# no ip proxy-arp
+  R1(config-if)# no ip directed-broadcast
+  R1(config-if)# no ip unreachables
+  R1(config-if)# no ip mask-reply
+  R1(config-if)# exit
+  R1(config)# interface range gigabitEthernet 0/2 - 3
+  R1(config-if-range)# shutdown
+  WHY: Proxy ARP and directed broadcasts enable spoofing and amplification
+       (Smurf). Redirects and unreachables leak topology. Unused router ports
+       get shut.
+  NOTE: no ip unreachables is optional; it can interfere with path MTU
+        discovery.
+
+[A-04] Layer-2 attack defenses
+  AREA: Secure configuration (CIS Control 4)
+  S1(config)# ip dhcp snooping
+  S1(config)# ip dhcp snooping vlan 10
+  S1(config)# interface gigabitEthernet 0/1
+  S1(config-if)# ip dhcp snooping trust
+  S1(config-if)# exit
+  S1(config)# ip arp inspection vlan 10
+  S1(config)# interface range fastEthernet 0/1 - 4
+  S1(config-if-range)# spanning-tree portfast
+  S1(config-if-range)# spanning-tree bpduguard enable
+  S1(config-if-range)# storm-control broadcast level 20
+  S1(config-if-range)# exit
+  S1(config)# spanning-tree portfast bpduguard default
+  WHY: Rogue DHCP servers (snooping), ARP poisoning (dynamic ARP inspection
+       builds on the snooping table), rogue switches taking over STP root (BPDU
+       guard), broadcast storms.
+  NOTE: Packet Tracer support for DAI and storm control varies by version.
+
+[A-05] SNMP and AAA
+  AREA: Access control (CIS Control 6)
+  R1(config)# no snmp-server community public
+  R1(config)# no snmp-server community private
+  R1(config)# no snmp-server
+  R1(config)# snmp-server group ADMINS v3 priv
+  R1(config)# snmp-server user noc ADMINS v3 auth sha AuthPass-2026 priv aes 128 PrivPass-2026
+  R1(config)# aaa new-model
+  R1(config)# aaa authentication login default local
+  WHY: SNMP v1 and v2c with public or private community strings let anyone read,
+       or write, the whole config. v3 adds authentication and encryption. AAA
+       centralizes accounts.
+  NOTE: After aaa new-model, lines use the default method list. Create a local
+        user before enabling it or you lock yourself out.
+
+[A-06] Protect the config itself
+  AREA: Secure configuration (CIS Control 4)
+  R1(config)# service tcp-keepalives-in
+  R1(config)# service tcp-keepalives-out
+  R1(config)# no boot network
+  R1(config)# no service config
+  R1(config)# secure boot-image
+  R1(config)# secure boot-config
+  R1(config)# archive
+  R1(config-archive)# log config
+  R1(config-archive-log-cfg)# logging enable
+  R1(config-archive-log-cfg)# hidekeys
+  WHY: Keepalives drop dead sessions and free VTY lines. Resilient configuration
+       stops an attacker from erasing the IOS image or startup config. The
+       archive log records who changed what.
+  NOTE: Several of these are not in Packet Tracer; know them for real devices.
+
+[A-07] Audit a given config fast
+  R1# show running-config | include password|secret
+  R1# show running-config | section line vty
+  R1# show running-config | include http|cdp|snmp|small
+  R1# show ip interface brief
+  S1# show port-security
+  S1# show vlan brief
+  R1# show access-lists
+  R1# show ip ssh
+  R1# show users
+  WHY: The common config faults are nearly always visible in these outputs:
+       plaintext passwords, VTY lines without login local or SSH, services still
+       on, unused ports up, VLAN 1 in use.
+
+------------------------------ FIX OR BREAK? (practice cards) ------------------
+  Brief: Authorized network admin accounts: admin, jlee. Management over SSH
+         only.
+  Action: Run no username guest after seeing username guest privilege 15 in the
+          config.
+  Call: FIX. An unlisted privilege-15 account is an admin backdoor. Remove it.
+
+  Brief: The web server on 10.0.0.80 must stay reachable from the internet on
+         ports 80 and 443.
+  Action: Apply an inbound ACL on the outside interface with only deny ip any
+          any.
+  Call: BREAKS IT. That breaks the required service. Permit 80 and 443 to the
+                   host, then deny everything else.
+
+  Brief: Management over SSH only.
+  Action: Configure transport input telnet ssh on the vty lines so the
+          helpdesk's old client still works.
+  Call: BREAKS IT. The brief says SSH only. transport input ssh.
+
+  Brief: The company uses CDP for its IP phones on the access switch.
+  Action: Run no cdp run on the access switch.
+  Call: BREAKS IT. CDP is required there. Disable it per port on non-phone edge
+                   ports (no cdp enable) or on the router instead.
+
+  Brief: Ports Fa0/1 to Fa0/4 are in use; the rest are spare.
+  Action: interface range Fa0/5 - 24, shutdown, switchport access vlan 999.
+  Call: FIX. Unused ports shut and parked in a black-hole VLAN. Cheapest control
+             on the switch.
+
+  Brief: An investigation question asks which VLAN was the native VLAN on the
+         trunk before any changes were made.
+  Action: Change the native VLAN to 99 first, then answer the question from the
+          new config.
+  Call: CHECK FIRST. Answer from the original config first. Evidence before
+                     changes.
+
+  Brief: The monitoring server at 10.0.0.60 polls the router with SNMP.
+  Action: Run no snmp-server to remove SNMP completely.
+  Call: BREAKS IT. Monitoring is required. Remove public and private community
+                   strings and configure SNMPv3 instead.
+
+  Brief: Management must only be possible from the 192.168.99.0/24 network.
+  Action: access-list 10 permit 192.168.99.0 0.0.0.255, then access-class 10 in
+          on the vty lines.
+  Call: FIX. Exactly what access-class is for.
+
+  Brief: Nothing in the brief mentions AAA.
+  Action: Run aaa new-model before any username exists in the config.
+  Call: CHECK FIRST. With no local user, aaa new-model can lock you out of the
+                     device. Create the local user first, then enable AAA.
+
+------------------------------ SPOT THE FINDING (output snippets) --------------
+  Lines from show running-config. Tap the finding.
+     hostname R1
+  >> enable password cisco123
+     service password-encryption
+     banner motd ^CUnauthorized access prohibited^C
+  WHY: enable password is reversible Type 7 at best. Replace it with enable
+       secret.
+
+  The vty section of show running-config. Tap the finding.
+     line vty 0 4
+      password Vty-2026!
+  >>  no login
+      exec-timeout 5 0
+  WHY: no login means the password is never asked for. Set login (or login
+       local).
+
+  The vty section of show running-config. Tap the finding.
+     line vty 0 4
+      login local
+  >>  transport input telnet ssh
+      exec-timeout 5 0
+  WHY: Telnet is still allowed. transport input ssh removes the cleartext path.
+
+  Global config lines. Tap the finding.
+     ip ssh version 2
+  >> ip http server
+     no cdp run
+     login block-for 120 attempts 3 within 60
+  WHY: The HTTP management server is on. no ip http server (and no ip http
+       secure-server unless required).
+
+  Output of show ip interface brief on a switch where only Fa0/1 to Fa0/4 are in use. Tap the finding.
+     FastEthernet0/1   up    up
+     FastEthernet0/4   up    up
+  >> FastEthernet0/12  up    up
+     FastEthernet0/24  administratively down  down
+  WHY: An unused port that is up is an open door. Shut it and put it in the
+       black-hole VLAN.
+
+  Global config lines. Tap the finding.
+  >> snmp-server community public RW
+     service tcp-keepalives-in
+     no ip source-route
+     ntp server 10.0.0.1
+  WHY: A public read-write community string lets anyone rewrite the config.
+       Remove it; use SNMPv3 if monitoring is required.
+
+  Trunk interface config. Tap the finding.
+     interface GigabitEthernet0/1
+      switchport mode trunk
+  >>  switchport trunk native vlan 1
+      switchport nonegotiate
+  WHY: Native VLAN 1 enables double-tagging VLAN hopping. Move it to an unused
+       VLAN such as 99.
+
+------------------------------ OFFICIAL SOURCES --------------------------------
+  Cisco Guide to Harden Cisco IOS Devices
+    https://www.cisco.com/c/en/us/support/docs/ip/access-lists/13608-21.html
+  Configuring Secure Shell (SSH) on routers and switches
+    https://www.cisco.com/c/en/us/support/docs/security-vpn/secure-shell-ssh/4145-ssh.html
+  Cisco IOS Security Command Reference: enable secret and algorithm types
+    https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/security/d1/sec-d1-cr-book/sec-cr-e1.html
+  Catalyst 2960 configuration guide: port security
+    https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst2960/software/release/12-2_55_se/configuration/guide/scg_2960/swtrafc.html
+  Catalyst 2960 configuration guide: VLANs and trunks
+    https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst2960/software/release/12-2_55_se/configuration/guide/scg_2960/swvlan.html
+  CIS Critical Security Controls v8
+    https://www.cisecurity.org/controls/v8
+  CIS Benchmarks
+    https://www.cisecurity.org/cis-benchmarks
+
+================================================================================

