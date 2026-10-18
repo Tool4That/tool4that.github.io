@@ -186,6 +186,11 @@ def main():
                 cmd += ["--allow-script", u]
             cmd += ["--accept-runtime-fallback"] if s["prep"].get("accept_runtime_fallback") else []
             cmd += ["--frame-guard"] if s["prep"].get("frame_guard") else []
+            for u in s["prep"].get("allow_connect", []):
+                cmd += ["--allow-connect", u]
+            cmd += ["--allow-wasm"] if s["prep"].get("allow_wasm") else []
+            cmd += ["--allow-worker-blob"] if s["prep"].get("allow_worker_blob") else []
+            cmd += ["--allow-connect-data"] if s["prep"].get("allow_connect_data") else []
             r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", env=env)
             if r.returncode:
                 failed += 1

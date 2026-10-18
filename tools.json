@@ -83,7 +83,7 @@
       "slug": "spend-lens",
       "name": "PFAT \u2014 Personal Finance Advisor Tool",
       "tagline": "See where your money goes.",
-      "description": "Add transactions by hand, paste text, or import CSV and PDF bank statements. Get a money-in, money-out HUD, a paycheck plan, a 30-day look ahead, and a plain-language checkup. Everything stays on your device.",
+      "description": "Add transactions by hand, paste text, or import CSV, PDF, and scanned statements or app screenshots. Get a money-in, money-out HUD, a paycheck plan, a 30-day look ahead, and a plain-language checkup. Everything stays on your device.",
       "badges": [
         "Finance",
         "Budgeting",
@@ -93,8 +93,8 @@
       "download_as": "pfat.html",
       "icon": "chart",
       "category": "finance",
-      "sha256": "aa58f0ec92812ce871b604ca2b124a7659fe0abc567d7a054cc9bb1db2389005",
-      "updated": "2026-10-12"
+      "sha256": "2e3c825c476cad3240d1ca6082fc9080db806b053111ef023222258d4af30c44",
+      "updated": "2026-10-18"
     },
     {
       "slug": "defense-ladder",

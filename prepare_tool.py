@@ -6,6 +6,10 @@ Usage:
       [--allow-script URL]          let the page load a library from this exact address (e.g. pdf.js on cdnjs)
       [--accept-runtime-fallback]   accept guarded claude.ai features that fall back when absent
       [--frame-guard]               refuse to run inside another site's frame (tools that read personal data)
+      [--allow-connect URL]         let the page fetch data from this exact https address prefix (e.g. an OCR language model)
+      [--allow-wasm]                let the page run WebAssembly ('wasm-unsafe-eval'; e.g. an OCR engine)
+      [--allow-worker-blob]         let the page start a web worker from a blob: address (e.g. tesseract.js)
+      [--allow-connect-data]        add data: to connect-src, so an engine can decode its own embedded WebAssembly (data: never reaches the network)
 
 It refuses pages that aren't self-contained or safe. Otherwise it writes SLUG/index.html with:
   - a strict Content Security Policy that pins every inline <script> by SHA-256 (no 'unsafe-inline' scripts)
@@ -64,6 +68,10 @@ def main():
     ap.add_argument("--allow-script", action="append", default=[], metavar="URL", help="allow scripts from this exact https address prefix")
     ap.add_argument("--accept-runtime-fallback", action="store_true", help="accept guarded window.claude use that falls back when absent")
     ap.add_argument("--frame-guard", action="store_true", help="add a guard that refuses to run inside another site's frame")
+    ap.add_argument("--allow-connect", action="append", default=[], metavar="URL", help="allow fetching data from this exact https address prefix")
+    ap.add_argument("--allow-wasm", action="store_true", help="allow WebAssembly ('wasm-unsafe-eval'); still no eval of JavaScript")
+    ap.add_argument("--allow-worker-blob", action="store_true", help="allow a web worker started from a blob: address")
+    ap.add_argument("--allow-connect-data", action="store_true", help="add data: to connect-src (an engine decoding its own embedded WebAssembly); data: never reaches the network")
     a = ap.parse_args()
 
     page = MARK.sub("", Path(a.source).read_text(encoding="utf-8"))
@@ -74,6 +82,9 @@ def main():
     for u in a.allow_script:
         if not re.match(r"https://[\w.-]+/", u):
             sys.exit(f"--allow-script must be an https:// address: {u}")
+    for u in a.allow_connect:
+        if not re.match(r"https://[\w.-]+/", u):
+            sys.exit(f"--allow-connect must be an https:// address: {u}")
     for why in problems:
         print(f"CHECK FAILED: the page {why}.")
     if problems and not a.force:
@@ -93,8 +104,10 @@ def main():
         bm = re.search(r"<body\b[^>]*>\s*", page, re.I)
         page = page[:bm.end()] + guard + page[bm.end():]
     hashes = sorted({sha256_csp(b) for b in executable_scripts(page)})
-    scripts = " ".join(hashes + sorted(a.allow_script))
+    scripts = " ".join(hashes + (["'wasm-unsafe-eval'"] if a.allow_wasm else []) + sorted(a.allow_script))
     csp = "default-src 'none'; " + (f"script-src {scripts}; " if scripts else "") + \
+          (f"connect-src {' '.join((['data:'] if a.allow_connect_data else []) + sorted(a.allow_connect))}; " if a.allow_connect or a.allow_connect_data else "") + \
+          ("worker-src blob:; " if a.allow_worker_blob else "") + \
           "style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'"
     icon = "data:image/svg+xml," + urllib.parse.quote(
         f"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>{a.icon}</text></svg>", safe="")

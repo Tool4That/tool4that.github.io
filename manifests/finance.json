@@ -5,7 +5,7 @@
       "slug": "spend-lens",
       "name": "PFAT — Personal Finance Advisor Tool",
       "tagline": "See where your money goes.",
-      "description": "Add transactions by hand, paste text, or import CSV and PDF bank statements. Get a money-in, money-out HUD, a paycheck plan, a 30-day look ahead, and a plain-language checkup. Everything stays on your device.",
+      "description": "Add transactions by hand, paste text, or import CSV, PDF, and scanned statements or app screenshots. Get a money-in, money-out HUD, a paycheck plan, a 30-day look ahead, and a plain-language checkup. Everything stays on your device.",
       "badges": [
         "Finance",
         "Budgeting",
@@ -18,7 +18,7 @@
         "spend[ _-]?lens",
         "personal finance advisor"
       ],
-      "page_description": "See where your money goes. Add transactions by hand, paste text, or import bank CSV and PDF statements, then get a money-in, money-out HUD, a paycheck plan, a 30-day look ahead, and a plain-language checkup. Everything stays on your device.",
+      "page_description": "See where your money goes. Add transactions by hand, paste text, or import bank, card, and investment statements (CSV, PDF, scanned PDFs, and screenshots, read on your device), then get a money-in, money-out HUD, a paycheck plan, a 30-day look ahead, and a plain-language checkup. Everything stays on your device.",
       "emoji": "📊",
       "prep": {
         "strip_google_fonts": true,
@@ -33,8 +33,16 @@
           ]
         ],
         "allow_script": [
-          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/"
+          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/",
+          "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/",
+          "https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/"
         ],
+        "allow_connect": [
+          "https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int/"
+        ],
+        "allow_connect_data": true,
+        "allow_wasm": true,
+        "allow_worker_blob": true,
         "accept_runtime_fallback": true,
         "frame_guard": true
       }
