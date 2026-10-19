@@ -324,7 +324,9 @@ notfound = head(f"Page not found | {cfg['name']}", "That page doesn't exist.", S
 </html>
 """
 (ROOT / "404.html").write_text(notfound, encoding="utf-8", newline="\n")
-(ROOT / "robots.txt").write_text(f"User-agent: *\nAllow: /\n\nSitemap: {SITE}/sitemap.xml\n", encoding="utf-8", newline="\n")
+# web archives (the Internet Archive's Wayback Machine crawlers) may not capture the site; search engines may
+ARCHIVE_BOTS = ["ia_archiver", "archive.org_bot"]
+(ROOT / "robots.txt").write_text("".join(f"User-agent: {b}\nDisallow: /\n\n" for b in ARCHIVE_BOTS) + f"User-agent: *\nAllow: /\n\nSitemap: {SITE}/sitemap.xml\n", encoding="utf-8", newline="\n")
 latest = max([TODAY] + [t["updated"] for t in cfg["tools"]])
 urls = [(SITE + "/", latest), (SITE + "/all/", latest)] + [(f"{SITE}/{c['slug']}/", max([t["updated"] for t in tools_in(c["slug"])] or [TODAY])) for c in CATS] + [(f"{SITE}/{s['slug']}/", max(t["updated"] for t in in_series(s["slug"]))) for s in SERIES if in_series(s["slug"])] + [(f"{SITE}/{t['slug']}/", t["updated"]) for t in cfg["tools"]]
 (ROOT / "sitemap.xml").write_text('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
