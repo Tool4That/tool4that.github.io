@@ -123,8 +123,8 @@
       "icon": "path",
       "category": "cyber",
       "section": "learning",
-      "sha256": "aca6d0510a5b05d60a7563225d81b9ca5524785e89629e77ffb564ce487aa356",
-      "updated": "2026-10-14"
+      "sha256": "a1d07ed734bc2b45ae3b6289b9f0969eedb8617b03b5fc41e7c2c185232614b8",
+      "updated": "2026-10-18"
     },
     {
       "slug": "net-drills/subnet-sprint",
@@ -452,8 +452,8 @@
       "icon": "map",
       "category": "cyber",
       "section": "learning",
-      "sha256": "f030573953016c86e6e0862b85d1875a32b6c38b6b52db900b7b0c4d59ad41d7",
-      "updated": "2026-10-14"
+      "sha256": "deac309e739e73fb9164965e071aa124c703b80ad6d7b65f14e85598e5998be8",
+      "updated": "2026-10-18"
     }
   ]
 }
