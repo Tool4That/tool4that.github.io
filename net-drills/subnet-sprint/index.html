@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-HDBroVOVbUcTB+fo2H3VEPFEbhvCLH+Ag9Hxd3iPEfs='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-4+hvCuAqLeadrND3beAwLx5nEd1/gXVoB9cpaGyHjcA='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Slide the mask in the sandbox and watch every value react, then work out network, broadcast, and host ranges against the clock. Includes VLSM planning and IPv6 drills.">
 <link rel="canonical" href="https://freeapp4that.store/net-drills/subnet-sprint/">
@@ -442,10 +442,10 @@ const GEN = {
       why: `2^${32 - p} − 2 = ${fmt(h)}. Subtract 2 for the network and broadcast addresses.` };
   },
   mask() {
-    const p = rnd(8, 30), m = maskOf(p);
+    const p = rnd(8, 32), m = maskOf(p), one = p === 32 ? ' A /32 matches exactly one host, as in the host route ip route 8.8.8.8 255.255.255.255 203.0.113.1.' : '';
     return Math.random() < 0.5
-      ? { q: `What is the subnet mask for /${p}?`, a: m, kind: 'ip', why: `${p} ones followed by ${32 - p} zeros = ${toStr(m)}.` }
-      : { q: `What prefix length is the mask ${toStr(m)}?`, a: p, kind: 'prefix', why: `Count the 1 bits in the mask: /${p}.` };
+      ? { q: `What is the subnet mask for /${p}?`, a: m, kind: 'ip', why: `${p === 32 ? '32 ones' : `${p} ones followed by ${32 - p} zero${32 - p === 1 ? '' : 's'}`} = ${toStr(m)}.${one}` }
+      : { q: `What prefix length is the mask ${toStr(m)}?`, a: p, kind: 'prefix', why: `Count the 1 bits in the mask: /${p}.${one}` };
   },
   netbc() {
     const pr = makeProblem(pick(['starter', 'standard', 'expert'])), isNet = Math.random() < 0.5, s = steps(pr.ip, pr.p);
@@ -453,9 +453,9 @@ const GEN = {
       a: isNet ? pr.r.net : pr.r.bc, kind: 'ip', why: `${s[1]} ${s[2]} ${s[3]}` };
   },
   wild() {
-    const p = rnd(8, 30), m = maskOf(p), w = u32(~m);
+    const p = rnd(8, 32), m = maskOf(p), w = u32(~m);
     return { q: Math.random() < 0.5 ? `What wildcard mask matches a /${p}?` : `What wildcard mask pairs with the subnet mask ${toStr(m)}?`,
-      a: w, kind: 'ip', why: `255.255.255.255 − ${toStr(m)} = ${toStr(w)}. ACLs and OSPF use wildcard masks.` };
+      a: w, kind: 'ip', why: `255.255.255.255 − ${toStr(m)} = ${toStr(w)}. ACLs and OSPF use wildcard masks.` + (p === 32 ? ' 0.0.0.0 matches one host; in an ACL, IOS also accepts the keyword host (host 8.8.8.8 equals 8.8.8.8 0.0.0.0).' : '') };
   },
   size() {
     const n = pick([rnd(2, 14), rnd(15, 62), rnd(63, 254), rnd(255, 1022), rnd(1023, 4094)]);
@@ -477,9 +477,9 @@ const GEN = {
       : { q: `Convert ${spaced(b)} to decimal.`, a: d, kind: 'int', why: `Add the place values of the 1 bits: ${placeSum(d)} = ${d}.` };
   }
 };
-const NAMES = ['USERS', 'SERVERS', 'GUESTS', 'PRINTERS', 'VOICE', 'LAB', 'STAFF', 'WIFI', 'CAMERAS', 'ADMIN'];
+const NAMES = ['STUDENTS', 'TEACHERS', 'PRINCIPALS', 'USERS', 'SERVERS', 'GUESTS', 'PRINTERS', 'VOICE', 'LAB', 'STAFF', 'WIFI', 'CAMERAS', 'ADMIN'];
 const PLAN_LEVELS = {
-  starter: { p: 24, lans: 3, wans: 1, base: () => [192, 168, rnd(0, 255), 0], hosts: [5, 10, 12, 20, 25, 28, 30, 45, 50, 60, 100, 120] },
+  starter: { p: 24, lans: 3, wans: 1, pool: 3, base: () => [192, 168, rnd(0, 255), 0], hosts: [5, 10, 12, 20, 25, 28, 30, 45, 50, 60, 100, 120] },
   standard: { p: 22, lans: 4, wans: 1, base: () => [172, rnd(16, 31), rnd(0, 63) * 4, 0], hosts: [30, 60, 100, 120, 200, 250, 300, 400, 500] },
   expert: { p: 16, lans: 4, wans: 2, base: () => [10, rnd(0, 255), 0, 0], hosts: [500, 1000, 2000, 4000, 8000, 12000, 20000, 30000] }
 };
@@ -488,7 +488,7 @@ function makePlan(level) {
   const L = PLAN_LEVELS[level] || PLAN_LEVELS.starter;
   for (let t = 0; t < 200; t++) {
     const b = L.base(), base = u32(b[0] * 16777216 + b[1] * 65536 + b[2] * 256 + b[3]), size = 2 ** (32 - L.p);
-    const names = NAMES.slice().sort(() => Math.random() - 0.5).slice(0, L.lans);
+    const names = NAMES.slice(0, L.pool || NAMES.length).sort(() => Math.random() - 0.5).slice(0, L.lans);
     const listing = names.map(n => ({ name: n, hosts: pick(L.hosts) }));
     for (let i = 0; i < L.wans; i++) listing.push({ name: L.wans > 1 ? `WAN link ${i + 1}` : 'WAN link', hosts: 2 });
     listing.forEach(r => { r.size = sizeFor(r.hosts); r.p = 32 - Math.log2(r.size); });

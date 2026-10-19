@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-QJe2AWh4/9YduPPkP7mgm/GWXMfkYN1UW7rEQDnxhtk='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-xK4ce3+qdDCFgn1nxq7dvTX2rll++QzEtoSF7+qUtkw='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/defense-ladder/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%8E%93%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -1215,6 +1215,71 @@ LEVELS.push({
      ['What does ARP do?',['Assigns IP addresses','Finds the MAC address that belongs to an IPv4 address on the local network','Encrypts traffic','Translates names to addresses'],1,'ARP maps IPv4 to MAC on the local segment. DHCP assigns addresses; DNS translates names.'],
      ['What does <code>enable secret</code> protect?',['Console access','Privileged EXEC (enable) mode, with a hashed password','SSH only','The running-config file'],1,'enable secret hashes the password that guards privileged mode. enable password (no secret) is clear text and a classic Config Audit finding.']
    ]),
+   C('The network you will build, one grade at a time','Understand',
+     P('Across the ladder you build one school network with two sites. Each site has a switch, a router, and three VLANs (Students 10, Teachers 20, and Principals 30). This grade names the parts, Sophomore configures the switch and gives both devices a secure baseline, Junior connects the router and routes between VLANs and sites, and Senior audits both sites and extends them.'),
+     PATH('Site A: a Students PC reaches a Teachers PC',[
+      {name:'Students PC',tag:'VLAN 10 · 10.1.10.20',tone:'l1',note:['Sits on an access port in VLAN 10','Sends traffic for 10.1.20.0/24 to its gateway, 10.1.10.1'],via:'Untagged, on an access port'},
+      {name:'SwA',tag:'Site A switch',tone:'l1',note:'Knows the frame belongs to VLAN 10 from the access port, and adds an 802.1Q tag of 10',via:'Tagged 10'},
+      {name:'Trunk G0/1',tag:'802.1Q',tone:'muted',note:['Carries VLANs 10, 20, and 30, each frame tagged','Native VLAN 99 crosses untagged and carries no hosts'],via:'To RtrA G0/0'},
+      {name:'RtrA',tag:'router-on-a-stick',tone:'l4',note:['<code>g0/0.10</code> accepts the frame tagged 10 and routes the packet','<code>g0/0.20</code> sends it back down, re-tagged 20','Traffic for Site B leaves on G0/2, across 10.0.0.0/30 to RtrB'],via:'Tagged 20, back down the trunk'},
+      {name:'SwA',tag:'Site A switch',tone:'l3',note:'Removes the tag and sends the frame out an access port in VLAN 20',via:'Untagged, on an access port'},
+      {name:'Teachers PC',tag:'VLAN 20 · 10.1.20.30',tone:'l3',note:'Receives the frame from RtrA’s MAC address'}
+     ],{intro:'Follow one packet from Students to Teachers at Site A. Site B mirrors it with 10.2 addresses.',
+       note:'<b>The second branch: Site A to Site B.</b> RtrA and RtrB share the inter-site link 10.0.0.0/30 (RtrA G0/2 is 10.0.0.1, RtrB G0/2 is 10.0.0.2). A packet for 10.2.20.30 leaves RtrA on G0/2 instead of going back down the trunk, and RtrB delivers it through SwB.',
+       key:[['l1','VLAN 10 · Students'],['l3','VLAN 20 · Teachers'],['l4','The router: layer 3'],['muted','The trunk']],
+       caption:'One cable carries three VLANs; the router answers each on its own subinterface.'})),
+   COMPARE('A VLAN and an SVI',[
+     {name:'VLAN 20',tag:'Layer 2',tone:'l2',
+      rows:[['Is','A broadcast domain stored in the switch’s VLAN database'],['Groups','The access ports assigned to it, and the trunks that carry it'],['Has','A number and a name: <code>vlan 20</code>, then <code>name TEACHERS</code>'],['Listed by','<code>show vlan brief</code>']],
+      hook:'the room.'},
+     {name:'Interface VLAN 20',tag:'Layer 3 · SVI',tone:'l3',
+      rows:[['Is','A virtual interface that gives the switch its own IP address inside VLAN 20'],['Used for','Managing the switch (ping and SSH) or, on a layer 3 switch, routing'],['Has','An address: <code>interface vlan 20</code>, then <code>ip address 10.1.20.2 255.255.255.0</code>'],['Listed by','<code>show ip interface brief</code>']],
+      hook:'the switch’s own desk inside the room.'}
+   ],{intro:'The two commands share a number and build different things. Create the VLAN first, then the SVI that lives inside it.',
+     note:'SVI stands for switched virtual interface. Larger networks give management its own dedicated VLAN; this network keeps it on Teachers so the Teachers-only ACL and the management subnet are one and the same.',
+     caption:'The VLAN is the room; the SVI is the switch’s own desk inside the room.'}),
+   C('Native VLAN, PortFast, and BPDU guard','Understand',
+     P('PortFast belongs on edge ports that connect one end device, such as a PC or a printer. Trunks and switch-to-switch links keep the full listening and learning stages, so spanning tree can find and block a loop before frames circulate. BPDU guard shuts an edge port the moment another switch’s BPDU arrives, so a switch plugged into a classroom jack stays off the network until an admin checks it.'),
+     SEQ('A port comes up: the spanning tree states',[
+       {ask:'Is PortFast on this port?',branches:[['Yes, an edge port','It jumps straight to forwarding as the link comes up.'],['Otherwise','It walks through the states below first.']]},
+       ['Blocking','Listens for BPDUs and forwards no user frames.','muted'],
+       ['Listening','About 15 seconds: switches exchange BPDUs and settle the port’s role, still without user frames.','amber'],
+       ['Learning','About 15 seconds more: the port fills its MAC address table, still without forwarding.','l2'],
+       ['Forwarding','User frames flow, about 30 seconds after the link came up.','ok']
+     ],{caption:'Without PortFast a port waits about 30 seconds; with it, an edge port forwards at once.',
+       note:'These are the classic 802.1D states, used by PVST+, the default on a 2960. Rapid PVST+ folds blocking and listening into one discarding state and converges faster; PortFast still marks the edge ports.'}),
+     NOTE('<b>The native VLAN</b> is the one VLAN that crosses a trunk untagged. This network uses VLAN 99 for it, keeps 99 free of hosts, and leaves VLAN 1 for defaults only. Unused ports park in a separate VLAN, 999, and stay shut down.')),
+   FLASH('f7fl2','Two-site network vocabulary',[
+     ['VLAN','Virtual LAN: a group of switch ports that forms its own broadcast domain. This network uses 10 STUDENTS, 20 TEACHERS, and 30 PRINCIPALS.'],
+     ['Trunk','A link that carries many VLANs at once, tagging each frame with its VLAN. At Site A, SwA G0/1 to RtrA G0/0 is the trunk.'],
+     ['802.1Q tag','A 4-byte field inserted after the source MAC address; its 12-bit VLAN ID names the frame’s VLAN on a trunk.'],
+     ['Native VLAN','The one VLAN whose frames cross a trunk untagged. This network uses VLAN 99 and keeps it free of hosts.'],
+     ['SVI','Switched virtual interface, such as <code>interface vlan 20</code>: gives the switch its own IP address inside a VLAN, for management or routing.'],
+     ['Access port','A switch port in one VLAN that sends and receives untagged frames, for one end device.'],
+     ['Router-on-a-stick','One router interface split into subinterfaces (<code>g0/0.10</code>, <code>g0/0.20</code>, and <code>g0/0.30</code>) routes between VLANs over a single trunk.'],
+     ['PortFast','Moves an edge port straight to forwarding, skipping about 30 seconds of listening and learning. It belongs on edge ports only.'],
+     ['BPDU guard','Shuts down (err-disables) an edge port the moment it receives a BPDU, the message switches send each other.'],
+     ['SSH vs Telnet','Both give a remote command line. SSH (TCP 22) encrypts the session and the password; Telnet (TCP 23) sends both as plain text.']
+   ]),
+   MATCH('f7m4','Name the piece','Match each part of the school network to its job.',[
+     ['Access port','Carries one VLAN untagged to one device','<code>switchport mode access</code> and <code>switchport access vlan 10</code>: the PC sees plain Ethernet frames.'],
+     ['Trunk port','Carries many VLANs with tags','<code>switchport mode trunk</code>: each frame carries an 802.1Q tag that names its VLAN.'],
+     ['Native VLAN','Crosses the trunk untagged','One VLAN per trunk travels without a tag; this network uses VLAN 99 and keeps hosts off it.'],
+     ['SVI','Gives the switch an address in a VLAN','<code>interface vlan 20</code> with 10.1.20.2 lets admins reach SwA.'],
+     ['Subinterface','The router’s address in one VLAN','<code>g0/0.10</code> with <code>encapsulation dot1Q 10</code> is RtrA’s gateway for Students.'],
+     ['PortFast','Lets an edge port forward at once','It skips listening and learning on ports that connect one end device.'],
+     ['BPDU guard','Shuts an edge port that hears a switch','A BPDU on an edge port means a switch is plugged in, so the port goes err-disabled.'],
+     ['SSH','Encrypted remote console','SSH protects the session and the password; Telnet sends both as plain text.']
+   ]),
+   QUIZ('f7q2','Why each rule exists',[
+     ['Why do user VLANs use numbers above 1?',['VLAN 1 is reserved for traffic between routers','Every port starts in VLAN 1, and control traffic uses it','Routers ignore VLAN 1, so its hosts lack a gateway','VLANs above 1 skip spanning tree and come up sooner'],1,'VLAN 1 is every port’s default and carries control protocols, so it stays for defaults only. Students, Teachers, and Principals get 10, 20, and 30.'],
+     ['What does a trunk carry?',['Many VLANs, each frame tagged with its VLAN ID','Every VLAN, with frames left untagged to save space','Management and control traffic between switches only','Routed packets, each one tagged with its subnet'],0,'A trunk carries many VLANs over one link. An 802.1Q tag in each frame names its VLAN; the native VLAN alone crosses untagged.'],
+     ['What makes the native VLAN different?',['It carries the most traffic','It is the one VLAN with an SVI','Its frames cross the trunk untagged','It is always VLAN 999'],2,'The native VLAN’s frames cross a trunk without a tag. This network uses VLAN 99 for it and keeps it free of hosts; VLAN 999 is the separate parking VLAN.'],
+     ['What is the difference between <code>vlan 20</code> and <code>interface vlan 20</code>?',['<code>vlan 20</code> names the VLAN; <code>interface vlan 20</code> assigns its ports','<code>vlan 20</code> creates the layer 2 VLAN; <code>interface vlan 20</code> gives the switch an address in it','<code>interface vlan 20</code> creates the VLAN and its address in one step','<code>vlan 20</code> holds the IP address; <code>interface vlan 20</code> holds the name'],1,'The VLAN is the broadcast domain in the VLAN database. The SVI is the switch’s own IP address inside that VLAN, used for management.'],
+     ['Where does PortFast belong?',['On the trunk to the router, so the uplink comes up sooner','On every port, so the whole switch comes up sooner','On switch-to-switch links between closets','On access ports that connect one end device'],3,'PortFast skips listening and learning, which suits a port with one end device. Trunks and switch-to-switch links keep the full process, so spanning tree can catch a loop.'],
+     ['Why choose SSH over Telnet for remote management?',['SSH encrypts the session and the password','SSH runs faster than Telnet on slow links','Telnet reaches only devices on the same subnet','SSH logs in with a username alone'],0,'Anyone who captures a Telnet session reads the password. SSH (TCP 22) encrypts the whole session.'],
+     ['Spaced review from Computers, virtualization, and the network: which TCP port does SSH use?',['21','22','23','443'],1,'SSH listens on TCP 22. Telnet uses 23, FTP control uses 21, and HTTPS uses 443.']
+   ]),
    LINKS('Go further',['netacad','pt','t4t-subnet','t4t-ios','khan'])
   ]}
  ]
@@ -1544,56 +1609,99 @@ LEVELS.push({
  {id:'s5',title:'Cisco: configure a switch and a router',bloom:'Apply',sum:'The baseline IOS commands for a new switch and router, why each one matters, and how to verify them.',
   blocks:[
    C('Baseline switch configuration','Apply',
-     CMDS('From user mode to a saved config',[
+     P('The worked example is <b>SwA</b>, the Site A switch: a Cisco 2960 with ports Fa0/1 to Fa0/24 and two uplinks, G0/1 and G0/2. The commands match Packet Tracer and classic IOS 15.'),
+     CMDS('SwA, from user mode to a saved config',[
        ['enable','User EXEC (>) to privileged EXEC (#).'],
        ['configure terminal','Global configuration mode (config)#.'],
-       ['hostname SW1','Match the name in your network documentation exactly; it appears in prompts, logs, and neighbor tables.'],
-       ['enable secret Cisco123!','Hashed password for privileged mode (use this instead of enable password).'],
+       ['hostname SwA','Match the name in your network documentation exactly; it appears in prompts, logs, and neighbor tables.'],
+       ['ip domain-name school.lan','Required before generating the SSH key; the key is named after the hostname and the domain (SwA.school.lan).'],
+       ['vlan 10','Then: name STUDENTS. Creates VLAN 10 in the VLAN database.'],
+       ['vlan 20','Then: name TEACHERS. Teachers, and the switch’s management address.'],
+       ['vlan 30','Then: name PRINCIPALS.'],
+       ['vlan 99','Then: name NATIVE. The trunk’s untagged VLAN; it carries no hosts.'],
+       ['vlan 999','Then: name PARKING. Unused ports wait here, shut down.'],
+       ['interface range f0/1 - 8','Students ports. Then: switchport mode access, switchport access vlan 10, spanning-tree portfast, and spanning-tree bpduguard enable.'],
+       ['interface range f0/9 - 16','Teachers ports: the same four commands, with switchport access vlan 20.'],
+       ['interface range f0/17 - 20','Principals ports: the same four commands, with switchport access vlan 30.'],
+       ['interface range f0/21 - 24, g0/2','Unused ports. Then: switchport mode access, switchport access vlan 999, and shutdown.'],
+       ['interface vlan 20','Management interface (SVI). Then: ip address 10.1.20.2 255.255.255.0 and no shutdown.'],
+       ['ip default-gateway 10.1.20.1','In global configuration: RtrA’s Teachers address, so admins on other subnets and at Site B reach the switch.'],
+       ['interface vlan 1','Then: shutdown. VLAN 1 keeps its default role and carries no management address.'],
+       ['enable secret En@ble-A1','Hashed password for privileged mode (use this instead of enable password).'],
+       ['line console 0','Then: password C0nsole-A1, login, and exec-timeout 5 0 (idle sessions log out after 5 minutes). exit to leave.'],
        ['service password-encryption','Obscures the clear-text line passwords in the config (weak, but better than plain text).'],
-       ['banner motd #Authorized access only#','Legal notice. Pick a delimiter character that appears nowhere in the text.'],
-       ['line console 0','Then: password Cisco123! and login. exit to leave.'],
-       ['line vty 0 15','Remote lines. Then: login local and transport input ssh.'],
-       ['username admin secret Cisco123!','Local account used by login local.'],
-       ['ip domain-name example.com','Required before generating the SSH key.'],
-       ['crypto key generate rsa modulus 2048','SSH key pair.'],
+       ['username netadmin secret Adm1n-A1','Local account used by login local.'],
+       ['crypto key generate rsa modulus 2048','SSH key pair. It needs the hostname and the domain name first.'],
        ['ip ssh version 2','SSH version 2 only.'],
-       ['interface vlan 1','Management interface (real networks usually move management off VLAN 1). Then: ip address 192.168.1.2 255.255.255.0 and no shutdown.'],
-       ['ip default-gateway 192.168.1.1','So the switch can be managed from other networks.'],
-       ['copy running-config startup-config','Save to NVRAM. Unsaved changes vanish on reload.']
-     ])),
+       ['line vty 0 15','Remote lines. Then: login local, transport input ssh, and exec-timeout 5 0. The VTY lines accept SSH only, so a Telnet attempt gets connection refused.'],
+       ['banner motd #Authorized access only#','Legal notice, shown first. Pick a delimiter character that appears nowhere in the text.'],
+       ['banner login #Authorized staff only. Activity is logged.#','On the console, the MOTD shows first, then the login banner, just before the login prompt (Password: here; Username: on lines that use login local).'],
+       ['copy running-config startup-config','Save to NVRAM. Unsaved changes vanish on reload. (VLANs live in vlan.dat in flash, saved as you create them.)']
+     ]),
+     CMDS('Verify SwA',[
+       ['show vlan brief','VLAN names and their access ports: STUDENTS, TEACHERS, PRINCIPALS, NATIVE, and PARKING.'],
+       ['show ip interface brief','Vlan20 up/up with 10.1.20.2; Vlan1 administratively down.'],
+       ['show interfaces f0/1 switchport','The port’s role: Administrative Mode static access, Access Mode VLAN 10.'],
+       ['show mac address-table','Learned MAC addresses, by VLAN and port.'],
+       ['show ip ssh','"SSH Enabled - version 2.0".'],
+       ['show running-config | section line vty','login local and transport input ssh on every VTY line.'],
+       ['ping 10.1.20.2','From a Teachers PC: the switch’s management address answers.']
+     ]),
+     NOTE('Every password here is a placeholder, and each line uses a different one. On a real device, choose a unique passphrase for each: the enable secret, the console, and every user.'),
+     NOTE('Larger networks give management its own dedicated VLAN; this network keeps it on Teachers so the Teachers-only ACL and the management subnet are one and the same.')),
     HIER('IOS command modes: where each command lives',
-     {name:'User EXEC',note:'Prompt <code>SW1&gt;</code>: basic monitoring. <code>enable</code> moves down a level',tone:'l1',children:[
-       {name:'Privileged EXEC',note:'Prompt <code>SW1#</code>: show, copy, ping, and reload. <code>configure terminal</code> moves down',tone:'l2',children:[
-         {name:'Global configuration',note:'Prompt <code>SW1(config)#</code>: hostname, enable secret, username, banner, and ip default-gateway',tone:'l3',children:[
-           {name:'Interface configuration',note:'<code>SW1(config-if)#</code>, from <code>interface vlan 1</code>: ip address and no shutdown',tone:'l4'},
-           {name:'Line configuration',note:'<code>SW1(config-line)#</code>, from <code>line console 0</code> or <code>line vty 0 15</code>: password, login local, transport input ssh, and exec-timeout',tone:'l4'}]}]}]},
+     {name:'User EXEC',note:'Prompt <code>SwA&gt;</code>: basic monitoring. <code>enable</code> moves down a level',tone:'l1',children:[
+       {name:'Privileged EXEC',note:'Prompt <code>SwA#</code>: show, copy, ping, and reload. <code>configure terminal</code> moves down',tone:'l2',children:[
+         {name:'Global configuration',note:'Prompt <code>SwA(config)#</code>: hostname, enable secret, username, banner, and ip default-gateway',tone:'l3',children:[
+           {name:'Interface configuration',note:'<code>SwA(config-if)#</code>, from <code>interface vlan 20</code>: ip address and no shutdown',tone:'l4'},
+           {name:'Line configuration',note:'<code>SwA(config-line)#</code>, from <code>line console 0</code> or <code>line vty 0 15</code>: password, login local, transport input ssh, and exec-timeout',tone:'l4'}]}]}]},
      {intro:'Each prompt tells you where you are. A command typed at the wrong level returns an error, so read the prompt first.',
       note:'<code>exit</code> climbs one level; <code>end</code> or Ctrl+Z jumps straight back to privileged EXEC. In any configuration mode, put <code>do</code> in front of a privileged command (<code>do show ip interface brief</code>) to run it where you are.',
       caption:'Down the tree: enable, configure terminal, then interface or line. The prompt changes at every step.'}),
+   COMPARE('vlan 20 and interface vlan 20 on SwA',[
+     {name:'vlan 20',tag:'Layer 2 · the VLAN',tone:'l2',
+      rows:[['Creates','A broadcast domain with a number and a name (<code>name TEACHERS</code>)'],
+            ['Lives in','The VLAN database, vlan.dat in flash, saved as you create it'],
+            ['Listed by','<code>show vlan brief</code>'],
+            ['Is up when','It exists: <code>show vlan brief</code> lists it as active']],
+      hook:'the room.'},
+     {name:'interface vlan 20',tag:'Layer 3 · the SVI',tone:'l3',
+      rows:[['Creates','An interface that holds the switch’s own address, 10.1.20.2'],
+            ['Lives in','The running-config, saved with <code>copy running-config startup-config</code>'],
+            ['Listed by','<code>show ip interface brief</code> (as Vlan20)'],
+            ['Is up when','It has <code>no shutdown</code>, VLAN 20 exists, and an up port or trunk carries VLAN 20 (autostate)']],
+      hook:'the switch’s own desk inside the room.'}
+   ],{intro:'Same number, two different objects. The SVI depends on the VLAN, so build the VLAN and its ports first.',
+     note:'<b>Autostate:</b> an SVI reaches up/up only when VLAN 20 exists and at least one port in VLAN 20 (or a trunk that carries it) is up and forwarding. Until then it reads down/down while VLAN 20 is missing from the VLAN database, and up/down while the VLAN exists but every port in it is down, even with <code>no shutdown</code>.',
+     caption:'The VLAN lives in vlan.dat and groups ports; the SVI lives in the running-config and gives SwA an address inside VLAN 20.',
+     bloom:'Apply'}),
    SCALE('Cisco password storage, from readable to hard to crack',{from:'Readable',to:'Hard to crack',bands:[
        ['enable password','Clear text: anyone who sees the configuration reads it','bad'],
        ['Type 7','What service password-encryption makes of enable and line passwords: a reversible scramble that free tools undo in seconds','amber'],
        ['Type 5','A salted MD5 hash, the classic form of enable secret and username … secret: one-way, but quick to brute-force','l2'],
        ['Type 8 or 9','Slow, salted hashes (PBKDF2 with SHA-256, or scrypt), chosen with the algorithm-type keyword','ok']]},
      {intro:'The word “encryption” in service password-encryption oversells it. What protects a password is the secret keyword, which stores a hash.',
-      note:'When <code>enable secret</code> and <code>enable password</code> both exist, enable secret wins. <code>username admin secret …</code> stores a hash; <code>username admin password …</code> stores clear text or type 7. Example: <code>enable algorithm-type scrypt secret …</code>',
+      note:'When <code>enable secret</code> and <code>enable password</code> both exist, enable secret wins. <code>username netadmin secret …</code> stores a hash; <code>username netadmin password …</code> stores clear text or type 7. Example: <code>enable algorithm-type scrypt secret …</code>',
       caption:'Use secret for every password that offers it, and treat service password-encryption as a screen against glances over your shoulder.'}),
    C('Baseline router configuration','Apply',
-     CMDS('Interfaces and verification',[
-       ['interface gigabitethernet0/0/0','Then: description LAN, ip address 192.168.1.1 255.255.255.0, and no shutdown.'],
+     CMDS('RtrA: the same secure baseline, then the link to SwA',[
+       ['hostname RtrA','Repeat hostname, ip domain-name school.lan, crypto key generate rsa modulus 2048, ip ssh version 2, the username, and the VTY lines on RtrA, with its own secrets. The router needs SSH too.'],
+       ['line console 0','Then: password, login, and exec-timeout 5 0: idle console sessions log out after 5 minutes.'],
+       ['line vty 0 4','Then: login local, transport input ssh, and exec-timeout 5 0. Configure every VTY range that show running-config lists on the router (some images also list line vty 5 15).'],
+       ['interface g0/0','The link to SwA G0/1. Then: description Trunk to SwA G0/1 and no shutdown. Router interfaces start administratively down.'],
        ['show ip interface brief','Interface status and addresses. up/up is the goal.'],
        ['show running-config','What is configured now. show startup-config is what is saved.'],
-       ['show vlan brief','Switch: VLANs and port assignments.'],
-       ['show mac address-table','Switch: learned MAC addresses.'],
-       ['ping 192.168.1.10','Verify from the device. Also from a PC: ping its gateway.'],
-       ['exec-timeout 5 0','Under line console/vty: log out idle sessions after 5 minutes.']
-     ])),
-    PATH('One LAN, worked addresses: PC, switch, and router',[
-     {name:'PC',tag:'192.168.1.10/24',tone:'l1',note:['Gateway: 192.168.1.1','Sends traffic for other networks to its gateway'],via:'Frame to the router’s MAC'},
-     {name:'SW1',tag:'Layer 2 switch',tone:'l2',note:['Forwards frames by MAC address','Management IP 192.168.1.2 on interface vlan 1','Gateway 192.168.1.1, so admins on other networks reach it'],via:'Same frame, out the port to R1'},
-     {name:'R1',tag:'Layer 3 router',tone:'l3',note:['g0/0/0: 192.168.1.1, the gateway for this LAN','Each interface sits in its own network','Routes packets by destination IP to other networks']}
+       ['show ip ssh','"SSH Enabled - version 2.0" on the router as well.'],
+       ['copy running-config startup-config','Save the router too.']
+     ]),
+     NOTE('Junior adds the subinterfaces <code>g0/0.10</code>, <code>.20</code>, and <code>.30</code> that make RtrA the gateway for each VLAN (10.1.10.1, 10.1.20.1, and 10.1.30.1).')),
+    PATH('Site A, worked addresses: Teachers PC, SwA, and RtrA',[
+     {name:'Teachers PC',tag:'10.1.20.30/24',tone:'l1',note:['Gateway: 10.1.20.1','Sends traffic for other networks to its gateway'],via:'Frame to the router’s MAC'},
+     {name:'SwA',tag:'Layer 2 switch',tone:'l2',note:['Forwards frames by MAC address','Management IP 10.1.20.2 on interface vlan 20','Gateway 10.1.20.1, so admins on other networks reach it'],via:'Same frame, out the uplink to RtrA'},
+     {name:'RtrA',tag:'Layer 3 router',tone:'l3',note:['10.1.20.1, the gateway for Teachers (Junior builds it on g0/0.20)','Each interface sits in its own network','Routes packets by destination IP to other networks']}
    ],{intro:'Both devices take an IP address, for different reasons. The switch’s address is a handle for managing it; the router’s addresses are the gateways that traffic flows through.',
-     caption:'The PC (.10) and the switch (.2) both use the router (.1) as their gateway. Frames cross the switch; packets cross the router. Check them with show mac address-table on SW1 and show ip route on R1.'}),
+     note:'Larger networks give management its own dedicated VLAN; this network keeps it on Teachers so the Teachers-only ACL and the management subnet are one and the same.',
+     caption:'The Teachers PC (.30) and the switch (.2) both use the router (.1) as their gateway. Frames cross the switch; packets cross the router. Check them with show mac address-table on SwA and show ip route on RtrA.'}),
    PATH('running-config and startup-config: where a change lives',[
      {name:'You type a command',tag:'(config)#',tone:'muted',note:'It takes effect at once',via:'Changes'},
      {name:'running-config',tag:'RAM',tone:'l2',note:['The configuration in effect now','<code>show running-config</code>','Cleared by a reload or power loss'],via:'Save'},
@@ -1602,8 +1710,46 @@ LEVELS.push({
    ],{intro:'Every command changes the device the moment you press Enter, and the change stays in RAM until you save it.',
      note:'Save with <code>copy running-config startup-config</code>: the copy command reads source first, destination second. The reverse order merges the saved file into what is running, so check the order before you press Enter. <code>write memory</code> is the older way to save.',
      caption:'Save after each block of changes. A reload before saving discards everything since the last save.'}),
+   ORDER('s5o','Build SwA in a working order','Tap the twelve jobs in the order of the SwA worked example above. Each reason says what that step makes possible.',[
+     ['Set the hostname and the domain name','The prompt then names the device you are on, and SSH key generation needs both names.'],
+     ['Create VLANs 10, 20, 30, 99, and 999 with names','Ports and the SVI need their VLANs to exist first.'],
+     ['Make the user ports access ports with PortFast and BPDU guard','Each port joins one VLAN; PortFast and BPDU guard belong on these edge ports.'],
+     ['Park the unused ports in VLAN 999 and shut them down','A spare jack then leads nowhere until an admin enables it.'],
+     ['Give the VLAN 20 SVI its address, then set the default gateway','The switch gets a management address, and replies reach admins on other subnets.'],
+     ['Shut the VLAN 1 SVI','Management lives on VLAN 20, so VLAN 1 keeps its default role only.'],
+     ['Set the enable secret','A hashed password now guards privileged mode.'],
+     ['Require a password on the console','Physical access now needs a password, and idle sessions time out.'],
+     ['Add the local user, then generate the 2048-bit RSA key, then turn on SSH version 2','login local needs the user, and SSH needs the key.'],
+     ['Set the VTY lines to login local and SSH only','Remote logins now use the local user over an encrypted session.'],
+     ['Add the MOTD and login banners','The legal notice appears before anyone signs in.'],
+     ['Save with copy running-config startup-config','Everything above survives a reload.']
+   ]),
+   MATCH('s5m','Command and what it proves','Tap a show command, then what it proves about SwA.',[
+     ['show vlan brief','VLAN names and their access ports','It lists STUDENTS, TEACHERS, PRINCIPALS, NATIVE, and PARKING with the ports in each.'],
+     ['show ip interface brief','The SVI is up/up','Vlan20 with 10.1.20.2 should read up/up; Vlan1 should read administratively down.'],
+     ['show ip ssh','SSH version 2 is on','The first line reads “SSH Enabled - version 2.0”.'],
+     ['show running-config | section line vty','The VTY lines use login local and SSH only','Every VTY range shows login local and transport input ssh.'],
+     ['show interfaces switchport','Each port’s access or trunk role','Administrative Mode reads static access on the user ports; the uplink G0/1 still reads dynamic auto until Junior makes it a trunk.']
+   ]),
+   LAB('s5lab','Configure SwA in Packet Tracer or IOS CLI Lab','Place a 2960 switch named SwA in Packet Tracer and cable a Teachers PC to Fa0/9, or open the <a href="'+RES['t4t-ios'][1]+'" target="_blank" rel="noopener noreferrer">IOS CLI Lab</a>, choose Free play, and move PC2 to Fa0/9 (its missions grade the names R1 and S1). Every step shows its commands; semicolons separate the lines you type. Tick each step once it works.',[
+     ['Enter privileged EXEC, then global configuration.','enable; configure terminal'],
+     ['Name the switch and its domain.','hostname SwA; ip domain-name school.lan'],
+     ['Create and name the five VLANs.','vlan 10; name STUDENTS; vlan 20; name TEACHERS; vlan 30; name PRINCIPALS; vlan 99; name NATIVE; vlan 999; name PARKING'],
+     ['Students ports: access VLAN 10, PortFast, and BPDU guard.','interface range f0/1 - 8; switchport mode access; switchport access vlan 10; spanning-tree portfast; spanning-tree bpduguard enable'],
+     ['Teachers ports: access VLAN 20, PortFast, and BPDU guard.','interface range f0/9 - 16; switchport mode access; switchport access vlan 20; spanning-tree portfast; spanning-tree bpduguard enable'],
+     ['Principals ports: access VLAN 30, PortFast, and BPDU guard.','interface range f0/17 - 20; switchport mode access; switchport access vlan 30; spanning-tree portfast; spanning-tree bpduguard enable'],
+     ['Park and shut the unused ports.','interface range f0/21 - 24, g0/2; switchport mode access; switchport access vlan 999; shutdown'],
+     ['Give the switch its management address and gateway.','interface vlan 20; ip address 10.1.20.2 255.255.255.0; no shutdown; exit; ip default-gateway 10.1.20.1'],
+     ['Shut the VLAN 1 SVI.','interface vlan 1; shutdown; exit'],
+     ['Protect privileged mode and the console.','enable secret En@ble-A1; line console 0; password C0nsole-A1; login; exec-timeout 5 0; exit; service password-encryption'],
+     ['Add the local user, the RSA key, and SSH version 2.','username netadmin secret Adm1n-A1; crypto key generate rsa modulus 2048; ip ssh version 2'],
+     ['Set the VTY lines to login local and SSH only.','line vty 0 15; login local; transport input ssh; exec-timeout 5 0; exit'],
+     ['Add both banners.','banner motd #Authorized access only#; banner login #Authorized staff only. Activity is logged.#'],
+     ['Save, then verify the VLANs and SSH.','end; copy running-config startup-config; show vlan brief; show ip ssh'],
+     ['Give the Teachers PC 10.1.20.30/24 with gateway 10.1.20.1. Ping 10.1.20.2 from it, then SSH in as netadmin.','ping 10.1.20.2; ssh -l netadmin 10.1.20.2']
+   ]),
    QUIZ('s5q','Check: IOS',[
-     ['You configured an IP address on interface vlan 1 but pings to the switch still fail. Most likely missing?',['enable secret','no shutdown on the interface','service password-encryption','a banner'],1,'The interface is still down. no shutdown brings it up. Check with show ip interface brief.'],
+     ['You configured 10.1.20.2 on interface vlan 20, VLAN 20 exists with a PC plugged in, and pings to SwA still fail. Most likely missing?',['enable secret','no shutdown on the interface','service password-encryption','a banner'],1,'The SVI is still administratively down. no shutdown brings it up; show ip interface brief then shows Vlan20 up/up.'],
      ['Which command makes the vty lines use the local username database?',['login','login local','password cisco','transport input ssh'],1,'login alone uses the line password; login local uses username/secret entries.'],
      ['The switch reloaded and your configuration is gone. What was missed?',['enable secret','copy running-config startup-config','show vlan brief','exec-timeout'],1,'The running-config lives in RAM. Save it to NVRAM (the startup-config) so it survives a reload.'],
      ['Why enable secret rather than enable password?',['It is shorter','enable secret stores a hash; enable password is clear text or weakly reversible','They are the same','enable password is newer'],1,'Config Audit will show you this one in the wild: an enable password line is a finding.']
@@ -1913,32 +2059,37 @@ LEVELS.push({
  {id:'j4',title:'Cisco: VLANs, routing, and ACLs',bloom:'Apply',sum:'Segment a network with VLANs, route between them, and filter traffic with access lists.',
   blocks:[
    C('VLANs and trunks','Apply',
-     CMDS('Segment the switch',[
-       ['vlan 10','Create a VLAN. Then: name SALES'],
-       ['interface range fastethernet0/1 - 8','Several ports at once.'],
+     CMDS('Segment SwA and SwB',[
+       ['vlan 10','Create the VLAN. Then: name STUDENTS. Repeat with vlan 20 (name TEACHERS), vlan 30 (name PRINCIPALS), vlan 99 (name NATIVE), and vlan 999 (name PARKING) on both SwA and SwB.'],
+       ['interface range f0/1 - 8','Several ports at once.'],
        ['switchport mode access','These are host ports; the trunk is configured separately.'],
-       ['switchport access vlan 10','Put the ports in VLAN 10.'],
-       ['interface gigabitethernet0/1','The link to the router or another switch.'],
+       ['switchport access vlan 10','Put the ports in VLAN 10, Students. Ports f0/9 - 16 go in VLAN 20 and f0/17 - 20 in VLAN 30.'],
+       ['spanning-tree portfast','Then: spanning-tree bpduguard enable. Both belong on edge ports, as in Sophomore.'],
+       ['interface g0/1','The uplink: SwA G0/1 to RtrA G0/0 (SwB G0/1 to RtrB G0/0).'],
        ['switchport mode trunk','Carry multiple VLANs over one link.'],
-       ['switchport trunk allowed vlan 10,20','Only the VLANs you intend. Fewer VLANs on a trunk means less exposure.'],
+       ['switchport trunk native vlan 99','The one untagged VLAN on this trunk. It carries no hosts, and the router’s g0/0.99 matches it.'],
+       ['switchport trunk allowed vlan 10,20,30,99','Only the VLANs you intend, the native VLAN included. Fewer VLANs on a trunk means less exposure.'],
+       ['switchport nonegotiate','Stops the port sending DTP (Dynamic Trunking Protocol) frames. switchport mode trunk already makes the port a trunk by configuration alone, and the router at the far end speaks no DTP.'],
        ['show vlan brief','Verify port-to-VLAN assignments.'],
-       ['show interfaces trunk','Verify the trunk and allowed VLANs.']
-     ])),
+       ['show interfaces trunk','Verify the trunk, its native VLAN (99), and the allowed VLANs.']
+     ]),
+     P('SwB uses the same VLAN numbers and names; only the subnets change (10.2.x.0).'),
+     NOTE('A 2960 speaks only 802.1Q. Multilayer switches that also support ISL, such as the 3560 and 3750, take <code>switchport trunk encapsulation dot1q</code> before <code>switchport mode trunk</code> (the Packet Tracer 3650 accepts it too).')),
     ANATOMY('One switch, two networks: each VLAN is its own broadcast domain',[
-     {name:'Switch SW1',tag:'one physical box · layer 2',tone:'muted',grid:true,
+     {name:'Switch SwA',tag:'one physical box · layer 2',tone:'muted',grid:true,
       panel:['Between the VLANs','Only a layer 3 hop: a router or a layer 3 switch'],
       children:[
-        {name:'VLAN 10 · SALES',tag:'192.168.10.0/24',tone:'l1',text:'Ports Fa0/1–8<br>PC-A 192.168.10.20<br>Gateway 192.168.10.1'},
-        {name:'VLAN 20',tag:'192.168.20.0/24',tone:'l3',text:'Ports Fa0/9–16<br>PC-B 192.168.20.30<br>Gateway 192.168.20.1'}]}
+        {name:'VLAN 10 · STUDENTS',tag:'10.1.10.0/24',tone:'l1',text:'Ports Fa0/1–8<br>Students PC 10.1.10.20<br>Gateway 10.1.10.1'},
+        {name:'VLAN 20 · TEACHERS',tag:'10.1.20.0/24',tone:'l3',text:'Ports Fa0/9–16<br>Teachers PC 10.1.20.30<br>Gateway 10.1.20.1'}]}
    ],{intro:'Putting ports in different VLANs splits one switch into separate layer 2 networks. Each VLAN gets its own IP subnet and its own default gateway.',
-     label:'One switch holds two VLANs. VLAN 10 uses 192.168.10.0/24 and VLAN 20 uses 192.168.20.0/24. Traffic between them needs a router or a layer 3 switch.',
+     label:'SwA holds two of its VLANs here. VLAN 10, Students, uses 10.1.10.0/24 and VLAN 20, Teachers, uses 10.1.20.0/24. Traffic between them needs a router or a layer 3 switch.',
      facts:{head:['','Inside one VLAN','Between two VLANs'],rows:[
        ['Forwarded by','The switch, by destination MAC','A router or layer 3 switch, by destination IP'],
        ['Broadcasts (ARP, DHCP)','Reach every port in the VLAN','Stop at the VLAN’s edge'],
        ['Addressing','One subnet','Two subnets'],
        ['A host sends to','The other host’s MAC','Its default gateway']]},
      note:'<b>A trunk joins switches, and each VLAN keeps its identity across it.</b> VLAN 10 on one switch and VLAN 10 on the next form one VLAN; VLAN 10 and VLAN 20 stay separate on every switch until a layer 3 device routes between them.',
-     key:[['l1','VLAN 10'],['l3','VLAN 20'],['muted','The physical switch']],
+     key:[['l1','VLAN 10 · STUDENTS'],['l3','VLAN 20 · TEACHERS'],['muted','The physical switch']],
      caption:'Same box, separate networks: a switch forwards frames only within a VLAN.'}),
    COMPARE('Access port and trunk port: untagged and tagged frames',[
      {name:'Access port',tag:'switchport mode access',tone:'l1',
@@ -1952,38 +2103,51 @@ LEVELS.push({
      {name:'Trunk port',tag:'switchport mode trunk',tone:'l3',
       svg:{label:'An Ethernet frame on a trunk: a 4-byte 802.1Q tag holding the VLAN ID sits between the source MAC and the type field.',
        body:'<g font-size="9" text-anchor="middle" fill="var(--ink)"><rect x="4" y="20" width="30" height="28" fill="var(--paper)" stroke="var(--l3)" stroke-width="1.5"/><text x="19" y="38">Dst</text><rect x="34" y="20" width="30" height="28" fill="var(--paper)" stroke="var(--l3)" stroke-width="1.5"/><text x="49" y="38">Src</text><rect x="64" y="16" width="46" height="36" fill="var(--amber-bg)" stroke="var(--amber)" stroke-width="2.5"/><text x="87" y="32" font-weight="700">802.1Q</text><text x="87" y="44">VLAN 10</text><rect x="110" y="20" width="32" height="28" fill="var(--paper)" stroke="var(--l3)" stroke-width="1.5"/><text x="126" y="38">Type</text><rect x="142" y="20" width="30" height="28" fill="var(--paper)" stroke="var(--l3)" stroke-width="1.5"/><text x="157" y="38">Data</text><rect x="172" y="20" width="24" height="28" fill="var(--paper)" stroke="var(--l3)" stroke-width="1.5"/><text x="184" y="38">FCS</text></g><text x="87" y="10" text-anchor="middle" font-size="9" fill="var(--ink-2)">4-byte tag</text><text x="100" y="66" text-anchor="middle" font-size="10" fill="var(--ink-2)">tagged: the VLAN ID rides in the frame</text>'},
-      rows:[['Carries','Several VLANs: <code>switchport trunk allowed vlan 10,20</code>'],
+      rows:[['Carries','Several VLANs: <code>switchport trunk allowed</code> <code>vlan 10,20,30,99</code>'],
             ['Frames','Tagged with a 4-byte 802.1Q tag, inserted after the source MAC'],
             ['Inside the tag','TPID 0x8100, a 3-bit priority, a 1-bit DEI, and a 12-bit VLAN ID (1–4094)'],
             ['Connects','Another switch, or a router doing router-on-a-stick'],
             ['Verify','<code>show interfaces trunk</code>']],
       hook:'a hallway where every frame wears its room number.'}
    ],{intro:'The cable and the port look the same; the difference lives in the frames: frames on a trunk carry an extra 4-byte tag that names their VLAN, and frames on an access port travel plain.',
-     note:'<b>Native VLAN:</b> one VLAN per trunk crosses untagged, VLAN 1 unless you change it. Set the same native VLAN on both ends, use an otherwise unused VLAN for it, and keep user traffic off it.',
+     note:'<b>Native VLAN:</b> one VLAN per trunk crosses untagged, VLAN 1 unless you change it. The next card moves it to VLAN 99 on both ends.',
      caption:'The switch adds the tag as a frame leaves on a trunk and removes it before the frame leaves an access port.',
      bloom:'Apply'}),
+   C('Native VLAN 99 on both ends','Analyze',
+     P('One VLAN per trunk crosses untagged: the native VLAN, VLAN 1 unless you change it. This network moves it to VLAN 99, a VLAN that carries no hosts, and sets it the same way on the switch and the router.'),
+     TIPS('<b>Set it on both ends.</b> On SwA G0/1: <code>switchport trunk native vlan 99</code>. On RtrA: <code>interface g0/0.99</code>, then <code>encapsulation dot1Q 99 native</code>.',
+          '<b>Use a host-free VLAN.</b> VLAN 99 stays free of access ports, an SVI, and an IP address, and it stays separate from VLAN 999, where unused ports park.',
+          '<b>Add 99 to the allowed list:</b> <code>switchport trunk allowed vlan 10,20,30,99</code>.',
+          '<b>A mismatch shows up in the log.</b> Between Cisco devices running CDP, two ends that disagree log <code>%CDP-4-NATIVE_VLAN_MISMATCH</code>, and on a switch-to-switch trunk untagged frames from one VLAN land in the other.',
+          '<b>Why:</b> double tagging works when an attacker’s access VLAN equals the trunk’s native VLAN. The first switch strips the outer tag and the next one obeys the inner tag. A host-free native VLAN leaves nothing to hop from.')),
    C('Inter-VLAN routing and ACLs','Apply',
-     CMDS('Route, then filter',[
-       ['interface gigabitethernet0/0/0.10','Router subinterface for VLAN 10 (router-on-a-stick).'],
-       ['encapsulation dot1q 10','Tag this subinterface for VLAN 10.'],
-       ['ip address 192.168.10.1 255.255.255.0','Gateway for VLAN 10 hosts.'],
-       ['access-list 10 permit 192.168.10.0 0.0.0.255','Standard ACL: match a source network with a wildcard mask (inverse of the subnet mask).'],
-       ['ip access-list extended BLOCK_TELNET','Named extended ACL for protocol/port control.'],
+     CMDS('Route, then filter (RtrA)',[
+       ['interface g0/0','The physical link to SwA G0/1. Then: no shutdown. It takes no IP address; the subinterfaces do.'],
+       ['interface g0/0.10','Router subinterface for VLAN 10 (router-on-a-stick).'],
+       ['encapsulation dot1Q 10','Binds this subinterface to frames tagged 10.'],
+       ['ip address 10.1.10.1 255.255.255.0','The gateway for Students.'],
+       ['interface g0/0.20','Then: encapsulation dot1Q 20 and ip address 10.1.20.1 255.255.255.0, the gateway for Teachers.'],
+       ['interface g0/0.30','Then: encapsulation dot1Q 30 and ip address 10.1.30.1 255.255.255.0, the gateway for Principals.'],
+       ['interface g0/0.99','Then: encapsulation dot1Q 99 native. It matches the switch’s native VLAN; it carries no hosts, so it needs no IP.'],
+       ['interface g0/2','The inter-site link to RtrB G0/2. Then: ip address 10.0.0.1 255.255.255.252 and no shutdown.'],
+       ['ip route 10.2.0.0 255.255.0.0 10.0.0.2','In global configuration: a static route that sends every Site B subnet (10.2.0.0/16) to RtrB at 10.0.0.2. RtrB needs the mirror route, ip route 10.1.0.0 255.255.0.0 10.0.0.1.'],
+       ['access-list 10 permit 10.1.10.0 0.0.0.255','Standard ACL: match a source network with a wildcard mask (inverse of the subnet mask).'],
+       ['ip access-list extended BLOCK_TELNET','Named extended ACL for protocol and port control.'],
        ['deny tcp any any eq 23','Inside the named ACL: block Telnet everywhere.'],
-       ['permit ip any any','End with a permit when you only mean to block some traffic, or the implicit deny drops everything.'],
-       ['interface gigabitethernet0/0/0.10','Apply the ACL: then ip access-group BLOCK_TELNET in'],
+       ['permit ip any any','End with a permit when you mean to block only some traffic, or the implicit deny drops everything.'],
+       ['ip access-group BLOCK_TELNET in','Under interface g0/0.10: applies the ACL to packets arriving from Students, before routing.'],
        ['show access-lists','Verify ACLs and hit counts.'],
-       ['show ip route','Verify routing, including connected VLAN subnets.']
+       ['show ip route','Verify routing: C routes for 10.1.10.0/24, 10.1.20.0/24, 10.1.30.0/24, and 10.0.0.0/30, and S 10.2.0.0/16 via 10.0.0.2.']
      ]),
      NOTE('Every ACL ends with an invisible <code>deny any</code>. If you only write deny statements, you block all traffic. Order matters: the first match wins.')),
     PATH('Router-on-a-stick: up the trunk tagged 10, back down tagged 20',[
-     {name:'PC-A',tag:'VLAN 10 · 192.168.10.20',tone:'l1',note:'Sees 192.168.20.30 on another subnet, so it sends the frame to its gateway, 192.168.10.1',via:'Untagged, on an access port'},
-     {name:'Switch',tag:'layer 2',tone:'l1',note:'Knows the frame is in VLAN 10 from the access port, and sends it out the trunk',via:'Tagged 10 on the trunk'},
-     {name:'Router: Gi0/0/0.10 to Gi0/0/0.20',tag:'layer 3',tone:'l4',note:['Accepts the frame on the subinterface whose <code>encapsulation dot1q 10</code> matches the tag','An inbound ACL on .10 checks the packet here, before routing','Routes it to 192.168.20.0/24 and builds a new frame for VLAN 20'],via:'Tagged 20, back down the same trunk'},
-     {name:'Switch',tag:'layer 2',tone:'l3',note:'Removes the tag and sends the frame out the access port for PC-B',via:'Untagged, on an access port'},
-     {name:'PC-B',tag:'VLAN 20 · 192.168.20.30',tone:'l3',note:'Receives a frame from the router’s MAC address'}
+     {name:'Students PC',tag:'VLAN 10 · 10.1.10.20',tone:'l1',note:'Sees 10.1.20.30 on another subnet, so it sends the frame to its gateway, 10.1.10.1',via:'Untagged, on an access port'},
+     {name:'SwA',tag:'layer 2',tone:'l1',note:'Knows the frame is in VLAN 10 from the access port, and sends it out the trunk, G0/1',via:'Tagged 10 on the trunk'},
+     {name:'RtrA: g0/0.10 to g0/0.20',tag:'layer 3',tone:'l4',note:['Accepts the frame on the subinterface whose <code>encapsulation dot1Q 10</code> matches the tag','An inbound ACL on .10 checks the packet here, before routing','Routes it to 10.1.20.0/24 and builds a new frame for VLAN 20'],via:'Tagged 20, back down the same trunk'},
+     {name:'SwA',tag:'layer 2',tone:'l3',note:'Removes the tag and sends the frame out the access port for the Teachers PC',via:'Untagged, on an access port'},
+     {name:'Teachers PC',tag:'VLAN 20 · 10.1.20.30',tone:'l3',note:'Receives a frame from the router’s MAC address'}
    ],{intro:'One cable between the switch and the router carries the packet twice: up to the router in VLAN 10, and back down in VLAN 20.',
-     note:'<b>The subinterface number is a label.</b> Matching .10 to VLAN 10 is a convention; <code>encapsulation dot1q 10</code> is the command that binds the subinterface to the VLAN. The physical interface needs <code>no shutdown</code>, and the IP addresses go on the subinterfaces. A layer 3 switch does the same job internally with SVIs (<code>interface vlan 10</code>) and <code>ip routing</code>.',
+     note:'<b>The subinterface number is a label.</b> Matching .10 to VLAN 10 is a convention; <code>encapsulation dot1Q 10</code> is the command that binds the subinterface to the VLAN. The physical interface needs <code>no shutdown</code>, and the IP addresses go on the subinterfaces. A layer 3 switch does the same job internally with SVIs (<code>interface vlan 10</code>) and <code>ip routing</code>.',
      key:[['l1','VLAN 10 side'],['l3','VLAN 20 side'],['l4','The router: layer 3']],
      caption:'The router turns a VLAN 10 frame into a VLAN 20 frame; the trunk carries both directions.',
      bloom:'Apply'}),
@@ -2032,7 +2196,7 @@ LEVELS.push({
      caption:'Standard ACLs match the source; extended ACLs match protocol, source, destination, and port.',
      bloom:'Apply'}),
    SEQ('How a router reads an ACL: top down, first match wins',[
-     ['A packet meets the ACL','On <code>Gi0/0/0.10</code> with <code>ip access-group BLOCK_TELNET in</code>, before the routing decision.','l2'],
+     ['A packet meets the ACL','On <code>g0/0.10</code> with <code>ip access-group BLOCK_TELNET in</code>, before the routing decision.','l2'],
      {ask:'Line 10: <code>deny tcp any any eq 23</code>. A match?',tone:'l2',branches:[['Match','Deny: drop the packet and stop; later lines are skipped.'],['Otherwise','Go to the next line.']]},
      {ask:'Line 20: <code>permit ip any any</code>. A match?',tone:'l2',branches:[['Match','Permit: forward the packet and stop.'],['Otherwise','Go to the next line.']]},
      ['Implicit deny any','An unseen last line drops every packet that reaches it. It stays hidden in <code>show access-lists</code>, hit counter included.','bad']],
@@ -2040,13 +2204,108 @@ LEVELS.push({
       note:'<b>Direction:</b> <code>in</code> filters packets as they arrive on the interface, before routing; <code>out</code> filters packets as they leave, after routing. Each interface takes one ACL per direction for IPv4 and one for IPv6. Put specific lines first, and end with a permit for the traffic that should pass.',
       caption:'First match wins, and every ACL ends with an implicit deny. Read the hit counts with show access-lists to see which line matched.',
       bloom:'Apply'}),
+   C('Teachers-only management with access-class','Apply',
+     CMDS('One standard ACL, on every VTY line of all four devices',[
+       ['access-list 20 remark Teachers at Site A and Site B','A remark documents the list in show running-config.'],
+       ['access-list 20 permit 10.1.20.0 0.0.0.255','Site A Teachers.'],
+       ['access-list 20 permit 10.2.20.0 0.0.0.255','Site B Teachers.'],
+       ['line vty 0 15','On SwA and SwB. On RtrA and RtrB, enter every VTY range that show running-config lists (line vty 0 4, and line vty 5 15 where it appears).'],
+       ['access-class 20 in','Only sources that ACL 20 permits open a session to this device.'],
+       ['show access-lists 20','Verify the two permits and their match counts.']
+     ]),
+     NOTE('<b>access-class and ip access-group filter different things.</b> <code>access-class</code>, under a line, filters who opens a session to the device itself, such as SSH to SwA. <code>ip access-group</code>, under an interface, filters traffic passing through that interface. In both, the implicit deny drops every source the list leaves out.'),
+     NOTE('Larger networks give management its own dedicated VLAN; this network keeps it on Teachers so the Teachers-only ACL and the management subnet are one and the same.')),
+   SEQ('Prove it layer by layer',[
+     ['<code>show vlan brief</code>','On SwA: STUDENTS, TEACHERS, PRINCIPALS, NATIVE, and PARKING, each with its ports.','l1'],
+     ['<code>show interfaces trunk</code>','G0/1 trunking, native VLAN 99, and VLANs 10,20,30,99 allowed and forwarding.','l1'],
+     ['<code>show interfaces g0/1 switchport</code>','Administrative Mode: trunk, and Trunking Native Mode VLAN: 99.','l1'],
+     ['<code>show ip interface brief</code> on RtrA','G0/0 up/up without an address; G0/0.10, .20, and .30 up/up with their .1 addresses.','l3'],
+     ['<code>show ip route</code> on RtrA','C routes for 10.1.10.0/24, 10.1.20.0/24, 10.1.30.0/24, and 10.0.0.0/30, and S 10.2.0.0/16 via 10.0.0.2.','l3'],
+     ['Students PC: <code>ping 10.1.20.1</code>','RtrA answers for its Teachers address, so VLAN 10 crosses the trunk, g0/0.10 routes, and g0/0.20 is up. The next ping proves VLAN 20 crosses the trunk too.','l4'],
+     ['Students PC: <code>ping 10.1.20.30</code>','A Teachers PC answers: inter-VLAN routing works end to end.','l4'],
+     ['Site A PC: <code>ping 10.2.20.30</code>','A Site B PC answers: the inter-site link and the routes at both sites work.','l4'],
+     {ask:'SSH to SwA at 10.1.20.2: who gets in?',branches:[['From a Teachers PC','A login prompt: ACL 20 permits 10.1.20.0/24.'],['From a Students PC','“% Connection refused by remote host”: access-class 20 turns it away.']]}
+   ],{intro:'Verify from the bottom up: layer 2 on the switch, then layer 3 on the router, then end to end from the PCs. Each step clears the ground for the one after it.',
+     key:[['l1','Layer 2: the switch'],['l3','Layer 3: the router'],['l4','End to end: the PCs']],
+     caption:'When a step fails, stop and fix that layer; everything above it depends on it.',
+     bloom:'Analyze'}),
+   LAB('j4lab','Build Site A end to end, then Site B','Use Packet Tracer (2960 switches and 2911 routers), starting from the Sophomore SwA build. The IOS CLI Lab in Free play has one router and one switch, so it covers the Site A steps; build Site B and run the cross-site checks in Packet Tracer. Site A steps show their commands; Site B steps give only the goal, so you write those commands yourself. Semicolons separate the lines you type.',[
+     ['SwA: confirm VLANs 10 STUDENTS, 20 TEACHERS, 30 PRINCIPALS, and 99 NATIVE.','show vlan brief'],
+     ['SwA: make G0/1 a trunk with native VLAN 99 and the four allowed VLANs.','interface g0/1; switchport mode trunk; switchport trunk native vlan 99; switchport trunk allowed vlan 10,20,30,99; switchport nonegotiate'],
+     ['RtrA: bring up g0/0 and build the three gateways.','interface g0/0; no shutdown; interface g0/0.10; encapsulation dot1Q 10; ip address 10.1.10.1 255.255.255.0; interface g0/0.20; encapsulation dot1Q 20; ip address 10.1.20.1 255.255.255.0; interface g0/0.30; encapsulation dot1Q 30; ip address 10.1.30.1 255.255.255.0'],
+     ['RtrA: match the native VLAN.','interface g0/0.99; encapsulation dot1Q 99 native'],
+     ['RtrA: address the inter-site link and add a route to Site B.','interface g0/2; ip address 10.0.0.1 255.255.255.252; no shutdown; exit; ip route 10.2.0.0 255.255.0.0 10.0.0.2'],
+     ['SwA and RtrA: Teachers-only management on every VTY line (on RtrA, every range that show running-config lists).','access-list 20 permit 10.1.20.0 0.0.0.255; access-list 20 permit 10.2.20.0 0.0.0.255; line vty 0 15; access-class 20 in'],
+     ['Site A check: a Students PC pings a Teachers PC.','ping 10.1.20.30'],
+     ['Site B: build SwB the way Sophomore built SwA (hostname SwB, the five VLANs, edge ports with PortFast and BPDU guard, parked ports, SVI 10.2.20.2 with gateway 10.2.20.1, and SSH), then the trunk.',null],
+     ['Site B: give RtrB the Sophomore router baseline, then repeat the router work with 10.2.x.0 subnets, 10.0.0.2 on G0/2, and a route back to 10.1.0.0/16.',null],
+     ['Site B: put the same ACL 20 on every VTY line of SwB and RtrB.',null],
+     ['Cross-site check: a Site A Teachers PC pings a Site B Teachers PC.','ping 10.2.20.30'],
+     ['ACL check: SSH to SwA from a Teachers PC (a login prompt), then from a Students PC (connection refused).','ssh -l netadmin 10.1.20.2']
+   ]),
+   SPOT('j4sp','Read these outputs and flag each fault','Excerpts from SwA and RtrA at Site A. Tap every line that shows a fault, then Check. The prompt lines and the correct settings are safe.',[
+     ['SwA# show interfaces f0/1 switchport',null],
+     ['Name: Fa0/1',null],
+     ['Administrative Mode: static access',null],
+     ['Access Mode VLAN: 10 (STUDENTS)',null],
+     ['SwA# show interfaces f0/5 switchport',null],
+     ['Name: Fa0/5',null],
+     ['Administrative Mode: static access',null],
+     ['Access Mode VLAN: 1 (default)','Fa0/5 sits in the Students range (f0/1 - 8) yet lands in VLAN 1, the default. The PC there misses the Students gateway, and VLAN 1 carries user traffic. Fix: switchport access vlan 10.'],
+     ['SwA# show interfaces g0/1 switchport',null],
+     ['Name: Gi0/1',null],
+     ['Administrative Mode: trunk',null],
+     ['Operational Mode: trunk',null],
+     ['Trunking Native Mode VLAN: 99 (NATIVE)',null],
+     ['SwA# show interfaces trunk',null],
+     ['Port        Mode    Encapsulation  Status     Native vlan',null],
+     ['Gi0/1       on      802.1q         trunking   99',null],
+     ['Port        Vlans allowed on trunk',null],
+     ['Gi0/1       10,20,99','VLAN 30 is missing from the allowed list, so Principals frames stop at SwA and Principals lose their gateway. Fix: switchport trunk allowed vlan add 30.'],
+     ['SwA# show running-config interface g0/1 | include native|mode|portfast',null],
+     [' switchport trunk native vlan 99',null],
+     [' switchport mode trunk',null],
+     [' spanning-tree portfast trunk','PortFast belongs on the Fa edge ports. G0/1 is the uplink trunk; if a switch ever sits at the far end, PortFast lets a loop forward before spanning tree can block it. Fix: no spanning-tree portfast trunk.'],
+     ['RtrA# show running-config | section interface GigabitEthernet0/0',null],
+     ['interface GigabitEthernet0/0.1',null],
+     [' encapsulation dot1Q 1 native','RtrA treats VLAN 1 as native while SwA sends VLAN 99 untagged, so the two ends disagree about untagged frames. Fix: interface g0/0.99 with encapsulation dot1Q 99 native, and remove g0/0.1.'],
+     ['interface GigabitEthernet0/0.20',null],
+     [' encapsulation dot1Q 20',null],
+     [' ip address 10.1.20.1 255.255.255.0',null],
+     ['RtrA# show running-config | include access-list',null],
+     ['access-list 20 permit 10.1.20.0 0.0.0.255',null],
+     ['access-list 20 permit 10.2.20.0 0.0.0.255',null],
+     ['access-list 20 permit 10.1.10.0 0.0.0.255','10.1.10.0/24 is the Students subnet. Management belongs to Teachers only, so this line opens SSH on RtrA to every Students PC. Fix: ip access-list standard 20, then no 30 (the line’s sequence number in show access-lists).']
+   ]),
+   MATCH('j4m','Symptom and the first command to run','Tap a symptom, then the command that checks its most likely cause first.',[
+     ['One VLAN loses its gateway','show interfaces trunk','A VLAN missing from the allowed list stops at the switch, short of the router.'],
+     ['The SVI is down/down','show vlan brief','Autostate holds the SVI down until its VLAN exists with an up port.'],
+     ['SSH from a Teachers PC is refused','show access-lists','Check that ACL 20 permits the Teachers subnet and that its match counts rise.'],
+     ['Site B is unreachable','show ip route','Look for a route to 10.2.0.0; a router drops packets for a network missing from its table.']
+   ]),
+   ORDER('j4o','Troubleshoot a failed inter-VLAN ping, bottom up','A Students PC fails to ping a Teachers PC. Tap the checks in the order that follows the packet from the PC to the router.',[
+     ['Check the PC’s IP address, mask, and default gateway','ipconfig on the PC: a wrong gateway stops traffic before it leaves the host.'],
+     ['Check the access port’s VLAN','show vlan brief: the PC’s port must sit in the VLAN that matches its subnet.'],
+     ['Check the trunk’s allowed list and native VLAN','show interfaces trunk: the VLAN must be allowed and forwarding, with native 99 on both ends.'],
+     ['Check that the router’s parent interface is up','show ip interface brief: g0/0 must be up/up, because every subinterface rides on it.'],
+     ['Check each subinterface’s encapsulation and IP address','show running-config | section GigabitEthernet0/0: each dot1Q tag and gateway address must match its VLAN and subnet.'],
+     ['Check the route table','show ip route: both subnets must appear as connected (C) routes.']
+   ]),
    QUIZ('j4q','Check: switching and routing',[
      ['The wildcard mask for the subnet 255.255.255.0 in an ACL is',['255.255.255.0','0.0.0.255','255.255.255.255','0.0.0.0'],1,'Wildcard masks are the inverse of the subnet mask. 0 means "must match", 255 means "any".'],
      ['Hosts in VLAN 10 and VLAN 20 need to reach each other. What provides the path?',['A second switch','Inter-VLAN routing (router subinterfaces or a layer 3 switch)','A longer cable','Disabling the firewall'],1,'VLANs are separate networks; something at layer 3 must route between them.'],
      ['Your extended ACL has only "deny tcp any any eq 23". Hosts lose all connectivity. Why?',['Telnet is required','The implicit deny any at the end drops everything else','ACLs work only on switches','The switch is off'],1,'Add permit ip any any after the deny so other traffic passes.'],
      ['Which command shows which ports belong to which VLAN?',['show ip route','show vlan brief','show running-config | include ip','show mac address-table'],1,'show vlan brief maps VLANs to access ports. show interfaces trunk shows the trunks.']
    ]),
-   LINKS('Go further',['t4t-ios','t4t-audit','t4t-tickets','t4t-lr-ios','netacad','pt'])
+   QUIZ('j4q2','Interleaved review',[
+     ['How does RtrA match SwA’s native VLAN 99?',['<code>interface g0/0.99</code>, then <code>encapsulation dot1Q 99 native</code>','<code>switchport trunk native vlan 99</code> on g0/0','An IP address on g0/0.99','<code>vlan 99</code> on the router'],0,'The native keyword makes the subinterface send and receive VLAN 99 untagged. It carries no hosts, so it takes no IP address.'],
+     ['What separates <code>access-class 20 in</code> from <code>ip access-group 20 in</code>?',['They do the same job; <code>access-class</code> is the older spelling','<code>access-class</code> filters sessions to the device; <code>ip access-group</code> filters traffic through an interface','<code>access-class</code> takes standard ACLs; <code>ip access-group</code> takes extended ACLs only','<code>access-class</code> works on switches; <code>ip access-group</code> works on routers'],1,'Management access is a line setting, so ACL 20 goes on every VTY line with access-class. Interface ACLs filter traffic on its way through.'],
+     ['Why does 99 join the trunk’s allowed list (10,20,30,99)?',['VLAN 99 carries the Principals','The native VLAN must be the highest number listed','Listing 99 makes its frames tagged','The allowed list filters the native VLAN too'],3,'A trunk drops frames for any VLAN missing from its allowed list, the native VLAN included. Listing 99 lets the untagged native VLAN cross to RtrA g0/0.99.'],
+     ['From Sophomore: how do <code>vlan 20</code> and <code>interface vlan 20</code> differ?',['Both create the VLAN; the SVI form also lists its ports','The SVI creates the VLAN for you, so <code>vlan 20</code> is optional','The VLAN is a broadcast domain; the SVI is the switch’s address in it','The VLAN holds the IP address; the SVI holds the access ports'],2,'Create the VLAN first. The SVI reaches up/up only once VLAN 20 exists and an up port or trunk carries it.'],
+     ['From Sophomore: a teacher types <code>telnet 10.1.20.2</code>. What happens?',['A login prompt appears, since Telnet is on by default','The connection is refused: <code>transport input ssh</code> admits SSH alone','The switch upgrades the session to SSH automatically','Telnet connects and logs a warning to the console'],1,'transport input ssh makes the VTY lines accept SSH only, so Telnet gets connection refused.'],
+     ['From Freshman: which SwA ports get PortFast?',['G0/1, the trunk, so the router link comes up sooner','Every port, G0/1 and the parked ports included','The access ports Fa0/1 to Fa0/20','The parked ports, so they come up sooner when enabled'],2,'PortFast belongs on edge ports. The trunk keeps the full listening and learning stages, so spanning tree can catch a loop.']
+   ]),
+   LINKS('Go further',['t4t-ios','t4t-tickets','t4t-audit','t4t-ld-ios','t4t-lr-ios','pt','netacad'])
   ]},
  {id:'j5',title:'Evaluate a configuration',bloom:'Evaluate',sum:'Read a config or a system like an auditor: rank findings by impact and defend the order.',
   blocks:[
@@ -2055,7 +2314,8 @@ LEVELS.push({
      TIPS('High impact: extra administrators, UID-0 backdoors, reverse shells, root SSH login, blank or shared passwords, and disabled firewall and antivirus.',
           'Medium: missing updates, weak password policy, insecure services beyond what the brief needs, and over-broad shares.',
           'Low but worth doing: banners, screen-lock timeouts, audit logging, SMBv1, and unauthorized media files.',
-          'Always weigh availability risk: a "fix" that stops a required service is an outage, which is worse than leaving the finding for later.')),
+          'Always weigh availability risk: a "fix" that stops a required service is an outage, which is worse than leaving the finding for later.',
+          'The same ranking works on network devices: <a href="#senior/se6">Cisco: audit and extend the two-site network</a> applies it to a full audit of SwB and RtrB.')),
     SCALE('Triage: impact first, effort second, availability always',{
      x:['Effort to fix','Quick','Slow'],
      y:['Impact','High','Medium','Low'],
@@ -2314,6 +2574,119 @@ LEVELS.push({
    TIMER('se4tm'),
    REFLECT('se4r','Write your team’s one-page runbook','In your own words: the order of operations for the first twenty minutes, who owns each machine and the network devices, who keeps the log, and the three checks the timekeeper calls out. Keep it to one page. Print it. Rehearse it.'),
    LINKS('Go further',['nist-csf','cis-controls','t4t-range'])
+  ]},
+ {id:'se6',title:'Cisco: audit and extend the two-site network',bloom:'Evaluate',sum:'Audit both sites, add a host route to 8.8.8.8, share it through OSPF, and defend every design choice.',
+  blocks:[
+   COMPARE('The finished network, both sites',[
+     {name:'Site A',tag:'SwA and RtrA',tone:'l2',
+      rows:[['VLANs and subnets','10 STUDENTS 10.1.10.0/24, 20 TEACHERS 10.1.20.0/24, and 30 PRINCIPALS 10.1.30.0/24; each gateway is .1 on RtrA'],
+            ['Management SVI','SwA <code>interface vlan 20</code>, 10.1.20.2, gateway 10.1.20.1'],
+            ['Native VLAN','99 on SwA G0/1 and RtrA g0/0.99, without hosts or an IP'],
+            ['Trunk allowed list','10,20,30,99'],
+            ['Unused ports','VLAN 999 PARKING, shut down'],
+            ['Inter-site link','RtrA G0/2, 10.0.0.1/30'],
+            ['ISP next hop','RtrA G0/1 203.0.113.2/30, next hop 203.0.113.1'],
+            ['VTY ACL','ACL 20 permits 10.1.20.0/24 and 10.2.20.0/24, with <code>access-class 20 in</code> on every VTY line']]},
+     {name:'Site B',tag:'SwB and RtrB',tone:'l3',
+      rows:[['VLANs and subnets','10 STUDENTS 10.2.10.0/24, 20 TEACHERS 10.2.20.0/24, and 30 PRINCIPALS 10.2.30.0/24; each gateway is .1 on RtrB'],
+            ['Management SVI','SwB <code>interface vlan 20</code>, 10.2.20.2, gateway 10.2.20.1'],
+            ['Native VLAN','99 on SwB G0/1 and RtrB g0/0.99, without hosts or an IP'],
+            ['Trunk allowed list','10,20,30,99'],
+            ['Unused ports','VLAN 999 PARKING, shut down'],
+            ['Inter-site link','RtrB G0/2, 10.0.0.2/30'],
+            ['ISP next hop','RtrB G0/1 198.51.100.2/30, next hop 198.51.100.1'],
+            ['VTY ACL','The same ACL 20 and <code>access-class 20 in</code> on every VTY line']]}
+   ],{intro:'Two sites built from one plan: the same VLAN numbers, names, and rules, with 10.1 addresses at Site A and 10.2 addresses at Site B. Audit each device against this table.',
+     note:'Larger networks give management its own dedicated VLAN; this network keeps it on Teachers so the Teachers-only ACL and the management subnet are one and the same.',
+     caption:'Every row matches across the sites except the addresses: the second octet names the site.',
+     bloom:'Evaluate'}),
+   C('A host route to 8.8.8.8','Apply',
+     CMDS('On RtrA (RtrB uses its own ISP next hop, 198.51.100.1)',[
+       ['interface g0/1','The ISP uplink. Then: ip address 203.0.113.2 255.255.255.252 and no shutdown.'],
+       ['ip route 8.8.8.8 255.255.255.255 203.0.113.1','A static host route: the /32 mask matches 8.8.8.8 and nothing else.'],
+       ['show ip route 8.8.8.8','Verify: Routing entry for 8.8.8.8/32, Known via "static", distance 1.'],
+       ['show ip route static','The same route in the table, under the header 8.0.0.0/32 is subnetted, 1 subnets: S 8.8.8.8 [1/0] via 203.0.113.1.']
+     ]),
+     P('A /32 mask matches exactly one address. Here the next hop sits in the connected subnet 203.0.113.0/30 on G0/1, and the router installs the route only while it can reach that next hop: when G0/1 goes down, the route leaves the table. A static route has administrative distance (AD) 1, so it beats any route a routing protocol learns.'),
+     NOTE('203.0.113.0/24 and 198.51.100.0/24 are documentation ranges that stand in for real ISP addresses. 8.8.8.8 is a well-known public DNS resolver, used here as one destination worth a dedicated route.')),
+   C('Share the route through OSPF (concept)','Understand',
+     CMDS('On RtrA (RtrB: the same, with 10.2.0.0)',[
+       ['router ospf 1','Starts OSPF process 1; the number stays local to this router.'],
+       ['network 10.0.0.0 0.0.0.3 area 0','Runs OSPF on the inter-site link, G0/2, so RtrA and RtrB become neighbors.'],
+       ['network 10.1.0.0 0.0.255.255 area 0','Advertises every Site A subnet: 10.1.10.0, 10.1.20.0, and 10.1.30.0.'],
+       ['passive-interface g0/0.10','Advertises the Students subnet while sending no hellos to its hosts. Repeat for g0/0.20 and g0/0.30.'],
+       ['redistribute static subnets','Shares the static /32 to 8.8.8.8 with RtrB as an external route.'],
+       ['no ip route 10.2.0.0 255.255.0.0 10.0.0.2','In global configuration: OSPF now learns the Site B subnets, so the Junior static route goes. Left in place, redistribute static would advertise it too. On RtrB: no ip route 10.1.0.0 255.255.0.0 10.0.0.1.'],
+       ['show ip ospf neighbor','Verify: RtrB reaches FULL on G0/2.'],
+       ['show ip route ospf','On RtrB: the Site A subnets as O routes.']
+     ]),
+     PATH('How 8.8.8.8 reaches RtrB’s table',[
+       {name:'RtrA',tag:'S 8.8.8.8 [1/0]',tone:'l3',note:['Its static route, via 203.0.113.1','In the table while G0/1 is up'],via:'redistribute static subnets'},
+       {name:'External LSA',tag:'type 5 · E2',tone:'amber',note:['RtrA, now an ASBR (a router that brings outside routes into OSPF), floods 8.8.8.8/32 into area 0 as a link-state advertisement (LSA)','A redistributed route starts at metric 20, and E2 (external type 2) keeps that cost unchanged'],via:'Across 10.0.0.0/30'},
+       {name:'RtrB',tag:'backup path',tone:'l4',note:['O E2 8.8.8.8 [110/20] via 10.0.0.1, under 8.0.0.0/32 is subnetted','Enters the table when RtrB’s own static leaves it, for example when RtrB’s G0/1 uplink fails']}
+     ],{caption:'RtrA’s static becomes an external OSPF route, and RtrB keeps it as a backup to its own static.'}),
+     NOTE('<b>Why <code>subnets</code> matters.</b> On classic IOS, <code>redistribute static</code> without <code>subnets</code> carries only classful networks, so a /32 stays home (IOS warns “% Only classful networks will be redistributed”). IOS XE adds <code>subnets</code> automatically. Each router prefers its own static (AD 1) over the neighbor’s O E2 (AD 110), so the redistributed copy is the backup path.'),
+     NOTE('<b>Practice it.</b> <a href="'+RES['t4t-lr-ios'][1]+'" target="_blank" rel="noopener noreferrer">Lockdown Range: Cisco IOS</a>, Level 4 (Two sites), hands you a finished Site A and a factory-default SwB and RtrB: build the host route, the OSPF neighbor, and redistribute static subnets, then shut RtrB G0/1 and watch O E2 8.8.8.8/32 take over. <a href="'+RES['t4t-audit'][1]+'" target="_blank" rel="noopener noreferrer">Config Audit</a>’s Site B switch and Site B router scenarios drill the audit below.')),
+   SPOT('se6sp','Audit SwB and RtrB','Excerpts from Site B. Compare each line with the finished-network table, tap every line that breaks the design or weakens security, then Check.',[
+     ['SwB# show running-config',null],
+     ['interface FastEthernet0/1',null],
+     [' switchport access vlan 10',null],
+     [' switchport mode access',null],
+     [' spanning-tree portfast',null],
+     [' spanning-tree bpduguard enable',null],
+     ['interface GigabitEthernet0/1',null],
+     [' switchport trunk native vlan 10','The native VLAN is 10, the Students VLAN, while RtrB expects 99. Students frames cross untagged and land in RtrB’s VLAN 99, so Students lose their gateway, and a Students host could double-tag its way into other VLANs. Fix: switchport trunk native vlan 99.'],
+     [' switchport trunk allowed vlan 10,20,99','VLAN 30 is missing, so Principals frames stop at SwB and Principals lose their gateway. Fix: switchport trunk allowed vlan add 30.'],
+     [' switchport mode trunk',null],
+     [' spanning-tree portfast trunk','PortFast on the uplink trunk skips the listening and learning that guard against loops. PortFast belongs on the Fa edge ports, as on Fa0/1 above. Fix: no spanning-tree portfast trunk.'],
+     ['SwB# show ip interface brief | include Vlan',null],
+     ['Vlan1      10.2.1.2     YES manual up     up','SwB’s management address sits on Vlan1, the default VLAN, outside the Teachers subnet that the design and ACL 20 expect. Fix: interface vlan 20 with 10.2.20.2, ip default-gateway 10.2.20.1, and shutdown on interface vlan 1.'],
+     ['RtrB# show running-config',null],
+     ['ip ssh version 2',null],
+     ['interface GigabitEthernet0/0.99',null],
+     [' encapsulation dot1Q 99 native',null],
+     ['router ospf 1',null],
+     [' redistribute static','Without subnets, classic IOS redistributes only classful networks, so the /32 to 8.8.8.8 stays on RtrB and RtrA goes without its backup path. Fix: redistribute static subnets (IOS XE adds subnets for you).'],
+     [' passive-interface GigabitEthernet0/0.10',null],
+     [' passive-interface GigabitEthernet0/0.20',null],
+     [' passive-interface GigabitEthernet0/0.30',null],
+     [' network 10.0.0.0 0.0.0.3 area 0',null],
+     [' network 10.2.0.0 0.0.255.255 area 0',null],
+     ['ip route 8.8.8.8 255.255.255.255 198.51.100.1',null],
+     ['access-list 20 permit 10.1.20.0 0.0.0.255',null],
+     ['access-list 20 permit 10.2.20.0 0.0.0.255',null],
+     ['access-list 20 permit 10.2.10.0 0.0.0.255','10.2.10.0/24 is the Site B Students subnet, so every Students PC there can open a session to RtrB. Fix: ip access-list standard 20, then remove that entry by its sequence number.'],
+     ['line vty 0 4',null],
+     [' access-class 20 in',null],
+     [' login local',null],
+     [' transport input ssh',null],
+     ['line vty 5 15','Lines 5 to 15 run without access-class 20 in, so once five sessions hold lines 0 to 4, the next session, from any source, lands on these unfiltered lines. Fix: access-class 20 in under line vty 5 15.'],
+     [' login local',null],
+     [' transport input telnet ssh','Telnet sends the session and the password as plain text. Fix: transport input ssh.']
+   ]),
+   ORDER('se6o','Remediate with the least downtime','You found the faults on SwB and RtrB. Tap the fixes in the order that keeps the network up and keeps you able to undo each one: a saved copy first, then how you reach the devices (the VTY lines first, then SwB’s management address), then the outages (the one that also opens an attack first), then the risks that have yet to cause harm, with the backup path as the last fix, and the verified save at the end.',[
+     ['Save a backup of the running-config','copy running-config flash:pre-audit.cfg on each device, so any step can roll back.'],
+     ['Fix the VTY lines (ACL 20 on every range, SSH only) from a Teachers PC session while the console stays open','ACL 20 decides who reaches each device, so it comes first. A wrong access-class locks out every new session, your next login included, though the session you are typing in stays up; the open console is the way back in.'],
+     ['Move SwB management from Vlan1 to interface vlan 20 from the console','The address you manage SwB by changes, so make this move on the console, with the VTY lines already right, and confirm 10.2.20.2 answers before shutting Vlan1.'],
+     ['Set native VLAN 99 on SwB G0/1 to match RtrB','The largest outage: Students lose their gateway, and the mismatch opens double tagging. RtrB already has encapsulation dot1Q 99 native, so switchport trunk native vlan 99 on SwB G0/1 closes the gap; check show interfaces trunk at once.'],
+     ['Add VLAN 30 to the trunk’s allowed list','The second outage: switchport trunk allowed vlan add 30 restores the Principals gateway; add keeps the rest of the list.'],
+     ['Move PortFast off the trunk','A latent loop risk with no outage today, so it follows the outages: no spanning-tree portfast trunk on G0/1.'],
+     ['Add subnets to redistribute static','Only the other site’s backup path depends on it, so it is the last fix: redistribute static subnets.'],
+     ['Verify with pings and show ip route','Ping across VLANs and sites, and read show ip route on both routers before calling it done.'],
+     ['Save with copy running-config startup-config','Only a verified configuration becomes the one that survives a reload.']
+   ]),
+   QUIZ('se6q','Mixed review across the ladder',[
+     ['RtrA holds a static route and an O E2 route to 8.8.8.8/32. Which one goes in its routing table?',['The O E2 route, because OSPF is dynamic','The static route: AD 1 beats AD 110','Both, sharing the load','Whichever has the lower metric'],1,'Administrative distance chooses between sources first: static 1, OSPF 110. Metrics compare routes from the same source only.'],
+     ['Which keyword lets classic IOS redistribute the /32 into OSPF?',['<code>metric-type 1</code>','<code>default-information originate</code>','<code>classful</code>','<code>subnets</code>'],3,'<code>redistribute static subnets</code> carries subnets and host routes. IOS XE adds the keyword automatically.'],
+     ['RtrB’s G0/1 uplink fails. How does RtrB reach 8.8.8.8 now?',['Through the O E2 route from RtrA, via 10.0.0.1','Through its static route, which stays in the table','Through SwB’s default gateway, 10.2.20.1','Through the native VLAN to SwB'],0,'The static leaves with its next hop, and the OSPF copy from RtrA takes over: the backup path at work.'],
+     ['SwB’s <code>interface vlan 20</code> reads down/down although it has <code>no shutdown</code>. What do you check first?',['<code>show ip ssh</code>: SSH must run before the SVI comes up','<code>show vlan brief</code>: VLAN 20 must exist with an up port','<code>show ip route</code>: the SVI needs a route to its gateway','<code>show ip ospf neighbor</code>: the SVI waits for a neighbor'],1,'From Sophomore: the SVI depends on the VLAN. It comes up once VLAN 20 exists and an up port or trunk carries it.'],
+     ['Where does native VLAN 99 get configured?',['On the switch trunk only; the router follows it','On the router only; it routes the VLANs','On both ends: the switch trunk and the router subinterface','On every access port in VLAN 99'],2,'From Junior: both ends must agree, and VLAN 99 carries no hosts.'],
+     ['Which of these lines is a finding?',['<code>spanning-tree portfast</code> on Fa0/1','<code>spanning-tree bpduguard enable</code> on Fa0/1','<code>spanning-tree portfast trunk</code> on G0/1','<code>switchport mode access</code> on Fa0/1'],2,'From Freshman: PortFast and BPDU guard belong on edge ports. The uplink trunk keeps the full spanning tree process.'],
+     ['Where does <code>access-class 20 in</code> go?',['Under every VTY line range','Under interface g0/0','Under router ospf 1','On the VLAN 20 SVI'],0,'access-class filters who opens a session to the device, so it goes on the lines: vty 0 15 on the switches, and every listed range on the routers.'],
+     ['A user connects to the SwB console. In what order do the messages appear?',['The login banner, then the MOTD, then the password prompt','The MOTD, then the login banner, then the password prompt','The password prompt, then the MOTD and the login banner','The MOTD alone, then the password prompt, then the login banner'],1,'From Sophomore: the MOTD shows first, then the login banner, just before the login prompt. This console uses a line password, so that prompt reads Password:.']
+   ]),
+   REFLECT('se6r','Defend your design','Justify three choices: management on Teachers or a dedicated VLAN, native VLAN 99 carrying no hosts, and the ACL on every VTY line. Name one trade-off for each.'),
+   LINKS('Go further',['t4t-lr-ios','t4t-audit','t4t-tickets','t4t-ios','t4t-ld-ios','pt','netacad'])
   ]},
  {id:'se5',title:'Power and responsibility',bloom:'Evaluate',sum:'You can now break and defend real systems. The whole point of the training is choosing how to use it.',
   blocks:[

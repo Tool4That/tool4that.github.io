@@ -222,10 +222,12 @@
       "summary": "VLANs split one switch into separate broadcast domains. Put each user port in its VLAN as an access port, and leave VLAN 1 unused.",
       "prereqs": ["switching"],
       "locations": [
-        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Branch build", "find": ["access ports in VLAN 10", "switchport access vlan"], "note": "The S1 tasks: VLANs 10 and 99, then the access ports."},
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Branch build", "find": ["access ports in VLAN 10", "switchport access vlan"], "note": "The S1 tasks: VLANs 10, 20, 99, and 999 with their names, then the access ports."},
         {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Switching › Wrong subnet on one desk"},
         {"tool": "net-drills/config-audit", "kind": "fix", "where": "S1 access switch", "find": ["sit in VLAN 1"]},
-        {"tool": "lockdown-range/cisco-ios", "kind": "lab", "find": ["switchport access vlan", "switchport mode access"]}
+        {"tool": "lockdown-range/cisco-ios", "kind": "lab", "find": ["switchport access vlan", "switchport mode access"]},
+        {"tool": "defense-ladder", "kind": "learn", "find": ["VLAN database"]},
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Site A", "find": ["PRINCIPALS"]}
       ],
       "refs": []
     },
@@ -235,10 +237,15 @@
       "summary": "A trunk carries many VLANs over one link by tagging frames. Set it statically, give it an unused native VLAN, and allow only the VLANs that need to cross.",
       "prereqs": ["vlans"],
       "locations": [
-        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Branch build", "find": ["native VLAN 999", "switchport trunk native vlan"], "note": "The S1 G0/1 tasks: static trunk, native VLAN, and allowed list."},
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Branch build", "find": ["switchport trunk native vlan"], "note": "The S1 G0/1 tasks: static trunk, native VLAN, and allowed list."},
         {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Switching › Management VLAN dies at the trunk"},
         {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Switching › A warning keeps scrolling on S1"},
-        {"tool": "net-drills/config-audit", "kind": "fix", "where": "What's missing?", "find": ["An unused native VLAN on the trunk"]}
+        {"tool": "net-drills/config-audit", "kind": "fix", "where": "What's missing?", "find": ["Trunk native VLAN moved to an unused VLAN"]},
+        {"tool": "defense-ladder", "kind": "learn", "find": ["native VLAN"]},
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Switching › Students lost their gateway"},
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Switching › Principals stuck on their own VLAN"},
+        {"tool": "net-drills/config-audit", "kind": "fix", "where": "Site B switch", "find": ["switchport trunk native vlan"]},
+        {"tool": "lockdown-range/cisco-ios", "kind": "lab", "find": ["switchport trunk native vlan"]}
       ],
       "refs": []
     },
@@ -274,7 +281,12 @@
       "prereqs": ["switching"],
       "locations": [
         {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Branch build", "find": ["BPDU Guard"]},
-        {"tool": "net-drills/config-audit", "kind": "fix", "where": "What's missing?", "find": ["BPDU Guard on every PortFast port"]}
+        {"tool": "net-drills/config-audit", "kind": "fix", "where": "What's missing?", "find": ["BPDU Guard on every PortFast port"]},
+        {"tool": "defense-ladder", "kind": "learn", "find": ["PortFast"]},
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Physical › Classroom port died when a spare switch went in"},
+        {"tool": "net-drills/config-audit", "kind": "fix", "where": "Site B switch", "find": ["portfast trunk"]},
+        {"tool": "lockdown-drills/cisco-ios", "kind": ["learn", "drill"], "find": ["spanning-tree portfast"]},
+        {"tool": "lockdown-range/cisco-ios", "kind": "lab", "find": ["bpduguard"]}
       ],
       "refs": [
         {"title": "Cisco: Spanning Tree PortFast BPDU Guard enhancement", "url": "https://www.cisco.com/c/en/us/support/docs/lan-switching/spanning-tree-protocol/10586-65.html", "src": "vendor"}
@@ -289,7 +301,9 @@
         {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Switch basics"},
         {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Switching › Cannot manage the new switch"},
         {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Switching › Manageable from only one subnet"},
-        {"tool": "net-drills/config-audit", "kind": "fix", "where": "S1 access switch", "find": ["Switch management lives on VLAN 1"]}
+        {"tool": "net-drills/config-audit", "kind": "fix", "where": "S1 access switch", "find": ["Switch management lives on VLAN 1"]},
+        {"tool": "defense-ladder", "kind": "learn", "find": ["SVI"]},
+        {"tool": "lockdown-drills/cisco-ios", "kind": ["learn", "drill"], "find": ["interface vlan 20"]}
       ],
       "refs": []
     },
@@ -331,12 +345,18 @@
     },
     {
       "id": "static-routes", "name": "Static and default routes", "domain": "routing", "layers": ["3"],
-      "aka": ["ip route", "default route", "0.0.0.0/0", "gateway of last resort", "routing table", "show ip route"],
-      "summary": "A router only reaches networks it knows about. A default route (0.0.0.0/0) sends everything else upstream.",
+      "aka": ["ip route", "default route", "0.0.0.0/0", "host route", "/32", "gateway of last resort", "routing table", "show ip route", "redistribute static subnets", "OSPF", "O E2"],
+      "summary": "A router only reaches networks it knows about. A default route (0.0.0.0/0) sends everything else upstream, a host route (/32) names exactly one address, and OSPF can share a static route with its neighbours through redistribute static subnets.",
       "prereqs": ["default-gateway"],
       "locations": [
         {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Branch build", "find": ["default route"]},
-        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Device config › Everything inside works, the internet does not"}
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Device config › Everything inside works, the internet does not"},
+        {"tool": "defense-ladder", "kind": "learn", "find": ["host route"]},
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Site A", "find": ["8.8.8.8"], "note": "The host route to 8.8.8.8 and OSPF redistribute static subnets."},
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Config accuracy › Site B loses 8.8.8.8 in the failover test"},
+        {"tool": "net-drills/config-audit", "kind": "fix", "where": "Site B router", "find": ["redistribute static"]},
+        {"tool": "lockdown-drills/cisco-ios", "kind": ["learn", "drill"], "find": ["ip route 8.8.8.8"]},
+        {"tool": "lockdown-range/cisco-ios", "kind": "lab", "find": ["redistribute static subnets"], "note": "Level 4, Two sites: RtrB shares its host route with RtrA through OSPF."}
       ],
       "refs": [
         {"title": "RFC 1812: Requirements for IP version 4 routers", "url": "https://www.rfc-editor.org/rfc/rfc1812", "src": "standard"}
@@ -348,9 +368,12 @@
       "summary": "One router port carries a subinterface per VLAN, each tagged with dot1Q and acting as that VLAN's default gateway.",
       "prereqs": ["trunking", "default-gateway"],
       "locations": [
-        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Branch build", "find": ["dot1Q 10"], "note": "The R1 subinterface tasks, G0/0.10 and G0/0.99."},
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Branch build", "find": ["dot1Q 10"], "note": "The R1 subinterface tasks: G0/0.10, G0/0.20, and G0/0.99 as the native VLAN."},
         {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Device config › Subinterfaces configured, nothing works"},
-        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Device config › The gateway tags the wrong VLAN"}
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Device config › The gateway tags the wrong VLAN"},
+        {"tool": "defense-ladder", "kind": "learn", "find": ["router-on-a-stick", "router on a stick"]},
+        {"tool": "lockdown-drills/cisco-ios", "kind": ["learn", "drill"], "find": ["encapsulation dot1Q"]},
+        {"tool": "lockdown-range/cisco-ios", "kind": "lab", "find": ["encapsulation dot1Q"]}
       ],
       "refs": []
     },
@@ -404,9 +427,13 @@
       "summary": "An ordered list of permit and deny rules that ends in an implicit deny. Where you apply it, and in which direction, decides what it actually filters.",
       "prereqs": ["wildcard-masks", "ports"],
       "locations": [
-        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Access lists › The ACL is applied, guests still get through"},
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Access lists › The ACL is applied, Students still get through"},
         {"tool": "lockdown-drills/cisco-ios", "kind": ["learn", "drill"], "find": ["access-class", "access-list"]},
-        {"tool": "lockdown-range/cisco-ios", "kind": "lab", "find": ["access-class", "access-list"]}
+        {"tool": "lockdown-range/cisco-ios", "kind": "lab", "find": ["access-class", "access-list"]},
+        {"tool": "defense-ladder", "kind": "learn", "find": ["access-class"]},
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Site A", "find": ["access-class"], "note": "ACL 20 and access-class 20 in: SSH for the Teachers VLAN only."},
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Remote access › Teachers refused, Students let in"},
+        {"tool": "net-drills/config-audit", "kind": "fix", "where": "Site B switch", "find": ["access-class"]}
       ],
       "refs": [
         {"title": "Cisco: Configure commonly used IP ACLs", "url": "https://www.cisco.com/c/en/us/support/docs/ip/access-lists/26448-ACLsamples.html", "src": "vendor"}

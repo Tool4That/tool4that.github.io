@@ -62,7 +62,7 @@
       ],
       "name": "Cisco Range",
       "tagline": "Secure the topology. Prove it with ping.",
-      "description": "A Packet Tracer-style topology in your browser: IOS consoles with ? help, abbreviations, and the exact error messages, PC command prompts, three scenarios from one router to a two-switch network, and a live Progress Check.",
+      "description": "A Packet Tracer-style topology in your browser: IOS consoles with ? help, abbreviations, and the exact error messages, PC command prompts, four scenarios from one router to a two-site network with VLAN trunks, router-on-a-stick, and OSPF, and a live Progress Check.",
       "badges": [
         "Cisco IOS",
         "Hardening",

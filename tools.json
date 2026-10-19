@@ -123,8 +123,8 @@
       "icon": "path",
       "category": "cyber",
       "section": "learning",
-      "sha256": "a1d07ed734bc2b45ae3b6289b9f0969eedb8617b03b5fc41e7c2c185232614b8",
-      "updated": "2026-10-18"
+      "sha256": "099b7a78e6d52de3f37c2ef305e519586cbe3a97bef22f9dc3248f88a54ded4b",
+      "updated": "2026-10-19"
     },
     {
       "slug": "net-drills/subnet-sprint",
@@ -141,15 +141,15 @@
       "download_as": "subnet-sprint.html",
       "icon": "subnet",
       "category": "cyber",
-      "sha256": "9f3117e44270e387995e2172217f3dd72fc7b62437232113548ea33301849838",
-      "updated": "2026-10-14",
+      "sha256": "204774633441b1c8e445ede1f836a3864e93b76a2748494ac2fec0b032c84b22",
+      "updated": "2026-10-19",
       "series": "net-drills"
     },
     {
       "slug": "net-drills/ios-cli-lab",
       "name": "IOS CLI Lab",
       "tagline": "Configure it. Then prove it.",
-      "description": "Configure a simulated router and switch from their consoles, then prove it from two PCs. Timed missions, from the basics to secure remote access.",
+      "description": "Configure a simulated router and switch from their consoles, then prove it from two PCs. Timed missions, from the basics to VLAN trunks, router-on-a-stick, and SSH access for the Teachers VLAN only.",
       "badges": [
         "Networking",
         "Cisco IOS",
@@ -160,15 +160,15 @@
       "download_as": "ios-cli-lab.html",
       "icon": "terminal",
       "category": "cyber",
-      "sha256": "b09b483696032e4da26e929fd9fbe438139855093f3c9bfe33c9db00cc4c5c2a",
-      "updated": "2026-10-14",
+      "sha256": "7017db97e2834b2439f893b3844ec12fbc1c392766e44b584e9299325d39bd7c",
+      "updated": "2026-10-19",
       "series": "net-drills"
     },
     {
       "slug": "net-drills/config-audit",
       "name": "Config Audit",
       "tagline": "Read it like an attacker.",
-      "description": "Flag every risky line in a running-config, choose the best fix, and name the protections that are missing entirely.",
+      "description": "Flag every risky line in a running-config, choose the best fix, and name the protections that are missing entirely. Four configs, including a Site B switch and router.",
       "badges": [
         "Networking",
         "Cisco IOS",
@@ -179,8 +179,8 @@
       "download_as": "config-audit.html",
       "icon": "search",
       "category": "cyber",
-      "sha256": "a510ea139cd117af59988b419c6d0dd67044dc9db91613923c9e02540271cc35",
-      "updated": "2026-10-14",
+      "sha256": "7256d8d270d04240d0c14a76663fa298c07da615ef3283aad59ac9a22a444eaf",
+      "updated": "2026-10-19",
       "series": "net-drills"
     },
     {
@@ -198,8 +198,8 @@
       "download_as": "trouble-tickets.html",
       "icon": "wrench",
       "category": "cyber",
-      "sha256": "d30a1775fc819d48fdd827af8691a813228ec01c015c42bc57c12770af6b1da0",
-      "updated": "2026-10-14",
+      "sha256": "d4eeceb71c5a9b03fa8d7493a244de61c950689a400c0bd0d189adb6e5a6a433",
+      "updated": "2026-10-19",
       "series": "net-drills"
     },
     {
@@ -348,8 +348,8 @@
       "icon": "lock",
       "category": "cyber",
       "series": "lockdown-drills",
-      "sha256": "db7ae8415c5fc07f0ef9c2421f1bcb5ab707cf1538c32c285de46021e37f4e14",
-      "updated": "2026-10-14",
+      "sha256": "db2d4db518c29c1c9265ec5d4fd5e4826ca84166a54bc36022c27fc8f71f1c97",
+      "updated": "2026-10-19",
       "extras": [
         {
           "label": "Reference .txt",
@@ -414,7 +414,7 @@
       "slug": "lockdown-range/cisco-ios",
       "name": "Cisco Range",
       "tagline": "Secure the topology. Prove it with ping.",
-      "description": "A Packet Tracer-style topology in your browser: IOS consoles with ? help, abbreviations, and the exact error messages, PC command prompts, three scenarios from one router to a two-switch network, and a live Progress Check.",
+      "description": "A Packet Tracer-style topology in your browser: IOS consoles with ? help, abbreviations, and the exact error messages, PC command prompts, four scenarios from one router to a two-site network with VLAN trunks, router-on-a-stick, and OSPF, and a live Progress Check.",
       "badges": [
         "Cisco IOS",
         "Hardening",
@@ -433,8 +433,8 @@
           "download_as": "cisco-range-walkthrough.txt"
         }
       ],
-      "sha256": "1b38f85875b5d127974dc3c458ee63c0e79ffe0a09a085a3f9f2eab0cc8a43fa",
-      "updated": "2026-10-14"
+      "sha256": "e3f23411b29934f1e53366e09d46d1fa7b74c4df9ae8341bf1fd1a36ce8d43ba",
+      "updated": "2026-10-19"
     },
     {
       "slug": "study-map",
@@ -452,8 +452,8 @@
       "icon": "map",
       "category": "cyber",
       "section": "learning",
-      "sha256": "deac309e739e73fb9164965e071aa124c703b80ad6d7b65f14e85598e5998be8",
-      "updated": "2026-10-18"
+      "sha256": "3081a4bf771a97b933c9aaace2b5584155508fc8c13429a56dedb93fbeafd5c6",
+      "updated": "2026-10-19"
     }
   ]
 }

@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-9IHud21RN5Bt5OAO/8Vtquk3tcoYdsfLFPxAqOCaoPw='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-nmgopvmqEVMT/TfvFMJhNOSGz6pB4nlTDRdCE+WHrE8='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
-<meta name="description" content="Flag every risky line in a running-config, choose the best fix, and name the protections that are missing entirely.">
+<meta name="description" content="Flag every risky line in a running-config, choose the best fix, and name the protections that are missing entirely. Four configs, including a Site B switch and router.">
 <link rel="canonical" href="https://freeapp4that.store/net-drills/config-audit/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%94%8D%3C%2Ftext%3E%3C%2Fsvg%3E">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Tool4That">
 <meta property="og:title" content="Config Audit">
-<meta property="og:description" content="Flag every risky line in a running-config, choose the best fix, and name the protections that are missing entirely.">
+<meta property="og:description" content="Flag every risky line in a running-config, choose the best fix, and name the protections that are missing entirely. Four configs, including a Site B switch and router.">
 <meta property="og:url" content="https://freeapp4that.store/net-drills/config-audit/">
 <meta property="og:image" content="https://freeapp4that.store/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -136,7 +136,7 @@ footer{margin-top:40px;font-size:13px;color:var(--muted)}
     <a class="jack" style="--c:var(--brown)" href="../trouble-tickets/">Trouble Tickets</a>
   </p>
   <h1>Config Audit</h1>
-  <p class="lede">Read a running-config the way an attacker would. Tap every line that creates a security problem, choose the best fix, then name the protections that are missing entirely.</p>
+  <p class="lede">Read a running-config the way an attacker would. Tap every line that creates a security or reliability problem, choose the best fix, then name the protections that are missing entirely.</p>
 </header>
 
 <div class="picker" role="radiogroup" aria-label="Configuration to audit" id="picker"></div>
@@ -204,6 +204,20 @@ const HTTP = {
   note: 'If nobody manages the device from a browser, turn the service off. Moving it to another port only hides it.',
   clue: 'Look for a service that most admins never use.'
 };
+const BANNER = {
+  sev: 'Low', title: 'The banner welcomes visitors',
+  why: 'A banner\'s job is to warn, and this one invites visitors in. A legal notice removes any expectation of privacy and supports action against intruders.',
+  opts: ['banner motd #Authorized access only. Activity is monitored.#', 'no banner motd', 'banner motd #Welcome, authorized users!#'],
+  note: 'Warn, and state that activity is monitored. Keep welcome wording out of every banner.',
+  clue: 'Read what users see before they log in.'
+};
+const ACL20 = {
+  sev: 'High', title: 'The VTY ACL lets Students in',
+  why: 'ACL 20 decides who reaches the VTY login prompt, and it is meant to list the two Teachers subnets only (10.1.20.0 and 10.2.20.0). This entry permits 10.2.10.0/24, the Site B Students VLAN, so any student PC can try passwords against the device.',
+  opts: ['no access-list 20\naccess-list 20 permit 10.1.20.0 0.0.0.255\naccess-list 20 permit 10.2.20.0 0.0.0.255', 'no access-list 20 permit 10.2.10.0 0.0.0.255', 'access-list 20 deny 10.2.10.0 0.0.0.255'],
+  note: 'In a numbered ACL, the command no access-list 20 deletes the whole list, even with an entry typed after it, so entering no access-list 20 permit 10.2.10.0 0.0.0.255 leaves the VTY lines unfiltered. A deny appended after the permit never matches, because the ACL stops at the first match. Rebuild the list (or edit it by sequence number under ip access-list standard 20), keeping only the Teachers subnets. Teachers is also the management VLAN in this network.',
+  clue: 'Which subnets does ACL 20 let through to the VTY lines?'
+};
 
 const SCEN = {
   r1: {
@@ -249,10 +263,7 @@ const SCEN = {
         why: "'public' is the first community string scanners try, and RW lets anyone who guesses it change the configuration.",
         opts: ['no snmp-server community public RW', 'snmp-server community public RO', 'snmp-server community PUBLIC RW'],
         note: 'Remove it. If you need SNMP, use SNMPv3 or a long, unique read-only community limited by an ACL.', clue: 'Look for a management protocol still using a default setting.' },
-      banner: { sev: 'Low', title: 'The banner welcomes visitors',
-        why: 'A login banner should warn, not invite. A legal notice removes any expectation of privacy and supports action against intruders.',
-        opts: ['banner motd #Authorized access only. Activity is monitored.#', 'no banner motd', 'banner motd #Welcome, authorized users!#'],
-        note: 'Warn and state that activity is monitored. Never say welcome.', clue: 'Read what users see before they log in.' },
+      banner: BANNER,
       timeout: { sev: 'Medium', title: 'The console never logs out',
         why: 'exec-timeout 0 0 turns off the idle timer, so a session someone walked away from stays open forever.',
         opts: ['exec-timeout 5 0', 'exec-timeout 0 5', 'logging synchronous'],
@@ -278,7 +289,7 @@ const SCEN = {
   },
   s1: {
     name: 'S1 access switch', sub: '9 problems to find', head: ['S1#show running-config', 'IOS 15.0, 2960-style switch'],
-    intro: 'S1 connects user PCs (VLAN 10) and uplinks to the core on G0/1. It looks tidier than R1, but Layer 2 has its own traps.',
+    intro: 'S1 connects Students PCs (VLAN 10) and uplinks to the core on G0/1. It looks tidier than R1, but Layer 2 has its own traps.',
     lines: [
       '!', 'version 15.0', 'no service pad', 'service timestamps debug datetime msec', 'service timestamps log datetime msec',
       'service password-encryption', '!', 'hostname S1', '!', 'enable secret 5 $1$mERr$9cTjUIEqNGurQiFU.ZeCi1', '!',
@@ -302,20 +313,20 @@ const SCEN = {
     findings: {
       dtp: { sev: 'Medium', title: 'F0/2 can still negotiate a trunk',
         why: "Setting an access VLAN doesn't lock the mode. A 2960 port defaults to dynamic auto, so a device that speaks DTP can turn it into a trunk and reach every VLAN (switch spoofing).",
-        opts: ['switchport mode access', 'switchport trunk native vlan 999', 'spanning-tree portfast'],
+        opts: ['switchport mode access', 'switchport trunk native vlan 99', 'spanning-tree portfast'],
         note: 'Force access mode on every host port. Port security requires it anyway.', clue: 'Compare F0/2 with F0/1 and F0/3.' },
       unused: { sev: 'Medium', title: 'Unused ports are live and sit in VLAN 1',
         why: 'Switch ports ship enabled. Any free jack gives a rogue laptop or access point a working LAN connection.',
         opts: ['interface range f0/4 - 24\nswitchport mode access\nswitchport access vlan 999\nshutdown', 'interface range f0/4 - 24\ndescription UNUSED', 'interface range f0/4 - 24\nspanning-tree portfast'],
-        note: 'Shut them and park them in an unused VLAN in case one gets turned back on. Do the same for G0/2.', clue: 'Some interfaces have no settings under them at all.' },
+        note: 'Shut them and park them in VLAN 999, a parking VLAN that holds only unused ports, in case one gets turned back on. Do the same for G0/2. The parking VLAN stays separate from the native VLAN.', clue: 'Some interfaces have no settings under them at all.' },
       trunk: { sev: 'High', title: 'The uplink negotiates trunking with DTP',
         why: 'dynamic desirable actively asks the far end to trunk. Uplinks should be static trunks with DTP off and an unused native VLAN, or switch spoofing and double-tagging get easier.',
-        opts: ['switchport mode trunk\nswitchport nonegotiate\nswitchport trunk native vlan 999', 'switchport mode dynamic auto', 'switchport access vlan 999'],
-        note: 'Static trunk, DTP off, and the native VLAN moved off VLAN 1 (match it on the switch at the other end).', clue: 'How does G0/1 decide whether to trunk?' },
+        opts: ['vlan 99\nname NATIVE\ninterface g0/1\nswitchport mode trunk\nswitchport nonegotiate\nswitchport trunk native vlan 99', 'switchport mode dynamic auto', 'switchport access vlan 999'],
+        note: 'Static trunk, DTP off, and the native VLAN moved off VLAN 1 to VLAN 99, a VLAN that stays free of hosts, an SVI, and an IP address. Set the same native VLAN at the other end of the link. VLAN 999 stays the parking VLAN for unused ports, separate from the native VLAN.', clue: 'How does G0/1 decide whether to trunk?' },
       vlan1: { sev: 'Medium', title: 'Switch management lives on VLAN 1',
         why: 'VLAN 1 is the default for every port and carries control traffic, so the management IP is reachable from any port nobody configured.',
-        opts: ['vlan 99\ninterface vlan 99\nip address 192.168.99.2 255.255.255.0\ninterface vlan 1\nno ip address\nshutdown', 'interface vlan 1\ndescription MGMT', 'no ip default-gateway'],
-        note: 'Use a dedicated management VLAN, and update ip default-gateway to match its subnet.', clue: "Which VLAN holds the switch's own IP address?" },
+        opts: ['vlan 20\nname TEACHERS\ninterface vlan 20\nip address 192.168.20.2 255.255.255.0\nno shutdown\ninterface vlan 1\nno ip address\nshutdown\nexit\nip default-gateway 192.168.20.1', 'interface vlan 1\ndescription MGMT', 'no ip default-gateway'],
+        note: 'Move management to VLAN 20 (Teachers) and point ip default-gateway at the router address in that subnet, 192.168.20.1. Larger networks give management its own dedicated VLAN; this network keeps it on Teachers so the Teachers-only ACL and the management subnet are one and the same.', clue: "Which VLAN holds the switch's own IP address?" },
       http: Object.assign({ opts: ['no ip http server\nno ip http secure-server', 'ip http port 8080', 'ip http authentication enable'] }, HTTP),
       snmp: { sev: 'Medium', title: "SNMP community 'public'",
         why: "'public' is the first community string scanners try. Even read-only access leaks interfaces, VLANs, neighbors, and more.",
@@ -334,12 +345,135 @@ const SCEN = {
     missing: [
       { t: 'DHCP snooping (ip dhcp snooping)', present: false, why: 'Not configured: a rogue DHCP server on any port could hand out a fake gateway.' },
       { t: 'BPDU Guard on every PortFast port', present: false, why: 'F0/1 has PortFast without BPDU Guard (F0/3 has both).' },
-      { t: 'An unused native VLAN on the trunk', present: false, why: 'G0/1 has no native VLAN setting, so it stays on VLAN 1.' },
-      { t: 'VTP transparent mode (vtp mode transparent)', present: false, why: 'Not shown, so the switch accepts VTP updates that could overwrite its VLANs.' },
+      { t: 'Trunk native VLAN moved to an unused VLAN (99)', present: false, why: 'G0/1 carries no native VLAN setting, so untagged frames still ride VLAN 1.' },
+      { t: 'VTP mode confirmed as transparent with show vtp status', present: false, why: 'show running-config lists the vtp mode only in transparent mode; server and client modes live in vlan.dat, outside the running-config. This config lists no vtp line, so the switch runs as a VTP server (the default) or client and accepts updates that could overwrite its VLANs. show vtp status confirms the mode, and vtp mode transparent sets it.' },
       { t: 'A legal warning banner (banner motd)', present: false, why: 'There is no banner, so nobody is warned before logging in.' },
       { t: 'Encryption of plaintext passwords', present: true, why: 'Present: service password-encryption (though type 7 is weak).' },
       { t: 'A hashed enable secret', present: true, why: 'Present: enable secret 5. Type 5 (MD5) counts as hashed here, but Cisco now recommends type 8 (PBKDF2-SHA-256) or type 9 (scrypt) where the IOS release supports them: enable algorithm-type scrypt secret <password>.' },
       { t: 'Port security on F0/1', present: true, why: 'Present: switchport port-security with sticky MACs.' }
+    ]
+  },
+  swb: {
+    name: 'Site B switch', sub: '10 problems to find', head: ['SwB#show running-config', 'IOS 15.0, 2960-style switch'],
+    intro: 'SwB serves Site B: Students on Fa0/1 to 0/8 (VLAN 10), Teachers on Fa0/9 to 0/16 (VLAN 20), and Principals on Fa0/17 to 0/20 (VLAN 30), with G0/1 trunking to RtrB G0/0 for router on a stick. VLAN 99 is the native VLAN, and VLAN 999 parks unused ports. Teachers doubles as the management VLAN: larger networks give management its own dedicated VLAN; this network keeps it on Teachers so the Teachers-only ACL and the management subnet are one and the same. Tap any line you think is a problem.',
+    lines: [
+      '!', 'version 15.0', 'no service pad', 'service timestamps debug datetime msec', 'service timestamps log datetime msec',
+      'service password-encryption', '!', 'hostname SwB', '!', 'enable secret 5 $1$q7Lm$Vt3hR8wKpZ1eYc6NuD0sJ.', '!',
+      'username netadmin privilege 15 secret 5 $1$Hx2n$Gm9dQ4tLs7vWb1KeRz5yP/', '!',
+      'ip domain-name school.lan', 'ip ssh version 2', 'vtp domain school.lan', 'vtp mode transparent', '!',
+      'spanning-tree mode pvst', 'spanning-tree extend system-id', '!',
+      'vlan 10', ' name STUDENTS', '!', 'vlan 20', ' name TEACHERS', '!', 'vlan 30', ' name PRINCIPALS', '!',
+      'vlan 99', ' name NATIVE', '!', 'vlan 999', ' name PARKING', '!',
+      'interface FastEthernet0/1', ' switchport access vlan 10', ' switchport mode access', [' spanning-tree portfast', 'bpdu'], '!',
+      { note: '(FastEthernet0/2 through 0/8 match 0/1)' }, '!',
+      'interface FastEthernet0/9', ' switchport access vlan 20', ' switchport mode access', ' spanning-tree portfast', ' spanning-tree bpduguard enable', '!',
+      { note: '(FastEthernet0/10 through 0/16 match 0/9)' }, '!',
+      'interface FastEthernet0/17', ' switchport access vlan 30', ' switchport mode access', ' spanning-tree portfast', ' spanning-tree bpduguard enable', '!',
+      { note: '(FastEthernet0/18 through 0/20 match 0/17)' }, '!',
+      ['interface FastEthernet0/21', 'v1user'], ' description Teachers workroom printer', ' switchport mode access', ' spanning-tree portfast', ' spanning-tree bpduguard enable', '!',
+      { note: '(FastEthernet0/22 through 0/24 carry no settings)' }, '!',
+      'interface GigabitEthernet0/1', ' description Trunk to RtrB G0/0', [' switchport trunk native vlan 10', 'nativeuser'],
+      [' switchport trunk allowed vlan 10,20,99', 'allowed'], ' switchport mode trunk', ' switchport nonegotiate', [' spanning-tree portfast trunk', 'pftrunk'], '!',
+      { note: '(GigabitEthernet0/2 carries no settings)' }, '!',
+      'interface Vlan1', [' ip address 10.2.1.2 255.255.255.0', 'mgmt1'], '!',
+      ['ip default-gateway 10.2.1.1', 'mgmt1'], 'no ip http server', 'no ip http secure-server', '!',
+      'access-list 20 permit 10.1.20.0 0.0.0.255', 'access-list 20 permit 10.2.20.0 0.0.0.255', ['access-list 20 permit 10.2.10.0 0.0.0.255', 'aclwrong'], '!',
+      ['banner motd ^CWelcome to SwB. Come on in.^C', 'banner'], '!',
+      'line con 0', ' exec-timeout 5 0', ' logging synchronous', ' login local',
+      'line vty 0 4', ' access-class 20 in', ' exec-timeout 5 0', ' login local', ' transport input ssh',
+      ['line vty 5 15', 'vtygap'], ' exec-timeout 5 0', ' login local', [' transport input telnet', 'telnet'], '!', 'end'
+    ],
+    findings: {
+      bpdu: { sev: 'Medium', title: 'Students ports run PortFast without BPDU Guard',
+        why: 'PortFast sends a port straight to forwarding, which suits a PC. Without BPDU Guard, a small switch plugged into a Students jack forwards at once, so a loop runs until STP catches up, and its BPDUs can bid for root bridge and redraw the whole topology. Fa0/9 through 0/21 pair PortFast with BPDU Guard; Fa0/1 through 0/8 skip it.',
+        opts: ['interface range fa0/1 - 8\nspanning-tree bpduguard enable', 'interface range fa0/1 - 8\nno spanning-tree portfast', 'interface range fa0/1 - 8\nspanning-tree guard root'],
+        note: 'BPDU Guard err-disables the port the moment a BPDU arrives. Removing PortFast only slows PCs down, and root guard still lets a looped switch forward. In global config, spanning-tree portfast bpduguard default covers every PortFast port at once.', clue: 'Compare the Students ports with the Teachers and Principals ports.' },
+      v1user: { sev: 'Medium', title: 'Fa0/21 is in use but sits in VLAN 1',
+        why: 'Without switchport access vlan, an access port stays in VLAN 1, the default VLAN every unconfigured port shares. The printer is up and passing traffic outside the Teachers subnet, next to any device plugged into a spare jack, and the management address on Vlan1 is right there with it.',
+        opts: ['interface fa0/21\nswitchport access vlan 20', 'interface fa0/21\nswitchport voice vlan 20', 'interface vlan 1\nshutdown'],
+        note: 'Every access port in use names its VLAN. A voice VLAN carries tagged phone traffic and leaves the data VLAN at 1, and shutting the Vlan1 SVI leaves the port itself in VLAN 1.', clue: 'One port in use has a description and a mode, and something else is absent.' },
+      nativeuser: { sev: 'High', title: 'The native VLAN is the Students VLAN',
+        why: 'The native VLAN crosses the trunk untagged. With native VLAN 10, Students frames leave SwB untagged, while RtrB expects them tagged 10 on g0/0.10 and files untagged frames under its own native VLAN instead, so Students lose their gateway. A user VLAN as the native VLAN is also the setup a VLAN double-tagging attack needs.',
+        opts: ['interface g0/1\nswitchport trunk native vlan 99', 'interface g0/1\nswitchport trunk native vlan 1', 'interface g0/1\nswitchport trunk native vlan 999'],
+        note: 'VLAN 99 stays free of hosts, an SVI, and an IP address, and it pairs with encapsulation dot1Q 99 native on RtrB g0/0.99 in the design (the Site B router audit checks that end), so both ends agree. VLAN 1 is the default VLAN every port shares, and VLAN 999 is the parking VLAN, separate from the native VLAN by design.', clue: 'Which VLAN crosses G0/1 untagged?' },
+      allowed: { sev: 'Medium', title: 'The trunk leaves Principals behind',
+        why: 'The allowed list carries VLANs 10, 20, and 99 only. VLAN 30 frames stop at SwB, so Principals PCs never reach their gateway on RtrB g0/0.30.',
+        opts: ['interface g0/1\nswitchport trunk allowed vlan 10,20,30,99', 'interface g0/1\nswitchport trunk allowed vlan 30', 'interface g0/1\nswitchport trunk native vlan 30'],
+        note: 'List every VLAN the trunk carries, the native VLAN 99 included. switchport trunk allowed vlan add 30 also works, while a bare switchport trunk allowed vlan 30 replaces the whole list and cuts off Students and Teachers.', clue: 'Count the VLANs the trunk is allowed to carry.' },
+      pftrunk: { sev: 'Medium', title: 'PortFast is on the uplink',
+        why: 'PortFast skips the listening and learning states and forwards at once. If G0/1 is ever recabled to a switch, or a switch replaces the router, a loop forwards frames before STP blocks it. PortFast belongs on edge ports facing PCs and printers, and this network keeps its uplinks free of it.',
+        opts: ['interface g0/1\nno spanning-tree portfast trunk', 'interface g0/1\nspanning-tree bpduguard enable', 'interface g0/1\nspanning-tree portfast'],
+        note: 'IOS does allow portfast trunk toward a single router or server, and it prints a warning when you set it. Removing it costs about 30 seconds of listening and learning after a link change. Plain spanning-tree portfast applies only while a port is in access mode, and BPDU Guard on the uplink would err-disable it the moment a switch answers.', clue: 'Which PortFast line sits on a trunk?' },
+      mgmt1: { sev: 'Medium', title: 'Switch management lives on VLAN 1',
+        why: 'VLAN 1 is the default VLAN for every unconfigured port, including Fa0/21 and the spare jacks here, so the management address is one cable away from anyone. The VTY ACL also expects admins to arrive from Teachers. The default gateway, 10.2.1.1, points at an address RtrB lacks: RtrB has no VLAN 1 subinterface, and the trunk carries VLANs 10, 20, and 99, so admins on other subnets reach the switch only once management moves to VLAN 20.',
+        opts: ['interface vlan 20\nip address 10.2.20.2 255.255.255.0\nno shutdown\ninterface vlan 1\nno ip address\nshutdown\nexit\nip default-gateway 10.2.20.1', 'interface vlan 1\ndescription MGMT', 'interface vlan 99\nip address 10.2.99.2 255.255.255.0'],
+        note: 'Management moves to the VLAN 20 SVI, and ip default-gateway points at RtrB g0/0.20. The native VLAN carries no IP, so VLAN 99 is the wrong home. Larger networks give management its own dedicated VLAN; this network keeps it on Teachers so the Teachers-only ACL and the management subnet are one and the same.', clue: "Which VLAN holds the switch's own IP address?" },
+      aclwrong: ACL20,
+      vtygap: { sev: 'High', title: 'VTY lines 5 to 15 skip the ACL',
+        why: 'access-class 20 guards lines 0 to 4 only. A sixth concurrent session lands on line 5, where any source address reaches the login prompt.',
+        opts: ['line vty 5 15\naccess-class 20 in', 'line vty 5 15\nip access-group 20 in', 'line vty 0 4\naccess-class 20 out'],
+        note: 'access-class filters VTY lines, while ip access-group filters traffic through an interface. access-class out limits sessions started from this device. Configuring line vty 0 15 in one go keeps every line identical.', clue: 'Are all the remote lines configured the same way?' },
+      telnet: Object.assign({}, TELNET, { title: 'VTY lines 5 to 15 accept Telnet only', clue: 'Compare the transport settings on the two VTY ranges.' }),
+      banner: BANNER
+    },
+    missing: [
+      { t: 'BPDU Guard on every PortFast port by default (spanning-tree portfast bpduguard default)', present: false, why: 'Absent: Fa0/9 through 0/21 set BPDU Guard port by port, and Fa0/1 through 0/8 go without it.' },
+      { t: 'Unused ports parked in VLAN 999 and shut down', present: false, why: 'Fa0/22 through 0/24 and G0/2 carry no settings, so they sit in VLAN 1, enabled. VLAN 999 PARKING exists and holds no ports.' },
+      { t: 'SSH limited to version 2', present: true, why: 'Present: ip ssh version 2.' },
+      { t: 'Encryption of plaintext passwords (service password-encryption)', present: true, why: 'Present: service password-encryption, with hashed secrets for enable and netadmin.' },
+      { t: 'A login banner (banner login)', present: false, why: 'Absent: SwB sets only banner motd. banner login shows its warning right before the username prompt, and SSH clients display it before they authenticate.' }
+    ]
+  },
+  rtrb: {
+    name: 'Site B router', sub: '5 problems to find', head: ['RtrB#show running-config', 'IOS 15.1, 2911-style router'],
+    intro: 'RtrB routes between the Site B VLANs on G0/0 subinterfaces (router on a stick, trunked to SwB G0/1), links to RtrA on G0/2 (10.0.0.0/30), and reaches the ISP on G0/1. OSPF shares both sites\' routes, and each router redistributes its own static route to 8.8.8.8 so the other site has a backup path. Tap any line you think is a problem.',
+    lines: [
+      '!', 'version 15.1', 'service timestamps debug datetime msec', 'service timestamps log datetime msec', 'service password-encryption', '!',
+      'hostname RtrB', '!', ['enable password 7 13370300294121242A262436', 'enpw'], '!',
+      'username netadmin privilege 15 secret 5 $1$Pz4c$Ka8sW2mNq6TfJh0XyL3vB.', '!',
+      'ip domain-name school.lan', 'ip ssh version 2', '!',
+      'interface GigabitEthernet0/0', ' description Trunk to SwB G0/1', ' no ip address', ' duplex auto', ' speed auto', '!',
+      'interface GigabitEthernet0/0.10', ' description STUDENTS', ' encapsulation dot1Q 10', ' ip address 10.2.10.1 255.255.255.0', '!',
+      'interface GigabitEthernet0/0.20', ' description TEACHERS', ' encapsulation dot1Q 20', ' ip address 10.2.20.1 255.255.255.0', '!',
+      'interface GigabitEthernet0/0.30', ' description PRINCIPALS', ' encapsulation dot1Q 30', ' ip address 10.2.30.1 255.255.255.0', '!',
+      'interface GigabitEthernet0/0.99', ' description NATIVE', [' encapsulation dot1Q 99', 'nativetag'], '!',
+      'interface GigabitEthernet0/1', ' description ISP uplink', ' ip address 198.51.100.2 255.255.255.252', ' duplex auto', ' speed auto', '!',
+      'interface GigabitEthernet0/2', ' description Link to RtrA G0/2', ' ip address 10.0.0.2 255.255.255.252', ' duplex auto', ' speed auto', '!',
+      'router ospf 1', [' redistribute static', 'subnets'], ' network 10.0.0.0 0.0.0.3 area 0', ' network 10.2.0.0 0.0.255.255 area 0', '!',
+      'ip classless', 'ip route 8.8.8.8 255.255.255.255 198.51.100.1', '!', 'no ip http server', '!',
+      'access-list 20 permit 10.1.20.0 0.0.0.255', 'access-list 20 permit 10.2.20.0 0.0.0.255', ['access-list 20 permit 10.2.10.0 0.0.0.255', 'aclwrong'], '!',
+      'banner motd ^CAuthorized access only. Activity is monitored.^C', '!',
+      'line con 0', ' exec-timeout 5 0', ' logging synchronous', ' login local',
+      'line aux 0', ' no exec', '!',
+      'line vty 0 4', ' access-class 20 in', ' exec-timeout 5 0', ' login local', [' transport input all', 'tinall'],
+      'line vty 5 15', ' access-class 20 in', ' exec-timeout 5 0', ' login local', ' transport input ssh', '!', 'end'
+    ],
+    findings: {
+      enpw: { sev: 'High', title: 'Privileged EXEC uses enable password, stored as type 7',
+        why: 'enable password keeps a reversible copy of the password, and service password-encryption only scrambles it as type 7. This one decodes to: ' + dec7('13370300294121242A262436') + '. Anyone with a copy of the config, a backup, or a screenshot gets privileged EXEC.',
+        opts: ['no enable password\nenable secret En@ble-B2', 'service password-encryption', 'enable password 7 13370300294121242A262436'],
+        note: 'enable secret stores a one-way hash, and it wins whenever both exist; removing the old enable password keeps it out of backups. On current IOS, enable algorithm-type scrypt secret stores type 9 (scrypt). En@ble-B2 is a placeholder: use a unique passphrase for each device and line.', clue: 'How is privileged EXEC protected?' },
+      nativetag: { sev: 'Medium', title: 'The native subinterface is missing the native keyword',
+        why: 'Both ends of a trunk need the same native VLAN. The design has SwB send VLAN 99 untagged (switchport trunk native vlan 99), while encapsulation dot1Q 99 without native makes RtrB expect VLAN 99 tagged and treat untagged frames as VLAN 1. The mismatch stays quiet while VLAN 99 carries no hosts, and it surfaces as dropped frames and confusing trunk output the moment anything relies on the native VLAN.',
+        opts: ['interface g0/0.99\nencapsulation dot1Q 99 native', 'interface g0/0.99\nip address 10.2.99.1 255.255.255.0', 'interface g0/0\nswitchport trunk native vlan 99'],
+        note: 'The native keyword makes the router send and accept VLAN 99 untagged, matching switchport trunk native vlan 99 on SwB. The native VLAN carries no IP, and switchport commands belong to switches; a 2911 rejects them.', clue: 'Compare the four subinterfaces. One should match the switch\'s native VLAN.' },
+      subnets: { sev: 'Medium', title: 'OSPF redistributes static routes classfully',
+        why: 'Without the subnets keyword, classic IOS redistributes only classful networks (it warns: % Only classful networks will be redistributed), so the 8.8.8.8/32 host route stays out of OSPF. RtrA never learns its O E2 backup route through Site B, and when the RtrA ISP uplink fails, Site A loses its path to 8.8.8.8.',
+        opts: ['router ospf 1\nredistribute static subnets', 'router ospf 1\nnetwork 8.8.8.8 0.0.0.0 area 0', 'router ospf 1\ndefault-information originate'],
+        note: 'subnets lets OSPF carry routes smaller than their classful network, such as a /32. Recent IOS XE releases redistribute subnets by default; classic IOS 15, the version Packet Tracer models, needs it typed. A network statement enables OSPF on matching interfaces and leaves static routes alone, and default-information originate advertises a default route, which this router lacks.', clue: 'What does OSPF hand to RtrA, and how small a route can it carry?' },
+      aclwrong: ACL20,
+      tinall: { sev: 'High', title: 'VTY lines 0 to 4 accept every protocol',
+        why: 'transport input all lets Telnet in alongside SSH, so a Teachers PC can still send the username and password in cleartext across the network. The ACL limits who connects; the transport setting decides how.',
+        opts: ['transport input ssh', 'transport input telnet ssh', 'transport input none'],
+        note: 'transport input ssh matches lines 5 to 15. transport input none blocks SSH as well and locks out remote admins.', clue: 'Compare the transport settings on the two VTY ranges.' }
+    },
+    missing: [
+      { t: 'access-class 20 in on every VTY line', present: true, why: 'Present: line vty 0 4 and line vty 5 15 both apply access-class 20 in.' },
+      { t: 'A static host route to 8.8.8.8 through the ISP', present: true, why: 'Present: ip route 8.8.8.8 255.255.255.255 198.51.100.1.' },
+      { t: 'SSH limited to version 2', present: true, why: 'Present: ip ssh version 2.' },
+      { t: 'A login banner (banner login)', present: false, why: 'Absent: RtrB sets only banner motd. banner login shows its warning right before the username prompt, and SSH clients display it before they authenticate.' },
+      { t: 'Brute-force protection (login block-for)', present: false, why: 'Absent: the VTY lines accept unlimited password guesses from any permitted host.' },
+      { t: 'Minimum password length (security passwords min-length)', present: false, why: 'Absent: nothing enforces a minimum length on new passwords.' }
     ]
   }
 };
@@ -356,22 +490,43 @@ const BENIGN = [
   [/^ no ip address$/, 'No address on this interface. Fine.'],
   [/^ shutdown$/, 'Good: an unused interface is shut down.'],
   [/^ip classless$/, 'Default routing behavior. Nothing risky.'],
+  [/^line aux 0$/, 'The AUX port. Check what sits under it: without no exec or a login, a cable here reaches an EXEC prompt.'],
   [/^line /, 'Selects terminal lines. The settings under it are what matter.'],
   [/^ login local$/, "login local checks the local username list. Good idea, but check that user's password."],
   [/^ login$/, 'login makes the line ask for its password. Good, but look at the password itself.'],
   [/^end$/, 'End of the configuration.'],
   [/^no service pad$/, 'Good: the legacy X.25 PAD service is off.'],
   [/^service timestamps /, 'Good: messages carry timestamps.'],
-  [/^service password-encryption$/, 'Better than plain text, but type 7 is weak. Look closely at the line passwords.'],
+  [/^service password-encryption$/, 'Better than plain text, but type 7 is reversible. Look for any password still stored as type 7.'],
   [/^enable secret 5 /, 'Good: the enable secret is stored as a hash (type 5, MD5). Current IOS releases also offer type 8 (PBKDF2-SHA-256) and type 9 (scrypt), which Cisco recommends over type 5: enable algorithm-type scrypt secret <password>.'],
   [/^spanning-tree /, 'Normal spanning-tree setting.'],
   [/^ switchport mode access$/, 'Good: this port cannot negotiate a trunk.'],
   [/^ switchport access vlan /, 'Puts the port in the user VLAN. Fine.'],
   [/^ switchport port-security/, 'Good: port security limits which devices can use this port.'],
-  [/^ spanning-tree portfast$/, 'PortFast suits host ports. Is BPDU Guard there to protect it?'],
+  [/^ spanning-tree portfast$/, 'PortFast belongs on host ports like this one. Check that BPDU Guard sits beside it.'],
   [/^ spanning-tree bpduguard enable$/, 'Good: BPDU Guard shuts the port if a switch shows up.'],
-  [/^ip default-gateway /, 'Lets the switch reach admins on other subnets. Fine.'],
-  [/^ logging synchronous$/, 'A typing convenience. Nothing risky.']
+  [/^ip default-gateway/, 'Lets the switch reach admins on other subnets. Fine.'],
+  [/^ logging synchronous$/, 'A typing convenience. Nothing risky.'],
+  [/^ no exec$/, 'Good: the AUX port opens no EXEC session, so a cable on it reaches no prompt.'],
+  [/^username \S+ (privilege \d+ )?secret /, 'Good: a named local account with a hashed secret, used by login local.'],
+  [/^vtp mode transparent$/, 'Good: transparent mode ignores VTP updates from other switches. It is also why the VLAN lines appear in this running-config.'],
+  [/^vtp domain /, 'The VTP domain name. In transparent mode it has no effect on this switch\'s VLANs.'],
+  [/^vlan \d+$/, 'Creates a VLAN. The name under it says what it is for.'],
+  [/^ name /, 'A VLAN name. Clear names make show vlan brief easy to read.'],
+  [/^ switchport trunk native vlan 99$/, 'Good: the native VLAN is VLAN 99, which stays free of hosts, an SVI, and an IP address.'],
+  [/^ switchport mode trunk$/, 'Good: a static trunk, set by hand.'],
+  [/^ switchport nonegotiate$/, 'Good: DTP is off, so the port negotiates nothing with the far end.'],
+  [/^ encapsulation dot1Q/, 'Tags this subinterface with its VLAN ID so it matches the trunk. Router on a stick needs one subinterface per VLAN.'],
+  [/^router ospf/, 'Starts OSPF process 1. The process ID is local to this router. The settings under it are what matter.'],
+  [/^ network .* area /, 'Enables OSPF on the interfaces inside this range and places them in area 0. Fine.'],
+  [/^ redistribute static subnets$/, 'Good: static routes, including the /32 host route, go into OSPF.'],
+  [/^ip route /, 'A static host route to 8.8.8.8 through the ISP next hop. Fine.'],
+  [/^no ip http (secure-)?server$/, 'Good: the web management server is off.'],
+  [/^access-list 20 permit 10\.[12]\.20\.0 0\.0\.0\.255$/, 'Permits a Teachers subnet, which is also the management VLAN. This is the entry ACL 20 is for.'],
+  [/^ access-class/, 'Good: ACL 20 filters who reaches this line\'s login prompt.'],
+  [/^ exec-timeout 5 0$/, 'Good: idle sessions close after 5 minutes.'],
+  [/^ transport input ssh$/, 'Good: SSH only, so passwords cross the network encrypted.'],
+  [/^banner motd .*Authorized access only/, 'Good: the banner warns and states that activity is monitored.']
 ];
 const benignWhy = t => (BENIGN.find(([re]) => re.test(t)) || [0, 'Nothing risky on this line.'])[1];
 
@@ -569,7 +724,7 @@ function maybeSummary() {
   const p = box.querySelectorAll('p');
   p[0].textContent = `You found ${found} of ${vals.length} problems, chose the best fix ${right} of ${answered} times, and judged ${S.missRight} of ${S.sc.missing.length} missing protections correctly. Mistaps: ${S.mistaps.size}. Hints: ${S.hints}.`;
   p[1].textContent = answered < found ? 'Tip: open any red line you have not answered yet and pick its fix.' : 'Think it through: which three of these would an attacker try first, and why?';
-  const other = key === 'r1' ? 's1' : 'r1', b = box.querySelector('button');
+  const keys = Object.keys(SCEN), other = keys[(keys.indexOf(key) + 1) % keys.length], b = box.querySelector('button');
   b.textContent = `Audit ${SCEN[other].name}`;
   b.addEventListener('click', () => { load(other); window.scrollTo({ top: 0 }); });
   if (!done[key]) { done[key] = true; store.set('netdrills.audit.done', done); renderPicker(); }

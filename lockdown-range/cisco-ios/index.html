@@ -3,21 +3,21 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-XL98nNOqgohLqKvzQyfmrnFovYAD3BSN92SiEsKYmEA='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-GjMX9FRgGBnmi31GzRhFe/BtoVGgzNQGqi0xvp4Qg+8='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/lockdown-range/cisco-ios/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%96%A5%3C%2Ftext%3E%3C%2Fsvg%3E">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Tool4That">
 <meta property="og:title" content="Cisco Range">
-<meta property="og:description" content="A Packet Tracer-style topology in your browser: IOS consoles with ? help, abbreviations, and the exact error messages, PC command prompts, three scenarios from one router to a two-switch network, and a live Progress Check.">
+<meta property="og:description" content="A Packet Tracer-style topology in your browser: IOS consoles with ? help, abbreviations, and the exact error messages, PC command prompts, four scenarios from one router to a two-site network with VLAN trunks, router-on-a-stick, and OSPF, and a live Progress Check.">
 <meta property="og:url" content="https://freeapp4that.store/lockdown-range/cisco-ios/">
 <meta property="og:image" content="https://freeapp4that.store/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
 <!-- /tool4that:head -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lockdown Range: Cisco IOS</title>
-<meta name="description" content="Lockdown Range: Cisco IOS - a general networking-security practice lab: an offline, Packet Tracer-style topology with realistic IOS consoles, PC terminals, three device-hardening scenarios and a live Progress Check. Part of the Tool4That hub.">
+<meta name="description" content="Lockdown Range: Cisco IOS - a general networking-security practice lab: an offline, Packet Tracer-style topology with realistic IOS consoles, PC terminals, four scenarios from one router to a two-site network, and a live Progress Check. Part of the Tool4That hub.">
 <meta name="color-scheme" content="light dark">
 <style>
 :root{
@@ -278,7 +278,7 @@ footer .spacer{ flex:1; }
   </aside>
 </div>
 <footer>
-  <span>Unofficial practice; not affiliated with or endorsed by Cisco. The devices, addresses and organizations are fictional. Nothing leaves this page; progress is kept in this browser.</span>
+  <span>Unofficial practice; not affiliated with or endorsed by Cisco. The devices, addresses, and organizations are fictional. Nothing leaves this page; progress is kept in this browser.</span>
   <span class="spacer"></span>
   <button id="debrief">Debrief</button>
   <button id="reset" class="danger">Reset lab</button>
@@ -455,14 +455,23 @@ function mkIface(name, kind) {
   if (kind === 'router' && isPhysName(name)) f.shutdown = true; // fresh ISR: interfaces are shut down
   return f;
 }
-function mkConfig(kind, hostname) {
+/* Router models: the 1941 keeps the Levels 1-3 layout (two Gigabit ports); the 2911 (Level 4) has three Gigabit
+   ports. A factory ISR G2 has VTY lines 0-4 only: line vty 0 15 creates lines 5-15, and show running-config then
+   lists line vty 0 4 and line vty 5 15, as IOS 15 does. */
+const R2911 = 'CISCO2911/K9';
+function routerModel(d) {
+  return d && d.model === R2911
+    ? { pid: R2911, series: 'C2900', module: 'c2900', image: 'c2900-universalk9-mz.SPA.151-4.M4.bin', gig: 3, cdp: 'CISCO2911', short: '2911' }
+    : { pid: 'CISCO1941/K9', series: 'C1900', module: 'c1900', image: 'c1900-universalk9-mz.SPA.151-4.M4.bin', gig: 2, cdp: 'C1941', short: '1941' };
+}
+function mkConfig(kind, hostname, model) {
   const cfg = {
     hostname: hostname || (kind === 'switch' ? 'Switch' : 'Router'), enableSecret: null, enablePassword: null, pwEnc: false,
     tsLog: false, tsDebug: false, minLength: null, loginBlock: null, users: [], domainName: null, domainLookup: true, rsa: null,
     sshVersion: null, sshTimeout: null, sshRetries: null, httpServer: true, httpSecure: false, cdpRun: true,
     logBuffered: null, logHosts: [], logConsole: true, ntp: [], tz: null, bannerMotd: null, bannerLogin: null,
     ifaces: {}, order: [], vlans: null, snoop: null, stpPortfast: false, stpBpduguard: false,
-    defaultGateway: null, routes: [], acls: {}, lines: { con: [mkLine('con')], aux: [mkLine('aux')], vty: [] },
+    defaultGateway: null, routes: [], acls: {}, ospf: null, lines: { con: [mkLine('con')], aux: [mkLine('aux')], vty: [] },
   };
   const add = n => { cfg.ifaces[n] = mkIface(n, kind); cfg.order.push(n); };
   if (kind === 'switch') {
@@ -471,15 +480,29 @@ function mkConfig(kind, hostname) {
     cfg.vlans = { 1: { name: 'default' }, 1002: { name: 'fddi-default' }, 1003: { name: 'token-ring-default' }, 1004: { name: 'fddinet-default' }, 1005: { name: 'trnet-default' } };
     cfg.snoop = { on: false, vlans: [] };
     for (let i = 0; i < 16; i++) cfg.lines.vty.push(mkLine('vty'));
+  } else if (model === R2911) {
+    add('GigabitEthernet0/0'); add('GigabitEthernet0/1'); add('GigabitEthernet0/2');
+    for (let i = 0; i < 5; i++) cfg.lines.vty.push(mkLine('vty'));
   } else {
     add('GigabitEthernet0/0'); add('GigabitEthernet0/1'); add('Vlan1');
     for (let i = 0; i < 5; i++) cfg.lines.vty.push(mkLine('vty'));
   }
   return cfg;
 }
-function mkDevice(kind, name, hostname) {
-  return { name: name, kind: kind, model: kind === 'switch' ? 'WS-C2960-24TT-L' : 'CISCO1941/K9', running: mkConfig(kind, hostname), startup: null, log: [] };
+function mkDevice(kind, name, hostname, model) {
+  model = model || (kind === 'switch' ? 'WS-C2960-24TT-L' : 'CISCO1941/K9');
+  return { name: name, kind: kind, model: model, running: mkConfig(kind, hostname, model), startup: null, log: [] };
 }
+/* The configuration a device boots with after reload: startup-config, or factory defaults when none is saved.
+   Switches keep their VLANs in flash:vlan.dat, apart from both configs, so the VLAN database survives a reload. */
+function reloadConfig(d) {
+  const vlans = d.kind === 'switch' && d.running ? clone(d.running.vlans) : null;
+  d.running = d.startup ? clone(d.startup) : mkConfig(d.kind, null, d.model);
+  if (vlans) d.running.vlans = vlans;
+  for (const n of d.running.order) { const f = d.running.ifaces[n]; if (f && f.errdis) f.errdis = false; }
+}
+/* config fingerprint for the "modified since saved" flag: VLAN changes go to vlan.dat, so they leave it alone */
+function cfgSig(cfg) { return JSON.stringify(Object.assign({}, cfg, { vlans: null })); }
 function mkPC(name, ip, mask, gw) {
   return { name: name, kind: 'pc', ip: ip || '', mask: mask || '', gw: gw || '', dns: '', dhcp: false, iface: 'FastEthernet0', arp: [] };
 }
@@ -602,7 +625,8 @@ function ifStatus(S, dev, name) {
   if (ifType(name) === 'Loopback') return f.shutdown ? { status: 'administratively down', proto: 'down' } : { status: 'up', proto: 'up' };
   if (ifType(name) === 'Vlan') {
     if (f.shutdown) return { status: 'administratively down', proto: 'down' };
-    return sviUp(S, dev, +ifNum(name)) ? { status: 'up', proto: 'up' } : { status: 'down', proto: 'down' };
+    /* IOS 15: an SVI whose VLAN exists reads up/down until a port in that VLAN comes up; without the VLAN it reads down/down */
+    return sviUp(S, dev, +ifNum(name)) ? { status: 'up', proto: 'up' } : { status: cfg.vlans[+ifNum(name)] ? 'up' : 'down', proto: 'down' };
   }
   if (isSubName(name)) {
     const p = ifStatus(S, dev, parentOf(name));
@@ -624,6 +648,32 @@ function sviUp(S, dev, vlan) {
   }
   return false;
 }
+/* the native VLAN a port sends untagged when it trunks: a trunking switch port's native VLAN, or for a router port
+   with dot1Q subinterfaces the one marked native (VLAN 1 when none is). null when the port does not trunk. */
+function trunkNative(S, dev, iface) {
+  const d = S.devices[dev]; if (!d || d.kind === 'pc') return null;
+  const cfg = d.running, f = cfg.ifaces[iface]; if (!f) return null;
+  if (d.kind === 'switch') return isSwitchPort(f) && operMode(S, dev, iface) === 'trunk' ? f.nativeVlan : null;
+  const subs = cfg.order.filter(n => parentOf(n) === iface && isSubName(n) && cfg.ifaces[n].encap);
+  if (!subs.length) return null;
+  const nat = subs.find(n => cfg.ifaces[n].encap.native);
+  return nat ? cfg.ifaces[nat].encap.vlan : 1;
+}
+/* CDP native VLAN mismatches seen by switches: [{dev, iface, nat, fdev, fiface, fnat}] (both ends need CDP on) */
+function nativeMismatches(S) {
+  const out = [];
+  for (const l of S.links) {
+    for (const [a, ai, b, bi] of [[l.a, l.ai, l.b, l.bi], [l.b, l.bi, l.a, l.ai]]) {
+      const da = S.devices[a], db = S.devices[b];
+      if (!da || !db || da.kind !== 'switch' || db.kind === 'pc' || !linkUp(S, a, ai)) continue;
+      if (!da.running.cdpRun || !db.running.cdpRun || !da.running.ifaces[ai].cdp || !db.running.ifaces[bi].cdp) continue;
+      const na = trunkNative(S, a, ai), nb = trunkNative(S, b, bi);
+      if (na !== null && nb !== null && na !== nb) out.push({ dev: a, iface: ai, nat: na, fdev: b, fiface: bi, fnat: nb });
+    }
+  }
+  return out;
+}
+function mismatchText(S, m) { return '%CDP-4-NATIVE_VLAN_MISMATCH: Native VLAN mismatch discovered on ' + m.iface + ' (' + m.nat + '), with ' + S.devices[m.fdev].running.hostname + ' ' + m.fiface + ' (' + m.fnat + ').'; }
 /* a visual/link-level health check used by the topology colours */
 function linkHealth(S, l) {
   if (!linkUp(S, l.a, l.ai)) return 'down';
@@ -631,7 +681,10 @@ function linkHealth(S, l) {
   if (da.kind === 'switch' && db.kind === 'switch') {
     const ma = operMode(S, l.a, l.ai), mb = operMode(S, l.b, l.bi);
     if (ma !== mb) return 'warn';
-    if (ma === 'trunk' && da.running.ifaces[l.ai].nativeVlan !== db.running.ifaces[l.bi].nativeVlan) return 'warn';
+  }
+  if (da.kind !== 'pc' && db.kind !== 'pc') {
+    const na = trunkNative(S, l.a, l.ai), nb = trunkNative(S, l.b, l.bi);
+    if (na !== null && nb !== null && na !== nb) return 'warn';
   }
   return 'up';
 }
@@ -699,37 +752,219 @@ function l3Ifaces(S, dn) {
     const f = d.running.ifaces[n]; if (!f.ip || !f.mask) continue;
     if (d.kind === 'switch' && ifType(n) !== 'Vlan') continue;
     const st = ifStatus(S, dn, n);
-    out.push({ iface: n, ip: f.ip, mask: f.mask, up: st.status === 'up' });
+    out.push({ iface: n, ip: f.ip, mask: f.mask, up: st.proto === 'up' });
   }
   return out;
 }
 function ownsIp(S, dn, ip) { return l3Ifaces(S, dn).some(x => x.ip === ip && x.up); }
+
+/* ================= routing table: connected, static, OSPF ================= */
+/* Route entry: {code:'C'|'L'|'S'|'O'|'O E2', prefix, mask, ad, metric, nh, iface, fwd (E2 forward metric), from (RID)} */
+function classfulLen(ip) { const f = +String(ip).split('.')[0]; return f < 128 ? 8 : f < 192 ? 16 : f < 224 ? 24 : 32; }
+function lenMask(n) { return n <= 0 ? '0.0.0.0' : n2ip((0xFFFFFFFF << (32 - n)) >>> 0); }
+function connectedRoutes(S, dn) {
+  const out = [];
+  for (const x of l3Ifaces(S, dn)) {
+    if (!x.up) continue;
+    out.push({ code: 'C', prefix: netOf(x.ip, x.mask), mask: x.mask, ad: 0, metric: 0, iface: x.iface });
+    if (x.mask !== '255.255.255.255') out.push({ code: 'L', prefix: x.ip, mask: '255.255.255.255', ad: 0, metric: 0, iface: x.iface });
+  }
+  return out;
+}
+/* A static route installs only while its next hop sits on a connected subnet that is up (the lab resolves next hops
+   through connected routes only; real IOS also resolves them recursively through other routes). */
+function staticRoutes(S, dn, conn) {
+  const d = S.devices[dn], out = [];
+  if (!d || d.kind !== 'router') return out;
+  conn = conn || connectedRoutes(S, dn);
+  for (const r of d.running.routes) {
+    let via = null;
+    for (const c of conn) if (c.code === 'C' && sameSubnet(r.nextHop, c.prefix, c.mask) && r.nextHop !== c.prefix && (!via || maskLen(c.mask) > maskLen(via.mask))) via = c;
+    if (!via || conn.some(c => c.code === 'L' && c.prefix === r.nextHop)) continue;
+    out.push({ code: 'S', prefix: r.prefix, mask: r.mask, ad: r.ad || 1, metric: 0, nh: r.nextHop, iface: via.iface });
+  }
+  return out;
+}
+/* best static per prefix (lowest distance), the set OSPF redistributes */
+function bestStatics(S, dn) {
+  const conn = connectedRoutes(S, dn), best = {};
+  for (const r of staticRoutes(S, dn, conn)) {
+    const k = r.prefix + '/' + maskLen(r.mask);
+    if (conn.some(c => c.code === 'C' && c.prefix === r.prefix && c.mask === r.mask)) continue;
+    if (!best[k] || r.ad < best[k].ad) best[k] = r;
+  }
+  return Object.keys(best).map(k => best[k]);
+}
+
+/* ---- OSPF-lite: one process per router, broadcast (Ethernet) networks, any single area ---- */
+function ospfOn(S, dn) { const d = S.devices[dn]; return !!(d && d.kind === 'router' && d.running.ospf); }
+function areaNum(a) { return /^\d+$/.test(String(a)) ? +a : ipValid(String(a)) ? ip2n(String(a)) : -1; }
+/* router ID: router-id when configured, else the highest loopback address, else the highest interface address.
+   (A real router picks it when the process starts and keeps it until reload or clear ip ospf process.) */
+function autoRid(cfg) {
+  let best = null;
+  const withIp = cfg.order.filter(n => cfg.ifaces[n].ip);
+  const lo = withIp.filter(n => ifType(n) === 'Loopback');
+  for (const n of (lo.length ? lo : withIp)) { const ip = cfg.ifaces[n].ip; if (!best || ip2n(ip) > ip2n(best)) best = ip; }
+  return best;
+}
+function ospfRid(S, dn) { const cfg = S.devices[dn].running; return cfg.ospf ? (cfg.ospf.rid || autoRid(cfg)) : null; }
+function ospfCost(name) { const t = IFTYPES[ifType(parentOf(name))]; return Math.max(1, Math.floor(100000 / ((t && t.bw) || 100000))); }
+/* interfaces a network statement enables: [{iface, ip, mask, up, area, passive, cost}] */
+function ospfIfaces(S, dn) {
+  const cfg = S.devices[dn].running, o = cfg.ospf, out = [];
+  if (!o) return out;
+  for (const x of l3Ifaces(S, dn)) {
+    const st = o.nets.find(nw => wildcardMatch(x.ip, nw.net, nw.wild));
+    if (!st) continue;
+    out.push({ iface: x.iface, ip: x.ip, mask: x.mask, up: x.up, area: st.area, passive: o.passive.includes(x.iface), cost: ospfCost(x.iface) });
+  }
+  return out;
+}
+/* Neighbours form across a shared up segment when both ends are OSPF-enabled and not passive, the subnet and mask
+   match, the area matches and the router IDs differ. Returns {info:{dev:{rid, ifs}}, adj:[two-way adjacencies]} */
+function ospfAdj(S) {
+  const info = {}, oneWay = [];
+  for (const r of Object.keys(S.devices)) if (ospfOn(S, r)) info[r] = { rid: ospfRid(S, r), ifs: ospfIfaces(S, r) };
+  for (const a of Object.keys(info)) {
+    if (!info[a].rid) continue;
+    for (const x of info[a].ifs) {
+      if (!x.up || x.passive) continue;
+      for (const k of l2Domain(S, a, x.iface)) {
+        const parts = k.split('|'), b = parts[0], bi = parts[1];
+        if (b === a || !info[b] || !info[b].rid || info[b].rid === info[a].rid) continue;
+        const y = info[b].ifs.find(z => z.iface === bi);
+        if (!y || !y.up || y.passive || y.mask !== x.mask || !sameSubnet(x.ip, y.ip, x.mask) || areaNum(y.area) !== areaNum(x.area)) continue;
+        oneWay.push({ a: a, ai: x.iface, aip: x.ip, b: b, bi: bi, bip: y.ip, cost: x.cost });
+      }
+    }
+  }
+  const adj = oneWay.filter(e => oneWay.some(f => f.a === e.b && f.b === e.a && f.ai === e.bi && f.bi === e.ai));
+  return { info: info, adj: adj };
+}
+/* DR election is non-preemptive: the first router up alone on a segment becomes DR and keeps the role when a
+   neighbour joins later; when routers come up together, the higher router ID wins (all priorities are 1).
+   S.ospfDr remembers the DR per segment ("net/len" -> RID); ospfTrackDr runs before and after every command. */
+function ospfSegKey(ip, mask) { return netOf(ip, mask) + '/' + maskLen(mask); }
+function ospfTrackDr(S, A) {
+  A = A || ospfAdj(S);
+  const rec = S.ospfDr || (S.ospfDr = {}), on = {}, lone = {};
+  for (const dn of Object.keys(A.info)) {
+    const me = A.info[dn]; if (!me.rid) continue;
+    for (const x of me.ifs) {
+      if (!x.up || x.passive || ifType(x.iface) === 'Loopback') continue;
+      const k = ospfSegKey(x.ip, x.mask);
+      (on[k] || (on[k] = [])).push(me.rid);
+      if (!lone[k] && !A.adj.some(e => e.a === dn && e.ai === x.iface)) lone[k] = me.rid;
+    }
+  }
+  for (const k of Object.keys(rec)) if (!(on[k] || []).includes(rec[k])) delete rec[k];
+  for (const k of Object.keys(lone)) if (!rec[k]) rec[k] = lone[k];
+}
+/* the DR among the router IDs on a segment: the recorded DR while it is still there, else the highest RID */
+function ospfDrOf(S, key, rids) {
+  const r = S.ospfDr && S.ospfDr[key];
+  return r && rids.includes(r) ? r : rids.reduce((a, b) => ip2n(b) > ip2n(a) ? b : a);
+}
+/* FULL neighbours of a router: [{dev, rid, ip, iface, role:'DR'|'BDR'|'DROTHER'}] (the BDR is the highest RID besides the DR) */
+function ospfNeighbors(S, dn, A) {
+  if (!ospfOn(S, dn)) return [];
+  A = A || ospfAdj(S);
+  const me = A.info[dn]; if (!me || !me.rid) return [];
+  const mine = A.adj.filter(e => e.a === dn);
+  return mine.map(e => {
+    const x = me.ifs.find(i => i.iface === e.ai), rids = [me.rid].concat(mine.filter(f => f.ai === e.ai).map(f => A.info[f.b].rid));
+    const dr = ospfDrOf(S, ospfSegKey(x.ip, x.mask), rids), rest = rids.filter(r => r !== dr);
+    const bdr = rest.length ? rest.reduce((a, b) => ip2n(b) > ip2n(a) ? b : a) : null, rid = A.info[e.b].rid;
+    return { dev: e.b, rid: rid, ip: e.bip, iface: e.ai, nbrIface: e.bi, role: rid === dr ? 'DR' : rid === bdr ? 'BDR' : 'DROTHER' };
+  });
+}
+/* external routes a router injects: redistribute static subnets carries every installed static (the default
+   route excepted); without subnets only classful networks go in, as classic IOS 15 does */
+function ospfExternals(S, dn) {
+  const o = S.devices[dn].running.ospf; if (!o || !o.redist) return [];
+  return bestStatics(S, dn).filter(r => !(r.prefix === '0.0.0.0' && r.mask === '0.0.0.0') && (o.redist === 'subnets' || maskLen(r.mask) === classfulLen(r.prefix)));
+}
+/* shortest-path tree from root over the adjacencies: {dist:{dev:cost}, first:{dev:{nh, iface}}} */
+function ospfSpf(S, root, A) {
+  A = A || ospfAdj(S);
+  const dist = {}, first = {}, done = {};
+  if (!A.info[root] || !A.info[root].rid) return { dist: dist, first: first, A: A };
+  dist[root] = 0;
+  for (;;) {
+    let u = null;
+    for (const r of Object.keys(dist)) if (!done[r] && (u === null || dist[r] < dist[u])) u = r;
+    if (u === null) break;
+    done[u] = true;
+    for (const e of A.adj) {
+      if (e.a !== u || done[e.b]) continue;
+      const nd = dist[u] + e.cost;
+      if (dist[e.b] === undefined || nd < dist[e.b]) { dist[e.b] = nd; first[e.b] = u === root ? { nh: e.bip, iface: e.ai } : first[u]; }
+    }
+  }
+  return { dist: dist, first: first, A: A };
+}
+/* OSPF candidates for root: O (intra-area, metric = path cost + stub cost) and O E2 (metric 20; ties go to the
+   lower forward metric, the cost to the advertising router) */
+function ospfRoutes(S, root, A) {
+  if (!ospfOn(S, root)) return [];
+  const sp = ospfSpf(S, root, A), best = {};
+  const better = (r, b) => r.code !== b.code ? r.code === 'O' : r.code === 'O' ? r.metric < b.metric : (r.metric < b.metric || (r.metric === b.metric && r.fwd < b.fwd));
+  const offer = r => { const k = r.prefix + '/' + maskLen(r.mask); if (!best[k] || better(r, best[k])) best[k] = r; };
+  for (const x of Object.keys(sp.dist)) {
+    if (x === root) continue;
+    const fh = sp.first[x], rid = sp.A.info[x].rid;
+    for (const s of sp.A.info[x].ifs) if (s.up) offer({ code: 'O', prefix: netOf(s.ip, s.mask), mask: s.mask, ad: 110, metric: sp.dist[x] + s.cost, nh: fh.nh, iface: fh.iface, from: rid });
+    for (const e of ospfExternals(S, x)) offer({ code: 'O E2', prefix: e.prefix, mask: e.mask, ad: 110, metric: 20, fwd: sp.dist[x], nh: fh.nh, iface: fh.iface, from: rid });
+  }
+  return Object.keys(best).map(k => best[k]);
+}
+/* the routing table: per prefix the lowest administrative distance wins (connected 0, static 1, OSPF 110) */
+function routingTable(S, dn) {
+  const d = S.devices[dn]; if (!d || d.kind !== 'router') return [];
+  const conn = connectedRoutes(S, dn);
+  const cand = conn.concat(staticRoutes(S, dn, conn), ospfRoutes(S, dn));
+  const best = {}, keys = [];
+  for (const r of cand) {
+    const k = r.prefix + '/' + maskLen(r.mask);
+    if (!best[k]) { best[k] = r; keys.push(k); } else if (r.ad < best[k].ad) best[k] = r;
+  }
+  return keys.map(k => best[k]);
+}
+/* longest-prefix match (local /32 entries excluded: those are the router itself) */
+function routeLookup(S, dn, dstIp, rib) {
+  let best = null;
+  for (const r of (rib || routingTable(S, dn))) if (r.code !== 'L' && sameSubnet(dstIp, r.prefix, r.mask) && (!best || maskLen(r.mask) > maskLen(best.mask))) best = r;
+  return best;
+}
+
 /* one-way forwarding. returns {ok, hops:[ip of each router ingress], code, at} */
 function forward(S, dn, dstIp, depth) {
   depth = depth || 0;
   const d = S.devices[dn], res = { ok: false, hops: [], code: 'timeout', at: null };
   if (!d || depth > 8 || !ipValid(dstIp)) return res;
   const ifs = l3Ifaces(S, dn).filter(x => x.up);
-  if (ifs.some(x => x.ip === dstIp)) { res.ok = true; res.code = 'self'; return res; }
-  // connected?
-  let best = null;
-  for (const x of ifs) if (sameSubnet(dstIp, x.ip, x.mask) && (!best || maskLen(x.mask) > maskLen(best.mask))) best = x;
+  const own = ifs.find(x => x.ip === dstIp);
+  if (own) { res.ok = true; res.code = 'self'; res.dst = dn + '|' + own.iface; return res; }
+  let best = null, nh = null, via = null;
+  if (d.kind === 'router') {
+    const r = routeLookup(S, dn, dstIp);
+    if (!r) { res.code = 'noroute'; return res; }
+    if (r.code === 'C') best = ifs.find(x => x.iface === r.iface) || null;
+    else { nh = r.nh; via = ifs.find(x => x.iface === r.iface) || null; }
+  } else {
+    for (const x of ifs) if (sameSubnet(dstIp, x.ip, x.mask) && (!best || maskLen(x.mask) > maskLen(best.mask))) best = x;
+    if (!best) nh = d.kind === 'pc' ? (ipValid(d.gw) && d.gw !== '0.0.0.0' ? d.gw : null) : d.running.defaultGateway;
+  }
+  // connected: deliver inside the broadcast domain
   if (best) {
     const dom = l2Domain(S, dn, best.iface);
     for (const k of dom) if (endpointIp(S, k) === dstIp) { res.ok = true; res.code = 'direct'; res.dst = k; return res; }
     res.code = 'timeout'; res.at = best.ip; return res;
   }
   // next hop
-  let nh = null;
-  if (d.kind === 'pc') nh = ipValid(d.gw) && d.gw !== '0.0.0.0' ? d.gw : null;
-  else if (d.kind === 'switch') nh = d.running.defaultGateway;
-  else {
-    let bl = -1;
-    for (const r of d.running.routes) { if (sameSubnet(dstIp, r.prefix, r.mask) && maskLen(r.mask) > bl) { bl = maskLen(r.mask); nh = r.nextHop; } }
-  }
   if (!nh) { res.code = d.kind === 'pc' ? 'general' : 'noroute'; return res; }
-  let via = null;
-  for (const x of ifs) if (sameSubnet(nh, x.ip, x.mask) && (!via || maskLen(x.mask) > maskLen(via.mask))) via = x;
+  if (!via) for (const x of ifs) if (sameSubnet(nh, x.ip, x.mask) && (!via || maskLen(x.mask) > maskLen(via.mask))) via = x;
   if (!via) { res.code = d.kind === 'pc' ? 'general' : 'noroute'; return res; }
   const dom = l2Domain(S, dn, via.iface);
   let gwKey = null;
@@ -767,7 +1002,7 @@ function sourceIpFor(S, dn, dstIp) {
   for (const x of ifs) if (sameSubnet(dstIp, x.ip, x.mask) && (!best || maskLen(x.mask) > maskLen(best.mask))) best = x;
   if (best) return best.ip;
   let nh = d.kind === 'switch' ? d.running.defaultGateway : null;
-  if (d.kind === 'router') { let bl = -1; for (const r of d.running.routes) if (sameSubnet(dstIp, r.prefix, r.mask) && maskLen(r.mask) > bl) { bl = maskLen(r.mask); nh = r.nextHop; } }
+  if (d.kind === 'router') { const r = routeLookup(S, dn, dstIp); if (r) { const x = ifs.find(y => y.iface === r.iface); if (x) return x.ip; } }
   if (nh) for (const x of ifs) if (sameSubnet(nh, x.ip, x.mask)) return x.ip;
   return ifs.length ? ifs[0].ip : null;
 }
@@ -916,7 +1151,7 @@ function helpRows(node, ctx, no) {
     if (n.k) rows.push([n.k, n.h || '']);
     else if (n.a === 'IFACE') {
       const kinds = ctx.dev.kind === 'switch' ? [['FastEthernet', 'FastEthernet IEEE 802.3'], ['GigabitEthernet', 'GigabitEthernet IEEE 802.3z'], ['Vlan', 'Catalyst Vlans']]
-        : [['GigabitEthernet', 'GigabitEthernet IEEE 802.3z'], ['Loopback', 'Loopback interface'], ['Vlan', 'Catalyst Vlans']];
+        : [['GigabitEthernet', 'GigabitEthernet IEEE 802.3z'], ['Loopback', 'Loopback interface']].concat(ctx.cfg.ifaces.Vlan1 ? [['Vlan', 'Catalyst Vlans']] : []);
       for (const k of kinds) rows.push(k);
     } else if (n.a === 'NUM') rows.push(['<' + (n.min === undefined ? 0 : n.min) + '-' + (n.max === undefined ? 4294967295 : n.max) + '>', n.h || '']);
     else rows.push([n.label || n.a, n.h || '']);
@@ -1033,6 +1268,7 @@ function promptOf(s) {
     case 'config-line': return h + '(config-line)#';
     case 'config-vlan': return h + '(config-vlan)#';
     case 'config-std-nacl': return h + '(config-std-nacl)#';
+    case 'config-router': return h + '(config-router)#';
     default: return h + '#';
   }
 }
@@ -1080,7 +1316,7 @@ function logMsg(devName, text) {
 }
 /* link state change messages for an interface (and the far end) */
 function announceLink(devName, ifName, wasUp) {
-  const nowUp = ifStatus(S, devName, ifName).status === 'up';
+  const nowUp = ifStatus(S, devName, ifName).proto === 'up';
   if (wasUp === nowUp) return;
   const d = S.devices[devName], f = d.running.ifaces[ifName];
   if (f.shutdown) {
@@ -1096,11 +1332,67 @@ function announceLink(devName, ifName, wasUp) {
 }
 function snapshotLinks() { // [{dev, iface, up}] for every interface, used to announce changes after a command
   const out = [];
-  for (const dn of Object.keys(S.devices)) { const d = S.devices[dn]; if (d.kind === 'pc') continue; for (const n of d.running.order) out.push({ dev: dn, iface: n, up: ifStatus(S, dn, n).status === 'up' }); }
+  for (const dn of Object.keys(S.devices)) { const d = S.devices[dn]; if (d.kind === 'pc') continue; for (const n of d.running.order) out.push({ dev: dn, iface: n, up: ifStatus(S, dn, n).proto === 'up' }); }
+  out.nbrs = ospfNbrKeys(); out.cdp = nativeMismatches(S).map(m => m.dev + '|' + m.iface + '|' + m.nat + '|' + m.fnat);
+  out.pids = {}; for (const dn of Object.keys(S.devices)) if (ospfOn(S, dn)) out.pids[dn] = S.devices[dn].running.ospf.pid;
+  return out;
+}
+/* "dev|rid|iface" for every FULL OSPF adjacency; runs before and after every command, so it also keeps the DR record current */
+function ospfNbrKeys() {
+  const A = ospfAdj(S), out = {};
+  ospfTrackDr(S, A);
+  for (const dn of Object.keys(A.info)) for (const n of ospfNeighbors(S, dn, A)) out[dn + '|' + n.rid + '|' + n.iface] = true;
   return out;
 }
 function announceChanges(before) {
   for (const b of before) { const d = S.devices[b.dev]; if (!d || !d.running.ifaces[b.iface]) continue; announceLink(b.dev, b.iface, b.up); }
+  if (before.nbrs) {
+    const now = ospfNbrKeys();
+    // the router whose own interface went down, turned passive, or left OSPF logs "Interface down or detached" at once;
+    // the far router waits out the dead timer
+    // (removing the whole process counts as detached: no router ospf logs the drop under the old process ID)
+    const say = (k, up) => {
+      const p = k.split('|'), d = S.devices[p[0]]; if (!d || (up && !d.running.ospf)) return;
+      const pid = d.running.ospf ? d.running.ospf.pid : before.pids && before.pids[p[0]]; if (pid == null) return;
+      const mine = ospfIfaces(S, p[0]).find(x => x.iface === p[2]), detached = !d.running.ospf || !mine || !mine.up || mine.passive;
+      logMsg(p[0], '%OSPF-5-ADJCHG: Process ' + pid + ', Nbr ' + p[1] + ' on ' + p[2] + (up ? ' from LOADING to FULL, Loading Done' : ' from FULL to DOWN, Neighbor Down: ' + (detached ? 'Interface down or detached' : 'Dead timer expired')));
+    };
+    for (const k of Object.keys(before.nbrs)) if (!now[k]) say(k, false);
+    for (const k of Object.keys(now)) if (!before.nbrs[k]) say(k, true);
+  }
+  if (before.cdp) for (const m of nativeMismatches(S)) if (!before.cdp.includes(m.dev + '|' + m.iface + '|' + m.nat + '|' + m.fnat)) logMsg(m.dev, mismatchText(S, m));
+}
+
+/* A reload swaps in the saved config and drops the device's links while it boots: every cabled neighbour logs its
+   port going down and back up, each OSPF neighbour loses the adjacency at once, and on every segment where a reloading
+   router was DR the BDR (the highest remaining RID) takes over and keeps the role when the router returns. The lab
+   runs the whole outage at the moment of the reload. */
+function reloadLinked(tab) {
+  const d = S.devices[tab], A = ospfAdj(S), me = A.info[tab], far = [];
+  for (const l of S.links) {
+    const f = l.a === tab ? { dev: l.b, iface: l.bi } : l.b === tab ? { dev: l.a, iface: l.ai } : null;
+    if (f && S.devices[f.dev] && S.devices[f.dev].running.ifaces[f.iface]) { f.up = ifStatus(S, f.dev, f.iface).proto === 'up'; far.push(f); }
+  }
+  for (const f of far) if (f.up) {
+    logMsg(f.dev, '%LINK-3-UPDOWN: Interface ' + f.iface + ', changed state to down');
+    logMsg(f.dev, '%LINEPROTO-5-UPDOWN: Line protocol on Interface ' + f.iface + ', changed state to down');
+  }
+  const adjMsg = (e, rid, up) => logMsg(e.a, '%OSPF-5-ADJCHG: Process ' + S.devices[e.a].running.ospf.pid + ', Nbr ' + rid + ' on ' + e.ai + (up ? ' from LOADING to FULL, Loading Done' : ' from FULL to DOWN, Neighbor Down: ' + (far.some(f => f.dev === e.a && f.iface === parentOf(e.ai)) ? 'Interface down or detached' : 'Dead timer expired')));
+  if (me && me.rid) {
+    ospfTrackDr(S, A);
+    const rec = S.ospfDr;
+    for (const x of me.ifs) {
+      const k = ospfSegKey(x.ip, x.mask), peers = A.adj.filter(e => e.a === tab && e.ai === x.iface).map(e => A.info[e.b].rid);
+      if (!peers.length) { if (rec[k] === me.rid) delete rec[k]; continue; }
+      if (ospfDrOf(S, k, [me.rid].concat(peers)) === me.rid) rec[k] = peers.reduce((a, b) => ip2n(b) > ip2n(a) ? b : a);
+    }
+    for (const e of A.adj) if (e.b === tab) adjMsg(e, me.rid, false);
+  }
+  reloadConfig(d);
+  for (const f of far) announceLink(f.dev, f.iface, false);
+  const A2 = ospfAdj(S);
+  ospfTrackDr(S, A2);
+  for (const e of A2.adj) if (e.b === tab) adjMsg(e, A2.info[tab].rid, true);
 }
 
 /* ---- trees per mode ---- */
@@ -1112,6 +1404,7 @@ function treesFor(s) {
     case 'config-line': return [LINE_TREE, CONFIG_TREE];
     case 'config-vlan': return [VLAN_TREE, CONFIG_TREE];
     case 'config-std-nacl': return [NACL_TREE, CONFIG_TREE];
+    case 'config-router': return [ROUTER_TREE, CONFIG_TREE];
   }
   return [EXEC_TREE];
 }
@@ -1129,10 +1422,10 @@ function iosInput(s, raw) {
   if (s.history.length > 20) s.history.shift();
   if (/^!/.test(line.trim()) && s.mode !== 'user' && s.mode !== 'priv') return;
   const before = snapshotLinks();
-  const devBefore = JSON.stringify(devOf(s).running);
+  const devBefore = cfgSig(devOf(s).running);
   const dev = devOf(s);
   runIos(s, line, s.priv, false);
-  if (S.devices[dev.name] && JSON.stringify(dev.running) !== devBefore) dev.dirty = true;
+  if (S.devices[dev.name] && cfgSig(dev.running) !== devBefore) dev.dirty = true;
   announceChanges(before);
   afterChange();
 }
@@ -1211,8 +1504,15 @@ const BOOT_ROUTER = [
 ];
 const BOOT_SWITCH = [
   'C2960 Boot Loader (C2960-HBOOT-M) Version 12.2(25r)FX, RELEASE SOFTWARE (fc4)', 'Cisco WS-C2960-24TT (RC32300) processor (revision C0) with 21039K bytes of memory.', '2960-24TT starting...', 'Base ethernet MAC Address: ' + '00:D0:BA:66:1C:01', 'Xmodem file system is available.', 'Initializing Flash...', 'flashfs[0]: 1 files, 0 directories', 'flashfs[0]: 0 orphaned files, 0 orphaned directories', 'flashfs[0]: Total bytes: 64016384', 'flashfs[0]: Bytes used: 4414921', 'flashfs[0]: Bytes available: 59601463', 'flashfs[0]: flashfs fsck took 1 seconds.', '...done Initializing Flash.', '', 'Boot Sector Filesystem (bs:) installed, fsid: 3', 'Parameter Block Filesystem (pb:) installed, fsid: 4', '', 'Loading "flash:/c2960-lanbasek9-mz.150-2.SE4.bin"...', '########################################################################', 'File "flash:/c2960-lanbasek9-mz.150-2.SE4.bin" uncompressed and installed, entry point: 0x3000', 'executing...', '',
-  'Cisco IOS Software, C2960 Software (C2960-LANBASEK9-M), Version 15.0(2)SE4, RELEASE SOFTWARE (fc1)', 'Copyright (c) 1986-2013 by Cisco Systems, Inc.', 'Compiled Wed 26-Jun-13 02:49 by mnguyen', '', 'cisco WS-C2960-24TT-L (PowerPC405) processor (revision B0) with 65536K bytes of memory.', 'Processor board ID FOC1033Z1EV', 'Last reset from power-on', '24 FastEthernet interfaces', '2 Gigabit Ethernet interfaces', '64K bytes of flash-simulated non-volatile configuration memory.', '',
+  'Cisco IOS Software, C2960 Software (C2960-LANBASEK9-M), Version 15.0(2)SE4, RELEASE SOFTWARE (fc1)', 'Copyright (c) 1986-2013 by Cisco Systems, Inc.', 'Compiled Wed 26-Jun-13 02:49 by prod_rel_team', '', 'cisco WS-C2960-24TT-L (PowerPC405) processor (revision B0) with 65536K bytes of memory.', 'Processor board ID FOC1033Z1EV', 'Last reset from power-on', '24 FastEthernet interfaces', '2 Gigabit Ethernet interfaces', '64K bytes of flash-simulated non-volatile configuration memory.', '',
 ];
+/* boot text for the device's model (the 2911 swaps the platform, image, and port count into the 1941 text) */
+function bootLines(d) {
+  if (d.kind === 'switch') return BOOT_SWITCH.slice();
+  const m = routerModel(d);
+  if (m.pid === 'CISCO1941/K9') return BOOT_ROUTER.slice();
+  return BOOT_ROUTER.map(l => l.replace(/CISCO1941\/K9/g, m.pid).replace(/C1900-UNIVERSALK9-M/g, 'C2900-UNIVERSALK9-M').replace(/C1900 Software/g, 'C2900 Software').replace('2 Gigabit Ethernet interfaces', m.gig + ' Gigabit Ethernet interfaces'));
+}
 function cancelBoot(tab) { const t = RT.tabs[tab]; if (t && t.bootTimer) { clearTimeout(t.bootTimer); t.bootTimer = 0; } }
 function bootDevice(tab, opts) {
   opts = opts || {};
@@ -1225,13 +1525,12 @@ function bootDevice(tab, opts) {
   s.state = 'boot';
   devRT(tab).bootAt = Date.now();
   if (opts.reload) {
-    if (d.startup) d.running = clone(d.startup); else d.running = mkConfig(d.kind);
-    for (const n of d.running.order) { const f = d.running.ifaces[n]; if (f && f.errdis) f.errdis = false; }
+    reloadLinked(tab);
     d.dirty = false; d.log = [];
     devRT(tab).arp = {}; devRT(tab).clockSet = 0;
   }
   T.clear();
-  const lines = (d.kind === 'switch' ? BOOT_SWITCH : BOOT_ROUTER).slice();
+  const lines = bootLines(d);
   const fast = opts.fast;
   let i = 0;
   const step = () => {
@@ -1240,17 +1539,24 @@ function bootDevice(tab, opts) {
     if (i < lines.length) { T.bootTimer = setTimeout(step, fast ? 0 : 90); return; }
     T.bootTimer = setTimeout(() => {
       T.bootTimer = 0;
-      T.print('Press RETURN to get started!'); T.print('');
-      if (!d.startup && opts.reload) {
+      // CDP reports a native VLAN mismatch within a minute of boot; the lab shows it right away
+      const cdp = () => { for (const m of nativeMismatches(S)) if (m.dev === tab) { const ln = stampFor(d, 'log') + mismatchText(S, m); d.log.push(ln); T.print(ln, 'log'); } };
+      // without a startup-config (factory defaults or erased), IOS offers the setup dialog before Press RETURN
+      if (!d.startup) {
         T.print(''); T.print('         --- System Configuration Dialog ---'); T.print('');
         s.state = 'login';
-        pend(s, 'Would you like to enter the initial configuration dialog? [yes/no]: ', ans => {
-          if (/^y(es)?$/i.test(ans)) { sprint(s, "[Range] The setup dialog isn't simulated; configure the device from the CLI instead."); }
+        const ask = () => pend(s, 'Would you like to enter the initial configuration dialog? [yes/no]: ', ans => {
+          if (!/^(y(es)?|no?)$/i.test(ans)) { sprint(s, "% Please answer 'yes' or 'no'."); ask(); return; }
+          if (/^y/i.test(ans)) sprint(s, "[Range] The setup dialog isn't simulated; configure the device from the CLI instead.");
           sprint(s, ''); sprint(s, ''); sprint(s, 'Press RETURN to get started!'); sprint(s, '');
+          cdp();
           s.state = 'return'; refreshPrompt(tab);
         });
+        ask(); refreshUI();
         return;
       }
+      T.print('Press RETURN to get started!'); T.print('');
+      cdp();
       s.state = 'return'; refreshPrompt(tab);
       refreshUI();
     }, fast ? 0 : 400);
@@ -1341,6 +1647,8 @@ function openRemote(s, proto, ip, user) {
   // ssh
   if (!user) { sprint(s, '% Please specify a username with -l'); return; }
   sprint(s, 'Open');
+  // SSH shows the login banner before authentication and the MOTD banner after it
+  if (tcfg.bannerLogin) { sprint(s, tcfg.bannerLogin.replace(/^\n/, '').replace(/\n$/, '')); sprint(s, ''); }
   let tries = 0;
   const askP = () => pend(s, 'Password: ', pw => {
     const u = userByName(tcfg, user);
@@ -1357,7 +1665,7 @@ function openRemote(s, proto, ip, user) {
   function attach(userName) {
     const vtyN = acc.line;
     const child = mkSession(s.tab, target.name, { type: 'vty', n: vtyN });
-    child.parent = s; s.child = child; child.user = userName; child.srcIp = srcIp; child.proto = proto;
+    child.parent = s; s.child = child; child.user = userName; child.srcIp = srcIp; child.proto = proto; child.dialIp = ip;
     const u = userName ? userByName(tcfg, userName) : null;
     const L = tcfg.lines.vty[vtyN];
     child.priv = u && u.privilege !== undefined && u.privilege !== null ? u.privilege : (L && L.privilege ? L.privilege : 1);
@@ -1381,6 +1689,7 @@ function closeRemote(child, silent) {
 }
 function remoteIpOf(child) {
   const d = S.devices[child.dev]; if (!d) return '?';
+  if (child.dialIp) return child.dialIp;
   const l3 = l3Ifaces(S, child.dev); return l3.length ? l3[0].ip : '?';
 }
 /* exit/logout at EXEC level */
@@ -1468,7 +1777,7 @@ function doReload(s) {
     setTimeout(() => { bootDevice(devName, { reload: true }); afterChange(); }, 300);
   } else {
     const d = S.devices[devName];
-    if (d.startup) d.running = clone(d.startup); else d.running = mkConfig(d.kind);
+    reloadLinked(devName);
     d.dirty = false; afterChange();
   }
 }
@@ -1489,11 +1798,19 @@ function cmdClockSet(ctx) {
   const t = Date.UTC(+m[6], mon, +m[4], +m[1], +m[2], +m[3]) - tz.off * 60000;
   const rt = devRT(ctx.dev.name); rt.clockSet = t; rt.clockSetAt = Date.now();
 }
+/* vlan.dat: the switch's VLAN database file, written when VLANs first change (null while only the defaults exist) */
+function vlanDatSize(cfg) { const user = Object.keys(cfg.vlans || {}).map(Number).filter(v => v > 1 && (v < 1002 || v > 1005)).length; return user ? 616 + 120 * user : null; }
+function switchFlashRows(cfg) {
+  const rows = ['    1  -rw-     4414921          <no date>  c2960-lanbasek9-mz.150-2.SE4.bin'];
+  const vd = vlanDatSize(cfg);
+  if (vd) rows.push('    2  -rw-     ' + pad(vd, 7) + '          <no date>  vlan.dat');
+  return { rows: rows, free: 59601463 - (vd || 0) };
+}
 function cmdDir(ctx) {
   const sw = ctx.dev.kind === 'switch';
   ctx.print('Directory of flash:/'); ctx.print('');
-  if (sw) { ctx.print('    1  -rw-     4414921          <no date>  c2960-lanbasek9-mz.150-2.SE4.bin'); ctx.print(''); ctx.print('64016384 bytes total (59601463 bytes free)'); }
-  else { ctx.print('    3  -rw-    33591768          <no date>  c1900-universalk9-mz.SPA.151-4.M4.bin'); ctx.print('    2  -rw-       28282          <no date>  sigdef-category.xml'); ctx.print('    1  -rw-      227537          <no date>  sigdef-default.xml'); ctx.print(''); ctx.print('255744000 bytes total (221896413 bytes free)'); }
+  if (sw) { const f = switchFlashRows(ctx.cfg); for (const r of f.rows) ctx.print(r); ctx.print(''); ctx.print('64016384 bytes total (' + f.free + ' bytes free)'); }
+  else { ctx.print('    3  -rw-    33591768          <no date>  ' + routerModel(ctx.dev).image); ctx.print('    2  -rw-       28282          <no date>  sigdef-category.xml'); ctx.print('    1  -rw-      227537          <no date>  sigdef-default.xml'); ctx.print(''); ctx.print('255744000 bytes total (221896413 bytes free)'); }
 }
 /* ---- ping / traceroute ---- */
 function cmdPing(ctx) {
@@ -1590,6 +1907,7 @@ const EXEC_TREE = [
     { k: 'line', h: 'Reset a terminal line', c: [{ k: 'vty', h: 'Virtual terminal', c: [{ a: 'NUM', min: 0, max: 15, h: 'Line number', run: cmdClearLine }] }, { a: 'NUM', min: 0, max: 20, h: 'Line number', run: cmdClearLine }] },
     { k: 'port-security', h: 'Clear secure MAC addresses', kind: 'switch', c: [{ k: 'sticky', h: 'Clear all sticky MAC addresses', run: ctx => { for (const n of ctx.cfg.order) { const f = ctx.cfg.ifaces[n]; if (isSwitchPort(f)) f.psec.macs = f.psec.macs.filter(m => !m.sticky); } } }, { k: 'all', h: 'Clear all secure addresses', run: ctx => { for (const n of ctx.cfg.order) { const f = ctx.cfg.ifaces[n]; if (isSwitchPort(f)) f.psec.macs = []; } } }] },
     { k: 'arp-cache', h: 'Clear the entire ARP cache', run: ctx => { devRT(ctx.dev.name).arp = {}; } },
+    { k: 'ip', h: 'IP', kind: 'router', c: [{ k: 'ospf', h: 'OSPF clear commands', c: [{ k: 'process', h: 'Reset OSPF process', run: ctx => pend(ctx.s, 'Reset ALL OSPF processes? [no]: ', ans => { if (/^y(es)?$/i.test(ans) && ctx.cfg.ospf) sprint(ctx.s, "[Range] The trainer already runs OSPF on the current router ID, so the process keeps running as it is."); refreshPrompt(ctx.s.tab); }) }] }] },
     { k: 'logging', h: 'Clear logging buffer', run: ctx => pend(ctx.s, 'Clear logging buffer [confirm]', () => { ctx.dev.log = []; }) },
     { k: 'mac', h: 'MAC forwarding table', kind: 'switch', c: [{ k: 'address-table', h: 'MAC forwarding table', run: noop, c: [{ k: 'dynamic', h: 'dynamic entry type', run: noop }] }] }] },
   { k: 'debug', h: "Debugging functions (see also 'undebug')", priv: 15, c: [{ a: 'LINE', h: 'Debugging functions', run: ctx => ctx.print("[Range] This trainer doesn't simulate debug output.") }] },
@@ -1755,7 +2073,9 @@ function cfgRoute(ctx) {
   if (!maskValid(w[3])) { ctx.print('%Inconsistent address and mask'); return; }
   if (netOf(w[2], w[3]) !== w[2]) { ctx.print('%Inconsistent address and mask'); return; }
   cfg.routes = cfg.routes.filter(r => !(r.prefix === w[2] && r.mask === w[3] && r.nextHop === w[4]));
-  cfg.routes.push({ prefix: w[2], mask: w[3], nextHop: w[4] });
+  const r = { prefix: w[2], mask: w[3], nextHop: w[4] };
+  if (w[5] !== undefined && +w[5] !== 1) r.ad = +w[5]; // a higher distance makes a floating (backup) static route
+  cfg.routes.push(r);
 }
 function cfgNacl(ctx) {
   const cfg = ctx.cfg, name = ctx.w[3], s = ctx.s;
@@ -1900,6 +2220,18 @@ function nextSeq(acl) { let m = 0; for (const e of acl.entries) if (e.seq) m = M
 function cfgStpPortfastDefault(ctx) { ctx.cfg.stpPortfast = !ctx.no; }
 function cfgStpBpduDefault(ctx) { ctx.cfg.stpBpduguard = !ctx.no; }
 function cfgAaa(ctx) { if (!ctx.no) ctx.print("[Range] AAA isn't simulated in this trainer; keep using 'login local' on the lines."); }
+/* router ospf N: one process per router; it needs an interface address (or a router-id) to start */
+function cfgRouterOspf(ctx) {
+  const cfg = ctx.cfg, pid = +ctx.w[2];
+  if (ctx.no) { if (cfg.ospf && cfg.ospf.pid === pid) cfg.ospf = null; return; }
+  if (cfg.ospf && cfg.ospf.pid !== pid) { ctx.print("[Range] This trainer runs one OSPF process per router; remove 'router ospf " + cfg.ospf.pid + "' first."); return; }
+  if (!cfg.ospf) {
+    if (!autoRid(cfg)) { logMsg(ctx.dev.name, '%OSPF-4-NORTRID: OSPF process ' + pid + ' failed to allocate unique router-id and cannot start'); return; }
+    cfg.ospf = { pid: pid, rid: null, nets: [], redist: null, passive: [] };
+  }
+  ctx.s.mode = 'config-router'; ctx.s.ctx = { ifaces: [], lines: [], vlans: [], acl: null, ospf: pid };
+}
+function cfgRouterOther(ctx) { if (!ctx.no) ctx.print('[Range] This trainer simulates OSPF only; use router ospf <process-id>.'); }
 function cfgExit(ctx) { leaveConfig(ctx.s); }
 function cfgEnd(ctx) { leaveConfig(ctx.s); }
 function cfgDo(ctx) { runIos(ctx.s, ctx.w[1], 15, true); }
@@ -1956,7 +2288,7 @@ const CONFIG_TREE = [
       { k: 'authentication-retries', h: 'Specify number of authentication retries', inc: true, run: cfgSshRetries, c: [{ a: 'NUM', min: 0, max: 5, h: 'Number of authentication retries', run: cfgSshRetries }] }] },
     { k: 'http', h: 'HTTP server configuration', c: [{ k: 'server', h: 'Enable HTTP server', run: cfgHttp }, { k: 'secure-server', h: 'Enable HTTP secure server', run: cfgHttps }, { k: 'authentication', h: 'Set http authentication method', c: [{ a: 'LINE', run: noop }] }] },
     { k: 'default-gateway', h: 'Specify default gateway (if not routing IP)', inc: true, run: cfgDefaultGw, c: [{ a: 'A.B.C.D', h: 'IP address of default gateway', run: cfgDefaultGw }] },
-    { k: 'route', h: 'Establish static routes', kind: 'router', inc: true, run: cfgRoute, c: [{ a: 'A.B.C.D', h: 'Destination prefix', c: [{ a: 'A.B.C.D', h: 'Destination prefix mask', inc: true, run: cfgRoute, c: [{ a: 'A.B.C.D', h: "Forwarding router's address", run: cfgRoute }] }] }] },
+    { k: 'route', h: 'Establish static routes', kind: 'router', inc: true, run: cfgRoute, c: [{ a: 'A.B.C.D', h: 'Destination prefix', c: [{ a: 'A.B.C.D', h: 'Destination prefix mask', inc: true, run: cfgRoute, c: [{ a: 'A.B.C.D', h: "Forwarding router's address", run: cfgRoute, c: [{ a: 'NUM', min: 1, max: 255, h: 'Distance metric for this route', run: cfgRoute }] }] }] }] },
     { k: 'routing', h: 'Enable IP routing', run: noop },
     { k: 'cef', h: 'Cisco Express Forwarding', run: noop },
     { k: 'access-list', h: 'Named access-list', c: [{ k: 'standard', h: 'Standard Access List', inc: true, run: cfgNacl, c: [{ a: 'WORD', h: 'Standard Access-list name', run: cfgNacl }] }, { k: 'extended', h: 'Extended Access List', c: [{ a: 'WORD', h: 'Extended Access-list name', run: ctx => ctx.print('[Range] Only standard access lists are simulated in this trainer.') }] }] },
@@ -2008,7 +2340,11 @@ const CONFIG_TREE = [
   { k: 'errdisable', h: 'Error disable', kind: 'switch', c: [{ k: 'recovery', h: 'Error disable recovery', c: [{ k: 'cause', h: 'Enable error disable recovery for application', c: [{ k: 'psecure-violation', run: noop }, { k: 'bpduguard', run: noop }, { k: 'all', run: noop }] }, { k: 'interval', h: 'Error disable recovery timer value', c: [{ a: 'NUM', min: 30, max: 86400, run: noop }] }] }] },
   { k: 'aaa', h: 'Authentication, Authorization and Accounting.', c: [{ k: 'new-model', h: 'Enable NEW access control commands and functions.(Disables OLD commands.)', run: cfgAaa }] },
   { k: 'snmp-server', h: 'Modify SNMP engine parameters', c: [{ a: 'LINE', run: ctx => ctx.print("[Range] SNMP isn't simulated in this trainer.") }] },
-  { k: 'router', h: 'Enable a routing process', kind: 'router', c: [{ a: 'LINE', run: ctx => ctx.print("[Range] Dynamic routing protocols aren't simulated in this trainer.") }] },
+  { k: 'router', h: 'Enable a routing process', kind: 'router', c: [
+    { k: 'ospf', h: 'Open Shortest Path First (OSPF)', inc: true, run: cfgRouterOspf, c: [{ a: 'NUM', min: 1, max: 65535, h: 'Process ID', run: cfgRouterOspf }] },
+    { k: 'eigrp', h: 'Enhanced Interior Gateway Routing Protocol (EIGRP)', c: [{ a: 'LINE', h: 'Autonomous System', run: cfgRouterOther }] },
+    { k: 'rip', h: 'Routing Information Protocol (RIP)', run: cfgRouterOther },
+    { k: 'bgp', h: 'Border Gateway Protocol (BGP)', c: [{ a: 'LINE', h: 'Autonomous system number', run: cfgRouterOther }] }] },
   { k: 'ipv6', h: 'Global IPv6 configuration commands', c: [{ a: 'LINE', run: ctx => ctx.print("[Range] IPv6 isn't simulated in this trainer.") }] },
   { k: 'boot-start-marker', run: noop }, { k: 'boot-end-marker', run: noop },
   { k: 'exit', h: 'Exit from configure mode', run: cfgExit },
@@ -2023,6 +2359,9 @@ function ifIpAddress(ctx) {
   const w = ctx.w;
   if (ctx.no) { eachIf(ctx, f => { f.ip = null; f.mask = null; }); return; }
   const ip = w[2], mask = w[3];
+  if (ctx.s.ctx.ifaces.some(n => isSubName(n) && ctx.cfg.ifaces[n] && !ctx.cfg.ifaces[n].encap)) {
+    ctx.print('% Configuring IP routing on a LAN subinterface is only allowed if that'); ctx.print('subinterface is already configured as part of an IEEE 802.10, IEEE 802.1Q,'); ctx.print('or ISL vLAN.'); ctx.print(''); return;
+  }
   if (!maskValid(mask)) { ctx.print('Bad mask ' + mask + ' for address ' + ip); return; }
   const ml = maskLen(mask);
   if (ml < 31 && (netOf(ip, mask) === ip || n2ip((ip2n(ip) | (~ip2n(mask) >>> 0)) >>> 0) === ip)) { ctx.print('Bad mask /' + ml + ' for address ' + ip); return; }
@@ -2101,15 +2440,17 @@ function ifPsecMac(ctx) {
     if (!f.psec.macs.some(m => m.mac === mac)) f.psec.macs.push({ mac: mac, sticky: false });
   });
 }
+/* f.portfast: false, true (spanning-tree portfast: edge only while not trunking) or 'trunk' (portfast trunk: edge even on a trunk) */
 function ifPortfast(ctx) {
   if (ctx.no) { eachIf(ctx, f => { f.portfast = false; }); return; }
+  const trunkForm = ctx.w[2] === 'trunk';
   ctx.print('%Warning: portfast should only be enabled on ports connected to a single');
   ctx.print(' host. Connecting hubs, concentrators, switches, bridges, etc... to this');
   ctx.print(' interface  when portfast is enabled, can cause temporary bridging loops.');
   ctx.print(' Use with CAUTION'); ctx.print('');
   eachIf(ctx, (f, n) => {
-    f.portfast = true;
-    if (operMode(S, ctx.dev.name, n) === 'trunk' && ctx.w[2] !== 'trunk') { ctx.print('%Portfast has been configured on ' + n + ' but will only'); ctx.print(' have effect when the interface is in a non-trunking mode.'); }
+    f.portfast = trunkForm ? 'trunk' : true;
+    if (operMode(S, ctx.dev.name, n) === 'trunk' && !trunkForm) { ctx.print('%Portfast has been configured on ' + n + ' but will only'); ctx.print(' have effect when the interface is in a non-trunking mode.'); }
   });
 }
 function ifPortfastDisable(ctx) { eachIf(ctx, f => { f.portfast = false; }); }
@@ -2159,8 +2500,8 @@ const IF_TREE = [
         { k: 'add', h: 'add VLANs to the current list', c: [{ a: 'WORD', label: 'WORD', h: 'VLAN IDs of the allowed VLANs', run: ifAllowedVlan }] },
         { k: 'remove', h: 'remove VLANs from the current list', c: [{ a: 'WORD', label: 'WORD', h: 'VLAN IDs of the allowed VLANs', run: ifAllowedVlan }] },
         { k: 'all', h: 'all VLANs', run: ifAllowedVlan }, { k: 'none', h: 'no VLANs', run: ifAllowedVlan },
-        { k: 'except', h: 'all VLANs except the following', c: [{ a: 'WORD', label: 'WORD', h: 'VLAN IDs of disallowed VLANs', run: ifAllowedVlan }] }] }] },
-      { k: 'encapsulation', h: 'Set trunking encapsulation when interface is in trunking mode', c: [{ k: 'dot1q', h: 'Interface uses only 802.1q trunking encapsulation when trunking', run: noop }] }] },
+        { k: 'except', h: 'all VLANs except the following', c: [{ a: 'WORD', label: 'WORD', h: 'VLAN IDs of disallowed VLANs', run: ifAllowedVlan }] }] }] }] },
+    // The 2960 trunks with 802.1Q only, so it has no 'switchport trunk encapsulation' command (multilayer switches such as the 3560 need 'encapsulation dot1q' before 'mode trunk').
     { k: 'nonegotiate', h: 'Device will not engage in negotiation protocol on this interface', run: ifNonegotiate },
     { k: 'port-security', h: 'Security related command', run: ifPsec, c: [
       { k: 'maximum', h: 'Max secure addresses', inc: true, run: ifPsecMax, c: [{ a: 'NUM', min: 1, max: 132, h: 'Maximum addresses', run: ifPsecMax }] },
@@ -2184,6 +2525,53 @@ const IF_TREE = [
   { k: 'do', h: 'To run exec commands in config mode', inc: true, c: [{ a: 'LINE', h: 'Exec Command', run: cfgDo }] },
 ];
 IF_TREE.push({ k: 'no', h: 'Negate a command or set its defaults', neg: true, c: IF_TREE });
+
+/* ================= router ospf commands ================= */
+function ospfOf(ctx) { return ctx.cfg.ospf && ctx.cfg.ospf.pid === ctx.s.ctx.ospf ? ctx.cfg.ospf : null; }
+/* network A W area N: IOS stores the address with the wildcard bits cleared */
+function rtNetwork(ctx) {
+  const o = ospfOf(ctx), w = ctx.w; if (!o || !w[1] || !w[2]) return;
+  const net = n2ip((ip2n(w[1]) & ~ip2n(w[2])) >>> 0), wild = w[2], area = w[4];
+  if (ctx.no) { o.nets = o.nets.filter(n => !(n.net === net && n.wild === wild && (area === undefined || areaNum(n.area) === areaNum(area)))); return; }
+  const same = o.nets.find(n => n.net === net && n.wild === wild);
+  if (same) { if (areaNum(same.area) !== areaNum(area)) ctx.print('% OSPF: "network ' + net + ' ' + wild + ' area ' + same.area + '" is already configured; remove it before moving the network to area ' + area + '.'); return; }
+  o.nets.push({ net: net, wild: wild, area: area });
+}
+function rtRedistStatic(ctx) {
+  const o = ospfOf(ctx); if (!o) return;
+  if (ctx.no) { o.redist = null; return; }
+  const sub = ctx.w[2] === 'subnets';
+  if (!sub) ctx.print('% Only classful networks will be redistributed');
+  o.redist = sub ? 'subnets' : 'classful';
+}
+function rtPassive(ctx) {
+  const o = ospfOf(ctx), n = ctx.w[1]; if (!o || !n) return;
+  if (ctx.no) { o.passive = o.passive.filter(x => x !== n); return; }
+  if (!o.passive.includes(n)) o.passive.push(n);
+}
+function rtRouterId(ctx) {
+  const o = ospfOf(ctx); if (!o) return;
+  const had = ospfNeighbors(S, ctx.dev.name).length > 0;
+  const rid = ctx.no ? null : ctx.w[1];
+  if (rid === o.rid) return;
+  o.rid = rid;
+  if (had) { ctx.print('% OSPF: Reload or use "clear ip ospf process" command, for this to take effect'); ctx.print('[Range] The trainer applies the new router ID right away.'); }
+}
+function rtExit(ctx) { ctx.s.mode = 'config'; ctx.s.ctx = { ifaces: [], lines: [], vlans: [], acl: null }; }
+const ROUTER_TREE = [
+  { k: 'network', h: 'Enable routing on an IP network', inc: true, run: rtNetwork, c: [{ a: 'A.B.C.D', h: 'Network number', run: rtNetwork, inc: true, c: [{ a: 'A.B.C.D', h: 'OSPF wild card bits', inc: true, run: rtNetwork, c: [{ k: 'area', h: 'Set the OSPF area ID', inc: true, run: rtNetwork, c: [
+    { a: 'NUM', min: 0, max: 4294967295, h: 'OSPF area ID as a decimal value', run: rtNetwork }, { a: 'A.B.C.D', h: 'OSPF area ID in IP address format', run: rtNetwork }] }] }] }] },
+  { k: 'redistribute', h: 'Redistribute information from another routing protocol', c: [
+    { k: 'static', h: 'Static routes', run: rtRedistStatic, c: [{ k: 'subnets', h: 'Consider subnets for redistribution into OSPF', run: rtRedistStatic }] },
+    { k: 'connected', h: 'Connected', run: ctx => ctx.print('[Range] This trainer simulates redistribute static only.'), c: [{ k: 'subnets', h: 'Consider subnets for redistribution into OSPF', run: ctx => ctx.print('[Range] This trainer simulates redistribute static only.') }] }] },
+  { k: 'passive-interface', h: 'Suppress routing updates on an interface', inc: true, run: rtPassive, c: [{ a: 'IFACE', run: rtPassive }] },
+  { k: 'router-id', h: 'router-id for this OSPF process', inc: true, run: rtRouterId, c: [{ a: 'A.B.C.D', h: 'OSPF router-id in IP address format', run: rtRouterId }] },
+  { k: 'log-adjacency-changes', h: 'Log changes in adjacency state', run: noop, c: [{ k: 'detail', h: 'Log all state changes', run: noop }] },
+  { k: 'exit', h: 'Exit from routing protocol configuration mode', run: rtExit },
+  { k: 'end', h: 'Exit from configure mode', run: cfgEnd },
+  { k: 'do', h: 'To run exec commands in config mode', inc: true, c: [{ a: 'LINE', h: 'Exec Command', run: cfgDo }] },
+];
+ROUTER_TREE.push({ k: 'no', h: 'Negate a command or set its defaults', neg: true, c: ROUTER_TREE });
 
 /* ================= line commands ================= */
 function eachLine(ctx, fn) { for (const L of ctx.s.ctx.lines) { const obj = ctx.cfg.lines[L.type][L.idx]; if (obj) fn(obj, L); } }
@@ -2216,8 +2604,7 @@ function lnLoggingSync(ctx) { eachLine(ctx, L => { L.sync = !ctx.no; }); }
 function lnTransport(ctx) {
   if (ctx.no) { eachLine(ctx, L => { L.transport = null; }); return; }
   const v = ctx.w.slice(2).join(' ');
-  const val = (v === 'ssh telnet' || v === 'telnet ssh') ? v : v;
-  eachLine(ctx, L => { L.transport = val; });
+  eachLine(ctx, L => { L.transport = v; });
 }
 function lnAccessClass(ctx) {
   if (ctx.no) { eachLine(ctx, L => { L.accessClass = null; }); return; }
@@ -2342,18 +2729,20 @@ function ifaceBlock(cfg, dev, name) {
   if (sw && f.dhcpRate) o.push(' ip dhcp snooping limit rate ' + f.dhcpRate);
   if (sw && f.dhcpTrust) o.push(' ip dhcp snooping trust');
   if (f.shutdown) o.push(' shutdown');
-  if (sw && f.portfast) o.push(' spanning-tree portfast');
+  if (sw && f.portfast) o.push(' spanning-tree portfast' + (f.portfast === 'trunk' ? ' trunk' : ''));
   if (sw && f.bpduguard === true) o.push(' spanning-tree bpduguard enable');
   if (sw && f.bpduguard === false) o.push(' spanning-tree bpduguard disable');
   o.push('!');
   return o;
 }
-function vtyGroups(cfg) {
+/* identical neighbouring VTY lines print as one range; IOS 15 switches and routers keep the default 0 4 / 5 15 split */
+function vtyGroups(cfg, dev) {
   const vty = cfg.lines.vty, groups = [];
+  const brk = vty.length > 5 ? 5 : -1;
   let i = 0;
   while (i < vty.length) {
     let j = i; const key = JSON.stringify(vty[i]);
-    while (j + 1 < vty.length && JSON.stringify(vty[j + 1]) === key) j++;
+    while (j + 1 < vty.length && j + 1 !== brk && JSON.stringify(vty[j + 1]) === key) j++;
     groups.push({ a: i, b: j, L: vty[i] }); i = j + 1;
   }
   return groups;
@@ -2396,7 +2785,7 @@ function showRunText(cfg, dev) {
     }
     o.push('!');
   }
-  if (!sw) { o.push('license udi pid CISCO1941/K9 sn FTX1524' + hash32(dev.name).toString(36).toUpperCase().slice(0, 4)); o.push('!'); }
+  if (!sw) { o.push('license udi pid ' + routerModel(dev).pid + ' sn FTX1524' + hash32(dev.name).toString(36).toUpperCase().slice(0, 4)); o.push('!'); }
   const g3 = [];
   if (cfg.sshVersion) g3.push('ip ssh version ' + cfg.sshVersion);
   if (cfg.sshTimeout) g3.push('ip ssh time-out ' + cfg.sshTimeout);
@@ -2410,10 +2799,19 @@ function showRunText(cfg, dev) {
     o.push('!');
   }
   for (const n of sortedIfaces(cfg)) o.push.apply(o, ifaceBlock(cfg, dev, n));
+  if (cfg.ospf) {
+    const ospf = cfg.ospf;
+    o.push('router ospf ' + ospf.pid);
+    if (ospf.rid) o.push(' router-id ' + ospf.rid);
+    if (ospf.redist) o.push(' redistribute static' + (ospf.redist === 'subnets' ? ' subnets' : ''));
+    for (const p of ospf.passive) o.push(' passive-interface ' + p);
+    for (const n of ospf.nets) o.push(' network ' + n.net + ' ' + n.wild + ' area ' + n.area);
+    o.push('!');
+  }
   const g4 = [];
   if (cfg.defaultGateway) g4.push('ip default-gateway ' + cfg.defaultGateway);
   if (!sw) g4.push('ip classless');
-  for (const r of cfg.routes) g4.push('ip route ' + r.prefix + ' ' + r.mask + ' ' + r.nextHop);
+  for (const r of cfg.routes) g4.push('ip route ' + r.prefix + ' ' + r.mask + ' ' + r.nextHop + (r.ad && r.ad !== 1 ? ' ' + r.ad : ''));
   if (g4.length) { o.push.apply(o, g4); o.push('!'); }
   o.push((cfg.httpServer ? '' : 'no ') + 'ip http server');
   o.push((cfg.httpSecure ? '' : 'no ') + 'ip http secure-server');
@@ -2430,12 +2828,15 @@ function showRunText(cfg, dev) {
   const g5 = [];
   for (const h of cfg.logHosts) g5.push('logging host ' + h);
   if (g5.length) { o.push.apply(o, g5); o.push('!'); }
-  if (cfg.bannerMotd !== null) { o.push(bannerLine('motd', cfg.bannerMotd)); o.push('!'); }
-  if (cfg.bannerLogin) { o.push(bannerLine('login', cfg.bannerLogin)); o.push('!'); }
-  if (cfg.bannerExec) { o.push(bannerLine('exec', cfg.bannerExec)); o.push('!'); }
+  // IOS groups the banners in this order (exec, login, motd) and closes the group with one '!'
+  const g6 = [];
+  if (cfg.bannerExec) g6.push(bannerLine('exec', cfg.bannerExec));
+  if (cfg.bannerLogin) g6.push(bannerLine('login', cfg.bannerLogin));
+  if (cfg.bannerMotd !== null) g6.push(bannerLine('motd', cfg.bannerMotd));
+  if (g6.length) { o.push.apply(o, g6); o.push('!'); }
   o.push('line con 0'); o.push.apply(o, lineBlock(cfg.lines.con[0], ' '));
   if (!sw) { o.push('line aux 0'); o.push.apply(o, lineBlock(cfg.lines.aux[0], ' ')); }
-  for (const g of vtyGroups(cfg)) { o.push('line vty ' + g.a + (g.b !== g.a ? ' ' + g.b : '')); o.push.apply(o, lineBlock(g.L, ' ')); }
+  for (const g of vtyGroups(cfg, dev)) { o.push('line vty ' + g.a + (g.b !== g.a ? ' ' + g.b : '')); o.push.apply(o, lineBlock(g.L, ' ')); }
   o.push('!');
   if (cfg.ntp.length) { for (const n of cfg.ntp) o.push('ntp server ' + n); o.push('!'); }
   o.push('end');
@@ -2495,7 +2896,7 @@ function showInterfaces(ctx) {
     ctx.print('  Input queue: 0/75/0/0 (size/max/drops/flushes); Total output drops: 0');
     ctx.print('  5 minute input rate 0 bits/sec, 0 packets/sec');
     ctx.print('  5 minute output rate 0 bits/sec, 0 packets/sec');
-    const up = st.status === 'up';
+    const up = st.proto === 'up';
     ctx.print('     ' + (up ? 24 + hash32(n) % 500 : 0) + ' packets input, ' + (up ? 3000 + hash32(n) % 40000 : 0) + ' bytes, 0 no buffer');
     ctx.print('     Received 0 broadcasts, 0 runts, 0 giants, 0 throttles');
     ctx.print('     0 input errors, 0 CRC, 0 frame, 0 overrun, 0 ignored');
@@ -2522,19 +2923,49 @@ function showIntStatus(ctx) {
     ctx.print(pad(ifBrief(n), 10) + pad((f.description || '').slice(0, 18), 19) + pad(status, 13) + pad(vlan, 11) + pad(dup, 8) + pad(spd, 7) + IFTYPES[ifType(n)].type);
   }
 }
+/* show interfaces trunk (every trunking port) or show interfaces X trunk (that port, trunking or not) */
 function showIntTrunk(ctx) {
-  const cfg = ctx.cfg, trunks = sortedIfaces(cfg).filter(n => isSwitchPort(cfg.ifaces[n]) && operMode(S, ctx.dev.name, n) === 'trunk' && ifStatus(S, ctx.dev.name, n).status === 'up');
-  if (!trunks.length) { ctx.print(''); return; }
-  ctx.print(pad('Port', 12) + pad('Mode', 13) + pad('Encapsulation', 15) + pad('Status', 14) + 'Native vlan');
-  for (const n of trunks) { const f = cfg.ifaces[n]; ctx.print(pad(ifBrief(n), 12) + pad(f.mode === 'trunk' ? 'on' : f.mode === 'dynamic desirable' ? 'desirable' : 'auto', 13) + pad('802.1q', 15) + pad('trunking', 14) + f.nativeVlan); }
+  const cfg = ctx.cfg, one = ctx.w.length === 4 ? ctx.w[2] : null;
+  if (one && !isSwitchPort(cfg.ifaces[one])) return;
+  const trunking = n => operMode(S, ctx.dev.name, n) === 'trunk' && ifStatus(S, ctx.dev.name, n).status === 'up';
+  const ports = one ? [one] : sortedIfaces(cfg).filter(n => isSwitchPort(cfg.ifaces[n]) && trunking(n));
+  if (!ports.length) { ctx.print(''); return; }
+  const modeWord = f => f.mode === 'trunk' ? 'on' : f.mode === 'access' ? 'off' : f.mode === 'dynamic desirable' ? 'desirable' : 'auto';
+  ctx.print(''); ctx.print(pad('Port', 12) + pad('Mode', 13) + pad('Encapsulation', 15) + pad('Status', 14) + 'Native vlan');
+  for (const n of ports) { const f = cfg.ifaces[n]; ctx.print(pad(ifBrief(n), 12) + pad(modeWord(f), 13) + pad('802.1q', 15) + pad(trunking(n) ? 'trunking' : 'not-trunking', 14) + f.nativeVlan); }
+  const allowedOf = n => { const f = cfg.ifaces[n]; return trunking(n) ? f.allowed : [f.accessVlan]; };
   ctx.print(''); ctx.print(pad('Port', 12) + 'Vlans allowed on trunk');
-  for (const n of trunks) ctx.print(pad(ifBrief(n), 12) + (cfg.ifaces[n].allowed === null ? '1-4094' : fmtVlanList(cfg.ifaces[n].allowed)));
+  for (const n of ports) { const a = allowedOf(n); ctx.print(pad(ifBrief(n), 12) + (a === null ? '1-4094' : fmtVlanList(a))); }
   ctx.print(''); ctx.print(pad('Port', 12) + 'Vlans allowed and active in management domain');
   const active = Object.keys(cfg.vlans).map(Number).filter(v => v < 1002).sort((a, b) => a - b);
-  for (const n of trunks) ctx.print(pad(ifBrief(n), 12) + fmtVlanList(active.filter(v => vlanAllowed(cfg.ifaces[n], v))));
+  const act = n => { const a = allowedOf(n); return fmtVlanList(active.filter(v => a === null || a.includes(v))); };
+  for (const n of ports) ctx.print(pad(ifBrief(n), 12) + act(n));
   ctx.print(''); ctx.print(pad('Port', 12) + 'Vlans in spanning tree forwarding state and not pruned');
-  for (const n of trunks) ctx.print(pad(ifBrief(n), 12) + fmtVlanList(active.filter(v => vlanAllowed(cfg.ifaces[n], v))));
+  for (const n of ports) ctx.print(pad(ifBrief(n), 12) + (trunking(n) ? act(n) : 'none'));
   ctx.print('');
+}
+/* show interfaces [X] switchport */
+function showIntSwitchport(ctx) {
+  const cfg = ctx.cfg, one = ctx.w.length === 4 ? ctx.w[2] : null;
+  const vname = v => v + ' (' + (cfg.vlans[v] ? cfg.vlans[v].name : 'Inactive') + ')';
+  for (const n of (one ? [one] : sortedIfaces(cfg))) {
+    const f = cfg.ifaces[n]; if (!isSwitchPort(f)) continue;
+    const up = ifStatus(S, ctx.dev.name, n).status === 'up', om = operMode(S, ctx.dev.name, n);
+    ctx.print('Name: ' + ifBrief(n)); ctx.print('Switchport: Enabled');
+    ctx.print('Administrative Mode: ' + (f.mode === 'access' ? 'static access' : f.mode));
+    ctx.print('Operational Mode: ' + (up ? (om === 'trunk' ? 'trunk' : 'static access') : 'down'));
+    ctx.print('Administrative Trunking Encapsulation: dot1q');
+    if (up) ctx.print('Operational Trunking Encapsulation: ' + (om === 'trunk' ? 'dot1q' : 'native'));
+    ctx.print('Negotiation of Trunking: ' + (f.nonegotiate || f.mode === 'access' ? 'Off' : 'On'));
+    ctx.print('Access Mode VLAN: ' + vname(f.accessVlan));
+    ctx.print('Trunking Native Mode VLAN: ' + vname(f.nativeVlan));
+    ctx.print('Administrative Native VLAN tagging: enabled'); ctx.print('Voice VLAN: none');
+    ctx.print('Administrative private-vlan host-association: none'); ctx.print('Administrative private-vlan mapping: none');
+    ctx.print('Operational private-vlan: none');
+    ctx.print('Trunking VLANs Enabled: ' + (f.allowed === null ? 'ALL' : fmtVlanList(f.allowed)));
+    ctx.print('Pruning VLANs Enabled: 2-1001'); ctx.print('Capture Mode Disabled'); ctx.print('Capture VLANs Allowed: ALL'); ctx.print('');
+    ctx.print('Protected: false'); ctx.print('Unknown unicast blocked: disabled'); ctx.print('Unknown multicast blocked: disabled'); ctx.print('Appliance trust: none'); ctx.print('');
+  }
 }
 function vlanPorts(ctx, v) {
   const cfg = ctx.cfg, out = [];
@@ -2574,20 +3005,149 @@ function showIpRoute(ctx) {
     ctx.print(cfg.defaultGateway ? 'Default gateway is ' + cfg.defaultGateway : 'Default gateway is not set'); ctx.print('');
     ctx.print('Host               Gateway           Last Use    Total Uses  Interface'); ctx.print('ICMP redirect cache is empty'); return;
   }
-  const def = cfg.routes.find(r => r.prefix === '0.0.0.0' && r.mask === '0.0.0.0');
-  ctx.print(def ? 'Gateway of last resort is ' + def.nextHop + ' to network 0.0.0.0' : 'Gateway of last resort is not set'); ctx.print('');
-  const ifs = l3Ifaces(S, dev.name).filter(x => x.up);
-  const nets = {};
-  for (const x of ifs) { const major = netOf(x.ip, '255.255.255.0'); (nets[major] = nets[major] || []).push(x); }
-  for (const major of Object.keys(nets).sort((a, b) => ip2n(a) - ip2n(b))) {
-    const list = nets[major];
-    ctx.print('     ' + major + '/24 is variably subnetted, ' + (list.length * 2) + ' subnets, 2 masks');
-    for (const x of list) { ctx.print('C       ' + netOf(x.ip, x.mask) + '/' + maskLen(x.mask) + ' is directly connected, ' + x.iface); ctx.print('L       ' + x.ip + '/32 is directly connected, ' + x.iface); }
+  const rib = routingTable(S, dev.name);
+  const def = rib.find(r => r.prefix === '0.0.0.0' && r.mask === '0.0.0.0');
+  ctx.print(def ? 'Gateway of last resort is ' + def.nh + ' to network 0.0.0.0' : 'Gateway of last resort is not set'); ctx.print('');
+  const want = ctx.w[3]; // static | connected | ospf filter
+  const keep = r => !want || (want === 'static' ? r.code === 'S' : want === 'connected' ? r.code === 'C' || r.code === 'L' : r.code === 'O' || r.code === 'O E2');
+  for (const l of routeTableLines(rib, routeAge(dev), keep)) ctx.print(l);
+  ctx.print('');
+}
+function routeAge(dev) { const up = Math.floor((Date.now() - devRT(dev.name).bootAt) / 1000) % 86400; return pad2(Math.floor(up / 3600)) + ':' + pad2(Math.floor(up % 3600 / 60)) + ':' + pad2(up % 60); }
+/* IOS 15 layout: routes grouped under their classful network ("is subnetted" when every entry shares one mask, which
+   the entries then leave off; "is variably subnetted" otherwise), numeric order, code column 9 under a parent line
+   and 6 at the top level (supernets such as 0.0.0.0/0 and lone classful networks). With a filter (show ip route
+   ospf | static | connected) the parent lines still describe the whole table; keep picks the child lines. */
+function routeTableLines(rib, age, keep) {
+  const sorted = rib.slice().sort((a, b) => (ip2n(a.prefix) - ip2n(b.prefix)) || (maskLen(a.mask) - maskLen(b.mask)));
+  const groups = [], byKey = {};
+  for (const r of sorted) {
+    const len = maskLen(r.mask), cl = classfulLen(r.prefix);
+    const key = len >= cl && cl < 32 ? netOf(r.prefix, lenMask(cl)) + '/' + cl : 'top:' + r.prefix + '/' + len;
+    if (!byKey[key]) { byKey[key] = { key: key, net: netOf(r.prefix, lenMask(Math.min(len, cl))), cl: cl, routes: [] }; groups.push(byKey[key]); }
+    byKey[key].routes.push(r);
   }
-  for (const r of cfg.routes) {
-    if (r.prefix === '0.0.0.0') ctx.print('S*   0.0.0.0/0 [1/0] via ' + r.nextHop);
-    else ctx.print('S    ' + r.prefix + '/' + maskLen(r.mask) + ' [1/0] via ' + r.nextHop);
+  const code = r => r.code === 'S' && r.prefix === '0.0.0.0' && r.mask === '0.0.0.0' ? 'S*' : r.code;
+  const line = (r, width, withLen) => {
+    const net = r.prefix + (withLen ? '/' + maskLen(r.mask) : '');
+    const head = pad(code(r), width) + net;
+    if (r.code === 'C' || r.code === 'L') return head + ' is directly connected, ' + r.iface;
+    if (r.code === 'S') return head + ' [' + r.ad + '/0] via ' + r.nh;
+    return head + ' [' + r.ad + '/' + r.metric + '] via ' + r.nh + ', ' + age + ', ' + r.iface;
+  };
+  const out = [];
+  for (const g of groups) {
+    const shown = g.routes.filter(keep || (() => true));
+    if (!shown.length) continue;
+    const lens = uniq(g.routes.map(r => maskLen(r.mask)));
+    if (g.key.startsWith('top:') || (g.routes.length === 1 && lens[0] === g.cl)) { for (const r of shown) out.push(line(r, 6, true)); continue; }
+    if (lens.length === 1) { out.push('      ' + g.net + '/' + lens[0] + ' is subnetted, ' + g.routes.length + ' subnets'); for (const r of shown) out.push(line(r, 9, false)); }
+    else { out.push('      ' + g.net + '/' + g.cl + ' is variably subnetted, ' + g.routes.length + ' subnets, ' + lens.length + ' masks'); for (const r of shown) out.push(line(r, 9, true)); }
   }
+  return out;
+}
+/* show ip route A.B.C.D: the longest match, as "Routing entry for ..." */
+function showIpRouteAddr(ctx) {
+  const dev = ctx.dev, ip = ctx.w[3];
+  if (dev.kind === 'switch') { ctx.print('% IP routing is not enabled'); return; }
+  const rib = routingTable(S, dev.name);
+  let r = null;
+  // like IOS, the lookup skips the default route unless you ask for 0.0.0.0 itself
+  for (const x of rib) if ((maskLen(x.mask) > 0 || ip === '0.0.0.0') && sameSubnet(ip, x.prefix, x.mask) && (!r || maskLen(x.mask) > maskLen(r.mask))) r = x;
+  if (!r) { ctx.print('% Network not in table'); return; }
+  const age = routeAge(dev), o = ctx.cfg.ospf;
+  ctx.print('Routing entry for ' + r.prefix + '/' + maskLen(r.mask));
+  if (r.code === 'C' || r.code === 'L') {
+    ctx.print('  Known via "connected", distance 0, metric 0 (connected' + (r.code === 'C' ? ', via interface' : '') + ')');
+    ctx.print('  Routing Descriptor Blocks:'); ctx.print('  * directly connected, via ' + r.iface); ctx.print('      Route metric is 0, traffic share count is 1');
+  } else if (r.code === 'S') {
+    ctx.print('  Known via "static", distance ' + r.ad + ', metric 0');
+    if (o && ospfExternals(S, dev.name).some(e => e.prefix === r.prefix && e.mask === r.mask)) { ctx.print('  Redistributing via ospf ' + o.pid); ctx.print('  Advertised by ospf ' + o.pid + (o.redist === 'subnets' ? ' subnets' : '')); }
+    ctx.print('  Routing Descriptor Blocks:'); ctx.print('  * ' + r.nh); ctx.print('      Route metric is 0, traffic share count is 1');
+  } else {
+    ctx.print('  Known via "ospf ' + o.pid + '", distance 110, metric ' + r.metric + (r.code === 'O' ? ', type intra area' : ', type extern 2, forward metric ' + r.fwd));
+    ctx.print('  Last update from ' + r.nh + ' on ' + r.iface + ', ' + age + ' ago');
+    ctx.print('  Routing Descriptor Blocks:'); ctx.print('  * ' + r.nh + ', from ' + r.from + ', ' + age + ' ago, via ' + r.iface); ctx.print('      Route metric is ' + r.metric + ', traffic share count is 1');
+  }
+  ctx.print('');
+}
+/* ---- OSPF show commands ---- */
+function showIpProtocols(ctx) {
+  const o = ctx.cfg.ospf; if (!o || ctx.dev.kind !== 'router') return;
+  const dn = ctx.dev.name, rid = ospfRid(S, dn), nb = ospfNeighbors(S, dn);
+  ctx.print(''); ctx.print('Routing Protocol is "ospf ' + o.pid + '"');
+  ctx.print('  Outgoing update filter list for all interfaces is not set'); ctx.print('  Incoming update filter list for all interfaces is not set');
+  ctx.print('  Router ID ' + rid);
+  if (o.redist) { ctx.print('  It is an autonomous system boundary router'); ctx.print(' Redistributing External Routes from,'); ctx.print('    static' + (o.redist === 'subnets' ? ', includes subnets in redistribution' : '')); }
+  ctx.print('  Number of areas in this router is 1. 1 normal 0 stub 0 nssa'); ctx.print('  Maximum path: 4');
+  ctx.print('  Routing for Networks:'); for (const n of o.nets) ctx.print('    ' + n.net + ' ' + n.wild + ' area ' + n.area);
+  if (o.passive.length) { ctx.print('  Passive Interface(s):'); for (const p of o.passive) ctx.print('    ' + p); }
+  ctx.print('  Routing Information Sources:'); ctx.print('    Gateway         Distance      Last Update');
+  for (const n of nb) ctx.print('    ' + pad(n.rid, 16) + lpad(110, 8) + '      ' + routeAge(ctx.dev));
+  ctx.print('  Distance: (default is 110)'); ctx.print('');
+}
+function showOspfNeighbor(ctx) {
+  if (!ctx.cfg.ospf || ctx.dev.kind !== 'router') return;
+  ctx.print(''); ctx.print(pad('Neighbor ID', 16) + pad('Pri', 6) + pad('State', 16) + pad('Dead Time', 12) + pad('Address', 16) + 'Interface');
+  for (const n of ospfNeighbors(S, ctx.dev.name)) ctx.print(pad(n.rid, 16) + pad('  1', 6) + pad('FULL/' + n.role, 16) + pad('00:00:3' + (hash32(n.rid) % 10), 12) + pad(n.ip, 16) + n.iface);
+  ctx.print('');
+}
+function showOspfInterfaceBrief(ctx) {
+  const o = ctx.cfg.ospf; if (!o || ctx.dev.kind !== 'router') return;
+  const dn = ctx.dev.name, nb = ospfNeighbors(S, dn), rid = ospfRid(S, dn);
+  ctx.print(pad('Interface', 13) + pad('PID', 6) + pad('Area', 16) + pad('IP Address/Mask', 19) + pad('Cost', 6) + pad('State', 6) + 'Nbrs F/C');
+  for (const x of ospfIfaces(S, dn)) {
+    const mine = nb.filter(n => n.iface === x.iface), dr = ospfDrOf(S, ospfSegKey(x.ip, x.mask), [rid].concat(mine.map(n => n.rid))) === rid;
+    const state = !x.up ? 'DOWN' : ifType(x.iface) === 'Loopback' ? 'LOOP' : dr ? 'DR' : mine.some(n => n.role === 'BDR') ? 'DROTH' : 'BDR';
+    ctx.print(pad(ifMed(x.iface), 13) + pad(o.pid, 6) + pad(x.area, 16) + pad(x.ip + '/' + maskLen(x.mask), 19) + pad(x.cost, 6) + pad(state, 6) + mine.length + '/' + mine.length);
+  }
+}
+function showOspf(ctx) {
+  const o = ctx.cfg.ospf; if (!o || ctx.dev.kind !== 'router') return;
+  const dn = ctx.dev.name, ifs = ospfIfaces(S, dn);
+  ctx.print(' Routing Process "ospf ' + o.pid + '" with ID ' + ospfRid(S, dn));
+  ctx.print(' Supports only single TOS(TOS0) routes'); ctx.print(' Supports opaque LSA');
+  if (o.redist) { ctx.print(' It is an autonomous system boundary router'); ctx.print(' Redistributing External Routes from,'); ctx.print('    static' + (o.redist === 'subnets' ? ', includes subnets in redistribution' : '')); }
+  ctx.print(' Number of areas in this router is 1. 1 normal 0 stub 0 nssa');
+  const areas = uniq(ifs.map(x => String(x.area)));
+  for (const a of areas) { ctx.print('    Area ' + (areaNum(a) === 0 ? 'BACKBONE(' + a + ')' : a)); ctx.print('        Number of interfaces in this area is ' + ifs.filter(x => String(x.area) === a).length); }
+  ctx.print('');
+}
+/* the link-state database as this router sees it: router LSAs from every router it can reach, network LSAs for
+   segments with an elected DR, and the type-5 externals each ASBR injects */
+function showOspfDatabase(ctx) {
+  const o = ctx.cfg.ospf; if (!o || ctx.dev.kind !== 'router') return;
+  const dn = ctx.dev.name, A = ospfAdj(S), sp = ospfSpf(S, dn, A), rid = A.info[dn] && A.info[dn].rid;
+  if (!rid) return;
+  const area = (A.info[dn].ifs[0] || { area: '0' }).area;
+  const age = r => 100 + hash32(r) % 900, seq = r => '0x8000000' + (1 + hash32(r + 's') % 9), ck = r => '0x00' + (hash32(r + 'c') % 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+  const reach = Object.keys(sp.dist).sort((a, b) => ip2n(A.info[a].rid) - ip2n(A.info[b].rid));
+  ctx.print(''); ctx.print('            OSPF Router with ID (' + rid + ') (Process ID ' + o.pid + ')'); ctx.print('');
+  ctx.print('                Router Link States (Area ' + area + ')'); ctx.print('');
+  ctx.print(pad('Link ID', 16) + pad('ADV Router', 16) + pad('Age', 12) + pad('Seq#', 11) + 'Checksum Link count');
+  for (const r of reach) { const x = A.info[r]; ctx.print(pad(x.rid, 16) + pad(x.rid, 16) + pad(age(x.rid), 12) + pad(seq(x.rid), 11) + pad(ck(x.rid), 9) + x.ifs.filter(i => i.up).length); }
+  // one network LSA per multi-access segment with a full adjacency, advertised by that segment's DR
+  const nets = [];
+  for (const e of A.adj) {
+    const ra = A.info[e.a].rid, x = A.info[e.a].ifs.find(i => i.iface === e.ai);
+    if (!reach.includes(e.a) || !x || nets.some(n => n.id === e.aip)) continue;
+    const peers = A.adj.filter(f => f.a === e.a && f.ai === e.ai).map(f => A.info[f.b].rid);
+    if (ospfDrOf(S, ospfSegKey(x.ip, x.mask), [ra].concat(peers)) === ra) nets.push({ id: e.aip, adv: ra });
+  }
+  if (nets.length) {
+    ctx.print(''); ctx.print('                Net Link States (Area ' + area + ')'); ctx.print('');
+    ctx.print(pad('Link ID', 16) + pad('ADV Router', 16) + pad('Age', 12) + pad('Seq#', 11) + 'Checksum');
+    for (const n of nets) ctx.print(pad(n.id, 16) + pad(n.adv, 16) + pad(age(n.id), 12) + pad(seq(n.id), 11) + ck(n.id));
+  }
+  const ext = [];
+  for (const r of reach) for (const e of ospfExternals(S, r)) ext.push({ id: e.prefix, adv: A.info[r].rid });
+  if (ext.length) {
+    ext.sort((a, b) => (ip2n(a.id) - ip2n(b.id)) || (ip2n(a.adv) - ip2n(b.adv)));
+    ctx.print(''); ctx.print('                Type-5 AS External Link States'); ctx.print('');
+    ctx.print(pad('Link ID', 16) + pad('ADV Router', 16) + pad('Age', 12) + pad('Seq#', 11) + 'Checksum Tag');
+    for (const x of ext) ctx.print(pad(x.id, 16) + pad(x.adv, 16) + pad(age(x.id + x.adv), 12) + pad(seq(x.id + x.adv), 11) + pad(ck(x.id + x.adv), 9) + '0');
+  }
+  ctx.print('');
 }
 function showIpSsh(ctx) {
   const cfg = ctx.cfg;
@@ -2624,7 +3184,7 @@ function showVersion(ctx) {
   const upt = (up >= 3600 ? Math.floor(up / 3600) + ' hours, ' : '') + Math.floor(up % 3600 / 60) + ' minutes';
   if (sw) {
     ctx.print('Cisco IOS Software, C2960 Software (C2960-LANBASEK9-M), Version 15.0(2)SE4, RELEASE SOFTWARE (fc1)');
-    ctx.print('Copyright (c) 1986-2013 by Cisco Systems, Inc.'); ctx.print('Compiled Wed 26-Jun-13 02:49 by mnguyen'); ctx.print('');
+    ctx.print('Copyright (c) 1986-2013 by Cisco Systems, Inc.'); ctx.print('Compiled Wed 26-Jun-13 02:49 by prod_rel_team'); ctx.print('');
     ctx.print('ROM: Bootstrap program is C2960 boot loader'); ctx.print('BOOTLDR: C2960 Boot Loader (C2960-HBOOT-M) Version 12.2(25r)FX, RELEASE SOFTWARE (fc4)'); ctx.print('');
     ctx.print(ctx.cfg.hostname + ' uptime is ' + upt); ctx.print('System returned to ROM by power-on'); ctx.print('System image file is "flash:/c2960-lanbasek9-mz.150-2.SE4.bin"'); ctx.print('');
     ctx.print('cisco WS-C2960-24TT-L (PowerPC405) processor (revision B0) with 65536K bytes of memory.'); ctx.print('Processor board ID FOC1033Z1EV'); ctx.print('Last reset from power-on');
@@ -2634,14 +3194,15 @@ function showVersion(ctx) {
     ctx.print('Model revision number           : B0'); ctx.print('Motherboard revision number     : B0'); ctx.print('Model number                    : WS-C2960-24TT-L'); ctx.print('System serial number            : FOC1033Z1EV'); ctx.print('');
     ctx.print('Switch Ports Model              SW Version            SW Image'); ctx.print('------ ----- -----              ----------            ----------'); ctx.print('*    1 26    WS-C2960-24TT-L    15.0(2)SE4            C2960-LANBASEK9-M'); ctx.print('');
   } else {
-    ctx.print('Cisco IOS Software, C1900 Software (C1900-UNIVERSALK9-M), Version 15.1(4)M4, RELEASE SOFTWARE (fc2)');
+    const m = routerModel(d);
+    ctx.print('Cisco IOS Software, ' + m.series + ' Software (' + m.series + '-UNIVERSALK9-M), Version 15.1(4)M4, RELEASE SOFTWARE (fc2)');
     ctx.print('Copyright (c) 1986-2012 by Cisco Systems, Inc.'); ctx.print('Compiled Thurs 5-Jan-12 15:41 by pt_team'); ctx.print('');
     ctx.print('ROM: System Bootstrap, Version 15.0(1r)M15, RELEASE SOFTWARE (fc1)'); ctx.print('');
-    ctx.print(ctx.cfg.hostname + ' uptime is ' + upt); ctx.print('System returned to ROM by power-on'); ctx.print('System image file is "flash0:c1900-universalk9-mz.SPA.151-4.M4.bin"'); ctx.print('Last reload type: Normal Reload'); ctx.print('');
-    ctx.print('Cisco CISCO1941/K9 (revision 1.0) with 491520K/32768K bytes of memory.'); ctx.print('Processor board ID FTX1524X0KS'); ctx.print('2 Gigabit Ethernet interfaces'); ctx.print('DRAM configuration is 64 bits wide with parity disabled.');
+    ctx.print(ctx.cfg.hostname + ' uptime is ' + upt); ctx.print('System returned to ROM by power-on'); ctx.print('System image file is "flash0:' + m.image + '"'); ctx.print('Last reload type: Normal Reload'); ctx.print('');
+    ctx.print('Cisco ' + m.pid + ' (revision 1.0) with 491520K/32768K bytes of memory.'); ctx.print('Processor board ID FTX1524X0KS'); ctx.print(m.gig + ' Gigabit Ethernet interfaces'); ctx.print('DRAM configuration is 64 bits wide with parity disabled.');
     ctx.print('255K bytes of non-volatile configuration memory.'); ctx.print('249856K bytes of ATA System CompactFlash 0 (Read/Write)'); ctx.print('');
-    ctx.print('License Info:'); ctx.print(''); ctx.print('License UDI:'); ctx.print(''); ctx.print('Device#   PID                   SN'); ctx.print('-------------------------------------------------'); ctx.print('*0        CISCO1941/K9          FTX1524X0KS'); ctx.print('');
-    ctx.print('Technology Package License Information for Module:\'c1900\''); ctx.print(''); ctx.print('----------------------------------------------------------------'); ctx.print('Technology    Technology-package           Technology-package'); ctx.print('              Current       Type           Next reboot'); ctx.print('-----------------------------------------------------------------');
+    ctx.print('License Info:'); ctx.print(''); ctx.print('License UDI:'); ctx.print(''); ctx.print('Device#   PID                   SN'); ctx.print('-------------------------------------------------'); ctx.print('*0        ' + pad(m.pid, 22) + 'FTX1524X0KS'); ctx.print('');
+    ctx.print('Technology Package License Information for Module:\'' + m.module + '\''); ctx.print(''); ctx.print('----------------------------------------------------------------'); ctx.print('Technology    Technology-package           Technology-package'); ctx.print('              Current       Type           Next reboot'); ctx.print('-----------------------------------------------------------------');
     ctx.print('ipbase        ipbasek9      Permanent      ipbasek9'); ctx.print('security      securityk9    Permanent      securityk9'); ctx.print('data          None          None           None'); ctx.print('');
   }
   ctx.print('Configuration register is 0x2102'); ctx.print('');
@@ -2759,7 +3320,7 @@ function showCdpNeighbors(ctx) {
   if (cfg.cdpRun) for (const n of sortedIfaces(cfg)) {
     const f = cfg.ifaces[n]; if (!isPhysName(n) || !f.cdp || !linkUp(S, d.name, n)) continue;
     const far = farEnd(S, d.name, n), fd = S.devices[far.dev]; if (!fd || fd.kind === 'pc' || !fd.running.cdpRun || !fd.running.ifaces[far.iface].cdp) continue;
-    ctx.print(pad(fd.running.hostname, 13) + pad(ifMed(n).replace(/^(..)/, '$1 ').replace('Gi ', 'Gig ').replace('Fa ', 'Fas '), 16) + pad(120 + hash32(n) % 60, 11) + pad(fd.kind === 'switch' ? 'S' : 'R', 13) + pad(fd.kind === 'switch' ? '2960' : 'C1941', 12) + ifMed(far.iface).replace(/^(..)/, '$1 ').replace('Gi ', 'Gig ').replace('Fa ', 'Fas '));
+    ctx.print(pad(fd.running.hostname, 13) + pad(ifMed(n).replace(/^(..)/, '$1 ').replace('Gi ', 'Gig ').replace('Fa ', 'Fas '), 16) + pad(120 + hash32(n) % 60, 11) + pad(fd.kind === 'switch' ? 'S' : 'R', 13) + pad(fd.kind === 'switch' ? '2960' : routerModel(fd).cdp, 12) + ifMed(far.iface).replace(/^(..)/, '$1 ').replace('Gi ', 'Gig ').replace('Fa ', 'Fas '));
   }
   ctx.print('');
 }
@@ -2794,8 +3355,8 @@ function showDhcpSnooping(ctx) {
   for (const n of sortedIfaces(cfg)) { const f = cfg.ifaces[n]; if (!isSwitchPort(f) || (!f.dhcpTrust && !f.dhcpRate)) continue; ctx.print(pad(n, 27) + pad(f.dhcpTrust ? 'yes' : 'no', 11) + pad(f.dhcpTrust ? 'yes' : 'no', 16) + (f.dhcpRate || 'unlimited')); }
 }
 function showFlash(ctx) {
-  if (ctx.dev.kind === 'switch') { ctx.print('Directory of flash:/'); ctx.print(''); ctx.print('    1  -rw-     4414921          <no date>  c2960-lanbasek9-mz.150-2.SE4.bin'); ctx.print(''); ctx.print('64016384 bytes total (59601463 bytes free)'); return; }
-  ctx.print('System CompactFlash directory:'); ctx.print('File  Length   Name/status'); ctx.print('  3   33591768 c1900-universalk9-mz.SPA.151-4.M4.bin'); ctx.print('  2   28282    sigdef-category.xml'); ctx.print('  1   227537   sigdef-default.xml');
+  if (ctx.dev.kind === 'switch') { const f = switchFlashRows(ctx.cfg); ctx.print('Directory of flash:/'); ctx.print(''); for (const r of f.rows) ctx.print(r); ctx.print(''); ctx.print('64016384 bytes total (' + f.free + ' bytes free)'); return; }
+  ctx.print('System CompactFlash directory:'); ctx.print('File  Length   Name/status'); ctx.print('  3   33591768 ' + routerModel(ctx.dev).image); ctx.print('  2   28282    sigdef-category.xml'); ctx.print('  1   227537   sigdef-default.xml');
   ctx.print('[33847587 bytes used, 221896413 available, 255744000 total]'); ctx.print('249856K bytes of processor board System flash (Read/Write)');
 }
 function showStpSummary(ctx) {
@@ -2823,7 +3384,7 @@ function showSpanningTree(ctx) {
     for (const n of sortedIfaces(cfg)) {
       const f = cfg.ifaces[n]; if (!isSwitchPort(f) || ifStatus(S, ctx.dev.name, n).status !== 'up') continue;
       const om = operMode(S, ctx.dev.name, n); if (om === 'access' ? f.accessVlan !== v : !vlanAllowed(f, v)) continue;
-      ctx.print(pad(ifBrief(n), 17) + 'Desg FWD ' + pad(ifType(n) === 'GigabitEthernet' ? 4 : 19, 10) + pad('128.' + (sortedIfaces(cfg).indexOf(n) + 1), 9) + 'P2p' + (f.portfast && om !== 'trunk' ? ' Edge' : ''));
+      ctx.print(pad(ifBrief(n), 17) + 'Desg FWD ' + pad(ifType(n) === 'GigabitEthernet' ? 4 : 19, 10) + pad('128.' + (sortedIfaces(cfg).indexOf(n) + 1), 9) + 'P2p' + ((f.portfast === 'trunk' || ((f.portfast || cfg.stpPortfast) && om !== 'trunk')) ? ' Edge' : ''));
     }
     ctx.print('');
   }
@@ -2855,18 +3416,26 @@ const SHOW_TREE = [
   { k: 'flash:', h: 'display information about flash: file system', run: showFlash },
   { k: 'history', h: 'Display the session command history', run: showHistory },
   { k: 'interfaces', h: 'Interface status and configuration', run: showInterfaces, c: [
-    { a: 'IFACE', run: showInterfaces },
+    { a: 'IFACE', run: showInterfaces, c: [
+      { k: 'switchport', h: 'Show interface switchport information', kind: 'switch', run: showIntSwitchport },
+      { k: 'trunk', h: 'Show interface trunk information', kind: 'switch', run: showIntTrunk }] },
     { k: 'status', h: 'Show interface line status', kind: 'switch', run: showIntStatus },
     { k: 'trunk', h: 'Show interface trunk information', kind: 'switch', run: showIntTrunk },
     { k: 'description', h: 'Show interface description', run: ctx => { ctx.print(pad('Interface', 31) + pad('Status', 15) + pad('Protocol', 9) + 'Description'); for (const n of sortedIfaces(ctx.cfg)) { const st = ifStatus(S, ctx.dev.name, n); ctx.print(pad(n, 31) + pad(st.status === 'administratively down' ? 'admin down' : st.status, 15) + pad(st.proto, 9) + (ctx.cfg.ifaces[n].description || '')); } } },
-    { k: 'switchport', h: 'Show interface switchport information', kind: 'switch', run: ctx => { for (const n of sortedIfaces(ctx.cfg)) { const f = ctx.cfg.ifaces[n]; if (!isSwitchPort(f)) continue; ctx.print('Name: ' + ifBrief(n)); ctx.print('Switchport: Enabled'); ctx.print('Administrative Mode: ' + f.mode); ctx.print('Operational Mode: ' + (ifStatus(S, ctx.dev.name, n).status === 'up' ? (operMode(S, ctx.dev.name, n) === 'trunk' ? 'trunk' : 'static access') : 'down')); ctx.print('Administrative Trunking Encapsulation: dot1q'); ctx.print('Negotiation of Trunking: ' + (f.nonegotiate ? 'Off' : 'On')); ctx.print('Access Mode VLAN: ' + f.accessVlan + ' (' + (ctx.cfg.vlans[f.accessVlan] ? ctx.cfg.vlans[f.accessVlan].name : 'Inactive') + ')'); ctx.print('Trunking Native Mode VLAN: ' + f.nativeVlan + ' (' + (ctx.cfg.vlans[f.nativeVlan] ? ctx.cfg.vlans[f.nativeVlan].name : 'Inactive') + ')'); ctx.print('Trunking VLANs Enabled: ' + (f.allowed === null ? 'ALL' : fmtVlanList(f.allowed))); ctx.print('Protected: false'); ctx.print(''); } } }] },
+    { k: 'switchport', h: 'Show interface switchport information', kind: 'switch', run: showIntSwitchport }] },
   { k: 'ip', h: 'IP information', c: [
     { k: 'interface', h: 'IP interface status and configuration', run: showIpIntBrief, c: [{ k: 'brief', h: 'Brief summary of IP status and configuration', run: showIpIntBrief }, { a: 'IFACE', run: ctx => { const n = ctx.w[3], f = ctx.cfg.ifaces[n], st = ifStatus(S, ctx.dev.name, n); ctx.print(n + ' is ' + st.status + ', line protocol is ' + st.proto); ctx.print(f.ip ? '  Internet address is ' + f.ip + '/' + maskLen(f.mask) : '  Internet protocol processing disabled'); if (f.ip) { ctx.print('  Broadcast address is 255.255.255.255'); ctx.print('  Address determined by setup command'); ctx.print('  MTU is 1500 bytes'); ctx.print('  Helper address is not set'); ctx.print('  Directed broadcast forwarding is disabled'); ctx.print('  Outgoing access list is not set'); ctx.print('  Inbound  access list is not set'); } } }] },
-    { k: 'route', h: 'IP routing table', run: showIpRoute },
+    { k: 'route', h: 'IP routing table', run: showIpRoute, c: [
+      { a: 'A.B.C.D', h: 'Network to display information about or hostname', run: showIpRouteAddr },
+      { k: 'connected', h: 'Connected networks', run: showIpRoute }, { k: 'ospf', h: 'Open Shortest Path First (OSPF)', run: showIpRoute }, { k: 'static', h: 'Static routes', run: showIpRoute }] },
+    { k: 'ospf', h: 'OSPF information', kind: 'router', run: showOspf, c: [
+      { k: 'neighbor', h: 'Neighbor list', run: showOspfNeighbor },
+      { k: 'database', h: 'Database summary', run: showOspfDatabase },
+      { k: 'interface', h: 'Interface information', c: [{ k: 'brief', h: 'Brief summary of interface information', run: showOspfInterfaceBrief }] }] },
     { k: 'ssh', h: 'Information on SSH', run: showIpSsh },
     { k: 'access-lists', h: 'List IP access lists', run: showAccessLists, c: [{ a: 'WORD', h: 'ACL number or name', run: showAccessLists }] },
     { k: 'arp', h: 'IP ARP table', run: showArp },
-    { k: 'protocols', h: 'IP routing protocol process parameters and statistics', run: noop },
+    { k: 'protocols', h: 'IP routing protocol process parameters and statistics', run: showIpProtocols },
     { k: 'dhcp', h: 'Show items in the DHCP database', c: [{ k: 'snooping', h: 'DHCP snooping', kind: 'switch', run: showDhcpSnooping, c: [{ k: 'binding', h: 'DHCP snooping bindings', run: ctx => { ctx.print('MacAddress          IpAddress        Lease(sec)  Type           VLAN  Interface'); ctx.print('------------------  ---------------  ----------  -------------  ----  --------------------'); ctx.print('Total number of bindings: 0'); } }] }, { k: 'binding', h: 'DHCP address bindings', kind: 'router', run: ctx => { ctx.print('IP address       Client-ID/              Lease expiration        Type'); ctx.print('                 Hardware address'); } }] }] },
   { k: 'logging', h: 'Show the contents of logging buffers', run: showLogging },
   { k: 'login', h: 'Display Secure Login Configurations and State', run: showLogin },
@@ -2890,7 +3459,7 @@ const SHOW_TREE = [
   { k: 'hosts', h: 'IP domain-name, lookup style, nameservers, and host table', run: ctx => { ctx.print('Default domain is ' + (ctx.cfg.domainName || 'not set')); ctx.print('Name/address lookup uses ' + (ctx.cfg.domainLookup ? 'domain service' : 'static mappings')); ctx.print('Name servers are 255.255.255.255'); ctx.print(''); ctx.print('Codes: UN - unknown, EX - expired, OK - OK, ?? - revalidate'); ctx.print('       temp - temporary, perm - permanent'); ctx.print('       NA - Not Applicable None - Not defined'); ctx.print(''); ctx.print('Host                      Port  Flags      Age Type   Address(es)'); } },
   { k: 'processes', h: 'Active process statistics', run: ctx => { ctx.print('CPU utilization for five seconds: 1%/0%; one minute: 1%; five minutes: 1%'); ctx.print(' PID QTy       PC Runtime (ms)    Invoked   uSecs    Stacks TTY Process'); ctx.print('   1 Cwe 80518E04            0          1       0 5720/6000   0 Chunk Manager'); ctx.print('   2 Csp 8045B2F4          580       3496     165 2608/3000   0 Load Meter'); } },
   { k: 'controllers', h: 'Interface controller status', run: sandbox },
-  { k: 'inventory', h: 'Show the physical inventory', run: ctx => { ctx.print('NAME: "' + ctx.cfg.hostname + '", DESCR: "' + (ctx.dev.kind === 'switch' ? 'Cisco WS-C2960-24TT-L' : 'Cisco CISCO1941/K9 chassis') + '"'); ctx.print('PID: ' + ctx.dev.model + '  , VID: V01, SN: ' + (ctx.dev.kind === 'switch' ? 'FOC1033Z1EV' : 'FTX1524X0KS')); } },
+  { k: 'inventory', h: 'Show the physical inventory', run: ctx => { ctx.print('NAME: "' + ctx.cfg.hostname + '", DESCR: "' + (ctx.dev.kind === 'switch' ? 'Cisco WS-C2960-24TT-L' : 'Cisco ' + routerModel(ctx.dev).pid + ' chassis') + '"'); ctx.print('PID: ' + ctx.dev.model + '  , VID: V01, SN: ' + (ctx.dev.kind === 'switch' ? 'FOC1033Z1EV' : 'FTX1524X0KS')); } },
 ];
 EXEC_TREE.push({ k: 'show', h: 'Show running system information', c: SHOW_TREE });
 
@@ -3027,13 +3596,23 @@ const hasAdmin = (cfg, name) => { const u = userByName(cfg, name); return !!(u &
 const hasUser = (cfg, name) => !!userByName(cfg, name);
 const startupOk = (St, dev, pred) => !!(Dv(St, dev).startup && pred(Dv(St, dev).startup));
 const psecOk = f => !!(f && f.mode === 'access' && f.psec.on && f.psec.max <= 2 && f.psec.sticky && (f.psec.violation === 'shutdown' || f.psec.violation === 'restrict'));
-const aclOnlyMgmt = (cfg, L) => {
+/* One VTY line's access-class: every permit sits inside the allowed networks ([[address, wildcard]]) and each
+   address in `need` is permitted. */
+const aclLineOnly = (cfg, L, nets, need) => {
   if (!L.accessClass) return false;
   const acl = cfg.acls[L.accessClass.acl]; if (!acl) return false;
   const permits = acl.entries.filter(e => e.remark === undefined && e.action === 'permit');
   if (!permits.length) return false;
-  return permits.every(e => !e.any && ((e.wild && wildcardMatch('192.168.99.0', e.src, e.wild) && !wildcardMatch('203.0.113.66', e.src, e.wild) && !wildcardMatch('192.168.10.10', e.src, e.wild)) || (!e.wild && e.src && e.src.startsWith('192.168.99.'))));
+  const inside = e => !e.any && nets.some(([n, w]) => ((((e.wild ? ip2n(e.wild) : 0) & ~ip2n(w)) >>> 0) === 0) && wildcardMatch(e.src, n, w));
+  return permits.every(inside) && (need || []).every(ip => aclMatch(acl, ip));
 };
+/* every VTY line of `dev` is restricted that way */
+const aclOnly = (St, dev, nets, need) => { const cfg = C(St, dev); return vtyEvery(cfg, L => aclLineOnly(cfg, L, nets, need)); };
+const MGMT99 = [['192.168.99.0', '0.0.0.255']];
+/* PortFast belongs on edge (PC) ports; BPDU guard protects them; trunks stay free of PortFast in either form */
+const edgeOn = (cfg, f) => !!(f.portfast || (cfg.stpPortfast && f.mode === 'access'));
+const bpduOn = (cfg, f) => f.bpduguard === true || (cfg.stpBpduguard && edgeOn(cfg, f) && f.bpduguard !== false);
+const edgeOk = (cfg, pcPorts, trunks) => pcPorts.every(n => edgeOn(cfg, cfg.ifaces[n]) && bpduOn(cfg, cfg.ifaces[n])) && trunks.every(n => !cfg.ifaces[n].portfast);
 function answerIs(St, q, accepted) {
   const a = normalizeAnswer(St.answers[q]); if (!a) return false;
   const list = typeof accepted === 'function' ? accepted(St) : accepted;
@@ -3041,6 +3620,8 @@ function answerIs(St, q, accepted) {
 }
 function setLine(L, props) { Object.assign(L, props); return L; }
 function vtyAll(cfg, props) { for (const L of cfg.lines.vty) Object.assign(L, props); }
+/* line vty 0 15 on a 2911, which starts with lines 0-4 (a 2960 already has all 16) */
+function vty16(cfg) { while (cfg.lines.vty.length < 16) cfg.lines.vty.push(mkLine('vty')); }
 function ifc(cfg, name, props) { Object.assign(cfg.ifaces[name], props); return cfg.ifaces[name]; }
 function addIf(cfg, kind, name, props) { if (!cfg.ifaces[name]) { cfg.ifaces[name] = mkIface(name, kind); cfg.order.push(name); } Object.assign(cfg.ifaces[name], props); return cfg.ifaces[name]; }
 function usr(cfg, name, props) { cfg.users.push(Object.assign({ name: name, privilege: null, secret: null, password: null }, props)); }
@@ -3058,7 +3639,7 @@ function hardenedDevice(d, host, domain) { // the district-managed template
 const SCENARIOS = [
   /* ---------------------------------------------------------------- 1 Recruit */
   {
-    id: 's1', level: 1, levelName: 'Recruit', name: 'Harbor Lights Tutoring Center', short: 'Branch router hardening',
+    id: 's1', level: 1, levelName: 'Recruit', name: 'Tutoring center', short: 'Branch router hardening',
     layout: { R1: { x: 220, y: 80 }, PC1: { x: 220, y: 215 } },
     build() {
       const R1 = mkDevice('router', 'R1'), cfg = R1.running;
@@ -3072,17 +3653,17 @@ const SCENARIOS = [
       return { devices: { R1: R1, PC1: PC1 }, links: [{ a: 'R1', ai: 'GigabitEthernet0/0', b: 'PC1', bi: 'FastEthernet0' }] };
     },
     brief: {
-      blurb: ['You are the new network technician at Harbor Lights Tutoring Center, an after-school program with one branch router (R1) and a front-desk PC (PC1). The previous technician left without securing anything: R1 still has its factory hostname, a plaintext enable password, an unused account and Telnet wide open.',
-        'Harden R1 so it meets the policy below. Work from R1\'s console tab; use PC1 to test. R1 has no console password yet: press RETURN at the console to begin.'],
+      blurb: ['You are the new network technician at the tutoring center, an after-school program with one branch router (R1) and a front-desk PC (PC1). The previous technician left R1 wide open: it still has its factory hostname, a plaintext enable password, an unused account, and Telnet access.',
+        'Harden R1 so it meets the policy below. Work from R1\'s console tab and test from PC1. The R1 console starts password-free: press RETURN at the console to begin.'],
       admins: ['techlead (existing account, privilege 15) - keep it', 'netadmin (your account - create it with privilege 15 and a secret of 10+ characters)'],
       users: ['No other accounts are authorized. The "guest" account is not authorized.'],
       required: ['R1 GigabitEthernet0/0 (192.168.1.1) is the front-desk LAN and must stay up with its address.', 'SSH management from PC1 to R1 is required once you finish.'],
-      policy: ['Privileged access uses an enable secret, never a plaintext enable password.', 'Passwords and secrets are at least 10 characters.', 'The console and VTY lines require authentication; remote access is SSH only (no Telnet).', 'A message-of-the-day banner warns unauthorized users and never says "welcome".', 'Idle sessions time out within 10 minutes. Passwords are stored encrypted.', 'Unneeded services are off (HTTP server, DNS lookups). Unused interfaces are shut down.', 'Save the configuration when you are done.'],
-      warning: 'Do not remove authorized accounts and do not take GigabitEthernet0/0 offline: either one fails an availability check.',
-      creds: 'R1 console: no password yet (press RETURN). Enable password: letmein123 (replace it with an enable secret). PC1 is already addressed.',
+      policy: ['Privileged access uses an enable secret in place of a plaintext enable password.', 'Passwords and secrets are at least 10 characters.', 'The console and VTY lines require authentication; remote access is SSH only, with Telnet turned off.', 'A message-of-the-day banner warns unauthorized users and leaves out the word "welcome".', 'Idle sessions time out within 10 minutes. Passwords are stored encrypted.', 'Unneeded services are off (HTTP server, DNS lookups). Unused interfaces are shut down.', 'Save the configuration when you are done.'],
+      warning: 'Keep every authorized account and keep GigabitEthernet0/0 online: removing either one fails an availability check.',
+      creds: 'R1 console: password-free for now (press RETURN). Enable password: letmein123 (replace it with an enable secret). PC1 is already addressed.',
     },
     addressing: [['R1', 'GigabitEthernet0/0', '192.168.1.1', '255.255.255.0', '-'], ['R1', 'GigabitEthernet0/1', 'unused', '-', '-'], ['PC1', 'FastEthernet0', '192.168.1.10', '255.255.255.0', '192.168.1.1']],
-    tasks: ['Set the hostname to R1.', 'Configure an enable secret (10+ characters) and remove the plaintext enable password.', 'Delete the unauthorized guest account; create netadmin with privilege 15 and a secret.', 'Protect the console with a password and login; set exec-timeout 5 0 on console and VTY.', 'Make the VTY lines use login local and transport input ssh.', 'Set a domain name, generate a 2048-bit RSA key and force SSH version 2.', 'Add a MOTD banner (no "welcome"), enable service password-encryption, require passwords of 10+ characters and limit login attempts.', 'Turn off the HTTP server and DNS lookups; shut down the unused interface GigabitEthernet0/1.', 'Answer both investigation questions, then save with copy running-config startup-config.'],
+    tasks: ['Set the hostname to R1.', 'Configure an enable secret (10+ characters) and remove the plaintext enable password.', 'Delete the unauthorized guest account; create netadmin with privilege 15 and a secret.', 'Protect the console with a password and login; set exec-timeout 5 0 on console and VTY.', 'Make the VTY lines use login local and transport input ssh.', 'Set a domain name, generate a 2048-bit RSA key, and force SSH version 2.', 'Add a MOTD banner (without "welcome"), enable service password-encryption, require passwords of 10+ characters, and limit login attempts.', 'Turn off the HTTP server and DNS lookups; shut down the unused interface GigabitEthernet0/1.', 'Answer both investigation questions, then save with copy running-config startup-config.'],
     questions: [
       { id: 'q1', text: 'Investigation 1: The VTY lines on R1 still carry a plaintext line password. What is it? (Hint: show running-config)', answers: ['cisco'] },
       { id: 'q2', text: 'Investigation 2: What is the file name of the IOS image R1 booted from? (Hint: show version)', answers: ['c1900-universalk9-mz.SPA.151-4.M4.bin', 'flash0:c1900-universalk9-mz.SPA.151-4.M4.bin', 'flash:c1900-universalk9-mz.SPA.151-4.M4.bin'] },
@@ -3096,10 +3677,10 @@ const SCENARIOS = [
       { id: 'con', title: 'Console line protected with a password and login', pts: 6, cat: CAT.access, test: St => { const L = C(St, 'R1').lines.con[0]; return !!(L.password && L.password.text.length >= 10 && L.login !== 'none'); }, hint: 'line console 0, password <10+ chars>, login', fix: 'R1(config)# line console 0\nR1(config-line)# password C0nsole-Pass!\nR1(config-line)# login', why: 'Without it anyone with a console cable owns the device.' },
       { id: 'vtylocal', title: 'VTY lines use local user authentication (login local)', pts: 6, cat: CAT.access, test: St => vtyEvery(C(St, 'R1'), L => L.login === 'local'), hint: 'line vty 0 4, login local', fix: 'R1(config)# line vty 0 4\nR1(config-line)# login local', why: 'SSH needs usernames; a shared line password cannot be audited or revoked per person.' },
       { id: 'vtyssh', title: 'VTY lines accept SSH only (Telnet disabled)', pts: 6, cat: CAT.access, test: St => vtyEvery(C(St, 'R1'), sshOnly), hint: 'line vty 0 4, transport input ssh', fix: 'R1(config-line)# transport input ssh', why: 'Telnet sends passwords in clear text on the wire.' },
-      { id: 'domain', title: 'Domain name configured', pts: 3, cat: CAT.access, test: St => !!C(St, 'R1').domainName, hint: 'ip domain-name harborlights.local', fix: 'R1(config)# ip domain-name harborlights.local', why: 'The RSA key is named hostname.domain; IOS refuses to generate one without a domain.' },
+      { id: 'domain', title: 'Domain name configured', pts: 3, cat: CAT.access, test: St => !!C(St, 'R1').domainName, hint: 'ip domain-name tutoring.lan', fix: 'R1(config)# ip domain-name tutoring.lan', why: 'The RSA key is named hostname.domain; IOS refuses to generate one without a domain.' },
       { id: 'rsa', title: 'RSA key pair generated (2048 bits)', pts: 6, cat: CAT.access, test: St => { const k = C(St, 'R1').rsa; return !!(k && k.bits >= 2048); }, hint: 'crypto key generate rsa general-keys modulus 2048 (needs hostname + domain first)', fix: 'R1(config)# crypto key generate rsa general-keys modulus 2048', why: 'Keys shorter than 2048 bits are considered weak; the key is what enables the SSH server.' },
       { id: 'sshv2', title: 'SSH version 2 enforced', pts: 5, cat: CAT.access, test: St => C(St, 'R1').sshVersion === 2, hint: 'ip ssh version 2 (after the RSA key exists)', fix: 'R1(config)# ip ssh version 2', why: 'SSHv1 has known weaknesses; v2 only is the standard.' },
-      { id: 'banner', title: 'MOTD banner warns unauthorized users (and does not say "welcome")', pts: 4, cat: CAT.config, test: St => bannerOk(C(St, 'R1').bannerMotd), hint: 'banner motd #Authorized access only. Violators will be prosecuted.#', fix: 'R1(config)# banner motd #Authorized access only. Activity is monitored.#', why: 'States that access is restricted and monitored. Cisco advises banners that reveal nothing about the device or owner; "welcome" reads as an invitation, and legal wording is a question for counsel.' },
+      { id: 'banner', title: 'MOTD banner warns unauthorized users (and leaves out "welcome")', pts: 4, cat: CAT.config, test: St => bannerOk(C(St, 'R1').bannerMotd), hint: 'banner motd #Authorized access only. Violators will be prosecuted.#', fix: 'R1(config)# banner motd #Authorized access only. Activity is monitored.#', why: 'States that access is restricted and monitored. Cisco advises banners that reveal nothing about the device or owner; "welcome" reads as an invitation, and legal wording is a question for counsel.' },
       { id: 'pwenc', title: 'Service password-encryption enabled', pts: 4, cat: CAT.acct, test: St => C(St, 'R1').pwEnc, hint: 'service password-encryption', fix: 'R1(config)# service password-encryption', why: 'Turns plaintext line and user passwords into type 7, which stops shoulder-surfing but is reversible obfuscation, not real encryption: secrets still need enable secret / username secret.' },
       { id: 'exec', title: 'Exec timeout of 10 minutes or less on console and VTY', pts: 5, cat: CAT.access, test: St => { const cfg = C(St, 'R1'); return execOk(cfg.lines.con[0]) && vtyEvery(cfg, execOk); }, hint: 'exec-timeout 5 0 under line console 0 and line vty 0 4', fix: 'R1(config-line)# exec-timeout 5 0', why: 'An idle, logged-in session left open is a free privileged shell.' },
       { id: 'minlen', title: 'Minimum password length set to 10 or more', pts: 3, cat: CAT.acct, test: St => (C(St, 'R1').minLength || 0) >= 10, hint: 'security passwords min-length 10', fix: 'R1(config)# security passwords min-length 10', why: 'IOS then rejects new passwords and secrets shorter than that; set it before you set the passwords.' },
@@ -3118,10 +3699,10 @@ const SCENARIOS = [
   },
   /* ---------------------------------------------------------------- 2 Operator */
   {
-    id: 's2', level: 2, levelName: 'Operator', name: 'Pua Lane Public Library', short: 'Access switch: VLANs, port security, SSH',
+    id: 's2', level: 2, levelName: 'Operator', name: 'Branch library', short: 'Access switch: VLANs, port security, and SSH',
     layout: { R1: { x: 220, y: 42 }, S1: { x: 220, y: 135 }, PC1: { x: 66, y: 266 }, PC2: { x: 374, y: 266 } },
     build() {
-      const R1 = hardenedDevice(mkDevice('router', 'R1'), 'R1', 'district.local'), rc = R1.running;
+      const R1 = hardenedDevice(mkDevice('router', 'R1'), 'R1', 'district.lan'), rc = R1.running;
       ifc(rc, 'GigabitEthernet0/0', { shutdown: false, description: 'Trunk to S1' });
       addIf(rc, 'router', 'GigabitEthernet0/0.10', { encap: { vlan: 10, native: false }, ip: '192.168.10.1', mask: '255.255.255.0', shutdown: false, description: 'STAFF' });
       addIf(rc, 'router', 'GigabitEthernet0/0.99', { encap: { vlan: 99, native: true }, ip: '192.168.99.1', mask: '255.255.255.0', shutdown: false, description: 'MGMT' });
@@ -3143,13 +3724,13 @@ const SCENARIOS = [
     },
     frozen: ['R1'],
     brief: {
-      blurb: ['You are the network technician for the Pua Lane branch of the county library. The branch has one access switch (S1) with two staff PCs and an uplink to the district router R1. District IT owns R1 and has already configured it as a router-on-a-stick: VLAN 10 (STAFF, gateway 192.168.10.1) and VLAN 99 (MGMT, gateway 192.168.99.1, the native VLAN on the trunk).',
-        'S1 was set up by a volunteer years ago: everything sits in VLAN 1, the switch is managed over Telnet with the password "cisco", and the uplink is not a trunk. Bring S1 up to policy. R1 is view-only for you - do not change it.'],
+      blurb: ['You are the network technician for the branch library. The branch has one access switch (S1) with two staff PCs and an uplink to the district router R1. District IT owns R1 and has already configured it as a router-on-a-stick: VLAN 10 (STAFF, gateway 192.168.10.1) and VLAN 99 (MGMT, gateway 192.168.99.1, the native VLAN on the trunk).',
+        'S1 was set up by a volunteer years ago: everything sits in VLAN 1, the switch is managed over Telnet with the password "cisco", and the uplink runs as an access port. Bring S1 up to policy. R1 is view-only for you: leave it exactly as it is.'],
       admins: ['libadmin (district account, privilege 15) - keep it', 'netadmin (your account - create it with privilege 15 and a secret of 10+ characters)'],
       users: ['No other accounts are authorized. "tempadmin" was never approved.'],
-      required: ['PC1 and PC2 must keep connectivity to each other; after the migration both belong to VLAN 10 (STAFF).', 'The uplink GigabitEthernet0/1 to R1 is required. R1 is district-managed: do not modify it.', 'S1 must be manageable over SSH on VLAN 99 (192.168.99.2) from a staff PC.'],
-      policy: ['User traffic never uses VLAN 1; management uses VLAN 99 (192.168.99.2/24, default gateway 192.168.99.1).', 'The uplink is an 802.1Q trunk with native VLAN 99, allowed VLANs 10 and 99, and no DTP negotiation.', 'Unused ports are shut down and parked in VLAN 999 (PARKING).', 'PC-facing ports run port security (max 1-2 sticky addresses, violation shutdown or restrict) and BPDU guard.', 'Enable secret only; passwords 10+ characters; console password is not "cisco"; SSH only (no Telnet); banner without "welcome"; timeouts within 10 minutes; passwords encrypted; HTTP server and DNS lookups off.', 'Save the configuration when you are done.'],
-      warning: 'Removing libadmin, breaking PC1-PC2 connectivity or modifying R1 fails an availability check.',
+      required: ['PC1 and PC2 must keep connectivity to each other; after the migration both belong to VLAN 10 (STAFF).', 'The uplink GigabitEthernet0/1 to R1 is required. R1 is district-managed and stays as it is.', 'S1 must be manageable over SSH on VLAN 99 (192.168.99.2) from a staff PC.'],
+      policy: ['User traffic uses VLANs above 1; management uses VLAN 99 (192.168.99.2/24, default gateway 192.168.99.1).', 'The uplink is an 802.1Q trunk with native VLAN 99, allowed VLANs 10 and 99, and DTP negotiation turned off.', 'Unused ports are shut down and parked in VLAN 999 (PARKING).', 'PC-facing ports run port security (max 1-2 sticky addresses, violation shutdown or restrict), PortFast, and BPDU guard. PortFast belongs on edge ports only, so the uplink trunk stays free of it.', 'Enable secret only; passwords 10+ characters; a console password other than "cisco"; SSH only, with Telnet turned off; a banner without "welcome"; timeouts within 10 minutes; passwords encrypted; HTTP server and DNS lookups off.', 'Design note: this older branch layout uses VLAN 99 as both the native VLAN and the management VLAN. Level 4 shows the cleaner design: the native VLAN (99) carries no hosts, and management moves to a separate VLAN (Teachers, VLAN 20).', 'Save the configuration when you are done.'],
+      warning: 'Removing libadmin, breaking PC1-PC2 connectivity, or modifying R1 fails an availability check.',
       creds: 'S1 console password: cisco. S1 enable password: library (replace it). R1: no credentials are provided (user EXEC only).',
     },
     addressing: [['R1', 'Gi0/0.10 (VLAN 10)', '192.168.10.1', '255.255.255.0', '-'], ['R1', 'Gi0/0.99 (VLAN 99, native)', '192.168.99.1', '255.255.255.0', '-'], ['S1', 'Vlan99 (management)', '192.168.99.2', '255.255.255.0', '192.168.99.1'], ['PC1', 'Fa0/1 (VLAN 10)', '192.168.10.11', '255.255.255.0', '192.168.10.1'], ['PC2', 'Fa0/2 (VLAN 10)', '192.168.10.12', '255.255.255.0', '192.168.10.1']],
@@ -3158,7 +3739,7 @@ const SCENARIOS = [
       { id: 'q2', text: 'Investigation 2: An unauthorized local account exists on S1. What is its username?', answers: ['tempadmin'] },
     ],
     checks: [
-      { id: 'host', title: 'Hostname set to S1', pts: 3, cat: CAT.config, test: St => C(St, 'S1').hostname === 'S1', hint: 'hostname S1', fix: 'S1(config)# hostname S1', why: 'Logs, CDP and prompts all show the name.' },
+      { id: 'host', title: 'Hostname set to S1', pts: 3, cat: CAT.config, test: St => C(St, 'S1').hostname === 'S1', hint: 'hostname S1', fix: 'S1(config)# hostname S1', why: 'Logs, CDP, and prompts all show the name.' },
       { id: 'ensec', title: 'Enable secret configured', pts: 4, cat: CAT.acct, test: St => !!C(St, 'S1').enableSecret, hint: 'enable secret <10+ chars>', fix: 'S1(config)# enable secret L1brary-En@ble!', why: 'Hashed, unlike the enable password.' },
       { id: 'enpw', title: 'Plaintext enable password removed', pts: 4, cat: CAT.acct, test: St => !C(St, 'S1').enablePassword, hint: 'no enable password', fix: 'S1(config)# no enable password', why: '"library" is readable in the config and easy to guess.' },
       { id: 'temp', title: 'Unauthorized account "tempadmin" removed', pts: 5, cat: CAT.acct, test: St => !hasUser(C(St, 'S1'), 'tempadmin'), hint: 'no username tempadmin', fix: 'S1(config)# no username tempadmin', why: 'A forgotten privilege-15 account is a permanent back door.' },
@@ -3166,7 +3747,7 @@ const SCENARIOS = [
       { id: 'conpw', title: 'Console password changed from the default "cisco"', pts: 3, cat: CAT.access, test: St => { const L = C(St, 'S1').lines.con[0]; return !!(L.password && L.password.text !== 'cisco' && L.password.text.length >= 10 && L.login !== 'none'); }, hint: 'line console 0, password <new 10+ chars>, login', fix: 'S1(config)# line console 0\nS1(config-line)# password C0nsole-Pass!\nS1(config-line)# login', why: '"cisco" is the first guess anyone makes.' },
       { id: 'vtylocal', title: 'VTY lines use local user authentication (login local)', pts: 4, cat: CAT.access, test: St => vtyEvery(C(St, 'S1'), L => L.login === 'local'), hint: 'line vty 0 15, login local', fix: 'S1(config)# line vty 0 15\nS1(config-line)# login local', why: 'Per-user accounts instead of one shared password.' },
       { id: 'vtyssh', title: 'VTY lines accept SSH only (Telnet disabled)', pts: 5, cat: CAT.access, test: St => vtyEvery(C(St, 'S1'), sshOnly), hint: 'line vty 0 15, transport input ssh', fix: 'S1(config-line)# transport input ssh', why: 'Telnet exposes every keystroke, including passwords.' },
-      { id: 'rsa', title: 'Domain name set and 2048-bit RSA key generated', pts: 4, cat: CAT.access, test: St => { const c = C(St, 'S1'); return !!(c.domainName && c.rsa && c.rsa.bits >= 2048); }, hint: 'ip domain-name pualane.local, then crypto key generate rsa general-keys modulus 2048', fix: 'S1(config)# ip domain-name pualane.local\nS1(config)# crypto key generate rsa general-keys modulus 2048', why: 'No key, no SSH server.' },
+      { id: 'rsa', title: 'Domain name set and 2048-bit RSA key generated', pts: 4, cat: CAT.access, test: St => { const c = C(St, 'S1'); return !!(c.domainName && c.rsa && c.rsa.bits >= 2048); }, hint: 'ip domain-name library.lan, then crypto key generate rsa general-keys modulus 2048', fix: 'S1(config)# ip domain-name library.lan\nS1(config)# crypto key generate rsa general-keys modulus 2048', why: 'No key, no SSH server.' },
       { id: 'sshv2', title: 'SSH version 2 enforced', pts: 3, cat: CAT.access, test: St => C(St, 'S1').sshVersion === 2, hint: 'ip ssh version 2', fix: 'S1(config)# ip ssh version 2', why: 'Disables the weaker protocol version.' },
       { id: 'banner', title: 'MOTD banner warns unauthorized users', pts: 3, cat: CAT.config, test: St => bannerOk(C(St, 'S1').bannerMotd), hint: 'banner motd #Authorized access only#', fix: 'S1(config)# banner motd #Authorized library staff only. Activity is monitored.#', why: 'Legal notice shown before login.' },
       { id: 'pwenc', title: 'Service password-encryption enabled', pts: 3, cat: CAT.acct, test: St => C(St, 'S1').pwEnc, hint: 'service password-encryption', fix: 'S1(config)# service password-encryption', why: 'Obscures line passwords in show running-config.' },
@@ -3174,15 +3755,15 @@ const SCENARIOS = [
       { id: 'http', title: 'HTTP server disabled', pts: 3, cat: CAT.config, test: St => !C(St, 'S1').httpServer, hint: 'no ip http server', fix: 'S1(config)# no ip http server', why: 'Removes the web management interface.' },
       { id: 'dns', title: 'DNS lookups disabled', pts: 2, cat: CAT.config, test: St => !C(St, 'S1').domainLookup, hint: 'no ip domain-lookup', fix: 'S1(config)# no ip domain-lookup', why: 'Prevents typo lookups from hanging the console.' },
       { id: 'vlan10', title: 'VLAN 10 "STAFF" created and both PC ports are access ports in it', pts: 4, cat: CAT.config, test: St => { const c = C(St, 'S1'); return !!(c.vlans[10] && /^staff$/i.test(c.vlans[10].name) && ['FastEthernet0/1', 'FastEthernet0/2'].every(n => c.ifaces[n].mode === 'access' && c.ifaces[n].accessVlan === 10)); }, hint: 'vlan 10 / name STAFF; interface range fa0/1 - 2 / switchport mode access / switchport access vlan 10', fix: 'S1(config)# vlan 10\nS1(config-vlan)# name STAFF\nS1(config)# interface range fa0/1 - 2\nS1(config-if-range)# switchport mode access\nS1(config-if-range)# switchport access vlan 10', why: 'User traffic leaves the default VLAN; access mode stops DTP games on user ports.' },
-      { id: 'mgmt', title: 'Management moved to VLAN 99 (Vlan99 192.168.99.2 up, Vlan1 shut down)', pts: 5, cat: CAT.config, test: St => { const c = C(St, 'S1'), v = c.ifaces['Vlan99'], v1 = c.ifaces['Vlan1']; return !!(c.vlans[99] && v && v.ip === '192.168.99.2' && v.mask === '255.255.255.0' && !v.shutdown && v1.shutdown && !v1.ip); }, hint: 'vlan 99 / name MGMT; interface vlan 99 / ip address 192.168.99.2 255.255.255.0 / no shutdown; interface vlan 1 / no ip address / shutdown', fix: 'S1(config)# vlan 99\nS1(config-vlan)# name MGMT\nS1(config)# interface vlan 99\nS1(config-if)# ip address 192.168.99.2 255.255.255.0\nS1(config-if)# no shutdown\nS1(config)# interface vlan 1\nS1(config-if)# no ip address\nS1(config-if)# shutdown', why: 'Management on VLAN 1 is reachable from every unconfigured port.' },
+      { id: 'mgmt', title: 'Management moved to VLAN 99 (Vlan99 192.168.99.2 up, Vlan1 shut down)', pts: 5, cat: CAT.config, test: St => { const c = C(St, 'S1'), v = c.ifaces['Vlan99'], v1 = c.ifaces['Vlan1']; return !!(c.vlans[99] && v && v.ip === '192.168.99.2' && v.mask === '255.255.255.0' && !v.shutdown && v1.shutdown && !v1.ip); }, hint: 'vlan 99 / name MGMT; interface vlan 99 / ip address 192.168.99.2 255.255.255.0 / no shutdown; interface vlan 1 / no ip address / shutdown', fix: 'S1(config)# vlan 99\nS1(config-vlan)# name MGMT\nS1(config)# interface vlan 99\nS1(config-if)# ip address 192.168.99.2 255.255.255.0\nS1(config-if)# no shutdown\nS1(config)# interface vlan 1\nS1(config-if)# no ip address\nS1(config-if)# shutdown', why: 'Management on VLAN 1 is reachable from every unconfigured port. (Larger networks also keep management off the native VLAN; this branch layout keeps 99 for both, and Level 4 separates them.)' },
       { id: 'gw', title: 'Default gateway corrected to 192.168.99.1', pts: 3, cat: CAT.config, test: St => C(St, 'S1').defaultGateway === '192.168.99.1', hint: 'ip default-gateway 192.168.99.1', fix: 'S1(config)# ip default-gateway 192.168.99.1', why: 'The switch replies to off-subnet managers through its gateway on the MGMT VLAN.' },
       { id: 'trunk', title: 'Uplink Gi0/1 is a trunk: native VLAN 99, allowed 10,99, nonegotiate', pts: 5, cat: CAT.config, test: St => { const f = C(St, 'S1').ifaces['GigabitEthernet0/1']; return !!(f.mode === 'trunk' && f.nativeVlan === 99 && f.nonegotiate && f.allowed && f.allowed.includes(10) && f.allowed.includes(99) && !f.allowed.includes(1)); }, hint: 'interface gi0/1: switchport mode trunk / switchport trunk native vlan 99 / switchport trunk allowed vlan 10,99 / switchport nonegotiate', fix: 'S1(config)# interface GigabitEthernet0/1\nS1(config-if)# switchport mode trunk\nS1(config-if)# switchport trunk native vlan 99\nS1(config-if)# switchport trunk allowed vlan 10,99\nS1(config-if)# switchport nonegotiate', why: 'Matches R1 (native 99) and stops VLAN hopping via the default native VLAN 1 and DTP.' },
       { id: 'unused', title: 'Unused ports shut down (Fa0/3-24, Gi0/2)', pts: 4, cat: CAT.config, test: St => { const c = C(St, 'S1'); for (let i = 3; i <= 24; i++) if (!c.ifaces['FastEthernet0/' + i].shutdown) return false; return c.ifaces['GigabitEthernet0/2'].shutdown; }, hint: 'interface range fa0/3 - 24 / shutdown; interface gi0/2 / shutdown', fix: 'S1(config)# interface range fa0/3 - 24\nS1(config-if-range)# shutdown\nS1(config)# interface GigabitEthernet0/2\nS1(config-if)# shutdown', why: 'A live empty port is an invitation.' },
       { id: 'park', title: 'Unused ports parked in VLAN 999', pts: 3, cat: CAT.config, test: St => { const c = C(St, 'S1'); if (!c.vlans[999]) return false; for (let i = 3; i <= 24; i++) if (c.ifaces['FastEthernet0/' + i].accessVlan !== 999) return false; return c.ifaces['GigabitEthernet0/2'].accessVlan === 999; }, hint: 'vlan 999 / name PARKING; interface range fa0/3 - 24 , gi0/2 / switchport mode access / switchport access vlan 999', fix: 'S1(config)# vlan 999\nS1(config-vlan)# name PARKING\nS1(config)# interface range fa0/3 - 24 , gi0/2\nS1(config-if-range)# switchport mode access\nS1(config-if-range)# switchport access vlan 999', why: 'If a parked port is ever enabled by mistake it lands in a dead-end VLAN.' },
       { id: 'psec', title: 'Port security on PC ports (max 1-2, sticky, violation shutdown/restrict)', pts: 5, cat: CAT.access, test: St => { const c = C(St, 'S1'); return psecOk(c.ifaces['FastEthernet0/1']) && psecOk(c.ifaces['FastEthernet0/2']); }, hint: 'interface range fa0/1 - 2: switchport mode access / switchport port-security / switchport port-security maximum 1 / switchport port-security violation shutdown / switchport port-security mac-address sticky', fix: 'S1(config)# interface range fa0/1 - 2\nS1(config-if-range)# switchport port-security\nS1(config-if-range)# switchport port-security maximum 1\nS1(config-if-range)# switchport port-security violation shutdown\nS1(config-if-range)# switchport port-security mac-address sticky', why: 'Only the known PC may use that port; a rogue device shuts it down.' },
-      { id: 'bpdu', title: 'BPDU guard enabled on PC ports', pts: 3, cat: CAT.config, test: St => { const c = C(St, 'S1'); return ['FastEthernet0/1', 'FastEthernet0/2'].every(n => c.ifaces[n].bpduguard === true || (c.stpBpduguard && c.ifaces[n].portfast && c.ifaces[n].bpduguard !== false)); }, hint: 'interface range fa0/1 - 2: spanning-tree portfast / spanning-tree bpduguard enable', fix: 'S1(config-if-range)# spanning-tree portfast\nS1(config-if-range)# spanning-tree bpduguard enable', why: 'A rogue switch plugged into a user port cannot take over spanning tree.' },
+      { id: 'bpdu', title: 'PortFast and BPDU guard on PC ports (uplink trunk free of PortFast)', pts: 3, cat: CAT.config, test: St => edgeOk(C(St, 'S1'), ['FastEthernet0/1', 'FastEthernet0/2'], ['GigabitEthernet0/1']), hint: 'interface range fa0/1 - 2: spanning-tree portfast / spanning-tree bpduguard enable; leave PortFast off gi0/1', fix: 'S1(config-if-range)# spanning-tree portfast\nS1(config-if-range)# spanning-tree bpduguard enable', why: 'PortFast belongs on edge ports: the PC port forwards at once, and BPDU guard shuts it if a switch appears there. On a trunk, PortFast would skip the loop checks that protect the uplink.' },
       { id: 'ssh', title: 'PC1 can SSH to S1 (192.168.99.2) as netadmin', pts: 4, cat: CAT.conn, test: St => sshReady(St, 'PC1', '192.168.99.2', 'netadmin'), hint: 'Needs the VLAN/trunk/gateway work plus SSH on S1; test from PC1 with ssh -l netadmin 192.168.99.2', fix: 'PC1> ssh -l netadmin 192.168.99.2', why: 'Proves the management path end to end: VLAN 10 -> R1 -> VLAN 99 -> S1 and back.' },
-      { id: 'save', title: 'Configuration saved to startup-config', pts: 4, cat: CAT.config, test: St => startupOk(St, 'S1', c => c.hostname === 'S1' && !!c.enableSecret && !hasUser(c, 'tempadmin') && !!c.vlans[10]), hint: 'copy running-config startup-config', fix: 'S1# copy running-config startup-config', why: 'A reload would otherwise undo everything.' },
+      { id: 'save', title: 'Configuration saved to startup-config', pts: 4, cat: CAT.config, test: St => startupOk(St, 'S1', c => c.hostname === 'S1' && !!c.enableSecret && !hasUser(c, 'tempadmin') && c.ifaces['FastEthernet0/1'].accessVlan === 10), hint: 'copy running-config startup-config', fix: 'S1# copy running-config startup-config', why: 'A reload would otherwise undo every interface and account change. (VLANs live in flash:vlan.dat and survive a reload on their own; the rest of the work lives in the configuration.)' },
       { id: 'q1', title: 'Investigation 1 answered', pts: 3, cat: CAT.inv, test: St => answerIs(St, 'q1', St2 => [devMac(St2, 'PC2')]), hint: 'PC2: ipconfig /all ("Physical Address"), or S1: show mac address-table', fix: 'Answer: the Physical Address shown by ipconfig /all on PC2', why: 'MAC addresses tie a port to a machine - the basis of port security.' },
       { id: 'q2', title: 'Investigation 2 answered', pts: 3, cat: CAT.inv, test: St => answerIs(St, 'q2', ['tempadmin']), hint: 'show running-config | include username', fix: 'Answer: tempadmin', why: 'Compare every account against the scenario brief before touching anything.' },
     ],
@@ -3194,13 +3775,13 @@ const SCENARIOS = [
   },
   /* ---------------------------------------------------------------- 3 Captain */
   {
-    id: 's3', level: 3, levelName: 'Captain', name: 'Kaulana Creek Veterinary Clinic', short: 'Two switches, trunks, troubleshooting',
+    id: 's3', level: 3, levelName: 'Captain', name: 'Animal clinic', short: 'Two switches, trunks, and troubleshooting',
     layout: { R1: { x: 100, y: 52 }, S1: { x: 100, y: 152 }, S2: { x: 340, y: 152 }, PC1: { x: 100, y: 252 }, PC2: { x: 340, y: 252 } },
     build() {
       const admin = () => ({ privilege: 15, secret: { text: 'Cl1nic-Adm1n!', type: 5 } });
       const common = cfg => { cfg.enableSecret = { text: 'Cl1nic-En@ble', type: 5 }; usr(cfg, 'vetadmin', admin()); setLine(cfg.lines.con[0], { login: 'local' }); vtyAll(cfg, { login: 'local', transport: 'all' }); };
       const R1 = mkDevice('router', 'R1', 'R1'), rc = R1.running; common(rc);
-      rc.domainName = 'kaulanavet.local'; rc.rsa = { bits: 1024, name: 'R1.kaulanavet.local' };
+      rc.domainName = 'clinic.lan'; rc.rsa = { bits: 1024, name: 'R1.clinic.lan' };
       usr(rc, 'svc_backup', { privilege: 15, password: { text: 'backup2020', t7: false } });
       ifc(rc, 'GigabitEthernet0/0', { shutdown: false, description: 'Trunk to S1' });
       addIf(rc, 'router', 'GigabitEthernet0/0.10', { encap: { vlan: 10, native: false }, ip: '192.168.10.1', mask: '255.255.255.0', shutdown: false, description: 'FRONTDESK' });
@@ -3227,14 +3808,14 @@ const SCENARIOS = [
         { a: 'S1', ai: 'FastEthernet0/1', b: 'PC1', bi: 'FastEthernet0' }, { a: 'S2', ai: 'FastEthernet0/1', b: 'PC2', bi: 'FastEthernet0' }] };
     },
     brief: {
-      blurb: ['You are the lead technician at Kaulana Creek Veterinary Clinic. The clinic network is a router (R1) doing inter-VLAN routing for two switches: S1 at the front desk and S2 in the exam rooms, joined by a trunk. VLAN 10 FRONTDESK (PC1), VLAN 20 EXAM (PC2) and VLAN 99 MGMT (R1 .1, S1 .2, S2 .3) are in use; the syslog/NTP server lives at 192.168.99.50.',
+      blurb: ['You are the lead technician at the animal clinic. The clinic network is a router (R1) doing inter-VLAN routing for two switches: S1 at the front desk and S2 in the exam rooms, joined by a trunk. VLAN 10 FRONTDESK (PC1), VLAN 20 EXAM (PC2), and VLAN 99 MGMT (R1 .1, S1 .2, S2 .3) are in use; the syslog/NTP server lives at 192.168.99.50.',
         'Since a contractor "upgraded" things last week, PC2 cannot reach PC1 and the front desk cannot SSH to S1. Find and fix the faults, then finish hardening all three devices to policy. Each device has your account; use it on the consoles.'],
-      admins: ['vetadmin (privilege 15, on R1, S1 and S2) - your account, password Cl1nic-Adm1n!', 'Enable secret on all devices: Cl1nic-En@ble'],
+      admins: ['vetadmin (privilege 15, on R1, S1, and S2) - your account, password Cl1nic-Adm1n!', 'Enable secret on all devices: Cl1nic-En@ble'],
       users: ['No other accounts are authorized: "svc_backup" (R1) and "kiosk" (S2) were never approved.'],
       required: ['PC1 (192.168.10.10) and PC2 (192.168.20.10) must be able to reach each other.', 'The trunks R1-S1 and S1-S2 and the management addresses in VLAN 99 are required.', 'Remote management is SSH only, from the management subnet 192.168.99.0/24 only.'],
-      policy: ['SSH only on all VTY lines, protected by a standard ACL permitting just 192.168.99.0/24; RSA keys 2048 bits; SSH version 2.', 'Trunks use native VLAN 99 and switchport nonegotiate; unused ports are shut down.', 'Access ports: port security (sticky, max 2), BPDU guard, CDP off.', 'DHCP snooping on VLANs 10 and 20 with the trunks trusted.', 'Every device logs to 192.168.99.50 with timestamps and syncs time with NTP from 192.168.99.50.', 'Enable secret only, encrypted passwords, exec-timeout within 10 minutes, login block-for, MOTD banner, HTTP server off.', 'Save all three configurations.'],
+      policy: ['SSH only on all VTY lines, protected by a standard ACL permitting just 192.168.99.0/24; RSA keys 2048 bits; SSH version 2.', 'Trunks use native VLAN 99 and switchport nonegotiate; unused ports are shut down.', 'Access ports: port security (sticky, max 2), PortFast, BPDU guard, and CDP off. PortFast belongs on edge ports only, so every trunk stays free of it.', 'DHCP snooping on VLANs 10 and 20 with the trunks trusted.', 'Every device logs to 192.168.99.50 with timestamps and syncs time with NTP from 192.168.99.50.', 'Enable secret only, encrypted passwords, exec-timeout within 10 minutes, login block-for, a MOTD banner, and the HTTP server off.', 'Save all three configurations.'],
       warning: 'Removing vetadmin, breaking the trunks or the management addresses, or cutting PC1 off from its gateway fails an availability check.',
-      creds: 'Console login on R1, S1 and S2: vetadmin / Cl1nic-Adm1n! (lands in privileged EXEC). Enable secret: Cl1nic-En@ble.',
+      creds: 'Console login on R1, S1, and S2: vetadmin / Cl1nic-Adm1n! (lands in privileged EXEC). Enable secret: Cl1nic-En@ble.',
     },
     addressing: [['R1', 'Gi0/0.10 (VLAN 10)', '192.168.10.1', '255.255.255.0', '-'], ['R1', 'Gi0/0.20 (VLAN 20)', '192.168.20.1', '255.255.255.0', '-'], ['R1', 'Gi0/0.99 (VLAN 99, native)', '192.168.99.1', '255.255.255.0', '-'], ['S1', 'Vlan99', '192.168.99.2', '255.255.255.0', '192.168.99.1'], ['S2', 'Vlan99', '192.168.99.3', '255.255.255.0', '192.168.99.1'], ['PC1', 'S1 Fa0/1 (VLAN 10)', '192.168.10.10', '255.255.255.0', '192.168.10.1'], ['PC2', 'S2 Fa0/1 (VLAN 20)', '192.168.20.10', '255.255.255.0', '192.168.20.1'], ['Server1', '(not shown) VLAN 99', '192.168.99.50', '255.255.255.0', '192.168.99.1']],
     questions: [
@@ -3245,28 +3826,28 @@ const SCENARIOS = [
       { id: 'svc', title: 'Unauthorized account "svc_backup" removed from R1', pts: 3, cat: CAT.acct, test: St => !hasUser(C(St, 'R1'), 'svc_backup'), hint: 'R1: no username svc_backup', fix: 'R1(config)# no username svc_backup', why: 'A privilege-15 account with a plaintext password is the worst kind of leftover.' },
       { id: 'kiosk', title: 'Unauthorized account "kiosk" removed from S2', pts: 3, cat: CAT.acct, test: St => !hasUser(C(St, 'S2'), 'kiosk'), hint: 'S2: no username kiosk', fix: 'S2(config)# no username kiosk', why: 'Not in the scenario brief, so not authorized.' },
       { id: 'enpw', title: 'Leftover plaintext enable password removed from S2', pts: 3, cat: CAT.acct, test: St => !C(St, 'S2').enablePassword, hint: 'S2: no enable password', fix: 'S2(config)# no enable password', why: 'The secret already protects enable mode; the password only leaks.' },
-      { id: 'pwenc', title: 'Service password-encryption on R1, S1 and S2', pts: 4, cat: CAT.acct, test: St => ['R1', 'S1', 'S2'].every(d => C(St, d).pwEnc), hint: 'service password-encryption on every device', fix: '(config)# service password-encryption', why: 'Consistency matters: one readable config is enough.' },
+      { id: 'pwenc', title: 'Service password-encryption on R1, S1, and S2', pts: 4, cat: CAT.acct, test: St => ['R1', 'S1', 'S2'].every(d => C(St, d).pwEnc), hint: 'service password-encryption on every device', fix: '(config)# service password-encryption', why: 'Consistency matters: one readable config is enough.' },
       { id: 'rsa', title: 'R1 RSA key regenerated at 2048 bits and SSH version 2 enforced', pts: 5, cat: CAT.access, test: St => { const c = C(St, 'R1'); return !!(c.rsa && c.rsa.bits >= 2048 && c.sshVersion === 2); }, hint: 'R1: crypto key generate rsa general-keys modulus 2048 (answer yes to replace), then ip ssh version 2', fix: 'R1(config)# crypto key generate rsa general-keys modulus 2048\nR1(config)# ip ssh version 2', why: 'A 1024-bit key no longer meets policy.' },
-      { id: 'sshonly', title: 'SSH-only VTY access (login local + transport input ssh) on R1, S1 and S2', pts: 6, cat: CAT.access, test: St => ['R1', 'S1', 'S2'].every(d => { const c = C(St, d); return !!(c.domainName && c.rsa && vtyEvery(c, L => L.login === 'local' && sshOnly(L))); }), hint: 'each device: ip domain-name + RSA key, line vty 0 15 (0 4 on R1): login local, transport input ssh', fix: '(config)# ip domain-name kaulanavet.local\n(config)# crypto key generate rsa general-keys modulus 2048\n(config)# line vty 0 15\n(config-line)# login local\n(config-line)# transport input ssh', why: 'Telnet on any one device exposes the shared admin password.' },
-      { id: 'aclr1', title: 'R1 VTY access list permits only 192.168.99.0/24 (outside host removed)', pts: 4, cat: CAT.access, test: St => { const c = C(St, 'R1'); return vtyEvery(c, L => aclOnlyMgmt(c, L)); }, hint: 'R1: show access-lists, then ip access-list standard 10 / no 20 (on a numbered list, no access-list 10 ... deletes the whole list); keep access-class 10 in on the VTYs', fix: 'R1(config)# ip access-list standard 10\nR1(config-std-nacl)# no 20\nR1(config-std-nacl)# exit\nR1(config)# line vty 0 4\nR1(config-line)# access-class 10 in', why: 'An ACL that lets an internet host in is worse than none - it looks secure.' },
-      { id: 'aclsw', title: 'VTY access-class restricting to 192.168.99.0/24 applied on S1 and S2', pts: 5, cat: CAT.access, test: St => ['S1', 'S2'].every(d => { const c = C(St, d); return vtyEvery(c, L => aclOnlyMgmt(c, L)); }), hint: 'S1, S2: access-list 10 permit 192.168.99.0 0.0.0.255; line vty 0 15 / access-class 10 in', fix: 'S1(config)# access-list 10 permit 192.168.99.0 0.0.0.255\nS1(config)# line vty 0 15\nS1(config-line)# access-class 10 in', why: 'Only management stations should even see a login prompt.' },
+      { id: 'sshonly', title: 'SSH-only VTY access (login local + transport input ssh) on R1, S1, and S2', pts: 6, cat: CAT.access, test: St => ['R1', 'S1', 'S2'].every(d => { const c = C(St, d); return !!(c.domainName && c.rsa && vtyEvery(c, L => L.login === 'local' && sshOnly(L))); }), hint: 'each device: ip domain-name + RSA key, line vty 0 15 (0 4 on R1): login local, transport input ssh', fix: '(config)# ip domain-name clinic.lan\n(config)# crypto key generate rsa general-keys modulus 2048\nS1(config)# line vty 0 15\nS1(config-line)# login local\nS1(config-line)# transport input ssh\n(same on S2; R1 uses line vty 0 4, the VTY range it already has)', why: 'Telnet on any one device exposes the shared admin password.' },
+      { id: 'aclr1', title: 'R1 VTY access list permits only 192.168.99.0/24 (outside host removed)', pts: 4, cat: CAT.access, test: St => aclOnly(St, 'R1', MGMT99), hint: 'R1: show access-lists, then ip access-list standard 10 / no 20 (on a numbered list, no access-list 10 ... deletes the whole list); keep access-class 10 in on the VTYs', fix: 'R1(config)# ip access-list standard 10\nR1(config-std-nacl)# no 20\nR1(config-std-nacl)# exit\nR1(config)# line vty 0 4\nR1(config-line)# access-class 10 in', why: 'An ACL that lets an internet host in is worse than none - it looks secure.' },
+      { id: 'aclsw', title: 'VTY access-class restricting to 192.168.99.0/24 applied on S1 and S2', pts: 5, cat: CAT.access, test: St => ['S1', 'S2'].every(d => aclOnly(St, d, MGMT99)), hint: 'S1, S2: access-list 10 permit 192.168.99.0 0.0.0.255; line vty 0 15 / access-class 10 in', fix: 'S1(config)# access-list 10 permit 192.168.99.0 0.0.0.255\nS1(config)# line vty 0 15\nS1(config-line)# access-class 10 in', why: 'Only management stations should even see a login prompt.' },
       { id: 'exec', title: 'Exec timeout within 10 minutes on console and VTY of all devices', pts: 4, cat: CAT.access, test: St => ['R1', 'S1', 'S2'].every(d => { const c = C(St, d); return execOk(c.lines.con[0]) && vtyEvery(c, execOk); }), hint: 'exec-timeout 5 0 under line console 0 and the vty lines, on every device', fix: '(config-line)# exec-timeout 5 0', why: 'Idle sessions are unattended privileged shells.' },
       { id: 'block', title: 'Login block-for configured on all devices', pts: 3, cat: CAT.access, test: St => ['R1', 'S1', 'S2'].every(d => !!C(St, d).loginBlock), hint: 'login block-for 120 attempts 3 within 60 on every device', fix: '(config)# login block-for 120 attempts 3 within 60', why: 'Rate-limits brute force on SSH.' },
       { id: 'banner', title: 'MOTD banner (without "welcome") on all devices', pts: 3, cat: CAT.config, test: St => ['R1', 'S1', 'S2'].every(d => bannerOk(C(St, d).bannerMotd)), hint: 'banner motd #Authorized access only# on every device', fix: '(config)# banner motd #Authorized clinic staff only. Activity is monitored.#', why: 'Legal notice on every login path.' },
       { id: 'http', title: 'HTTP server disabled on all devices', pts: 3, cat: CAT.config, test: St => ['R1', 'S1', 'S2'].every(d => !C(St, d).httpServer), hint: 'no ip http server on every device', fix: '(config)# no ip http server', why: 'Unused management surface.' },
       { id: 'log', title: 'Syslog host 192.168.99.50 and log timestamps on all devices', pts: 4, cat: CAT.log, test: St => ['R1', 'S1', 'S2'].every(d => { const c = C(St, d); return c.logHosts.includes('192.168.99.50') && !!c.tsLog; }), hint: 'logging host 192.168.99.50 and service timestamps log datetime msec on every device', fix: '(config)# logging host 192.168.99.50\n(config)# service timestamps log datetime msec', why: 'Central, time-stamped logs are the evidence trail.' },
       { id: 'ntp', title: 'NTP server 192.168.99.50 on all devices', pts: 3, cat: CAT.log, test: St => ['R1', 'S1', 'S2'].every(d => C(St, d).ntp.includes('192.168.99.50')), hint: 'ntp server 192.168.99.50 on every device', fix: '(config)# ntp server 192.168.99.50', why: 'Logs from three devices only correlate if their clocks agree.' },
-      { id: 'sub20', title: 'R1 GigabitEthernet0/0.20 enabled (no shutdown)', pts: 4, cat: CAT.conn, test: St => !C(St, 'R1').ifaces['GigabitEthernet0/0.20'].shutdown, hint: 'R1: interface g0/0.20 / no shutdown (see show ip interface brief)', fix: 'R1(config)# interface GigabitEthernet0/0.20\nR1(config-if)# no shutdown', why: 'VLAN 20 has no gateway while its subinterface is down.' },
+      { id: 'sub20', title: 'R1 GigabitEthernet0/0.20 enabled (no shutdown)', pts: 4, cat: CAT.conn, test: St => !C(St, 'R1').ifaces['GigabitEthernet0/0.20'].shutdown, hint: 'R1: interface g0/0.20 / no shutdown (see show ip interface brief)', fix: 'R1(config)# interface GigabitEthernet0/0.20\nR1(config-subif)# no shutdown', why: 'VLAN 20 has no gateway while its subinterface is down.' },
       { id: 'fa01s2', title: 'S2 Fa0/1 assigned to VLAN 20 (EXAM)', pts: 4, cat: CAT.conn, test: St => { const f = C(St, 'S2').ifaces['FastEthernet0/1']; return f.mode === 'access' && f.accessVlan === 20; }, hint: 'S2: interface fa0/1 / switchport access vlan 20 (see show vlan brief)', fix: 'S2(config)# interface FastEthernet0/1\nS2(config-if)# switchport access vlan 20', why: 'PC2 has a VLAN 20 address but sits in VLAN 10: wrong broadcast domain.' },
       { id: 'pc2gw', title: 'PC2 default gateway corrected to 192.168.20.1', pts: 3, cat: CAT.conn, test: St => Dv(St, 'PC2').gw === '192.168.20.1', hint: 'PC2 tab > IP Configuration: Default Gateway 192.168.20.1', fix: 'PC2 > IP Configuration > Default Gateway = 192.168.20.1', why: 'A wrong gateway strands the PC on its own subnet.' },
-      { id: 'pc12', title: 'PC1 can reach PC2 (end-to-end connectivity restored)', pts: 5, cat: CAT.conn, test: St => pingModel(St, 'PC1', '192.168.20.10').ok, hint: 'Fix the subinterface, the VLAN assignment and PC2\'s gateway, then ping 192.168.20.10 from PC1', fix: 'PC1> ping 192.168.20.10', why: 'The business outcome: the clinic works again.' },
-      { id: 'native', title: 'Native VLAN 99 and nonegotiate on all trunks (S1 Gi0/1 mismatch fixed)', pts: 4, cat: CAT.config, test: St => [['S1', 'GigabitEthernet0/1'], ['S1', 'GigabitEthernet0/2'], ['S2', 'GigabitEthernet0/1']].every(([d, n]) => { const f = C(St, d).ifaces[n]; return f.mode === 'trunk' && f.nativeVlan === 99 && f.nonegotiate; }), hint: 'S1 gi0/1: switchport trunk native vlan 99; then switchport nonegotiate on S1 gi0/1, gi0/2 and S2 gi0/1', fix: 'S1(config)# interface range gi0/1 - 2\nS1(config-if-range)# switchport trunk native vlan 99\nS1(config-if-range)# switchport nonegotiate\nS2(config)# interface gi0/1\nS2(config-if)# switchport nonegotiate', why: 'The native mismatch on S1 Gi0/1 is why management traffic to R1 fails; nonegotiate stops DTP.' },
+      { id: 'pc12', title: 'PC1 can reach PC2 (end-to-end connectivity restored)', pts: 5, cat: CAT.conn, test: St => pingModel(St, 'PC1', '192.168.20.10').ok, hint: 'Fix the subinterface, the VLAN assignment, and PC2\'s gateway, then ping 192.168.20.10 from PC1', fix: 'PC1> ping 192.168.20.10', why: 'The business outcome: the clinic works again.' },
+      { id: 'native', title: 'Native VLAN 99 and nonegotiate on all trunks (S1 Gi0/1 mismatch fixed)', pts: 4, cat: CAT.config, test: St => [['S1', 'GigabitEthernet0/1'], ['S1', 'GigabitEthernet0/2'], ['S2', 'GigabitEthernet0/1']].every(([d, n]) => { const f = C(St, d).ifaces[n]; return f.mode === 'trunk' && f.nativeVlan === 99 && f.nonegotiate; }), hint: 'S1 gi0/1: switchport trunk native vlan 99; then switchport nonegotiate on S1 gi0/1, gi0/2, and S2 gi0/1', fix: 'S1(config)# interface range gi0/1 - 2\nS1(config-if-range)# switchport trunk native vlan 99\nS1(config-if-range)# switchport nonegotiate\nS2(config)# interface gi0/1\nS2(config-if)# switchport nonegotiate', why: 'The native mismatch on S1 Gi0/1 is why management traffic to R1 fails; nonegotiate stops DTP.' },
       { id: 'unused', title: 'Unused ports shut down on S1 and S2', pts: 4, cat: CAT.config, test: St => ['S1', 'S2'].every(d => { const c = C(St, d); for (let i = 2; i <= 24; i++) if (!c.ifaces['FastEthernet0/' + i].shutdown) return false; return d === 'S1' || c.ifaces['GigabitEthernet0/2'].shutdown; }), hint: 'interface range fa0/2 - 24 / shutdown on both switches; S2 gi0/2 too', fix: 'S1(config)# interface range fa0/2 - 24\nS1(config-if-range)# shutdown\nS2(config)# interface range fa0/2 - 24 , gi0/2\nS2(config-if-range)# shutdown', why: 'Every open port in an exam room is a place to plug in.' },
       { id: 'psec', title: 'Port security (sticky, max 2) on S1 Fa0/1 and S2 Fa0/1', pts: 4, cat: CAT.access, test: St => psecOk(C(St, 'S1').ifaces['FastEthernet0/1']) && psecOk(C(St, 'S2').ifaces['FastEthernet0/1']), hint: 'on each access port: switchport port-security / maximum 2 / violation restrict / mac-address sticky', fix: '(config-if)# switchport port-security\n(config-if)# switchport port-security maximum 2\n(config-if)# switchport port-security violation restrict\n(config-if)# switchport port-security mac-address sticky', why: 'Limits each port to the devices that belong there.' },
-      { id: 'bpdu', title: 'BPDU guard on the access ports', pts: 3, cat: CAT.config, test: St => ['S1', 'S2'].every(d => { const c = C(St, d), f = c.ifaces['FastEthernet0/1']; return f.bpduguard === true || (c.stpBpduguard && f.portfast && f.bpduguard !== false); }), hint: 'spanning-tree portfast + spanning-tree bpduguard enable on S1 fa0/1 and S2 fa0/1', fix: '(config-if)# spanning-tree portfast\n(config-if)# spanning-tree bpduguard enable', why: 'Blocks a rogue switch from influencing the topology.' },
+      { id: 'bpdu', title: 'PortFast and BPDU guard on the access ports (trunks free of PortFast)', pts: 3, cat: CAT.config, test: St => edgeOk(C(St, 'S1'), ['FastEthernet0/1'], ['GigabitEthernet0/1', 'GigabitEthernet0/2']) && edgeOk(C(St, 'S2'), ['FastEthernet0/1'], ['GigabitEthernet0/1']), hint: 'spanning-tree portfast + spanning-tree bpduguard enable on S1 fa0/1 and S2 fa0/1; leave PortFast off the trunks', fix: '(config-if)# spanning-tree portfast\n(config-if)# spanning-tree bpduguard enable', why: 'PortFast belongs on edge ports, and BPDU guard keeps a rogue switch there from influencing the topology. Trunks keep the full spanning-tree checks.' },
       { id: 'snoop', title: 'DHCP snooping on VLANs 10 and 20 with trusted trunks (S1, S2)', pts: 4, cat: CAT.config, test: St => { const ok = (d, trunks) => { const c = C(St, d); return c.snoop.on && c.snoop.vlans.includes(10) && c.snoop.vlans.includes(20) && trunks.every(n => c.ifaces[n].dhcpTrust); }; return ok('S1', ['GigabitEthernet0/1', 'GigabitEthernet0/2']) && ok('S2', ['GigabitEthernet0/1']); }, hint: 'ip dhcp snooping; ip dhcp snooping vlan 10,20; ip dhcp snooping trust on the trunk interfaces', fix: 'S1(config)# ip dhcp snooping\nS1(config)# ip dhcp snooping vlan 10,20\nS1(config)# interface range gi0/1 - 2\nS1(config-if-range)# ip dhcp snooping trust\n(same on S2 with gi0/1)', why: 'Stops a rogue DHCP server on a user port from redirecting the clinic.' },
-      { id: 'cdp', title: 'CDP disabled on PC-facing ports (or globally) on S1 and S2', pts: 2, cat: CAT.config, test: St => ['S1', 'S2'].every(d => { const c = C(St, d); return !c.cdpRun || !c.ifaces['FastEthernet0/1'].cdp; }), hint: 'no cdp enable on fa0/1 (or no cdp run)', fix: '(config-if)# no cdp enable', why: 'CDP tells anyone on the port the switch model, IOS version and VLAN.' },
-      { id: 'save', title: 'Configurations saved on R1, S1 and S2', pts: 4, cat: CAT.config, test: St => startupOk(St, 'R1', c => !hasUser(c, 'svc_backup') && !c.ifaces['GigabitEthernet0/0.20'].shutdown) && startupOk(St, 'S1', c => c.ifaces['GigabitEthernet0/1'].nativeVlan === 99) && startupOk(St, 'S2', c => c.ifaces['FastEthernet0/1'].accessVlan === 20), hint: 'copy running-config startup-config on each device', fix: '# copy running-config startup-config', why: 'Three devices, three saves.' },
+      { id: 'cdp', title: 'CDP disabled on PC-facing ports (or globally) on S1 and S2', pts: 2, cat: CAT.config, test: St => ['S1', 'S2'].every(d => { const c = C(St, d); return !c.cdpRun || !c.ifaces['FastEthernet0/1'].cdp; }), hint: 'no cdp enable on fa0/1 (or no cdp run)', fix: '(config-if)# no cdp enable', why: 'CDP tells anyone on the port the switch model, IOS version, and VLAN.' },
+      { id: 'save', title: 'Configurations saved on R1, S1, and S2', pts: 4, cat: CAT.config, test: St => startupOk(St, 'R1', c => !hasUser(c, 'svc_backup') && !c.ifaces['GigabitEthernet0/0.20'].shutdown) && startupOk(St, 'S1', c => c.ifaces['GigabitEthernet0/1'].nativeVlan === 99) && startupOk(St, 'S2', c => c.ifaces['FastEthernet0/1'].accessVlan === 20), hint: 'copy running-config startup-config on each device', fix: '# copy running-config startup-config', why: 'Three devices, three saves.' },
       { id: 'q1', title: 'Investigation 1 answered', pts: 3, cat: CAT.inv, test: St => answerIs(St, 'q1', ['GigabitEthernet0/0.20', 'g0/0.20', 'gi0/0.20', 'gig0/0.20', 'gigabitethernet 0/0.20']), hint: 'R1: show ip interface brief - look for "administratively down"', fix: 'Answer: GigabitEthernet0/0.20', why: 'show ip interface brief is the fastest health check on any IOS device.' },
       { id: 'q2', title: 'Investigation 2 answered', pts: 3, cat: CAT.inv, test: St => answerIs(St, 'q2', ['203.0.113.66']), hint: 'R1: show access-lists', fix: 'Answer: 203.0.113.66', why: 'Read ACLs line by line; one permit is all it takes.' },
     ],
@@ -3277,7 +3858,142 @@ const SCENARIOS = [
       { id: 'p-trunk', title: 'Required trunk S1 Gi0/2 - S2 Gi0/1 broken', pts: -6, test: St => !(linkUp(St, 'S1', 'GigabitEthernet0/2') && operMode(St, 'S1', 'GigabitEthernet0/2') === 'trunk' && operMode(St, 'S2', 'GigabitEthernet0/1') === 'trunk'), why: 'S2 and PC2 hang off this trunk.' },
     ],
   },
+  /* ---------------------------------------------------------------- 4 Two sites */
+  {
+    id: 's4', level: 4, levelName: 'Two sites', name: 'Two-site school network', short: 'VLANs, router-on-a-stick, OSPF, and SSH across two sites',
+    layout: { ISP: { x: 186, y: 30 }, Resolver: { x: 372, y: 30 }, RtrA: { x: 62, y: 110 }, RtrB: { x: 352, y: 110 }, SwA: { x: 62, y: 190 }, SwB: { x: 352, y: 190 }, 'Teacher-A': { x: 62, y: 270 }, 'Student-B': { x: 196, y: 270 }, 'Teacher-B': { x: 352, y: 270 } },
+    build() {
+      const R = '255.255.255.0', P30 = '255.255.255.252';
+      // Site A: finished by the Site A team, the worked example to read
+      const siteA = cfg => {
+        cfg.enableSecret = { text: 'En@ble-A1', type: 5 }; cfg.pwEnc = true; cfg.domainName = 'school.lan'; cfg.domainLookup = false; cfg.httpServer = false;
+        cfg.rsa = { bits: 2048, name: cfg.hostname + '.school.lan' }; cfg.sshVersion = 2;
+        cfg.bannerMotd = 'Authorized school staff only. Activity is monitored.'; cfg.bannerLogin = 'Site A network equipment. Sign in with your own account.';
+        usr(cfg, 'netadmin', { privilege: 15, secret: { text: 'Adm1n-A1', type: 5 } });
+        usr(cfg, 'techlead', { privilege: 15, secret: { text: 'T3chl3ad-A1', type: 5 } });
+        cfg.acls['20'] = { name: '20', type: 'standard', named: false, entries: [{ seq: 10, action: 'permit', src: '10.1.20.0', wild: '0.0.0.255' }, { seq: 20, action: 'permit', src: '10.2.20.0', wild: '0.0.0.255' }] };
+        setLine(cfg.lines.con[0], { password: { text: 'C0nsole-A1', t7: true }, login: 'login', exec: { m: 5, s: 0 } });
+        vty16(cfg); vtyAll(cfg, { login: 'local', transport: 'ssh', exec: { m: 5, s: 0 }, accessClass: { acl: '20', dir: 'in' } });
+      };
+      const RtrA = mkDevice('router', 'RtrA', 'RtrA', R2911), ra = RtrA.running; siteA(ra);
+      ifc(ra, 'GigabitEthernet0/0', { shutdown: false, description: 'Trunk to SwA' });
+      addIf(ra, 'router', 'GigabitEthernet0/0.10', { encap: { vlan: 10, native: false }, ip: '10.1.10.1', mask: R, shutdown: false, description: 'STUDENTS' });
+      addIf(ra, 'router', 'GigabitEthernet0/0.20', { encap: { vlan: 20, native: false }, ip: '10.1.20.1', mask: R, shutdown: false, description: 'TEACHERS' });
+      addIf(ra, 'router', 'GigabitEthernet0/0.30', { encap: { vlan: 30, native: false }, ip: '10.1.30.1', mask: R, shutdown: false, description: 'PRINCIPALS' });
+      addIf(ra, 'router', 'GigabitEthernet0/0.99', { encap: { vlan: 99, native: true }, shutdown: false, description: 'NATIVE' });
+      ifc(ra, 'GigabitEthernet0/1', { ip: '203.0.113.2', mask: P30, shutdown: false, description: 'ISP uplink' });
+      ifc(ra, 'GigabitEthernet0/2', { ip: '10.0.0.1', mask: P30, shutdown: false, description: 'Inter-site link to RtrB' });
+      ra.routes.push({ prefix: '8.8.8.8', mask: '255.255.255.255', nextHop: '203.0.113.1' });
+      ra.ospf = { pid: 1, rid: '1.1.1.1', nets: [{ net: '10.0.0.0', wild: '0.0.0.3', area: '0' }, { net: '10.1.0.0', wild: '0.0.255.255', area: '0' }], redist: 'subnets', passive: [] };
+      const SwA = mkDevice('switch', 'SwA', 'SwA'), sa = SwA.running; siteA(sa);
+      Object.assign(sa.vlans, { 10: { name: 'STUDENTS' }, 20: { name: 'TEACHERS' }, 30: { name: 'PRINCIPALS' }, 99: { name: 'NATIVE' }, 999: { name: 'PARKING' } });
+      ifc(sa, 'FastEthernet0/1', { mode: 'access', accessVlan: 10, portfast: true, bpduguard: true, description: 'Students' });
+      ifc(sa, 'FastEthernet0/2', { mode: 'access', accessVlan: 20, portfast: true, bpduguard: true, description: 'Teacher-A' });
+      for (let i = 3; i <= 24; i++) ifc(sa, 'FastEthernet0/' + i, { mode: 'access', accessVlan: 999, shutdown: true });
+      ifc(sa, 'GigabitEthernet0/2', { mode: 'access', accessVlan: 999, shutdown: true });
+      ifc(sa, 'GigabitEthernet0/1', { mode: 'trunk', nativeVlan: 99, allowed: [10, 20, 30, 99], nonegotiate: true, description: 'Trunk to RtrA' });
+      addIf(sa, 'switch', 'Vlan20', { ip: '10.1.20.2', mask: R, shutdown: false });
+      sa.defaultGateway = '10.1.20.1';
+      // the provider router stands in for the internet; floating statics (distance 5) bring each site's traffic home over the other site when an uplink fails
+      const ISP = mkDevice('router', 'ISP', 'ISP', R2911), ic = ISP.running;
+      ic.enableSecret = { text: 'Pr0vider-En@ble', type: 5 }; ic.pwEnc = true; ic.domainLookup = false; ic.httpServer = false;
+      ic.bannerMotd = 'Provider equipment. Authorized provider staff only.';
+      usr(ic, 'provider', { privilege: 15, secret: { text: 'Pr0vider-Adm1n', type: 5 } });
+      setLine(ic.lines.con[0], { login: 'local', exec: { m: 5, s: 0 } });
+      vty16(ic); vtyAll(ic, { login: 'local', transport: 'ssh' });
+      ifc(ic, 'GigabitEthernet0/0', { ip: '203.0.113.1', mask: P30, shutdown: false, description: 'School Site A' });
+      ifc(ic, 'GigabitEthernet0/1', { ip: '198.51.100.1', mask: P30, shutdown: false, description: 'School Site B' });
+      ifc(ic, 'GigabitEthernet0/2', { ip: '8.8.8.1', mask: R, shutdown: false, description: 'Resolver LAN' });
+      ic.routes.push({ prefix: '10.1.0.0', mask: '255.255.0.0', nextHop: '203.0.113.2' }, { prefix: '10.2.0.0', mask: '255.255.0.0', nextHop: '198.51.100.2' },
+        { prefix: '10.1.0.0', mask: '255.255.0.0', nextHop: '198.51.100.2', ad: 5 }, { prefix: '10.2.0.0', mask: '255.255.0.0', nextHop: '203.0.113.2', ad: 5 });
+      // Site B: factory defaults
+      const SwB = mkDevice('switch', 'SwB'), RtrB = mkDevice('router', 'RtrB', null, R2911);
+      const TA = mkPC('Teacher-A', '10.1.20.10', R, '10.1.20.1'), SB = mkPC('Student-B', '10.2.10.10', R, '10.2.10.1');
+      const TB = mkPC('Teacher-B', '10.2.20.10', R, '10.2.20.1'), RS = mkPC('Resolver', '8.8.8.8', R, '8.8.8.1');
+      return { devices: { SwA: SwA, RtrA: RtrA, SwB: SwB, RtrB: RtrB, ISP: ISP, 'Teacher-A': TA, 'Student-B': SB, 'Teacher-B': TB, Resolver: RS }, links: [
+        { a: 'ISP', ai: 'GigabitEthernet0/0', b: 'RtrA', bi: 'GigabitEthernet0/1' }, { a: 'ISP', ai: 'GigabitEthernet0/1', b: 'RtrB', bi: 'GigabitEthernet0/1' },
+        { a: 'ISP', ai: 'GigabitEthernet0/2', b: 'Resolver', bi: 'FastEthernet0' }, { a: 'RtrA', ai: 'GigabitEthernet0/2', b: 'RtrB', bi: 'GigabitEthernet0/2' },
+        { a: 'RtrA', ai: 'GigabitEthernet0/0', b: 'SwA', bi: 'GigabitEthernet0/1' }, { a: 'RtrB', ai: 'GigabitEthernet0/0', b: 'SwB', bi: 'GigabitEthernet0/1' },
+        { a: 'SwA', ai: 'FastEthernet0/2', b: 'Teacher-A', bi: 'FastEthernet0' }, { a: 'SwB', ai: 'FastEthernet0/1', b: 'Student-B', bi: 'FastEthernet0' },
+        { a: 'SwB', ai: 'FastEthernet0/2', b: 'Teacher-B', bi: 'FastEthernet0' }] };
+    },
+    frozen: ['SwA', 'RtrA', 'ISP'],
+    factory: ['SwB', 'RtrB'],
+    brief: {
+      blurb: ['The school runs two sites joined by a private inter-site link, and each site has its own uplink to the provider. Site A (RtrA and SwA) is finished and belongs to the Site A team: read it as a worked example with show running-config, show vlan brief, show interfaces trunk, and show ip route, and leave it exactly as it is.',
+        'Site B (RtrB and SwB) arrives with factory defaults. Build it to match Site A: the same VLANs, a router-on-a-stick trunk, SSH management for Teachers only, a static host route to the resolver at 8.8.8.8, and OSPF across the inter-site link so each site can borrow the other\'s uplink when its own fails.',
+        'The ISP router stands in for the internet and routes the school\'s 10.x ranges back to each site. A real provider does that only after NAT, which sits outside this lab. Larger networks give management its own dedicated VLAN; this network keeps it on Teachers so the Teachers-only ACL and the management subnet are one and the same.'],
+      admins: ['netadmin (privilege 15) on SwA, RtrA, SwB, and RtrB: create it on SwB and RtrB with a secret.', 'techlead (Site A team, privilege 15 on SwA and RtrA): keep it as it is.'],
+      users: ['Every other account is unauthorized.'],
+      required: ['SwA, RtrA, and the ISP router stay exactly as delivered: they belong to other teams.', 'Teachers at either site manage both sites, so Teacher-A keeps SSH access to SwB and RtrB.', 'Student-B reaches Teacher-B and the resolver at 8.8.8.8; Teacher-B reaches Teacher-A across the inter-site link.'],
+      policy: ['Hostnames are SwB and RtrB. VLANs at Site B match Site A: 10 STUDENTS, 20 TEACHERS, 30 PRINCIPALS, 99 NATIVE, and 999 PARKING.',
+        'SwB Fa0/1 is a Students access port and Fa0/2 a Teachers access port; both run PortFast and BPDU guard. PortFast belongs on edge ports only, so the G0/1 trunk stays free of it.',
+        'SwB G0/1 is a static 802.1Q trunk to RtrB G0/0: switchport mode trunk, switchport nonegotiate, native VLAN 99, and allowed VLANs 10,20,30,99. The native VLAN stays free of hosts, an SVI, and an IP address.',
+        'Unused ports (Fa0/3-24 and Gi0/2) are access ports in VLAN 999 PARKING and stay shut down. PARKING is separate from the native VLAN.',
+        'SwB is managed on VLAN 20: interface vlan 20 is 10.2.20.2/24 with default gateway 10.2.20.1, and interface vlan 1 stays shut down without an address.',
+        'RtrB routes between the VLANs with subinterfaces g0/0.10, .20, and .30 (encapsulation dot1Q N plus the gateway address) and g0/0.99 (encapsulation dot1Q 99 native, without an IP address).',
+        'RtrB G0/2 is 10.0.0.2/30 on the inter-site link and G0/1 is 198.51.100.2/30 toward the ISP. RtrB reaches the resolver over its own uplink: ip route 8.8.8.8 255.255.255.255 198.51.100.1.',
+        'RtrB runs router ospf 1 with network 10.0.0.0 0.0.0.3 area 0 and network 10.2.0.0 0.0.255.255 area 0, and redistributes its static route with redistribute static subnets. The local static route (distance 1) beats the neighbour\'s O E2 copy (distance 110), so that copy is the backup when the local uplink fails.',
+        'Remote management is SSH version 2 only (domain school.lan, 2048-bit RSA key, login local, user netadmin at privilege 15) from Teachers at either site: access-list 20 permits 10.1.20.0 0.0.0.255 and 10.2.20.0 0.0.0.255, with access-class 20 in on every VTY line (vty 0 15 on SwB, and every VTY range that show running-config lists on RtrB).',
+        'Both new devices use an enable secret, a console password with login, a MOTD banner, and a login banner. Give every secret and password its own passphrase, and save both configurations.'],
+      warning: 'Changing SwA, RtrA, or the ISP router, or locking Site A Teachers out of SSH to SwB or RtrB, fails an availability check.',
+      creds: 'SwA and RtrA console password: C0nsole-A1; enable secret: En@ble-A1 (read them, then leave them as they are). SwB and RtrB: factory defaults, so answer no to the initial configuration dialog and press RETURN. ISP: provider equipment, open to provider staff only. Pick your own Site B secrets with a different passphrase for each, for example En@ble-B1, C0nsole-B1, and Adm1n-B1.',
+    },
+    addressing: [['RtrA', 'Gi0/0.10 / .20 / .30', '10.1.10.1 / 10.1.20.1 / 10.1.30.1', '255.255.255.0', '-'], ['RtrA', 'Gi0/1 (ISP uplink)', '203.0.113.2', '255.255.255.252', '-'], ['RtrA', 'Gi0/2 (inter-site)', '10.0.0.1', '255.255.255.252', '-'], ['SwA', 'Vlan20 (management)', '10.1.20.2', '255.255.255.0', '10.1.20.1'],
+      ['RtrB', 'Gi0/0.10 (VLAN 10 STUDENTS)', '10.2.10.1', '255.255.255.0', '-'], ['RtrB', 'Gi0/0.20 (VLAN 20 TEACHERS)', '10.2.20.1', '255.255.255.0', '-'], ['RtrB', 'Gi0/0.30 (VLAN 30 PRINCIPALS)', '10.2.30.1', '255.255.255.0', '-'], ['RtrB', 'Gi0/0.99 (VLAN 99 NATIVE)', 'no address', '-', '-'],
+      ['RtrB', 'Gi0/1 (ISP uplink)', '198.51.100.2', '255.255.255.252', '-'], ['RtrB', 'Gi0/2 (inter-site)', '10.0.0.2', '255.255.255.252', '-'], ['SwB', 'Vlan20 (management)', '10.2.20.2', '255.255.255.0', '10.2.20.1'],
+      ['ISP', 'Gi0/0 (to RtrA)', '203.0.113.1', '255.255.255.252', '-'], ['ISP', 'Gi0/1 (to RtrB)', '198.51.100.1', '255.255.255.252', '-'], ['ISP', 'Gi0/2 (resolver LAN)', '8.8.8.1', '255.255.255.0', '-'],
+      ['Teacher-A', 'SwA Fa0/2 (VLAN 20)', '10.1.20.10', '255.255.255.0', '10.1.20.1'], ['Student-B', 'SwB Fa0/1 (VLAN 10)', '10.2.10.10', '255.255.255.0', '10.2.10.1'], ['Teacher-B', 'SwB Fa0/2 (VLAN 20)', '10.2.20.10', '255.255.255.0', '10.2.20.1'], ['Resolver', 'ISP Gi0/2', '8.8.8.8', '255.255.255.0', '8.8.8.1']],
+    questions: [
+      { id: 'q1', text: 'Investigation 1: Which route code does RtrA\'s show ip route print for 8.8.8.8?', answers: ['S', 'static'] },
+      { id: 'q2', text: 'Investigation 2: Once RtrB runs OSPF, which route code does RtrA show for 10.2.20.0/24?', answers: ['O', 'ospf'] },
+      { id: 'q3', text: 'Investigation 3: What administrative distance does RtrB\'s own static route to 8.8.8.8 carry? (Hint: show ip route 8.8.8.8 on RtrB)', answers: ['1'] },
+      { id: 'q4', text: 'Investigation 4: Which keyword on redistribute static carries a /32 host route into OSPF?', answers: ['subnets'] },
+    ],
+    checks: [
+      // SwB (36)
+      { id: 'vlans', title: 'SwB VLANs 10 STUDENTS, 20 TEACHERS, 30 PRINCIPALS, 99 NATIVE, and 999 PARKING', pts: 5, cat: CAT.config, test: St => { const v = C(St, 'SwB').vlans; return [[10, 'STUDENTS'], [20, 'TEACHERS'], [30, 'PRINCIPALS'], [99, 'NATIVE'], [999, 'PARKING']].every(([n, nm]) => v[n] && v[n].name.toUpperCase() === nm); }, hint: 'vlan 10 / name STUDENTS, and the same for 20 TEACHERS, 30 PRINCIPALS, 99 NATIVE, and 999 PARKING', fix: 'SwB(config)# vlan 10\nSwB(config-vlan)# name STUDENTS\nSwB(config-vlan)# vlan 20\nSwB(config-vlan)# name TEACHERS\nSwB(config-vlan)# vlan 30\nSwB(config-vlan)# name PRINCIPALS\nSwB(config-vlan)# vlan 99\nSwB(config-vlan)# name NATIVE\nSwB(config-vlan)# vlan 999\nSwB(config-vlan)# name PARKING', why: 'Each group gets its own broadcast domain and subnet, so the router (and later an ACL) decides what crosses between them. The names make show vlan brief readable.' },
+      { id: 'access', title: 'SwB Fa0/1 access VLAN 10 and Fa0/2 access VLAN 20', pts: 5, cat: CAT.config, test: St => { const c = C(St, 'SwB'), a = c.ifaces['FastEthernet0/1'], b = c.ifaces['FastEthernet0/2']; return a.mode === 'access' && a.accessVlan === 10 && b.mode === 'access' && b.accessVlan === 20; }, hint: 'interface fa0/1: switchport mode access / switchport access vlan 10; fa0/2 the same with vlan 20', fix: 'SwB(config)# interface fa0/1\nSwB(config-if)# switchport mode access\nSwB(config-if)# switchport access vlan 10\nSwB(config-if)# interface fa0/2\nSwB(config-if)# switchport mode access\nSwB(config-if)# switchport access vlan 20', why: 'Static access mode puts each PC in exactly one VLAN and turns off trunk negotiation on a user port.' },
+      { id: 'edge', title: 'PortFast and BPDU guard on Fa0/1-2; G0/1 free of PortFast', pts: 5, cat: CAT.config, test: St => edgeOk(C(St, 'SwB'), ['FastEthernet0/1', 'FastEthernet0/2'], ['GigabitEthernet0/1']), hint: 'on fa0/1 and fa0/2: spanning-tree portfast / spanning-tree bpduguard enable; keep gi0/1 free of spanning-tree portfast and spanning-tree portfast trunk', fix: 'SwB(config)# interface range fa0/1 - 2\nSwB(config-if-range)# spanning-tree portfast\nSwB(config-if-range)# spanning-tree bpduguard enable', why: 'PortFast belongs on edge ports: a PC port forwards at once instead of waiting 30 seconds, and BPDU guard shuts the port if a switch appears there. The trunk keeps the full spanning-tree checks.' },
+      { id: 'trunk', title: 'SwB G0/1 trunk: mode trunk, nonegotiate, native 99, allowed 10,20,30,99', pts: 5, cat: CAT.config, test: St => { const f = C(St, 'SwB').ifaces['GigabitEthernet0/1']; return f.mode === 'trunk' && f.nonegotiate && f.nativeVlan === 99 && JSON.stringify(f.allowed) === '[10,20,30,99]'; }, hint: 'interface gi0/1: switchport mode trunk / switchport nonegotiate / switchport trunk native vlan 99 / switchport trunk allowed vlan 10,20,30,99', fix: 'SwB(config)# interface gi0/1\nSwB(config-if)# switchport mode trunk\nSwB(config-if)# switchport nonegotiate\nSwB(config-if)# switchport trunk native vlan 99\nSwB(config-if)# switchport trunk allowed vlan 10,20,30,99', why: 'The trunk carries the three user VLANs tagged to RtrB. The native VLAN carries no hosts, which defeats double-tagging tricks, and it stays in the allowed list, because a trunk drops traffic, spanning tree included, for any VLAN missing from that list (show interfaces trunk then lists 99 among the allowed and forwarding VLANs).' },
+      { id: 'park', title: 'SwB unused ports (Fa0/3-24, Gi0/2) parked in VLAN 999 and shut down', pts: 4, cat: CAT.config, test: St => { const c = C(St, 'SwB'); if (!c.vlans[999]) return false; const ns = ['GigabitEthernet0/2']; for (let i = 3; i <= 24; i++) ns.push('FastEthernet0/' + i); return ns.every(n => { const f = c.ifaces[n]; return f.mode === 'access' && f.accessVlan === 999 && f.shutdown; }); }, hint: 'interface range fa0/3 - 24 , gi0/2: switchport mode access / switchport access vlan 999 / shutdown', fix: 'SwB(config)# interface range fa0/3 - 24 , gi0/2\nSwB(config-if-range)# switchport mode access\nSwB(config-if-range)# switchport access vlan 999\nSwB(config-if-range)# shutdown', why: 'A shut port stays closed, and if someone enables it by mistake it lands in a dead-end VLAN that is separate from the native VLAN.' },
+      { id: 'mgmt', title: 'SwB management: Vlan20 10.2.20.2 up, gateway 10.2.20.1, Vlan1 shut down', pts: 4, cat: CAT.config, test: St => { const c = C(St, 'SwB'), v = c.ifaces['Vlan20'], v1 = c.ifaces['Vlan1']; return !!(v && v.ip === '10.2.20.2' && v.mask === '255.255.255.0' && ifStatus(St, 'SwB', 'Vlan20').proto === 'up' && c.defaultGateway === '10.2.20.1' && v1.shutdown && !v1.ip); }, hint: 'interface vlan 20 / ip address 10.2.20.2 255.255.255.0 / no shutdown; ip default-gateway 10.2.20.1; interface vlan 1 / shutdown', fix: 'SwB(config)# interface vlan 20\nSwB(config-if)# ip address 10.2.20.2 255.255.255.0\nSwB(config-if)# no shutdown\nSwB(config-if)# exit\nSwB(config)# ip default-gateway 10.2.20.1\nSwB(config)# interface vlan 1\nSwB(config-if)# shutdown', why: 'The SVI comes up once VLAN 20 exists and has an up port. The default gateway lets the switch answer managers at the other site.' },
+      { id: 'sshsw', title: 'SwB SSH: hostname SwB, domain, 2048-bit key, version 2, netadmin, SSH-only VTY 0-15', pts: 5, cat: CAT.access, test: St => sshCfgOk(C(St, 'SwB'), 'SwB'), hint: 'hostname SwB; ip domain-name school.lan; crypto key generate rsa general-keys modulus 2048; ip ssh version 2; username netadmin privilege 15 secret ...; line vty 0 15 / login local / transport input ssh', fix: 'Switch(config)# hostname SwB\nSwB(config)# ip domain-name school.lan\nSwB(config)# crypto key generate rsa general-keys modulus 2048\nSwB(config)# ip ssh version 2\nSwB(config)# username netadmin privilege 15 secret Adm1n-B1\nSwB(config)# line vty 0 15\nSwB(config-line)# login local\nSwB(config-line)# transport input ssh', why: 'SSH encrypts the session, and login local ties every login to a named account.' },
+      { id: 'aclsw', title: 'SwB VTY ACL 20: Teachers at both sites only (access-class 20 in on vty 0 15)', pts: 3, cat: CAT.access, test: St => aclOnly(St, 'SwB', TEACHERS, TEACHER_PCS), hint: 'access-list 20 permit 10.1.20.0 0.0.0.255; access-list 20 permit 10.2.20.0 0.0.0.255; line vty 0 15 / access-class 20 in', fix: 'SwB(config)# access-list 20 permit 10.1.20.0 0.0.0.255\nSwB(config)# access-list 20 permit 10.2.20.0 0.0.0.255\nSwB(config)# line vty 0 15\nSwB(config-line)# access-class 20 in', why: 'Only Teachers see a login prompt: SSH from a Students PC gets "% Connection refused by remote host" instead.' },
+      // RtrB (36)
+      { id: 'subif', title: 'RtrB G0/0 up with subinterfaces .10, .20, and .30 (dot1Q plus gateway addresses)', pts: 7, cat: CAT.config, test: St => { const c = C(St, 'RtrB'); if (c.ifaces['GigabitEthernet0/0'].shutdown) return false; return [[10, '10.2.10.1'], [20, '10.2.20.1'], [30, '10.2.30.1']].every(([v, ip]) => { const f = c.ifaces['GigabitEthernet0/0.' + v]; return !!(f && f.encap && f.encap.vlan === v && !f.encap.native && f.ip === ip && f.mask === '255.255.255.0' && !f.shutdown); }); }, hint: 'interface g0/0 / no shutdown; interface g0/0.10 / encapsulation dot1Q 10 / ip address 10.2.10.1 255.255.255.0; the same for .20 and .30', fix: 'RtrB(config)# interface g0/0\nRtrB(config-if)# no shutdown\nRtrB(config-if)# interface g0/0.10\nRtrB(config-subif)# encapsulation dot1Q 10\nRtrB(config-subif)# ip address 10.2.10.1 255.255.255.0\n(repeat for .20 with 10.2.20.1 and .30 with 10.2.30.1)', why: 'Router-on-a-stick: one physical link carries every VLAN, and each subinterface is the gateway for one of them. The tag comes first; IOS refuses an address on a LAN subinterface without one.' },
+      { id: 'native', title: 'RtrB G0/0.99: encapsulation dot1Q 99 native, without an IP address', pts: 4, cat: CAT.config, test: St => { const f = C(St, 'RtrB').ifaces['GigabitEthernet0/0.99']; return !!(f && f.encap && f.encap.vlan === 99 && f.encap.native && !f.ip); }, hint: 'interface g0/0.99 / encapsulation dot1Q 99 native', fix: 'RtrB(config)# interface g0/0.99\nRtrB(config-subif)# encapsulation dot1Q 99 native', why: 'Both ends of the trunk agree that untagged frames belong to VLAN 99, which ends the CDP native VLAN mismatch messages on SwB. The native VLAN carries no hosts, so it needs no address.' },
+      { id: 'wan', title: 'RtrB G0/2 10.0.0.2/30 and G0/1 198.51.100.2/30 up', pts: 4, cat: CAT.config, test: St => { const c = C(St, 'RtrB'), g1 = c.ifaces['GigabitEthernet0/1'], g2 = c.ifaces['GigabitEthernet0/2']; return g2.ip === '10.0.0.2' && g2.mask === '255.255.255.252' && g1.ip === '198.51.100.2' && g1.mask === '255.255.255.252' && ifStatus(St, 'RtrB', 'GigabitEthernet0/1').status === 'up' && ifStatus(St, 'RtrB', 'GigabitEthernet0/2').status === 'up'; }, hint: 'interface g0/2 / ip address 10.0.0.2 255.255.255.252 / no shutdown; interface g0/1 / ip address 198.51.100.2 255.255.255.252 / no shutdown', fix: 'RtrB(config)# interface g0/2\nRtrB(config-if)# ip address 10.0.0.2 255.255.255.252\nRtrB(config-if)# no shutdown\nRtrB(config-if)# interface g0/1\nRtrB(config-if)# ip address 198.51.100.2 255.255.255.252\nRtrB(config-if)# no shutdown', why: 'A /30 holds exactly two hosts, one per end of a point-to-point link. Router ports start shut down on a fresh ISR.' },
+      { id: 'hostrt', title: 'RtrB static host route: ip route 8.8.8.8 255.255.255.255 198.51.100.1', pts: 5, cat: CAT.config, test: St => C(St, 'RtrB').routes.some(r => r.prefix === '8.8.8.8' && r.mask === '255.255.255.255' && r.nextHop === '198.51.100.1' && (r.ad || 1) === 1), hint: 'ip route 8.8.8.8 255.255.255.255 198.51.100.1 (check it with show ip route 8.8.8.8)', fix: 'RtrB(config)# ip route 8.8.8.8 255.255.255.255 198.51.100.1', why: 'The /32 mask matches the resolver alone, so only that destination uses this uplink path. The route installs while 198.51.100.1 sits on an up, connected subnet.' },
+      { id: 'ospf', title: 'RtrB OSPF neighbour FULL with RtrA', pts: 5, cat: CAT.conn, test: St => ospfNeighbors(St, 'RtrB').some(n => n.dev === 'RtrA'), hint: 'router ospf 1 / network 10.0.0.0 0.0.0.3 area 0 / network 10.2.0.0 0.0.255.255 area 0; then show ip ospf neighbor', fix: 'RtrB(config)# router ospf 1\nRtrB(config-router)# router-id 2.2.2.2\nRtrB(config-router)# network 10.0.0.0 0.0.0.3 area 0\nRtrB(config-router)# network 10.2.0.0 0.0.255.255 area 0', why: 'Neighbours form when both ends enable OSPF on the shared subnet in the same area. Each router then learns the other site\'s VLANs as O routes, so OSPF replaces hand-typed inter-site static routes.' },
+      { id: 'redist', title: 'RtrB redistributes its static route: redistribute static subnets', pts: 4, cat: CAT.config, test: St => { const o = C(St, 'RtrB').ospf; return !!(o && o.redist === 'subnets'); }, hint: 'router ospf 1 / redistribute static subnets', fix: 'RtrB(config)# router ospf 1\nRtrB(config-router)# redistribute static subnets', why: 'Without subnets, classic IOS 15 redistributes classful networks only and drops the /32. With it, RtrB floods a type-5 LSA for 8.8.8.8 (show ip ospf database on RtrA); RtrA installs it as O E2 8.8.8.8 [110/20] only when its own static route leaves the table.' },
+      { id: 'sshrtr', title: 'RtrB SSH: hostname RtrB, domain, 2048-bit key, version 2, netadmin, SSH-only on every VTY line', pts: 3, cat: CAT.access, test: St => sshCfgOk(C(St, 'RtrB'), 'RtrB'), hint: 'the same SSH steps as SwB; configure line vty 0 15; show running-config then lists line vty 0 4 and line vty 5 15', fix: 'Router(config)# hostname RtrB\nRtrB(config)# ip domain-name school.lan\nRtrB(config)# crypto key generate rsa general-keys modulus 2048\nRtrB(config)# ip ssh version 2\nRtrB(config)# username netadmin privilege 15 secret Adm1n-B2\nRtrB(config)# line vty 0 15\nRtrB(config-line)# login local\nRtrB(config-line)# transport input ssh', why: 'show running-config lists every VTY range the router has: line vty 0 4, plus line vty 5 15 once line vty 0 15 creates those lines. One range left open to Telnet leaves the whole router open, so every range counts.' },
+      { id: 'aclrtr', title: 'RtrB VTY ACL 20: Teachers at both sites only, on every VTY line', pts: 4, cat: CAT.access, test: St => aclOnly(St, 'RtrB', TEACHERS, TEACHER_PCS), hint: 'access-list 20 permit 10.1.20.0 0.0.0.255; access-list 20 permit 10.2.20.0 0.0.0.255; line vty 0 15 / access-class 20 in', fix: 'RtrB(config)# access-list 20 permit 10.1.20.0 0.0.0.255\nRtrB(config)# access-list 20 permit 10.2.20.0 0.0.0.255\nRtrB(config)# line vty 0 15\nRtrB(config-line)# access-class 20 in', why: 'access-class filters who may open a session to the router itself, whatever address they aim at. The implicit deny at the end refuses everyone else.' },
+      // Hardening (10)
+      { id: 'ensec', title: 'Enable secret on SwB and RtrB (in place of an enable password)', pts: 3, cat: CAT.acct, test: St => ['SwB', 'RtrB'].every(d => { const c = C(St, d); return !!c.enableSecret && !c.enablePassword; }), hint: 'enable secret <passphrase> on each device', fix: 'SwB(config)# enable secret En@ble-B1\nRtrB(config)# enable secret En@ble-B2', why: 'The secret is stored hashed and guards privileged mode.' },
+      { id: 'con', title: 'Console password with login on SwB and RtrB', pts: 2, cat: CAT.access, test: St => ['SwB', 'RtrB'].every(d => { const L = C(St, d).lines.con[0]; return L.login === 'local' || (L.login === 'login' && !!L.password); }), hint: 'line console 0 / password <passphrase> / login', fix: 'SwB(config)# line console 0\nSwB(config-line)# password C0nsole-B1\nSwB(config-line)# login\nRtrB(config)# line console 0\nRtrB(config-line)# password C0nsole-B2\nRtrB(config-line)# login', why: 'Without it, anyone with a console cable reaches the command line password-free.' },
+      { id: 'banner', title: 'MOTD and login banners on SwB and RtrB', pts: 3, cat: CAT.config, test: St => ['SwB', 'RtrB'].every(d => { const c = C(St, d); return bannerOk(c.bannerMotd) && bannerOk(c.bannerLogin); }), hint: 'banner motd #...# and banner login #...# (without "welcome")', fix: '(config)# banner motd #Authorized school staff only. Activity is monitored.#\n(config)# banner login #Site B network equipment. Sign in with your own account.#', why: 'The console shows the MOTD and then the login banner before the password prompt; SSH shows the login banner before authentication.' },
+      { id: 'save', title: 'Configurations saved on SwB and RtrB', pts: 2, cat: CAT.config, test: St => startupOk(St, 'SwB', c => c.ifaces['GigabitEthernet0/1'].mode === 'trunk' && !!c.ifaces['Vlan20'] && c.ifaces['Vlan20'].ip === '10.2.20.2') && startupOk(St, 'RtrB', c => !!(c.ospf && c.ospf.redist === 'subnets') && c.routes.some(r => r.prefix === '8.8.8.8')), hint: 'copy running-config startup-config on both devices', fix: '# copy running-config startup-config', why: 'A reload otherwise boots both devices back to factory defaults (the VLANs alone survive, in vlan.dat).' },
+      // Reachability (10)
+      { id: 'reach1', title: 'Student-B reaches Teacher-B (inter-VLAN routing)', pts: 3, cat: CAT.conn, test: St => pingModel(St, 'Student-B', '10.2.20.10').ok, hint: 'Student-B> ping 10.2.20.10', fix: 'Student-B> ping 10.2.20.10', why: 'Proves the access ports, the trunk, and the router-on-a-stick subinterfaces work together.' },
+      { id: 'reach2', title: 'Teacher-B reaches Teacher-A across the inter-site link', pts: 4, cat: CAT.conn, test: St => pingModel(St, 'Teacher-B', '10.1.20.10').ok, hint: 'Teacher-B> ping 10.1.20.10 (needs the OSPF neighbour)', fix: 'Teacher-B> ping 10.1.20.10', why: 'Each router reaches the other site only through the O routes OSPF installs.' },
+      { id: 'reach3', title: 'Student-B reaches the resolver at 8.8.8.8', pts: 3, cat: CAT.conn, test: St => pingModel(St, 'Student-B', '8.8.8.8').ok, hint: 'Student-B> ping 8.8.8.8', fix: 'Student-B> ping 8.8.8.8', why: 'Proves the host route and the ISP path. To see the backup path, shut RtrB G0/1: the ping still works over Site A through the O E2 route. Then run no shutdown to bring the uplink back.' },
+      // Investigation (8)
+      { id: 'q1', title: 'Investigation 1 answered', pts: 2, cat: CAT.inv, test: St => answerIs(St, 'q1', ['S', 'static']), hint: 'RtrA: show ip route, the line under 8.0.0.0/32 is subnetted', fix: 'Answer: S', why: 'S marks a static route; the local static wins over OSPF because its administrative distance is lower.' },
+      { id: 'q2', title: 'Investigation 2 answered', pts: 2, cat: CAT.inv, test: St => answerIs(St, 'q2', ['O', 'ospf']), hint: 'RtrA: show ip route ospf', fix: 'Answer: O', why: 'O marks an intra-area OSPF route: RtrA learned Site B\'s VLANs from RtrB.' },
+      { id: 'q3', title: 'Investigation 3 answered', pts: 2, cat: CAT.inv, test: St => answerIs(St, 'q3', ['1']), hint: 'RtrB: show ip route 8.8.8.8 ("distance 1"), or the [1/0] in show ip route', fix: 'Answer: 1', why: 'Static routes default to distance 1 and OSPF uses 110, so the router prefers the static route while it is installed.' },
+      { id: 'q4', title: 'Investigation 4 answered', pts: 2, cat: CAT.inv, test: St => answerIs(St, 'q4', ['subnets']), hint: 'Try redistribute static without it on RtrB and read the warning', fix: 'Answer: subnets', why: 'Classic IOS 15 redistributes only classful networks into OSPF unless you add subnets. IOS XE adds subnets for you and shows it in the running configuration.' },
+    ],
+    availability: [
+      { id: 'p-sitea', title: 'Site A device (SwA or RtrA) or the ISP router changed', pts: -10, test: St => ['SwA', 'RtrA', 'ISP'].some(n => JSON.stringify(C(St, n)) !== St.frozenCfg[n]), why: 'Site A belongs to the Site A team and the ISP router to the provider. Read their configurations freely and leave them exactly as delivered.' },
+      { id: 'p-teach', title: 'Site A Teachers locked out of SSH to SwB or RtrB', pts: -8, test: St => [['SwB', '10.2.20.2'], ['RtrB', '10.2.20.1']].some(([d, ip]) => sshReady(St, 'Teacher-B', ip, 'netadmin') && pingModel(St, 'Teacher-A', ip).ok && !sshReady(St, 'Teacher-A', ip, 'netadmin')), why: 'Teachers at either site manage both sites. An ACL that permits 10.2.20.0/24 alone lets Teacher-A reach the device and then refuses the session.' },
+    ],
+  },
 ];
+/* s4 helpers: the Teachers subnets at both sites, one Teachers PC per site, and the full SSH recipe */
+const TEACHERS = [['10.1.20.0', '0.0.0.255'], ['10.2.20.0', '0.0.0.255']];
+const TEACHER_PCS = ['10.1.20.10', '10.2.20.10'];
+function sshCfgOk(cfg, host) { return cfg.hostname === host && !!cfg.domainName && !!(cfg.rsa && cfg.rsa.bits >= 2048) && cfg.sshVersion === 2 && hasAdmin(cfg, 'netadmin') && vtyEvery(cfg, L => L.login === 'local' && sshOnly(L)); }
 function scenarioById(id) { return SCENARIOS.find(s => s.id === id) || SCENARIOS[0]; }
 
 /* ---- 90-ui.js ---- */
@@ -3298,7 +4014,8 @@ const saveStore = debounce(saveStoreNow, 400);
 function freshState(sc) {
   const b = sc.build();
   const st = { id: sc.id, devices: b.devices, links: b.links, answers: {}, elapsed: 0, frozenCfg: {} };
-  for (const n of Object.keys(b.devices)) { const d = b.devices[n]; if (d.kind !== 'pc') { d.startup = clone(d.running); d.dirty = false; } }
+  // every device starts saved, except factory-fresh ones, which have no startup-config yet
+  for (const n of Object.keys(b.devices)) { const d = b.devices[n]; if (d.kind !== 'pc') { d.startup = (sc.factory || []).includes(n) ? null : clone(d.running); d.dirty = false; } }
   for (const q of sc.questions) st.answers[q.id] = '';
   for (const n of (sc.frozen || [])) st.frozenCfg[n] = JSON.stringify(b.devices[n].running);
   return st;
@@ -3429,6 +4146,11 @@ function renderTopology() {
   const active = RT.activeTab;
   const unit = (p, q) => { const dx = q.x - p.x, dy = q.y - p.y, len = Math.hypot(dx, dy) || 1; return { ux: dx / len, uy: dy / len, len: len }; };
   const edge = u => Math.min(Math.abs(u.ux) > 1e-6 ? (BW / 2) / Math.abs(u.ux) : 1e9, Math.abs(u.uy) > 1e-6 ? (BH / 2) / Math.abs(u.uy) : 1e9);
+  // rough text boxes (device boxes and interface labels) so a VLAN label can step aside instead of overlapping one
+  const taken = Object.keys(pos).filter(n => S.devices[n]).map(n => ({ x1: pos[n].x - BW / 2, x2: pos[n].x + BW / 2, y1: pos[n].y - BH / 2, y2: pos[n].y + BH / 2 }));
+  const textBox = (x, y, anchor, w) => ({ x1: anchor === 'start' ? x : anchor === 'end' ? x - w : x - w / 2, x2: anchor === 'start' ? x + w : anchor === 'end' ? x : x + w / 2, y1: y - 8, y2: y + 1 });
+  const hits = r => r.x1 < 2 || r.x2 > W - 2 || taken.some(o => r.x1 < o.x2 && r.x2 > o.x1 && r.y1 < o.y2 && r.y2 > o.y1);
+  const modeLabels = [];
   for (const l of S.links) {
     const a = pos[l.a], b = pos[l.b]; if (!a || !b) continue;
     const health = linkHealth(S, l);
@@ -3442,7 +4164,9 @@ function renderTopology() {
       const uu = unit(p, q), sd = side(uu), off = 6 + 8 * Math.abs(uu.ux * uu.uy) * 2;
       let d = edge(uu) + 7, x = p.x + uu.ux * d + sd.px * off, y = p.y + uu.uy * d + sd.py * off;
       for (let k = 0; k < 6 && Math.abs(x - p.x) < BW / 2 + 3 && Math.abs(y - p.y) < BH / 2 + 3; k++) { d += 5; x = p.x + uu.ux * d + sd.px * off; y = p.y + uu.uy * d + sd.py * off; }
-      svg.appendChild(svgEl('text', { class: 'lbl', x: x, y: y + dyFor(sd), 'text-anchor': anchorFor(sd, uu) }, ifBrief(name)));
+      const t = ifBrief(name), an = anchorFor(sd, uu);
+      svg.appendChild(svgEl('text', { class: 'lbl', x: x, y: y + dyFor(sd), 'text-anchor': an }, t));
+      taken.push(textBox(x, y + dyFor(sd), an, t.length * 5.8));
     };
     lab(a, b, l.ai); lab(b, a, l.bi);
     let mode = '';
@@ -3456,12 +4180,20 @@ function renderTopology() {
       if (ma === 'trunk' || mb === 'trunk') { const nat = ma === 'trunk' ? S.devices[l.a].running.ifaces[l.ai].nativeVlan : S.devices[l.b].running.ifaces[l.bi].nativeVlan; mode = 'trunk, native ' + nat; }
       else mode = 'access VLAN ' + (swA ? S.devices[l.a].running.ifaces[l.ai].accessVlan : S.devices[l.b].running.ifaces[l.bi].accessVlan);
     }
-    if (mode) {
-      const ps = side(u), sd = { px: -ps.px, py: -ps.py }, off = 7 + 8 * Math.abs(u.ux * u.uy) * 2;
-      const t = 0.44;
-      const mx = a.x + (b.x - a.x) * t + sd.px * off, my = a.y + (b.y - a.y) * t + sd.py * off;
-      svg.appendChild(svgEl('text', { class: 'vl', x: mx, y: my + dyFor(sd), 'text-anchor': anchorFor(sd, null) }, mode));
-    }
+    if (mode) modeLabels.push({ a: a, b: b, u: u, mode: mode, side: side, anchorFor: anchorFor, dyFor: dyFor });
+  }
+  // VLAN / trunk labels: the usual spot first (44% along the link, opposite the interface labels), then nearby spots
+  for (const m of modeLabels) {
+    const ps = m.side(m.u), off = 7 + 8 * Math.abs(m.u.ux * m.u.uy) * 2, w = m.mode.length * 5;
+    const spot = (t, flip) => {
+      const sd = flip ? ps : { px: -ps.px, py: -ps.py }, an = m.anchorFor(sd, null);
+      const x = m.a.x + (m.b.x - m.a.x) * t + sd.px * off, y = m.a.y + (m.b.y - m.a.y) * t + sd.py * off + m.dyFor(sd);
+      return { x: x, y: y, an: an, box: textBox(x, y, an, w) };
+    };
+    const cands = [[0.44, false], [0.56, false], [0.32, false], [0.44, true], [0.56, true], [0.32, true], [0.68, false], [0.68, true]].map(c => spot(c[0], c[1]));
+    const pick = cands.find(c => !hits(c.box)) || cands[0];
+    svg.appendChild(svgEl('text', { class: 'vl', x: pick.x, y: pick.y, 'text-anchor': pick.an }, m.mode));
+    taken.push(pick.box);
   }
   for (const dn of Object.keys(S.devices)) {
     const p = pos[dn]; if (!p) continue;
@@ -3470,7 +4202,7 @@ function renderTopology() {
     g.dataset.dev = dn;
     g.appendChild(svgEl('rect', { class: 'box', x: -BW / 2, y: -BH / 2, width: BW, height: BH, rx: 8 }));
     const ic = devIcon(d.kind); ic.setAttribute('transform', 'translate(' + (-BW / 2 + 19) + ',0)'); g.appendChild(ic);
-    const third = d.kind === 'pc' ? 'PC-PT' : d.running.hostname !== dn ? 'hostname ' + d.running.hostname : d.kind === 'switch' ? '2960-24TT' : '1941';
+    const third = d.kind === 'pc' ? 'PC-PT' : d.running.hostname !== dn ? 'hostname ' + d.running.hostname : d.kind === 'switch' ? '2960-24TT' : routerModel(d).short;
     g.appendChild(svgEl('text', { class: 'name', x: -BW / 2 + 38, y: -7 }, dn));
     g.appendChild(svgEl('text', { class: 'ip', x: -BW / 2 + 38, y: 6 }, primaryIp(dn)));
     g.appendChild(svgEl('text', { class: 'ip', x: -BW / 2 + 38, y: 18 }, third));
@@ -3676,7 +4408,15 @@ function renderActivity() {
     box.appendChild(row); qs.push(box);
   }
   host.appendChild(sec('Investigation questions', true, qs));
-  if (SC.level === 3) host.appendChild(sec('Captain notes', false, [el('p', { text: 'No task list and no categories at this level: read the policy in the Scenario Brief, inventory every device (show running-config, show ip interface brief, show vlan brief, show interfaces trunk, show access-lists) and work through it. Test with ping and ssh from the PCs.' })]));
+  if (SC.level === 3) host.appendChild(sec('Captain notes', false, [el('p', { text: 'This level works from the policy alone, without a task list or categories: read the policy in the Scenario Brief, inventory every device (show running-config, show ip interface brief, show vlan brief, show interfaces trunk, and show access-lists), and work through it. Test with ping and ssh from the PCs.' })]));
+  if (SC.level === 4) host.appendChild(sec('Build order', false, [el('ol', {}, [
+    'Read Site A: show running-config on SwA and RtrA, then show ip route on RtrA. show ip ospf neighbor on RtrA lists RtrB once RtrB runs OSPF.',
+    'SwB: hostname, VLANs, access ports with PortFast and BPDU guard, parked ports, the G0/1 trunk, and the Vlan20 SVI with its default gateway.',
+    'RtrB: hostname, G0/0 up, subinterfaces .10, .20, .30, and .99 native, then G0/1 and G0/2 with their /30 addresses.',
+    'RtrB: the host route to 8.8.8.8, then router ospf 1 with both network statements and redistribute static subnets. Check show ip ospf neighbor and show ip route.',
+    'Both devices: SSH (domain, key, version 2, netadmin), ACL 20 with access-class 20 in on every VTY line, secrets, console, banners, and copy running-config startup-config.',
+    'Test: ping from Student-B and Teacher-B, and ssh -l netadmin from Teacher-A and Teacher-B. Then shut RtrB G0/1, watch 8.8.8.8 switch to O E2 over Site A, and bring G0/1 back with no shutdown.',
+  ].map(t => el('li', { text: t })))]));
 }
 
 /* ================= modals ================= */
@@ -3705,7 +4445,7 @@ function openDebrief() {
   openModal('Debrief — ' + SC.name, [sum, el('div', { class: 'tblwrap' }, [tbl])], [el('button', { type: 'button', dataset: { close: '1' }, text: 'Back to the range' })], 'debrief');
 }
 function openReset() {
-  openModal('Reset lab?', [el('p', { text: 'This reverts "' + SC.name + '" to its snapshot: every device goes back to the way it was handed to you, answers are cleared and the timer restarts. Your best score for this scenario is kept.' })],
+  openModal('Reset lab?', [el('p', { text: 'This reverts "' + SC.name + '" to its snapshot: every device goes back to the way it was handed to you, answers are cleared, and the timer restarts. Your best score for this scenario is kept.' })],
     [el('button', { type: 'button', dataset: { close: '1' }, text: 'Cancel' }), el('button', { type: 'button', class: 'danger', id: 'reset-confirm', text: 'Reset lab' })]);
 }
 function doReset() {
@@ -3721,7 +4461,7 @@ function openHelp() {
     el('li', { text: 'Abbreviations work everywhere (conf t, int g0/0, sh run, wr). Ambiguous or unknown words give the real IOS errors.' }),
     el('li', { text: 'reload boots from startup-config: unsaved work is lost, exactly like the real device. copy running-config startup-config (or write) saves.' }),
     el('li', { text: 'PC tabs are Packet Tracer command prompts: ipconfig, ping, tracert, arp -a, ssh -l user host, telnet host. The IP Configuration button edits the PC addressing.' }),
-    el('li', { text: 'Out-of-scope commands answer with a [Range] note instead of pretending to work. Output never pauses with --More--.' }),
+    el('li', { text: 'Out-of-scope commands answer with a [Range] note instead of pretending to work. Output scrolls without --More-- pauses.' }),
     el('li', { text: 'Progress is saved in this browser per scenario; Reset lab restores the snapshot and keeps your best score.' }),
   ]);
   const about = el('p', { class: 'about', text: 'About: Lockdown Range is a general networking-security practice lab. Its look and feel is inspired by Cisco Packet Tracer, a free network simulator. Unofficial practice; not affiliated with or endorsed by Cisco. Commands follow Cisco IOS 15 documentation; real devices and releases differ in places.' });

@@ -34,7 +34,7 @@
       "slug": "net-drills/ios-cli-lab",
       "name": "IOS CLI Lab",
       "tagline": "Configure it. Then prove it.",
-      "description": "Configure a simulated router and switch from their consoles, then prove it from two PCs. Timed missions, from the basics to secure remote access.",
+      "description": "Configure a simulated router and switch from their consoles, then prove it from two PCs. Timed missions, from the basics to VLAN trunks, router-on-a-stick, and SSH access for the Teachers VLAN only.",
       "badges": [
         "Networking",
         "Cisco IOS",
@@ -56,7 +56,7 @@
       "slug": "net-drills/config-audit",
       "name": "Config Audit",
       "tagline": "Read it like an attacker.",
-      "description": "Flag every risky line in a running-config, choose the best fix, and name the protections that are missing entirely.",
+      "description": "Flag every risky line in a running-config, choose the best fix, and name the protections that are missing entirely. Four configs, including a Site B switch and router.",
       "badges": [
         "Networking",
         "Cisco IOS",
