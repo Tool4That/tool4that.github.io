@@ -15,7 +15,9 @@ patterns against file names first, then page titles), it:
      links the series strip (<span class="jack">Name</span>) to the other tools of the series;
   2. runs prepare_tool.py on it, which writes SLUG/index.html (hash-pinned CSP, preview tags, hub link);
   3. copies its reference .txt into SLUG/, when the manifest asks for one and it is found;
-  4. adds or updates its tools.json entry (build_hub.py then fills in size, SHA-256, and date).
+  4. adds or updates its tools.json entry (build_hub.py then fills in size, SHA-256, and date);
+  5. prepares each of the tool's "variants" (a second download built from its own source page, e.g. an offline
+     edition) into SLUG/<out> with the variant's prep options, and records it in the entry's "extras".
 Tools with no source page are skipped and left as they are. Next: build_hub.py. Standard library only.
 """
 import argparse, json, os, re, subprocess, sys, tempfile
@@ -23,7 +25,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 CFG = ROOT / "tools.json"
-CARD = ("name", "tagline", "description", "badges", "file", "download_as", "icon", "category", "series", "section")
+CARD = ("name", "tagline", "description", "badges", "file", "download_as", "download_label", "download_note", "icon", "category", "series", "section")
 GFONT_LINK = re.compile(r'[ \t]*<link\b[^>]*\bhref\s*=\s*["\']https?://fonts\.(?:googleapis|gstatic)\.com[^>]*>[ \t]*\r?\n?', re.I)
 GFONT_IMPORT = re.compile(r'@import\s+(?:url\()?\s*["\']?https?://fonts\.googleapis\.com[^;]*;', re.I)
 JACK = re.compile(r'<span class="jack( on)?"((?:\s+style="[^"]*")?)>([^<]+)</span>')
@@ -49,6 +51,26 @@ def hit(spec, s):
 def find(spec, files):
     by_name = [f for f, (name, _) in files.items() if hit(spec, name)]
     return by_name or [f for f, (_, title) in files.items() if hit(spec, title)]
+
+
+def prep_cmd(staged, s, prep, out=None):
+    """The prepare_tool.py command for one page with these prep options (out: a variant's file name inside SLUG/)."""
+    cmd = [sys.executable, str(ROOT / "prepare_tool.py"), str(staged), s["slug"], "--name", s["name"],
+           "--description", s.get("page_description") or s["description"], "--icon", s.get("emoji", "🧰")]
+    for u in prep.get("allow_script", []):
+        cmd += ["--allow-script", u]
+    cmd += ["--accept-runtime-fallback"] if prep.get("accept_runtime_fallback") else []
+    cmd += ["--frame-guard"] if prep.get("frame_guard") else []
+    for u in prep.get("allow_connect", []):
+        cmd += ["--allow-connect", u]
+    cmd += ["--allow-wasm"] if prep.get("allow_wasm") else []
+    cmd += ["--allow-worker-blob"] if prep.get("allow_worker_blob") else []
+    cmd += ["--allow-connect-data"] if prep.get("allow_connect_data") else []
+    cmd += ["--allow-script-blob"] if prep.get("allow_script_blob") else []
+    for h in prep.get("pin_blocks", []):
+        cmd += ["--pin-block", h]
+    cmd += ["--out", out] if out else []
+    return cmd
 
 
 def clean(text, s, specs, live):
@@ -123,6 +145,16 @@ def main():
             sys.exit(f'{s["slug"]}: series "{s["series"]}" is not in tools.json; add it under "series" first.')
         if s.get("section") and s["section"] not in secs:
             sys.exit(f'{s["slug"]}: section "{s["section"]}" is not in tools.json; add it under "sections" first.')
+        variants = []
+        for v in t.get("variants", []):
+            v = {**v, "prep": {**s["prep"], **v.get("prep", {})}}
+            if not re.fullmatch(r"[\w-][\w.-]*\.html", v.get("out", "")) or v["out"] == "index.html":
+                sys.exit(f'{s["slug"]}: each variant needs an "out" file name ending in .html, other than index.html.')
+            if not v.get("match") or not v.get("label"):
+                sys.exit(f'{s["slug"]}: variant {v["out"]} needs "match" patterns and a button "label".')
+            v.setdefault("download_as", v["out"])
+            variants.append(v)
+        s["variants"] = variants
         specs.append(s)
     unknown = set(a.only) - {s["slug"] for s in specs}
     if unknown:
@@ -132,9 +164,16 @@ def main():
     listing = lambda exts: {f: hay(f) for f in sorted(src.iterdir())
                             if f.is_file() and f.suffix.lower() in exts and not f.name.startswith(("_", "."))}
     pages, refs = listing((".html", ".htm")), listing((".txt",))
-    plan, problems = [], []
+    plan, problems, vplan = [], [], {}
     for s in todo:
-        hits = find(s, pages)
+        vfiles = []
+        for v in s["variants"]:
+            vh = find(v, pages)
+            if len(vh) > 1:
+                problems.append(f'{s["slug"]} variant {v["out"]}: {len(vh)} pages match ({", ".join(h.name for h in vh)}); keep one, or tighten "match"')
+            vfiles += vh
+            vplan.setdefault(s["slug"], []).append((v, vh[0] if len(vh) == 1 else None))
+        hits = find(s, {f: h for f, h in pages.items() if f not in vfiles} if vfiles else pages)
         if len(hits) > 1:
             problems.append(f'{s["slug"]}: {len(hits)} pages match ({", ".join(h.name for h in hits)}); keep one, or tighten "match"')
             continue
@@ -147,7 +186,7 @@ def main():
         plan.append((s, hits[0] if hits else None, ref))
     claimed = {}
     for s, page, ref in plan:
-        for f in (page, ref):
+        for f in (page, ref) + tuple(vp for _, vp in vplan.get(s["slug"], [])):
             if f:
                 claimed.setdefault(f, []).append(s["slug"])
     problems += [f'{f.name} matches more than one tool ({", ".join(w)}); rename it or tighten "match"' for f, w in claimed.items() if len(w) > 1]
@@ -158,6 +197,8 @@ def main():
             print(f'  {s["slug"]:<32} {page.name}  [title: {pages[page][1][:60]}]' + (f"  + {ref.name}" if ref else ("  (no .txt reference found)" if s["reference"] else "")))
         else:
             print(f'  {s["slug"]:<32} (no source page found: skipped, left as it is)')
+        for v, vp in vplan.get(s["slug"], []):
+            print(f'  {"  + " + v["out"]:<32} ' + (f'{vp.name}  [title: {pages[vp][1][:60]}]' if vp else "(source page absent: left as it is)"))
     unused = [f.name for f in list(pages) + list(refs) if f not in claimed]
     if unused and not a.only:
         print("  Not used: " + ", ".join(unused))
@@ -169,7 +210,7 @@ def main():
         return
 
     live = {t["slug"] for t in cfg["tools"]} | {s["slug"] for s, _, _ in plan}
-    failed = 0
+    failed = vfailed = 0
     env = dict(os.environ, PYTHONIOENCODING="utf-8")
     with tempfile.TemporaryDirectory() as tmp:
         for s, page, ref in plan:
@@ -180,18 +221,7 @@ def main():
                 continue
             staged = Path(tmp) / page.name
             staged.write_text(text, encoding="utf-8", newline="")
-            cmd = [sys.executable, str(ROOT / "prepare_tool.py"), str(staged), s["slug"], "--name", s["name"],
-                   "--description", s.get("page_description") or s["description"], "--icon", s.get("emoji", "🧰")]
-            for u in s["prep"].get("allow_script", []):
-                cmd += ["--allow-script", u]
-            cmd += ["--accept-runtime-fallback"] if s["prep"].get("accept_runtime_fallback") else []
-            cmd += ["--frame-guard"] if s["prep"].get("frame_guard") else []
-            for u in s["prep"].get("allow_connect", []):
-                cmd += ["--allow-connect", u]
-            cmd += ["--allow-wasm"] if s["prep"].get("allow_wasm") else []
-            cmd += ["--allow-worker-blob"] if s["prep"].get("allow_worker_blob") else []
-            cmd += ["--allow-connect-data"] if s["prep"].get("allow_connect_data") else []
-            r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", env=env)
+            r = subprocess.run(prep_cmd(staged, s, s["prep"]), capture_output=True, text=True, encoding="utf-8", errors="replace", env=env)
             if r.returncode:
                 failed += 1
                 print(f'  FAILED {s["slug"]}:\n    ' + (r.stdout + r.stderr).strip().replace("\n", "\n    "))
@@ -205,18 +235,38 @@ def main():
                 cfg["tools"].insert(max(same) + 1, entry)
             else:
                 entry.update(card)
+            before = list(entry.get("extras", []))
             if ref:
                 dest = f'{s["slug"]}/{s["reference"].get("file", "reference.txt")}'
                 (ROOT / dest).write_bytes(ref.read_bytes())
                 entry["extras"] = [{"label": s["reference"].get("label", "Reference .txt"), "file": dest,
                                     "download_as": s["reference"].get("download_as") or s["download_as"].rsplit(".", 1)[0] + "-reference.txt"}]
                 notes.append(f"copied {ref.name}")
+            for v, vp in vplan.get(s["slug"], []):
+                if not vp:
+                    notes.append(f'{v["out"]}: source page absent, left as it is')
+                    continue
+                vtext, _, verrs = clean(vp.read_text(encoding="utf-8"), {**s, "prep": v["prep"]}, specs, live)
+                if not verrs:
+                    vstaged = Path(tmp) / ("variant-" + vp.name)
+                    vstaged.write_text(vtext, encoding="utf-8", newline="")
+                    vr = subprocess.run(prep_cmd(vstaged, s, v["prep"], v["out"]), capture_output=True, text=True, encoding="utf-8", errors="replace", env=env)
+                if verrs or vr.returncode:
+                    vfailed += 1
+                    print(f'  FAILED {s["slug"]} variant {v["out"]}:\n    ' + ("; ".join(verrs) if verrs else (vr.stdout + vr.stderr).strip().replace("\n", "\n    ")))
+                    continue
+                dest = f'{s["slug"]}/{v["out"]}'
+                old = next((x for x in before if x["file"] == dest), {})
+                entry["extras"] = [x for x in entry.get("extras", []) if x["file"] != dest] + [
+                    {"label": v["label"], "file": dest, "download_as": v["download_as"], **{k: old[k] for k in ("sha256", "updated") if k in old}}]
+                notes.append(f'{v["out"]}: ' + vr.stdout.strip().splitlines()[0].split(": ", 1)[-1].rstrip("."))
             entry.setdefault("sha256", ""); entry.setdefault("updated", "")
             print(f'  OK     {s["slug"]}: ' + r.stdout.strip().splitlines()[0].split(": ", 1)[-1].rstrip(".") + ("; " + "; ".join(notes) if notes else ""))
     CFG.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(f"tools.json updated ({len(plan) - failed} tool(s)). Next: py build_hub.py   (Linux/macOS: python3 build_hub.py)")
-    if failed:
-        sys.exit(f"{failed} tool(s) failed: fix the source page (see messages above), then re-run.")
+    if failed or vfailed:
+        sys.exit(f"{failed + vfailed} page(s) failed: fix the source page (see messages above), then re-run." if vfailed else
+                 f"{failed} tool(s) failed: fix the source page (see messages above), then re-run.")
 
 
 if __name__ == "__main__":

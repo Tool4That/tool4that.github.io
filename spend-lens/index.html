@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-ltkjnw66bIy7opiUE9KThzttAvGthjR29/4l9KdBAjs=' 'sha256-w8qDeabPBft4fSGofniJhzFdT0MpJ9jOEop3urNpexE=' 'sha256-z1ngpG/pkcpliidNAVvcUqEwebgDtiP9puVY94oclwM=' 'wasm-unsafe-eval' https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/ https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/ https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/; connect-src data: https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int/; worker-src blob:; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-AmtOBrP59o5NNrPy6NvgXnpyDHln3DLT/CuKksb1jt8=' 'sha256-ltkjnw66bIy7opiUE9KThzttAvGthjR29/4l9KdBAjs=' 'sha256-w8qDeabPBft4fSGofniJhzFdT0MpJ9jOEop3urNpexE=' 'wasm-unsafe-eval' https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/ https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/ https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/; connect-src data: https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int/; worker-src blob:; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="See where your money goes. Add transactions by hand, paste text, or import bank, card, and investment statements (CSV, PDF, scanned PDFs, and screenshots, read on your device), then get a money-in, money-out HUD, a paycheck plan, a 30-day look ahead, and a plain-language checkup. Everything stays on your device.">
 <link rel="canonical" href="https://freeapp4that.store/spend-lens/">
@@ -516,7 +516,7 @@ footer { margin-top: 40px; color: var(--ink-3); font-size: 0.8rem; }
           <strong>Choose files</strong> or drop them here
           <div class="formats"><span>PDF statements, incl. scanned</span><span>Screenshots &amp; photos</span><span>CSV</span><span>TSV</span><span>OFX / QFX</span><span>QIF</span><span>JSON backup</span></div>
         </label>
-        <p class="hint" style="margin-top:10px">Files are read in your browser and never uploaded. Bank, card and investment statements all work: PDFs use pdf.js (fetched from cdnjs), and screenshots or scanned PDFs use Tesseract, the open-source OCR engine (fetched once from jsDelivr, with your OK first).</p>
+        <p class="hint" id="fileHint" style="margin-top:10px">Files are read in your browser and stay on this device. Bank, card, and investment statements all work: PDFs use pdf.js (fetched from cdnjs), and screenshots or scanned PDFs use Tesseract, the open-source OCR engine (fetched once from jsDelivr, with your OK first). The <a href="https://freeapp4that.store/finance/" target="_blank" rel="noopener">offline download</a> builds both in.</p>
         <div class="busy" id="busy" hidden></div>
       </div>
 
@@ -4882,6 +4882,11 @@ const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '
 const STORE_KEY = 'pfat.v1';
 const OLD_STORE_KEY = 'spendlens.v1';
 const PDFJS_BASE = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+// The offline edition: build.py --offline sets this flag to true and appends the vendor files listed in vendor.json.
+const PFAT_OFFLINE = false;
+// The offline edition's built-in files, by SHA-256 (build.py --offline writes them from vendor.json).
+const VENDOR_SHA = {};
+const PFAT_DOWNLOADS = 'https://freeapp4that.store/finance/'; // PFAT's hub card, with both downloads
 
 const state = {
   txns: [], rules: [], customCats: [], catOverrides: {}, budgets: {}, bills: null, balances: {}, plan: null, accounts: null, goals: null, cash: null, paycheck: null, snapshots: null, insurance: null, limits: null,
@@ -5294,14 +5299,22 @@ async function readTextFile(file) {
   return text.replace(/^\uFEFF/, '');
 }
 let pdfjsPromise = null;
-function loadScript(src) { return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.async = true; s.onload = res; s.onerror = () => rej(new Error('could not load ' + src)); document.head.appendChild(s); }); }
+function loadScript(src) { return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.async = true; s.onload = res; s.onerror = () => rej(new Error('The browser stopped loading ' + src)); document.head.appendChild(s); }); }
 function loadPdfJs() {
   if (window.pdfjsLib && window.pdfjsWorker) return Promise.resolve();
   if (!pdfjsPromise) {
-    pdfjsPromise = loadScript(PDFJS_BASE + 'pdf.worker.min.js').then(() => loadScript(PDFJS_BASE + 'pdf.min.js')).then(() => {
+    let workerSrc = '';
+    pdfjsPromise = Promise.resolve().then(() => PFAT_OFFLINE ? vendorVerify(['pdfworker', 'pdf']) : null).then(() => {
+      workerSrc = PFAT_OFFLINE ? vendorURL(['pdfworker']) : PDFJS_BASE + 'pdf.worker.min.js';
+      return loadScript(workerSrc);
+    }).then(() => loadScript(PFAT_OFFLINE ? vendorURL(['pdf']) : PDFJS_BASE + 'pdf.min.js')).then(() => {
       if (!window.pdfjsLib) throw new Error('PDF engine unavailable');
-      try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_BASE + 'pdf.worker.min.js'; } catch (e) { /* ignore */ }
-    }).catch(e => { pdfjsPromise = null; throw new Error('The PDF reader could not be loaded (offline or blocked). Try copying the text out of the PDF and using Paste text instead.'); });
+      try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc; } catch (e) { /* ignore */ }
+    }).catch(e => {
+      pdfjsPromise = null;
+      const x = new Error(PFAT_OFFLINE ? 'A fresh copy of this file from the Tool4That finance page restores its built-in PDF reader.' : 'The PDF reader loads from cdnjs the first time.');
+      x.pdfLoadFail = true; throw x;
+    });
   }
   return pdfjsPromise;
 }
@@ -5349,7 +5362,7 @@ async function nextInQueue() {
   catch (e) {
     setBusy('');
     if (e && e.userStop) { /* declined or cancelled: go on */ }
-    else if (e && e.ocrFail) { reading = false; showOcrHelp(e.message, e.readFail ? 'read' : 'load'); return; }
+    else if (e && (e.ocrFail || e.pdfLoadFail)) { reading = false; showOcrHelp(e.message, e.pdfLoadFail ? 'pdf' : e.readFail ? 'read' : 'load'); return; }
     else toast('Could not read ' + f.name + ': ' + e.message, true);
   } finally { reading = false; }
   if (next || !pending) nextInQueue();
@@ -5691,11 +5704,13 @@ function renderData() {
   let h = '<section class="section" style="margin-top:4px"><h2>Your data</h2><dl class="kv"><dt>Transactions</dt><dd>' + state.txns.length + (b.min ? ' (' + esc(slFmtDate(b.min)) + ' – ' + esc(slFmtDate(b.max)) + ')' : '') + '</dd><dt>Accounts</dt><dd>' + (esc(accounts().join(', ')) || '—') + '</dd><dt>Saved in this browser</dt><dd>' + (bytes ? (bytes / 1024).toFixed(1) + ' KB' : 'nothing yet') + '</dd></dl>' +
     '<label class="check" style="margin-top:10px"><input type="checkbox" id="autosave"' + (state.settings.autosave ? ' checked' : '') + '> Keep my data in this browser between visits</label>' +
     '<div class="actions"><button class="btn" id="saveNow">Save now</button><button class="btn danger" id="clearAll">Delete everything</button></div></section>';
-  h += '<section class="section"><h2>Export</h2><p class="sub">A CSV opens in any spreadsheet. The backup file restores transactions, rules, categories and budgets on another device, via Add → From a file.</p><div class="actions"><button class="btn primary" id="expCsv">Download CSV</button><button class="btn" id="expJson">Download backup</button><button class="btn" id="copyCsv">Copy CSV to clipboard</button></div></section>';
+  h += '<section class="section"><h2>Export</h2><p class="sub">A CSV opens in any spreadsheet. The backup file restores transactions, rules, categories, and budgets on another device, via Add → From a file.</p><div class="actions"><button class="btn primary" id="expCsv">Download CSV</button><button class="btn" id="expJson">Download backup</button><button class="btn" id="copyCsv">Copy CSV to clipboard</button></div></section>';
   h += '<section class="section"><h2>Print a report</h2><p class="sub">Prints the tab you choose, without the controls. Pick HUD or Overview and a period, then print; save as PDF from the print dialog to share.</p><div class="actions"><button class="btn" id="printHud">Print the HUD</button><button class="btn" id="printOverview">Print the Overview</button></div></section>';
   h += '<section class="section"><h2>Sample data</h2><p class="sub">Four months of made-up transactions for trying things out.</p><div class="actions">' + (hasSample ? '<button class="btn" data-act="removeSample">Remove sample data</button>' : '<button class="btn" data-act="sample">Load sample data</button>') + '</div></section>';
   h += '<section class="section"><h2>Appearance</h2><div class="grid2"><label>Theme <select id="theme"><option value="auto"' + (state.settings.theme === 'auto' ? ' selected' : '') + '>Match device</option><option value="light"' + (state.settings.theme === 'light' ? ' selected' : '') + '>Light</option><option value="dark"' + (state.settings.theme === 'dark' ? ' selected' : '') + '>Dark</option></select></label><label>Currency symbol <input type="text" id="currency" maxlength="4" value="' + esc(state.settings.currency) + '"></label><label>Call the first tab <select id="hudLabel"><option value="HUD"' + (state.settings.hudLabel !== 'Home' ? ' selected' : '') + '>HUD</option><option value="Home"' + (state.settings.hudLabel === 'Home' ? ' selected' : '') + '>Home</option></select></label></div><label class="check"><input type="checkbox" id="dayFirst"' + (state.settings.dayFirst ? ' checked' : '') + '> My bank writes dates day-first (DD/MM/YYYY)</label></section>';
-  h += '<section class="section"><h2>Privacy</h2><div class="privacy"><p>Everything you add is parsed and analyzed in this browser tab. Nothing is sent anywhere.</p><p>If you keep data between visits, it lives in this browser\'s local storage on this device only. Clearing site data or using a private window removes it.</p><p>Two open-source libraries can be fetched when you need them: pdf.js from cdnjs to read PDFs, and Tesseract (Apache 2.0) from jsDelivr to read screenshots and scanned statements. Only the libraries and the English model download; your files never leave this device.</p>' + (state.settings.ocrOk ? '<p>You agreed to read pictures with Tesseract. <button class="btn small" id="ocrWithdraw">Stop reading pictures</button> (PFAT asks again next time).</p>' : '') + '</div></section>';
+  h += '<section class="section"><h2>Privacy</h2><div class="privacy"><p>Everything you add is parsed and analyzed in this browser tab and stays on this device.' + (PFAT_OFFLINE ? ' This file works completely offline.' : '') + '</p><p>If you keep data between visits, it lives in this browser\'s local storage on this device only. Clearing site data or using a private window removes it.</p>' +
+    (PFAT_OFFLINE ? '<p>Two open-source libraries are built into this file and run on this device: pdf.js 3.11.174 (Apache-2.0) reads PDFs, and Tesseract (tesseract.js and tesseract.js-core 5.1.1, Apache-2.0, with the English model from @tesseract.js-data/eng 1.0.0, MIT) reads screenshots and scanned statements. Their license notices, with those of the libraries built into them, sit at the end of this file; open it in a text editor to read them.</p>'
+      : '<p>Two open-source libraries can be fetched when you need them: pdf.js from cdnjs to read PDFs, and Tesseract (Apache 2.0) from jsDelivr to read screenshots and scanned statements. Only the libraries and the English model download; your files stay on this device. The <a href="' + PFAT_DOWNLOADS + '" target="_blank" rel="noopener">offline download</a> builds both in and reads PDFs and pictures completely offline.</p>') + (!PFAT_OFFLINE && state.settings.ocrOk ? '<p>You agreed to read pictures with Tesseract. <button class="btn small" id="ocrWithdraw">Stop reading pictures</button> (PFAT asks again next time).</p>' : '') + '</div></section>';
   el.innerHTML = h;
 }
 async function saveFile(filename, text, mime) {
@@ -5921,7 +5936,7 @@ function renderPlan() {
   const needsCap = base * R.needsPct, wantsCap = base * R.wantsPct, saveFloor = base * R.savePct;
   h += '<section class="section"><h2>Ideal paycheck</h2><p class="sub">The 50/30/20 split: needs, wants, and savings or debt payoff, on take-home pay' + (m.netFromData ? ' (using the income seen in your transactions, ' + money(m.netM) + ' a month)' : '') + (m.retireM ? ' plus what you already put into retirement before tax' : '') + '. Paid ' + FREQ_LABEL[p.freq] + ', that is:</p>';
   h += '<div class="ribbon" aria-hidden="true"><span style="width:50%;background:var(--accent)"></span><span style="width:30%;background:#D6A32A"></span><span style="width:20%;background:var(--in)"></span></div>';
-  const buckets = [['Needs', 'up to', needsCap, a ? a.needs : null, slStatusCap, 'rent, utilities, groceries, transport, insurance, minimum payments', sword], ['Wants', 'up to', wantsCap, a ? a.wants : null, slStatusCap, 'dining, shopping, subscriptions, travel, fun', sword], ['Savings & debt payoff', 'at least', saveFloor, a ? a.saveOut + m.retireM : null, slStatusFloor, 'retirement, emergency fund, extra on loans and cards', fword]];
+  const buckets = [['Needs', 'up to', needsCap, a ? a.needs : null, slStatusCap, 'rent, utilities, groceries, transport, insurance, minimum payments', sword], ['Wants', 'up to', wantsCap, a ? a.wants : null, slStatusCap, 'dining, shopping, subscriptions, travel, fun', sword], ['Savings & debt payoff', 'at least', saveFloor, a ? a.saveOut + m.retireM : null, slStatusFloor, 'retirement, emergency fund, and extra on loans and cards', fword]];
   h += '<div class="hud-table">';
   for (const [name, dir, target, actual, fn, what, wf] of buckets) {
     const st = actual == null ? 'none' : fn(actual, target);
@@ -6548,16 +6563,16 @@ function bindAccounts() {
 function renderGuide() {
   const el = $('#guideBody');
   const step = (n, title, body, go, label) => '<section class="section gstep"><h2><span class="gnum">' + n + '</span>' + title + '</h2>' + body + (go ? '<div class="actions"><button class="btn" data-go="' + go + '">' + label + '</button></div>' : '') + '</section>';
-  let h = '<section class="section" style="margin-top:4px"><h2>How to use PFAT</h2><p class="sub">Twenty minutes the first time, two minutes a month after that. Nothing leaves your device; if you want a safety net, download a backup from Data when you are done.</p></section>';
-  h += step(1, 'Get your transactions in', '<p>Three ways, mix freely:</p><ul class="insights"><li><b>From a file</b> — download a CSV from your bank\'s website (any "export" or "download transactions" link), or drop the monthly PDF statement. OFX/QFX and QIF work too.</li><li><b>Screenshots and scanned statements</b> — banking-app screenshots, photos, and image-only PDFs are read by the open-source Tesseract engine in this browser (after you agree, it and its English model download from jsDelivr the first time; your pictures are never uploaded). Card and investment statements also fill in balances, APR, limits, contributions and fees. Rows marked "check" deserve a look; fix anything under Recognized text.</li><li><b>Paste text</b> — select the transaction table on the bank\'s website or in a PDF, copy, paste.</li><li><b>By hand</b> — cash, Venmo to a friend, anything that never hit a statement.</li></ul><p>Every import shows a preview first: check that money out is negative and money in is positive (flip a row or the whole file if not), untick anything already saved, name the account, import. Start with the last three months; more history makes the "usual" numbers better.</p>', 'add:file', 'Go to Add');
-  h += step(2, 'Fix the categories once', '<p>Most transactions are sorted automatically. Open <b>Transactions</b>, search for anything marked Uncategorized or wrong, tap it, pick the category and tick "use this category for every … transaction" so it stays fixed in future imports. Card payments and transfers to savings are left out of spending totals on purpose, so nothing counts twice.</p>', 'transactions', 'Go to Transactions');
+  let h = '<section class="section" style="margin-top:4px"><h2>How to use PFAT</h2><p class="sub">Twenty minutes the first time, two minutes a month after that. Everything stays on your device; for a safety net, download a backup from Data when you are done.</p></section>';
+  h += step(1, 'Get your transactions in', '<p>Four ways, mix freely:</p><ul class="insights"><li><b>From a file</b> — download a CSV from your bank\'s website (any "export" or "download transactions" link), or drop the monthly PDF statement. OFX/QFX and QIF work too.</li><li><b>Screenshots and scanned statements</b> — banking-app screenshots, photos, and image-only PDFs are read by the open-source Tesseract engine in this browser (' + (PFAT_OFFLINE ? 'built into this file, so it reads them on this device, completely offline' : 'after you agree, it and its English model download from jsDelivr the first time; your pictures stay on this device') + '). Card and investment statements also fill in balances, APR, limits, contributions, and fees. Rows marked "check" deserve a look; fix anything under Recognized text.</li><li><b>Paste text</b> — select the transaction table on the bank\'s website or in a PDF, copy, paste.</li><li><b>By hand</b> — cash, Venmo to a friend, anything a statement leaves out.</li></ul><p>Every import shows a preview first: check that money out is negative and money in is positive (flip a row or the whole file when needed), untick anything already saved, name the account, import. Start with the last three months; more history makes the "usual" numbers better.</p>', 'add:file', 'Go to Add');
+  h += step(2, 'Fix the categories once', '<p>Most transactions are sorted automatically. Open <b>Transactions</b>, search for anything marked Uncategorized or wrong, tap it, pick the category, and tick "use this category for every … transaction" so it stays fixed in future imports. Card payments and transfers to savings are left out of spending totals on purpose, so nothing counts twice.</p>', 'transactions', 'Go to Transactions');
   h += step(3, 'Read the HUD', '<p>Money in, money out, what is left, for this month or any period. Routine bills show expected against actual with "paid on the 5th" or "not seen yet". Type card and loan balances at the bottom; they power the debt planner later. Tap any bill to rename it or change the keywords it looks for.</p>', 'hud', 'Go to HUD');
-  h += step(4, 'Enter your numbers on Plan', '<p>Age, how often you are paid, gross pay per check, what you and your employer put into retirement. Then list each <b>account</b>: TSP or 401k, IRA, high-yield savings, investing apps such as Fidelity, Robinhood, Stash or Acorns, with today\'s balance and what goes in monthly. From that the Plan tab shows:</p><ul class="insights"><li>the ideal paycheck split (50/30/20) against your actual spending;</li><li>rent, car, debt, retirement and emergency-fund guidelines with green / amber / red;</li><li>a retirement check for your age, the room left under this year\'s IRS limits, where each account lands by December 31, and what the investing accounts reach by 67 in today\'s dollars.</li></ul>', 'plan', 'Go to Plan');
+  h += step(4, 'Enter your numbers on Plan', '<p>Age, how often you are paid, gross pay per check, what you and your employer put into retirement. Then list each <b>account</b>: TSP or 401k, IRA, high-yield savings, investing apps such as Fidelity, Robinhood, Stash, or Acorns, with today\'s balance and what goes in monthly. From that the Plan tab shows:</p><ul class="insights"><li>the ideal paycheck split (50/30/20) against your actual spending;</li><li>rent, car, debt, retirement, and emergency-fund guidelines with green / amber / red;</li><li>a retirement check for your age, the room left under this year\'s IRS limits, where each account lands by December 31, and what the investing accounts reach by 67 in today\'s dollars.</li></ul>', 'plan', 'Go to Plan');
   h += step(5, 'Look ahead', '<p><b>Ahead</b> has four sections in its dropdown: Debt payoff (add APR and minimum per debt, compare avalanche and snowball, see what extra money does), Goals (anything you are saving for, turned into a per-check amount), Next 30 days (enter today\'s checking balance for safe-to-spend until payday), and Alerts (pace, price increases, bills not seen, unusual charges).</p>', 'ahead', 'Go to Ahead');
   h += step(6, 'Run the checkup', '<p><b>Checkup</b> covers what bank data cannot show: a pay-stub breakdown (effective tax rate and true savings rate), net-worth snapshots over time, card utilization, an insurance checklist, pension and Social Security against the nest egg you actually need, and a plain list of when a professional is the right call.</p>', 'check', 'Go to Checkup');
   h += step(7, 'Monthly routine', '<ul class="insights"><li>Import last month\'s statements (duplicates are caught automatically).</li><li>Glance at the HUD and Alerts.</li><li>Update balances on the HUD and Plan; take a net-worth snapshot.</li><li>Download a backup from Data.</li></ul>', 'data', 'Go to Data');
   h += '<section class="section"><h2>Five-minute demo path</h2><p class="sub">If you are showing someone the tool with no data on hand.</p><ol class="steps"><li>Data → Load sample data.</li><li>HUD: switch the period to Last month; point out expected vs actual and the card balance field.</li><li>Plan: enter an age, pay and a couple of accounts; watch the guideline colors and the year-end / 67 forecast appear.</li><li>Ahead → Debt payoff: type an APR and an extra $100; show the months and interest change.</li><li>Ahead → Next 30 days: enter a balance; show safe-to-spend.</li><li>Data → Remove sample data, then Add their own file.</li></ol></section>';
-  h += '<section class="section"><h2>Good to know</h2><ul class="insights"><li>The app works offline once loaded. Two outside requests can happen, only when you need them: pdf.js from cdnjs the first time you open a PDF, and, after you agree, the Tesseract engine and its English model from jsDelivr the first time you read a picture. Your files are never uploaded.</li><li>Data lives in this browser only. Clearing site data or switching devices starts fresh unless you restore a backup (Add → From a file → the backup JSON).</li><li>Guidelines are general rules of thumb, not personal advice. Checkup → When to see a human says where the line is.</li></ul></section>';
+  h += '<section class="section"><h2>Good to know</h2><ul class="insights"><li>' + (PFAT_OFFLINE ? 'This file works completely offline. pdf.js reads PDFs and the Tesseract engine reads pictures, both built into this file and running on this device. Your files stay on this device.' : 'The app works offline once loaded. Two outside requests can happen, only when you need them: pdf.js from cdnjs the first time you open a PDF, and, after you agree, the Tesseract engine and its English model from jsDelivr the first time you read a picture. Your files stay on this device. The <a href="' + PFAT_DOWNLOADS + '" target="_blank" rel="noopener">offline download</a> builds both in, for reading PDFs and pictures completely offline.') + '</li><li>Data lives in this browser only. Clearing site data or switching devices starts fresh; restore a backup to bring your data back (Add → From a file → the backup JSON).</li><li>Guidelines are general rules of thumb, separate from personal advice. Checkup → When to see a human says where the line is.</li></ul></section>';
   el.innerHTML = h;
 }
 
@@ -6569,6 +6584,46 @@ const OCR_BASE = 'https://cdn.jsdelivr.net/npm/tesseract.js@' + OCR_VER + '/dist
 const OCR_CORE = 'https://cdn.jsdelivr.net/npm/tesseract.js-core@' + OCR_VER;
 const OCR_LANG = 'https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int';
 let ocrWorkerP = null, ocrProgress = null, sheetOnClose = null;
+/* The offline edition's vendor files: build.py --offline appends each file in vendor.json as base64 in a data block
+   (a script element of type application/octet-stream, id vendor-ID), byte-identical to the file the online page loads from its CDN
+   (SHA-256 pinned). Each one becomes a Blob URL the first time it is needed. The loader takes a block only when it is the one
+   element carrying its id, and that element is a data block. */
+const vendorURLs = {}, vendorOk = {};
+// Each block is decoded and its SHA-256 compared with the pinned value before first use; only verified bytes are used, so
+// a page that carries anything other than the pinned files runs none of it.
+async function vendorVerify(ids) {
+  for (const id of ids) {
+    if (vendorOk[id]) continue;
+    const all = document.querySelectorAll('[id="vendor-' + id + '"]'), el = all[0];
+    if (all.length !== 1 || el.tagName !== 'SCRIPT' || el.getAttribute('type') !== 'application/octet-stream') throw new Error('This page lacks its built-in ' + id + ' file.');
+    const bin = atob(el.textContent.replace(/\s+/g, ''));
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    if (!(window.crypto && crypto.subtle)) throw new Error('This browser lacks the built-in check (Web Crypto) that confirms this file\'s readers.');
+    const hex = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', out)), b => b.toString(16).padStart(2, '0')).join('');
+    if (!VENDOR_SHA[id] || hex !== VENDOR_SHA[id]) throw new Error('The built-in ' + id + ' file differs from its pinned copy; a fresh copy of this file from the Tool4That finance page restores it.');
+    vendorOk[id] = out;
+  }
+}
+function vendorBytes(id) {
+  if (!vendorOk[id]) throw new Error('The built-in ' + id + ' file awaits its check.');
+  return vendorOk[id];
+}
+// One Blob URL per list of ids; ['core', 'worker'] is the engine core followed by the worker script, so the worker
+// starts with TesseractCore already defined and imports nothing.
+function vendorURL(ids) {
+  const k = ids.join('+');
+  if (!vendorURLs[k]) vendorURLs[k] = URL.createObjectURL(new Blob(ids.map(vendorBytes).flatMap((b, i) => i ? ['\n', b] : [b]), { type: 'text/javascript' }));
+  return vendorURLs[k];
+}
+// The built-in core is the SIMD build, the one the online page loads in every current browser (same test as tesseract.js).
+function wasmSimd() { try { return WebAssembly.validate(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 96, 0, 1, 123, 3, 2, 1, 0, 10, 10, 1, 8, 0, 65, 0, 253, 15, 253, 98, 11])); } catch (e) { return false; } }
+// The English model goes to the engine as data. tesseract.js 5.1.1 also joins each language's "data" into the language
+// string when it initializes, so once the model has been sent, "data" reads as the language code itself.
+function ocrModel() {
+  const bytes = vendorBytes('eng'); let sent = false;
+  return { code: 'eng', get data() { if (sent) return 'eng'; sent = true; return bytes; } };
+}
 function withTimeout(p, ms, msg) {
   let t;
   return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => rej(new Error(msg)), ms); })]).then(v => { clearTimeout(t); return v; }, e => { clearTimeout(t); throw e; });
@@ -6576,16 +6631,21 @@ function withTimeout(p, ms, msg) {
 function stopOcrWorker() { const wp = ocrWorkerP; ocrWorkerP = null; if (wp) wp.then(w => { try { w && w.terminate && w.terminate(); } catch (e) { /* ignore */ } }, () => {}); }
 function getOcrWorker() {
   if (!ocrWorkerP) {
-    const p = (window.Tesseract ? Promise.resolve() : loadScript(OCR_BASE + 'tesseract.min.js'))
+    const p = (window.Tesseract ? Promise.resolve() : PFAT_OFFLINE ? Promise.resolve().then(() => {
+      if (!wasmSimd()) throw new Error('This browser lacks WebAssembly SIMD, which the built-in text reader uses.');
+      return vendorVerify(['tesseract', 'core', 'worker', 'eng']).then(() => loadScript(vendorURL(['tesseract'])));
+    }) : loadScript(OCR_BASE + 'tesseract.min.js').catch(() => { throw new Error('The text reader loads from jsDelivr the first time.'); }))
       .then(() => {
         const T = window.Tesseract;
-        if (!T || typeof T.createWorker !== 'function') throw new Error('The text reader did not load.');
+        if (!T || typeof T.createWorker !== 'function') throw new Error('The text reader stopped while loading.');
+        const logger = (m) => { if (ocrProgress) { try { ocrProgress(m); } catch (e) { /* ignore */ } } };
+        if (PFAT_OFFLINE) return T.createWorker([ocrModel()], 1, { workerBlobURL: false, workerPath: vendorURL(['core', 'worker']), cacheMethod: 'none', logger });
         return T.createWorker('eng', 1, {
           workerPath: OCR_BASE + 'worker.min.js',
           corePath: OCR_CORE,
           langPath: OCR_LANG,
           cacheMethod: location.protocol === 'file:' ? 'none' : 'write',
-          logger: (m) => { if (ocrProgress) { try { ocrProgress(m); } catch (e) { /* ignore */ } } }
+          logger
         });
       })
       .then(async (w) => { if (w && typeof w.setParameters === 'function') await w.setParameters({ tessedit_pageseg_mode: '11', preserve_interword_spaces: '1', user_defined_dpi: '300' }); return w; });
@@ -6639,7 +6699,7 @@ async function ocrCanvas(canvas, label) {
   ocrProgress = (m) => {
     if (!m) return;
     if (m.status === 'recognizing text' && typeof m.progress === 'number') setBusy(label + ' ' + Math.round(m.progress * 100) + '%', true);
-    else if (m.status && /load|initializ/i.test(m.status)) setBusy('Loading the text reader (first time only)\u2026', true);
+    else if (m.status && /load|initializ/i.test(m.status)) setBusy(PFAT_OFFLINE ? 'Starting the text reader on this device\u2026' : 'Loading the text reader (first time only)\u2026', true);
   };
   try {
     setBusy(label, true);
@@ -6687,15 +6747,15 @@ async function ocrPdf(pdf) {
   return rows;
 }
 function ensureOcrConsent(name) {
-  if (state.settings.ocrOk) return Promise.resolve(true);
+  if (PFAT_OFFLINE || state.settings.ocrOk) return Promise.resolve(true); // the offline edition reads on this device and downloads nothing
   return new Promise(resolve => {
     let settled = false; const finish = (ok) => { if (settled) return; settled = true; resolve(ok); };
     const sheet = $('#sheet');
     sheet.innerHTML = '<div class="card" role="dialog" aria-modal="true" aria-label="Read the text in this file"><h2>Read the text in this ' + (/\.pdf$/i.test(name) ? 'scanned PDF' : 'image') + '?</h2>' +
       '<p><b>' + esc(name) + '</b> is a picture of a statement, so PFAT has to recognize its text first. It uses <b>Tesseract</b>, the open-source OCR engine first built at HP and developed for years at Google (Apache 2.0 license), running entirely in this browser.</p>' +
-      '<p class="muted small">The first time, the engine and its English model (a few megabytes) download from jsDelivr, the public CDN for open-source packages. Your file is not uploaded anywhere.</p>' +
+      '<p class="muted small">The first time, the engine and its English model (a few megabytes) download from jsDelivr, the public CDN for open-source packages. Your file stays on this device.</p>' +
       '<div class="actions"><button class="btn primary" id="ocrYes">Read it</button><button class="btn" id="ocrNo">Not now</button></div>' +
-      '<p class="muted small" style="margin-top:10px">Prefer no download? Copy the text with your phone or computer, then use Paste text.</p></div>';
+      '<p class="muted small" style="margin-top:10px">Prefer to keep every step on this device? Copy the text with your phone or computer, then use Paste text, or use the <a href="' + PFAT_DOWNLOADS + '" target="_blank" rel="noopener">offline download</a>, which has the reader built in.</p></div>';
     sheet.hidden = false; trapSheet();
     sheetOnClose = () => finish(false);
     $('#ocrYes').onclick = () => { state.settings.ocrOk = true; save(); finish(true); closeSheet(); };
@@ -6704,12 +6764,16 @@ function ensureOcrConsent(name) {
   });
 }
 function showOcrHelp(reason, kind) {
-  const sheet = $('#sheet');
-  sheet.innerHTML = '<div class="card" role="dialog" aria-modal="true" aria-label="Text reader unavailable">' + (kind === 'read' ? '<h2>Couldn\'t read this picture</h2>' : '<h2>Couldn\'t start the text reader</h2>') +
+  const sheet = $('#sheet'), pdf = kind === 'pdf', reader = pdf ? 'PDF reader' : 'text reader';
+  const title = kind === 'read' ? 'This picture needs a clearer copy' : PFAT_OFFLINE ? 'The ' + reader + ' stopped while starting' : (pdf ? 'Reading PDFs' : 'Reading pictures') + ' needs an internet connection';
+  sheet.innerHTML = '<div class="card" role="dialog" aria-modal="true" aria-label="' + esc(title) + '"><h2>' + esc(title) + '</h2>' +
     '<p class="muted small">' + esc(reason || '') + '</p>' +
-    (kind === 'read' ? '<p>The text reader started but couldn\'t finish this picture. Very large or very faint images can take too long; try a sharper screenshot, or a single page.</p>' : '<p>The reader needs an internet connection the first time, and some pages block the download (for example when PFAT is opened inside another app\'s preview). The website and the downloaded file both work.</p>') +
-    '<p>You can also copy the text with your device, then use <b>Paste text</b>:</p>' +
-    '<ul class="insights"><li><b>iPhone or iPad:</b> open the image, press and hold on the text (Live Text), Select All, Copy.</li><li><b>Android:</b> if your phone can select text in a photo on the device itself, copy it from there; otherwise type the rows into Paste text.</li><li><b>Windows 11:</b> Snipping Tool, Text actions, Copy all text.</li><li><b>Mac:</b> open it in Preview, select the text, Copy.</li></ul>' +
+    (kind === 'read' ? '<p>The text reader stopped before finishing this picture. Very large or very faint images can take too long; try a sharper screenshot, or a single page.</p>'
+      : PFAT_OFFLINE ? '<p>The ' + reader + ' is built into this file and runs on this device. It works in current browsers: Chrome, Edge, and Firefox from 2021 on, and Safari 16.4 or later.</p>'
+      : '<p>The offline download reads PDFs and pictures on this device, completely offline: <a href="' + PFAT_DOWNLOADS + '" target="_blank" rel="noopener">get it from the Tool4That finance page</a>. This page reads them once this device is online. Some apps\' file previews block that first download; open PFAT in your browser instead.</p>') +
+    (pdf ? '<p>You can also open the PDF, select its text, and copy it, then use <b>Paste text</b>.</p>'
+      : '<p>You can also copy the text with your device, then use <b>Paste text</b>:</p>' +
+    '<ul class="insights"><li><b>iPhone or iPad:</b> open the image, press and hold on the text (Live Text), Select All, Copy.</li><li><b>Android:</b> if your phone can select text in a photo on the device itself, copy it from there; otherwise type the rows into Paste text.</li><li><b>Windows 11:</b> Snipping Tool, Text actions, Copy all text.</li><li><b>Mac:</b> open it in Preview, select the text, Copy.</li></ul>') +
     '<div class="actions"><button class="btn primary" id="ocrPaste">Paste text instead</button><button class="btn" id="ocrClose">Close</button></div></div>';
   sheet.hidden = false; trapSheet();
   sheetOnClose = () => { if (!pasting) nextInQueue(); };
@@ -7160,7 +7224,11 @@ function bind() {
 load(); applyTheme();
 if (document.readyState !== 'loading') applyHudLabel(); else document.addEventListener('DOMContentLoaded', applyHudLabel);
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
-function init() { refreshCats(); compileRules(); ensureBills(); ensurePlan(); ensureAhead(); ensureCheckup(); ensureAccounts(); bind(); bindHud(); bindPlan(); bindAccounts(); bindAhead(); bindCheckup(); renderAll(); renderGuide(); if (!state.txns.length) { /* first visit: stay on overview empty state */ } }
+function applyOfflineCopy() {
+  const hint = $('#fileHint');
+  if (hint) hint.textContent = 'Files are read in your browser and stay on this device. Bank, card, and investment statements all work, completely offline: pdf.js reads PDFs, and Tesseract, the open-source OCR engine, reads screenshots and scanned PDFs, both built into this file.';
+}
+function init() { if (PFAT_OFFLINE) applyOfflineCopy(); refreshCats(); compileRules(); ensureBills(); ensurePlan(); ensureAhead(); ensureCheckup(); ensureAccounts(); bind(); bindHud(); bindPlan(); bindAccounts(); bindAhead(); bindCheckup(); renderAll(); renderGuide(); if (!state.txns.length) { /* first visit: stay on overview empty state */ } }
 })();
 </script>
 <!-- tool4that:foot --><p style="text-align:center;margin:28px 0 22px;font:14px/1.4 system-ui,-apple-system,Segoe UI,Arial,sans-serif"><a href="../">More free tools at Tool4That</a></p><!-- /tool4that:foot -->

@@ -3,6 +3,7 @@
 
 Usage:  python3 build_hub.py
 Each tool's size and SHA-256 are computed from its file; "updated" changes only when the file changes.
+An extra that is a second .html download (e.g. an offline edition) gets its own size, SHA-256, and date the same way.
 A series (tools.json "series") groups tools inside a category and gets its own page at /<series-slug>/.
 Standard library only.
 """
@@ -144,15 +145,27 @@ def refresh(t):
         t["sha256"], t["updated"] = sha, TODAY
     t["_kb"] = max(1, round(len(data) / 1024))
 
+def html_extras(t): return [x for x in t.get("extras", []) if x["file"].lower().endswith(".html")]
+def size(kb): return f"{kb} KB" if kb < 1024 else f"{kb / 1024:.1f} MB"
+# A card with a second .html download lists one meta line per file; SHA&#8209;256 uses a non-breaking hyphen, so the
+# label stays on one line next to its fingerprint.
+
 def tool_card(t, base, lvl=3):
     badges = "".join(f"<li>{e(b)}</li>" for b in t.get("badges", []))
     extras = "".join(f'<a class="btn" href="{base}{e(x["file"])}" download="{e(x.get("download_as") or Path(x["file"]).name)}">{e(x["label"])}</a>' for x in t.get("extras", []))
+    label = t.get("download_label", "Download .html")
+    note = f'        <p class="desc">{e(t["download_note"])}</p>\n' if t.get("download_note") else ""
+    if html_extras(t):
+        meta = '</p>\n        <p class="meta">'.join(f'{e(lab)} &middot; Updated {x["updated"]} &middot; {size(x["_kb"])} &middot; SHA&#8209;256<code>{x["sha256"]}</code>'
+                       for lab, x in [(label, t)] + [(x["label"], x) for x in html_extras(t)])
+    else:
+        meta = f"Updated {t['updated']} &middot; {t['_kb']} KB &middot; SHA-256<code>{t['sha256']}</code>"
     return f"""      <li class="tool">
         <div class="tool-head">{mark(t.get('icon', 'four'), 44)}<div><h{lvl} class="tool-name"><a href="{base}{e(t['slug'])}/">{e(t['name'])}</a></h{lvl}><p class="tagline">{e(t['tagline'])}</p></div></div>
         <p class="desc">{e(t['description'])}</p>
         <ul class="badges" aria-label="Tags">{badges}</ul>
-        <div class="actions"><a class="btn primary" href="{base}{e(t['slug'])}/">Open</a><a class="btn" href="{base}{e(t['file'])}" download="{e(t['download_as'])}">Download .html</a>{extras}</div>
-        <p class="meta">Updated {t['updated']} &middot; {t['_kb']} KB &middot; SHA-256<code>{t['sha256']}</code></p>
+        <div class="actions"><a class="btn primary" href="{base}{e(t['slug'])}/">Open</a><a class="btn" href="{base}{e(t['file'])}" download="{e(t['download_as'])}">{e(label)}</a>{extras}</div>
+{note}        <p class="meta">{meta}</p>
       </li>
 """
 
@@ -185,6 +198,8 @@ if problems:
     sys.exit("tools.json problems, nothing written:\n  " + "\n  ".join(problems))
 for t in cfg["tools"]:
     refresh(t)
+    for x in html_extras(t):
+        refresh(x)
 def tools_in(slug): return [t for t in cfg["tools"] if t.get("category") == slug]
 def in_series(slug): return [t for t in cfg["tools"] if t.get("series") == slug]
 def series_in(cat): return [s for s in SERIES if s["category"] == cat and in_series(s["slug"])]
@@ -334,7 +349,11 @@ urls = [(SITE + "/", latest), (SITE + "/all/", latest)] + [(f"{SITE}/{c['slug']}
 (ROOT / ".nojekyll").touch()
 for t in cfg["tools"]:
     t.pop("_kb", None)
+    for x in t.get("extras", []):
+        x.pop("_kb", None)
 CFG_PATH.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8", newline="\n")
 for t in cfg["tools"]:
     print(f"{t['slug']:<28} {t['updated']}  {t['sha256']}")
+    for x in html_extras(t):
+        print(f"{'  + ' + Path(x['file']).name:<28} {x['updated']}  {x['sha256']}")
 print(f"hub rebuilt for {SITE}: {len(CATS)} categories, {sum(1 for s in SERIES if in_series(s['slug']))} series, {total} tools")

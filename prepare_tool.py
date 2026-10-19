@@ -10,8 +10,15 @@ Usage:
       [--allow-wasm]                let the page run WebAssembly ('wasm-unsafe-eval'; e.g. an OCR engine)
       [--allow-worker-blob]         let the page start a web worker from a blob: address (e.g. tesseract.js)
       [--allow-connect-data]        add data: to connect-src, so an engine can decode its own embedded WebAssembly (data: never reaches the network)
+      [--allow-script-blob]         add blob: to script-src, so a page can run libraries it decodes from its own embedded data blocks, each pinned by --pin-block (an offline edition)
+      [--pin-block SHA256]          with --allow-script-blob (required, repeatable): the SHA-256 of one file the page carries as a data block
+      [--out NAME]                  write SLUG/NAME (e.g. pfat-offline.html, a second download) instead of SLUG/index.html
 
-It refuses pages that aren't self-contained or safe. Otherwise it writes SLUG/index.html with:
+It refuses pages that aren't self-contained or safe. With --allow-script-blob it also reads every element the way a
+browser does, decodes every data block (exactly <script type="application/octet-stream" id="vendor-NAME">), and accepts
+the page only when each block is one of the --pin-block files, each pinned file and each vendor-* id is present exactly
+once, every other element keeps clear of vendor-* ids and octet-stream, and every other non-running script block is JSON-LD.
+Otherwise it writes SLUG/index.html (or SLUG/NAME with --out) with:
   - a strict Content Security Policy that pins every inline <script> by SHA-256 (no 'unsafe-inline' scripts)
   - a description, canonical address, link-preview tags, and an emoji icon
   - a small "More free tools at Tool4That" link back to the hub
@@ -19,6 +26,7 @@ Re-running is safe: everything it adds sits between tool4that marker comments an
 Next: add the tool to tools.json, then run build_hub.py. Standard library only.
 """
 import argparse, base64, hashlib, html, json, re, sys, urllib.parse
+from html.parser import HTMLParser
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -36,20 +44,124 @@ BLOCKERS = [
     (r'window\.(?:claude|storage|fs)\b', "uses claude.ai-only artifact features"),
     (r'new\s+(?:Shared)?Worker\s*\(', "starts a web worker (blocked by the policy)"),
 ]
+SCRIPT = re.compile(r"<script\b([^>]*)>([\s\S]*?)</script\s*>", re.I)
+SCRIPT_TYPE = re.compile(r"\btype\s*=\s*[\"']?([^\"'\s>]+)", re.I)
+RUNS = ("text/javascript", "application/javascript", "module")
 MARK = re.compile(r"<!-- tool4that:(head|foot) -->[\s\S]*?<!-- /tool4that:\1 -->\n?")
 
 
 def executable_scripts(page):
     """Bodies of inline scripts the browser will run (skips src= scripts and data blocks like JSON-LD)."""
     out = []
-    for m in re.finditer(r"<script\b([^>]*)>([\s\S]*?)</script\s*>", page, re.I):
+    for m in SCRIPT.finditer(page):
         attrs, body = m.group(1), m.group(2)
         if re.search(r"\bsrc\s*=", attrs, re.I):
             continue
-        t = re.search(r"\btype\s*=\s*[\"']?([^\"'\s>]+)", attrs, re.I)
-        if t and t.group(1).lower() not in ("text/javascript", "application/javascript", "module"):
+        t = SCRIPT_TYPE.search(attrs)
+        if t and t.group(1).lower() not in RUNS:
             continue
         out.append(body)
+    return out
+
+
+DATA_BLOCK = re.compile(r'<script type="application/octet-stream" id="(vendor-[a-z]+)">')
+JS_TYPES = {"application/ecmascript", "application/javascript", "application/x-ecmascript", "application/x-javascript",
+            "text/ecmascript", "text/javascript", "text/javascript1.0", "text/javascript1.1", "text/javascript1.2",
+            "text/javascript1.3", "text/javascript1.4", "text/javascript1.5", "text/jscript", "text/livescript",
+            "text/x-ecmascript", "text/x-javascript", "module"}
+
+
+class PageTags(HTMLParser):
+    """Every start tag of every element as a browser reads it: attribute names in lower case, values unescaped, the
+    first of any repeated attribute kept, and each script's text kept as written."""
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.tags, self._body = [], None
+
+    def handle_starttag(self, tag, attrs):
+        first = {}
+        for k, v in attrs:
+            first.setdefault(k, v or "")
+        self.tags.append({"tag": tag, "attrs": first, "raw": self.get_starttag_text(), "body": [] if tag == "script" else None})
+        self._body = self.tags[-1]["body"]
+
+    def handle_data(self, data):
+        if self._body is not None:
+            self._body.append(data)
+
+    def handle_endtag(self, tag):
+        self._body = None
+
+
+def script_runs(attrs):
+    """The browser's rule: type trimmed of whitespace (or text/ + language when type is absent); an empty or absent
+    type, a JavaScript type, or module runs, and every other type is data."""
+    if "type" in attrs:
+        kind = attrs["type"].strip(" \t\n\r\f").lower()
+    elif attrs.get("language"):
+        kind = "text/" + attrs["language"].strip(" \t\n\r\f").lower()
+    else:
+        kind = ""
+    return kind == "" or kind in JS_TYPES, kind
+
+
+def data_block_problems(page, pins):
+    """With blob: in script-src, page code can run what it decodes from a data block, so the refusal checks above
+    (which read the page text) see only the base64. The page's loader takes the element carrying a vendor-* id, so
+    every place encoded code could sit counts, read the way the browser reads it:
+      - each data block is exactly <script type="application/octet-stream" id="vendor-NAME"> holding base64 that decodes
+        to a pinned file, each pin appears exactly once, and each vendor-* id belongs to one data block;
+      - every other element of any kind keeps clear of vendor-* ids and of octet-stream in its attributes;
+      - every other non-running script block is JSON-LD;
+      - this check and the script hashing above agree on which scripts run;
+      - outside the data blocks' own tags, vendor- and octet-stream appear only inside the page's running scripts."""
+    p = PageTags()
+    p.feed(page)
+    p.close()
+    out, seen, ids, running, inside = [], [], [], [], {"vendor-": 0, "octet-stream": 0}
+    for t in p.tags:
+        attrs, raw = t["attrs"], t["raw"]
+        el = attrs.get("id", "")
+        block = t["tag"] == "script" and DATA_BLOCK.fullmatch(raw)
+        label = f"<{t['tag']}> " + (f"id {el}" if el else "without an id")
+        if block:
+            for k in inside:
+                inside[k] += raw.lower().count(k)
+            ids.append(block.group(1))
+            body = "".join(t["body"])
+            try:
+                data = base64.b64decode(re.sub(r"\s+", "", body), validate=True)
+            except ValueError:
+                out.append(f"carries a data block ({label}) that holds something other than base64")
+                continue
+            h = hashlib.sha256(data).hexdigest()
+            seen.append(h)
+            if h not in pins:
+                out.append(f"carries a data block ({label}, sha256 {h}) outside the --pin-block list")
+            continue
+        if el.strip(" \t\n\r\f").lower().startswith("vendor-"):
+            out.append(f"carries an element ({label}) with a data block's id; with --allow-script-blob, vendor-* ids belong to the data blocks alone")
+        elif any("octet-stream" in v.lower() for v in attrs.values()):
+            out.append(f"carries an element ({label}) marked octet-stream outside the exact data-block form {DATA_BLOCK.pattern}")
+        if t["tag"] != "script":
+            continue
+        runs, kind = script_runs(attrs)
+        if runs:
+            if "src" not in attrs:
+                running.append("".join(t["body"]))
+            continue
+        if "octet-stream" in kind:
+            out.append(f"carries a data block ({label}) outside the exact form {DATA_BLOCK.pattern}")
+        elif kind != "application/ld+json":
+            out.append(f"carries a script block of type {kind} ({label}); with --allow-script-blob, data blocks are application/octet-stream and pinned")
+    if running != executable_scripts(page):
+        out.append("holds scripts that a browser reads differently from the script hashing (an attribute or tag form it reads another way)")
+    for k, n in inside.items():
+        n += sum(b.lower().count(k) for b in running)
+        if page.lower().count(k) != n:
+            out.append(f"mentions {k} outside its data blocks and running scripts ({page.lower().count(k) - n} time(s)), in a form this check reads differently from a browser")
+    out += [f"carries the data-block id {i} {ids.count(i)} times (exactly once expected)" for i in sorted(set(ids)) if ids.count(i) != 1]
+    out += [f"carries the pinned file {h} {seen.count(h)} times (exactly once expected)" for h in sorted(pins) if seen.count(h) != 1]
     return out
 
 
@@ -72,13 +184,27 @@ def main():
     ap.add_argument("--allow-wasm", action="store_true", help="allow WebAssembly ('wasm-unsafe-eval'); still no eval of JavaScript")
     ap.add_argument("--allow-worker-blob", action="store_true", help="allow a web worker started from a blob: address")
     ap.add_argument("--allow-connect-data", action="store_true", help="add data: to connect-src (an engine decoding its own embedded WebAssembly); data: never reaches the network")
+    ap.add_argument("--allow-script-blob", action="store_true", help="add blob: to script-src (libraries the page decodes from its own embedded data blocks, each checked against --pin-block)")
+    ap.add_argument("--pin-block", action="append", default=[], metavar="SHA256", help="with --allow-script-blob: the SHA-256 of one file the page carries as a data block (repeat for each)")
+    ap.add_argument("--out", default="index.html", metavar="NAME", help="file name to write inside SLUG/ (default index.html)")
     a = ap.parse_args()
+    pins = {h.lower() for h in a.pin_block}
+    if any(not re.fullmatch(r"[0-9a-f]{64}", h) for h in pins):
+        sys.exit("--pin-block takes a SHA-256 in hex (64 characters).")
+    if a.allow_script_blob and not pins:
+        sys.exit("--allow-script-blob needs the SHA-256 of each embedded file it may run: add one --pin-block SHA256 per data block.")
+    if pins and not a.allow_script_blob:
+        sys.exit("--pin-block goes with --allow-script-blob.")
+    if not re.fullmatch(r"[\w.-]+\.html", a.out) or a.out.startswith("."):
+        sys.exit(f"--out must be a plain .html file name: {a.out}")
 
     page = MARK.sub("", Path(a.source).read_text(encoding="utf-8"))
     page = re.sub(r'<meta\s+http-equiv\s*=\s*["\']Content-Security-Policy["\'][^>]*>\s*', "", page, flags=re.I)
     problems = [why for rx, why in BLOCKERS if re.search(rx, page, re.I)]
     if a.accept_runtime_fallback:
         problems = [w for w in problems if "claude.ai-only" not in w]
+    if a.allow_script_blob:
+        problems += data_block_problems(page, pins)
     for u in a.allow_script:
         if not re.match(r"https://[\w.-]+/", u):
             sys.exit(f"--allow-script must be an https:// address: {u}")
@@ -104,7 +230,7 @@ def main():
         bm = re.search(r"<body\b[^>]*>\s*", page, re.I)
         page = page[:bm.end()] + guard + page[bm.end():]
     hashes = sorted({sha256_csp(b) for b in executable_scripts(page)})
-    scripts = " ".join(hashes + (["'wasm-unsafe-eval'"] if a.allow_wasm else []) + sorted(a.allow_script))
+    scripts = " ".join(hashes + (["'wasm-unsafe-eval'"] if a.allow_wasm else []) + sorted(a.allow_script) + (["blob:"] if a.allow_script_blob else []))
     csp = "default-src 'none'; " + (f"script-src {scripts}; " if scripts else "") + \
           (f"connect-src {' '.join((['data:'] if a.allow_connect_data else []) + sorted(a.allow_connect))}; " if a.allow_connect or a.allow_connect_data else "") + \
           ("worker-src blob:; " if a.allow_worker_blob else "") + \
@@ -131,11 +257,14 @@ def main():
     body_end = list(re.finditer(r"</body\s*>", page, re.I))[-1]
     page = page[:body_end.start()] + foot + page[body_end.start():]
 
-    out = ROOT / slug / "index.html"
+    out = ROOT / slug / a.out
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(page, encoding="utf-8", newline="\n")
-    print(f"Wrote {out.relative_to(ROOT)}: {len(hashes)} script(s) pinned, {len(page.encode()):,} bytes.")
-    print('Next: add it to tools.json (leave "sha256" and "updated" empty), then run build_hub.py.')
+    print(f"Wrote {out.relative_to(ROOT)}: {len(hashes)} script(s) pinned, " + (f"{len(pins)} data block(s) pinned, " if pins else "") + f"{len(page.encode()):,} bytes.")
+    if a.out == "index.html":
+        print('Next: add it to tools.json (leave "sha256" and "updated" empty), then run build_hub.py.')
+    else:
+        print(f"Next: list {slug}/{a.out} under the tool's \"extras\" in tools.json, then run build_hub.py.")
 
 
 if __name__ == "__main__":

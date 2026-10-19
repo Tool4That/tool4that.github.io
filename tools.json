@@ -93,8 +93,19 @@
       "download_as": "pfat.html",
       "icon": "chart",
       "category": "finance",
-      "sha256": "2e3c825c476cad3240d1ca6082fc9080db806b053111ef023222258d4af30c44",
-      "updated": "2026-10-18"
+      "sha256": "65d6b0855ed3c9a58fe3c89d8d6709ad58f0a726bef0e2a315641713460a7b42",
+      "updated": "2026-10-18",
+      "download_label": "Download",
+      "download_note": "Both downloads are the full app. Download: reads PDFs and pictures when online. Download for offline use: reads PDFs, screenshots, and scanned statements on your device, completely offline.",
+      "extras": [
+        {
+          "label": "Download for offline use",
+          "file": "spend-lens/pfat-offline.html",
+          "download_as": "pfat-offline.html",
+          "sha256": "6587b13e3407fa04f40262a9ba220719d7bab2377b2f5dd48b7efa569039cfbb",
+          "updated": "2026-10-18"
+        }
+      ]
     },
     {
       "slug": "defense-ladder",
