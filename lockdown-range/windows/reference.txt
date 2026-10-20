@@ -9,9 +9,9 @@ Unofficial practice; not affiliated with or endorsed by Microsoft.
 CONTENTS
   1. What the lab is (and is not)
   2. The routine: power-on to Progress Check
-  3. Scenario 1 - Recruit:  Brightsmile Dental Clinic — front desk PC
-  4. Scenario 2 - Operator: Harbor Knoll Robotics Lab — station 4
-  5. Scenario 3 - Captain:  Harborline Logistics — portal server
+  3. Scenario 1 - Recruit:  Kaimana Dental Clinic — front desk PC
+  4. Scenario 2 - Operator: Hale Kula Robotics Lab — station 4
+  5. Scenario 3 - Captain:  Makai Logistics — portal server
   6. Windows hardening quick reference (GUI paths and commands)
   7. Where the real machine differs from the lab
   8. Sources
@@ -96,16 +96,16 @@ Ladder s1 (https://freeapp4that.store/defense-ladder/#sophomore/s1).
   - Investigation: the two questions on the Desktop (forensics basics).
 
 --------------------------------------------------------------------------------
-3. SCENARIO 1 - RECRUIT: BRIGHTSMILE DENTAL CLINIC — FRONT DESK PC
+3. SCENARIO 1 - RECRUIT: KAIMANA DENTAL CLINIC — FRONT DESK PC
 --------------------------------------------------------------------------------
-Sign-in  labuser / Easy!2026        Host  BRIGHT-FD1
+Sign-in  labuser / Easy!2026        Host  KAIMANA-FD1
 System   Windows 11 Pro, version 26H2, build 26300.9550
 
 Scenario Brief summary
-  Brightsmile Dental Clinic, a two-dentist practice. This Windows 11 PC sits at
-  the front desk and runs the appointment book. The office manager (nalani) is
-  the only other administrator. A temp receptionist used it over the summer and
-  the dentists suspect "helpful" changes were made.
+  Kaimana Dental Clinic, a two-dentist practice in Kailua. This Windows 11 PC
+  sits at the front desk and runs the appointment book. The office manager
+  (nalani) is the only other administrator. A temp receptionist used it over the
+  summer and the dentists suspect "helpful" changes were made.
   Authorized administrators: labuser (you) - password: Easy!2026; nalani
   Authorized users: kekoa, ailani, moana, leilani
   Required services and settings:
@@ -263,13 +263,13 @@ Availability checks (points lost if you break what the business needs)
   -5  Windows Update service disabled
 
 --------------------------------------------------------------------------------
-4. SCENARIO 2 - OPERATOR: HARBOR KNOLL ROBOTICS LAB — STATION 4
+4. SCENARIO 2 - OPERATOR: HALE KULA ROBOTICS LAB — STATION 4
 --------------------------------------------------------------------------------
 Sign-in  labuser / Medium!2026        Host  HKROBOTICS-04
 System   Windows 11 Pro, version 26H2, build 26300.9550
 
 Scenario Brief summary
-  Harbor Knoll High School robotics lab, shared workstation #4. Students sign in
+  Hale Kula High School robotics lab, shared workstation #4. Students sign in
   with their own accounts to program the team robots. The coach (coachk)
   maintains the lab PCs. Someone installed "helper" software, a student account
   seems to have become an administrator, and the PC has been slow and noisy at
@@ -494,13 +494,13 @@ Availability checks (points lost if you break what the business needs)
   -5  Windows Update service disabled
 
 --------------------------------------------------------------------------------
-5. SCENARIO 3 - CAPTAIN: HARBORLINE LOGISTICS — PORTAL SERVER
+5. SCENARIO 3 - CAPTAIN: MAKAI LOGISTICS — PORTAL SERVER
 --------------------------------------------------------------------------------
-Sign-in  labuser / Hard!2026        Host  HARBOR-SRV1
+Sign-in  labuser / Hard!2026        Host  MAKAI-SRV1
 System   Windows Server 2025 Standard, version 24H2, build 26100.33296
 
 Scenario Brief summary
-  Harborline Logistics, a freight forwarder with a small harbor office. This
+  Makai Logistics, a freight forwarder with a small office on Sand Island. This
   Windows Server 2025 machine hosts the internal web portal (IIS) and the HR and
   Ops file shares. Administrators manage it over Remote Desktop from the office
   LAN. The previous administrator left in a hurry and the owner wants the server

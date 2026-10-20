@@ -9,9 +9,9 @@ Mint.
 CONTENTS
   1. What the lab is (and is not)
   2. The routine: power-on to Progress Check
-  3. Scenario 1 - Recruit:  Shoreline Surf Supply (Ubuntu 24.04 desktop)
-  4. Scenario 2 - Operator: Community Public Library (Linux Mint 22.3)
-  5. Scenario 3 - Captain:  Summit Ridge Outfitters (Ubuntu Server 24.04)
+  3. Scenario 1 - Recruit:  Makai Surf Supply (Ubuntu 24.04 desktop)
+  4. Scenario 2 - Operator: Lanikai Public Library (Linux Mint 22.3)
+  5. Scenario 3 - Captain:  Pali Ridge Outfitters (Ubuntu Server 24.04)
   6. Linux hardening quick reference (commands and files)
   7. Where a real machine differs from the simulator
   8. Sources
@@ -96,7 +96,7 @@ password prompt and messages look slightly different.
          again faster.
 
 --------------------------------------------------------------------------------
-3. SCENARIO 1 - RECRUIT: SHORELINE SURF SUPPLY (UBUNTU 24.04 WORKSTATION)
+3. SCENARIO 1 - RECRUIT: MAKAI SURF SUPPLY (UBUNTU 24.04 WORKSTATION)
 --------------------------------------------------------------------------------
 Login   labuser / Easy!2026         Host  ubuntu-lab   (GDM user list)
 
@@ -196,7 +196,7 @@ Availability checks (points lost while broken)
   -10 Your own account (labuser) deleted or locked
 
 --------------------------------------------------------------------------------
-4. SCENARIO 2 - OPERATOR: COMMUNITY PUBLIC LIBRARY (LINUX MINT 22.3)
+4. SCENARIO 2 - OPERATOR: LANIKAI PUBLIC LIBRARY (LINUX MINT 22.3)
 --------------------------------------------------------------------------------
 Login   labuser / Medium!2026       Host  mint-lab   (starts auto-logged-in)
 
@@ -302,7 +302,7 @@ Availability checks (points lost while broken)
   -10 Your own account (labuser) deleted or locked
 
 --------------------------------------------------------------------------------
-5. SCENARIO 3 - CAPTAIN: SUMMIT RIDGE OUTFITTERS (UBUNTU SERVER 24.04)
+5. SCENARIO 3 - CAPTAIN: PALI RIDGE OUTFITTERS (UBUNTU SERVER 24.04)
 --------------------------------------------------------------------------------
 Login   labuser / Hard!2026         Host  ubuntu-srv   (text console)
 

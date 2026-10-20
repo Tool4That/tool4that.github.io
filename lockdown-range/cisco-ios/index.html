@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-CFuEEx39BWu4phz1ZQx2TjzVJOqAyZgse4fgFCnATdM='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-nngjxoq2sD/WKw2Er2vPgU3IzG8U2k1vtNwx3ZKoXV8='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/lockdown-range/cisco-ios/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%96%A5%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -3644,7 +3644,7 @@ function hardenedDevice(d, host, domain) { // the district-managed template
 const SCENARIOS = [
   /* ---------------------------------------------------------------- 1 Recruit */
   {
-    id: 's1', level: 1, levelName: 'Recruit', grade: 'Sophomore', name: 'Tutoring center', short: 'Branch router hardening',
+    id: 's1', level: 1, levelName: 'Recruit', grade: 'Sophomore', name: 'Harbor Lights Tutoring Center', short: 'Branch router hardening',
     learn: [['sophomore/s5', 'Sophomore', 'Cisco: configure a switch and a router']],
     layout: { R1: { x: 220, y: 80 }, PC1: { x: 220, y: 215 } },
     build() {
@@ -3659,7 +3659,7 @@ const SCENARIOS = [
       return { devices: { R1: R1, PC1: PC1 }, links: [{ a: 'R1', ai: 'GigabitEthernet0/0', b: 'PC1', bi: 'FastEthernet0' }] };
     },
     brief: {
-      blurb: ['You are the new network technician at the tutoring center, an after-school program with one branch router (R1) and a front-desk PC (PC1). The previous technician left R1 wide open: it still has its factory hostname, a plaintext enable password, an unused account, and Telnet access.',
+      blurb: ['You are the new network technician at Harbor Lights Tutoring Center, an after-school program with one branch router (R1) and a front-desk PC (PC1). The previous technician left R1 wide open: it still has its factory hostname, a plaintext enable password, an unused account, and Telnet access.',
         'Harden R1 so it meets the policy below. Work from R1\'s console tab and test from PC1. The R1 console starts password-free: press RETURN at the console to begin.'],
       admins: ['techlead (existing account, privilege 15) - keep it', 'netadmin (your account - create it with privilege 15 and a secret of 10+ characters)'],
       users: ['No other accounts are authorized. The "guest" account is not authorized.'],
@@ -3683,7 +3683,7 @@ const SCENARIOS = [
       { id: 'con', title: 'Console line protected with a password and login', pts: 6, cat: CAT.access, test: St => { const L = C(St, 'R1').lines.con[0]; return !!(L.password && L.password.text.length >= 10 && L.login !== 'none'); }, hint: 'line console 0, password <10+ chars>, login', fix: 'R1(config)# line console 0\nR1(config-line)# password C0nsole-Pass!\nR1(config-line)# login', why: 'Without it anyone with a console cable owns the device.' },
       { id: 'vtylocal', title: 'VTY lines use local user authentication (login local)', pts: 6, cat: CAT.access, test: St => vtyEvery(C(St, 'R1'), L => L.login === 'local'), hint: 'line vty 0 4, login local', fix: 'R1(config)# line vty 0 4\nR1(config-line)# login local', why: 'SSH needs usernames; a shared line password cannot be audited or revoked per person.' },
       { id: 'vtyssh', title: 'VTY lines accept SSH only (Telnet disabled)', pts: 6, cat: CAT.access, test: St => vtyEvery(C(St, 'R1'), sshOnly), hint: 'line vty 0 4, transport input ssh', fix: 'R1(config-line)# transport input ssh', why: 'Telnet sends passwords in clear text on the wire.' },
-      { id: 'domain', title: 'Domain name configured', pts: 3, cat: CAT.access, test: St => !!C(St, 'R1').domainName, hint: 'ip domain-name tutoring.lan', fix: 'R1(config)# ip domain-name tutoring.lan', why: 'The RSA key is named hostname.domain; IOS refuses to generate one without a domain.' },
+      { id: 'domain', title: 'Domain name configured', pts: 3, cat: CAT.access, test: St => !!C(St, 'R1').domainName, hint: 'ip domain-name harborlights.lan', fix: 'R1(config)# ip domain-name harborlights.lan', why: 'The RSA key is named hostname.domain; IOS refuses to generate one without a domain.' },
       { id: 'rsa', title: 'RSA key pair generated (2048 bits)', pts: 6, cat: CAT.access, test: St => { const k = C(St, 'R1').rsa; return !!(k && k.bits >= 2048); }, hint: 'crypto key generate rsa general-keys modulus 2048 (needs hostname + domain first)', fix: 'R1(config)# crypto key generate rsa general-keys modulus 2048', why: 'Keys shorter than 2048 bits are considered weak; the key is what enables the SSH server.' },
       { id: 'sshv2', title: 'SSH version 2 enforced', pts: 5, cat: CAT.access, test: St => C(St, 'R1').sshVersion === 2, hint: 'ip ssh version 2 (after the RSA key exists)', fix: 'R1(config)# ip ssh version 2', why: 'SSHv1 has known weaknesses; v2 only is the standard.' },
       { id: 'banner', title: 'MOTD banner warns unauthorized users (and leaves out "welcome")', pts: 4, cat: CAT.config, test: St => bannerOk(C(St, 'R1').bannerMotd), hint: 'banner motd #Authorized access only. Activity is monitored.#', fix: 'R1(config)# banner motd #Authorized access only. Activity is monitored.#', why: 'States that access is restricted and monitored. Cisco advises banners that reveal nothing about the device or owner; "welcome" reads as an invitation, and legal wording is a question for counsel.' },
@@ -3705,7 +3705,7 @@ const SCENARIOS = [
   },
   /* ---------------------------------------------------------------- 2 Operator */
   {
-    id: 's2', level: 2, levelName: 'Operator', grade: 'Junior', name: 'Branch library', short: 'Access switch: VLANs, port security, and SSH',
+    id: 's2', level: 2, levelName: 'Operator', grade: 'Junior', name: 'Pua Lane Public Library', short: 'Access switch: VLANs, port security, and SSH',
     learn: [['junior/j4', 'Junior', 'Cisco: VLANs, routing, and ACLs'], ['sophomore/s5', 'Sophomore', 'Cisco: configure a switch and a router', 'port security']],
     layout: { R1: { x: 220, y: 42 }, S1: { x: 220, y: 135 }, PC1: { x: 66, y: 266 }, PC2: { x: 374, y: 266 } },
     build() {
@@ -3731,7 +3731,7 @@ const SCENARIOS = [
     },
     frozen: ['R1'],
     brief: {
-      blurb: ['You are the network technician for the branch library. The branch has one access switch (S1) with two staff PCs and an uplink to the district router R1. District IT owns R1 and has already configured it as a router-on-a-stick: VLAN 10 (STAFF, gateway 192.168.10.1) and VLAN 99 (MGMT, gateway 192.168.99.1, the native VLAN on the trunk).',
+      blurb: ['You are the network technician for the Pua Lane branch of the county library. The branch has one access switch (S1) with two staff PCs and an uplink to the district router R1. District IT owns R1 and has already configured it as a router-on-a-stick: VLAN 10 (STAFF, gateway 192.168.10.1) and VLAN 99 (MGMT, gateway 192.168.99.1, the native VLAN on the trunk).',
         'S1 was set up by a volunteer years ago: everything sits in VLAN 1, the switch is managed over Telnet with the password "cisco", and the uplink runs as an access port. Bring S1 up to policy. R1 is view-only for you: leave it exactly as it is.'],
       admins: ['libadmin (district account, privilege 15) - keep it', 'netadmin (your account - create it with privilege 15 and a secret of 10+ characters)'],
       users: ['No other accounts are authorized. "tempadmin" was never approved.'],
@@ -3754,7 +3754,7 @@ const SCENARIOS = [
       { id: 'conpw', title: 'Console password changed from the default "cisco"', pts: 3, cat: CAT.access, test: St => { const L = C(St, 'S1').lines.con[0]; return !!(L.password && L.password.text !== 'cisco' && L.password.text.length >= 10 && L.login !== 'none'); }, hint: 'line console 0, password <new 10+ chars>, login', fix: 'S1(config)# line console 0\nS1(config-line)# password C0nsole-Pass!\nS1(config-line)# login', why: '"cisco" is the first guess anyone makes.' },
       { id: 'vtylocal', title: 'VTY lines use local user authentication (login local)', pts: 4, cat: CAT.access, test: St => vtyEvery(C(St, 'S1'), L => L.login === 'local'), hint: 'line vty 0 15, login local', fix: 'S1(config)# line vty 0 15\nS1(config-line)# login local', why: 'Per-user accounts instead of one shared password.' },
       { id: 'vtyssh', title: 'VTY lines accept SSH only (Telnet disabled)', pts: 5, cat: CAT.access, test: St => vtyEvery(C(St, 'S1'), sshOnly), hint: 'line vty 0 15, transport input ssh', fix: 'S1(config-line)# transport input ssh', why: 'Telnet exposes every keystroke, including passwords.' },
-      { id: 'rsa', title: 'Domain name set and 2048-bit RSA key generated', pts: 4, cat: CAT.access, test: St => { const c = C(St, 'S1'); return !!(c.domainName && c.rsa && c.rsa.bits >= 2048); }, hint: 'ip domain-name library.lan, then crypto key generate rsa general-keys modulus 2048', fix: 'S1(config)# ip domain-name library.lan\nS1(config)# crypto key generate rsa general-keys modulus 2048', why: 'No key, no SSH server.' },
+      { id: 'rsa', title: 'Domain name set and 2048-bit RSA key generated', pts: 4, cat: CAT.access, test: St => { const c = C(St, 'S1'); return !!(c.domainName && c.rsa && c.rsa.bits >= 2048); }, hint: 'ip domain-name pualane.lan, then crypto key generate rsa general-keys modulus 2048', fix: 'S1(config)# ip domain-name pualane.lan\nS1(config)# crypto key generate rsa general-keys modulus 2048', why: 'No key, no SSH server.' },
       { id: 'sshv2', title: 'SSH version 2 enforced', pts: 3, cat: CAT.access, test: St => C(St, 'S1').sshVersion === 2, hint: 'ip ssh version 2', fix: 'S1(config)# ip ssh version 2', why: 'Disables the weaker protocol version.' },
       { id: 'banner', title: 'MOTD banner warns unauthorized users', pts: 3, cat: CAT.config, test: St => bannerOk(C(St, 'S1').bannerMotd), hint: 'banner motd #Authorized access only#', fix: 'S1(config)# banner motd #Authorized library staff only. Activity is monitored.#', why: 'Legal notice shown before login.' },
       { id: 'pwenc', title: 'Service password-encryption enabled', pts: 3, cat: CAT.acct, test: St => C(St, 'S1').pwEnc, hint: 'service password-encryption', fix: 'S1(config)# service password-encryption', why: 'Obscures line passwords in show running-config.' },
@@ -3782,14 +3782,14 @@ const SCENARIOS = [
   },
   /* ---------------------------------------------------------------- 3 Captain */
   {
-    id: 's3', level: 3, levelName: 'Captain', grade: 'Senior', name: 'Animal clinic', short: 'Two switches, trunks, and troubleshooting',
+    id: 's3', level: 3, levelName: 'Captain', grade: 'Senior', name: 'Kaulana Creek Veterinary Clinic', short: 'Two switches, trunks, and troubleshooting',
     learn: [['junior/j4', 'Junior', 'Cisco: VLANs, routing, and ACLs'], ['senior/se6', 'Senior', 'Cisco: audit and extend the two-site network'], ['sophomore/s5', 'Sophomore', 'Cisco: configure a switch and a router', 'logging, NTP, and CDP']],
     layout: { R1: { x: 100, y: 52 }, S1: { x: 100, y: 152 }, S2: { x: 340, y: 152 }, PC1: { x: 100, y: 252 }, PC2: { x: 340, y: 252 } },
     build() {
       const admin = () => ({ privilege: 15, secret: { text: 'Cl1nic-Adm1n!', type: 5 } });
       const common = cfg => { cfg.enableSecret = { text: 'Cl1nic-En@ble', type: 5 }; usr(cfg, 'vetadmin', admin()); setLine(cfg.lines.con[0], { login: 'local' }); vtyAll(cfg, { login: 'local', transport: 'all' }); };
       const R1 = mkDevice('router', 'R1', 'R1'), rc = R1.running; common(rc);
-      rc.domainName = 'clinic.lan'; rc.rsa = { bits: 1024, name: 'R1.clinic.lan' };
+      rc.domainName = 'kaulanavet.lan'; rc.rsa = { bits: 1024, name: 'R1.kaulanavet.lan' };
       usr(rc, 'svc_backup', { privilege: 15, password: { text: 'backup2020', t7: false } });
       ifc(rc, 'GigabitEthernet0/0', { shutdown: false, description: 'Trunk to S1' });
       addIf(rc, 'router', 'GigabitEthernet0/0.10', { encap: { vlan: 10, native: false }, ip: '192.168.10.1', mask: '255.255.255.0', shutdown: false, description: 'FRONTDESK' });
@@ -3816,7 +3816,7 @@ const SCENARIOS = [
         { a: 'S1', ai: 'FastEthernet0/1', b: 'PC1', bi: 'FastEthernet0' }, { a: 'S2', ai: 'FastEthernet0/1', b: 'PC2', bi: 'FastEthernet0' }] };
     },
     brief: {
-      blurb: ['You are the lead technician at the animal clinic. The clinic network is a router (R1) doing inter-VLAN routing for two switches: S1 at the front desk and S2 in the exam rooms, joined by a trunk. VLAN 10 FRONTDESK (PC1), VLAN 20 EXAM (PC2), and VLAN 99 MGMT (R1 .1, S1 .2, S2 .3) are in use; the syslog/NTP server lives at 192.168.99.50.',
+      blurb: ['You are the lead technician at Kaulana Creek Veterinary Clinic. The clinic network is a router (R1) doing inter-VLAN routing for two switches: S1 at the front desk and S2 in the exam rooms, joined by a trunk. VLAN 10 FRONTDESK (PC1), VLAN 20 EXAM (PC2), and VLAN 99 MGMT (R1 .1, S1 .2, S2 .3) are in use; the syslog/NTP server lives at 192.168.99.50.',
         'Since a contractor "upgraded" things last week, PC2 and PC1 have lost contact, and management traffic fails to reach S1. Find and fix the faults, then finish hardening all three devices to policy. Each device has your account; use it on the consoles.'],
       admins: ['vetadmin (privilege 15, on R1, S1, and S2) - your account, password Cl1nic-Adm1n!', 'Enable secret on all devices: Cl1nic-En@ble'],
       users: ['No other accounts are authorized: "svc_backup" (R1) and "kiosk" (S2) were never approved.'],
@@ -3836,7 +3836,7 @@ const SCENARIOS = [
       { id: 'enpw', title: 'Leftover plaintext enable password removed from S2', pts: 3, cat: CAT.acct, test: St => !C(St, 'S2').enablePassword, hint: 'S2: no enable password', fix: 'S2(config)# no enable password', why: 'The secret already protects enable mode; the password only leaks.' },
       { id: 'pwenc', title: 'Service password-encryption on R1, S1, and S2', pts: 4, cat: CAT.acct, test: St => ['R1', 'S1', 'S2'].every(d => C(St, d).pwEnc), hint: 'service password-encryption on every device', fix: '(config)# service password-encryption', why: 'Consistency matters: one readable config is enough.' },
       { id: 'rsa', title: 'R1 RSA key regenerated at 2048 bits and SSH version 2 enforced', pts: 5, cat: CAT.access, test: St => { const c = C(St, 'R1'); return !!(c.rsa && c.rsa.bits >= 2048 && c.sshVersion === 2); }, hint: 'R1: crypto key generate rsa general-keys modulus 2048 (answer yes to replace), then ip ssh version 2', fix: 'R1(config)# crypto key generate rsa general-keys modulus 2048\nR1(config)# ip ssh version 2', why: 'A 1024-bit key no longer meets policy.' },
-      { id: 'sshonly', title: 'SSH-only VTY access (login local + transport input ssh) on R1, S1, and S2', pts: 6, cat: CAT.access, test: St => ['R1', 'S1', 'S2'].every(d => { const c = C(St, d); return !!(c.domainName && c.rsa && vtyEvery(c, L => L.login === 'local' && sshOnly(L))); }), hint: 'each device: ip domain-name + RSA key, line vty 0 15 (0 4 on R1): login local, transport input ssh', fix: '(config)# ip domain-name clinic.lan\n(config)# crypto key generate rsa general-keys modulus 2048\nS1(config)# line vty 0 15\nS1(config-line)# login local\nS1(config-line)# transport input ssh\n(same on S2; R1 uses line vty 0 4, the VTY range it already has)', why: 'Telnet on any one device exposes the shared admin password.' },
+      { id: 'sshonly', title: 'SSH-only VTY access (login local + transport input ssh) on R1, S1, and S2', pts: 6, cat: CAT.access, test: St => ['R1', 'S1', 'S2'].every(d => { const c = C(St, d); return !!(c.domainName && c.rsa && vtyEvery(c, L => L.login === 'local' && sshOnly(L))); }), hint: 'each device: ip domain-name + RSA key, line vty 0 15 (0 4 on R1): login local, transport input ssh', fix: '(config)# ip domain-name kaulanavet.lan\n(config)# crypto key generate rsa general-keys modulus 2048\nS1(config)# line vty 0 15\nS1(config-line)# login local\nS1(config-line)# transport input ssh\n(same on S2; R1 uses line vty 0 4, the VTY range it already has)', why: 'Telnet on any one device exposes the shared admin password.' },
       { id: 'aclr1', title: 'R1 VTY access list permits only 192.168.99.0/24 (outside host removed)', pts: 4, cat: CAT.access, test: St => aclOnly(St, 'R1', MGMT99), hint: 'R1: show access-lists, then ip access-list standard 10 / no 20 (on a numbered list, no access-list 10 ... deletes the whole list); keep access-class 10 in on the VTYs', fix: 'R1(config)# ip access-list standard 10\nR1(config-std-nacl)# no 20\nR1(config-std-nacl)# exit\nR1(config)# line vty 0 4\nR1(config-line)# access-class 10 in', why: 'An ACL that lets an internet host in is worse than none - it looks secure.' },
       { id: 'aclsw', title: 'VTY access-class restricting to 192.168.99.0/24 applied on S1 and S2', pts: 5, cat: CAT.access, test: St => ['S1', 'S2'].every(d => aclOnly(St, d, MGMT99)), hint: 'S1, S2: access-list 10 permit 192.168.99.0 0.0.0.255; line vty 0 15 / access-class 10 in', fix: 'S1(config)# access-list 10 permit 192.168.99.0 0.0.0.255\nS1(config)# line vty 0 15\nS1(config-line)# access-class 10 in', why: 'Only management stations should even see a login prompt.' },
       { id: 'exec', title: 'Exec timeout shorter than 10 minutes on console and VTY of all devices', pts: 4, cat: CAT.access, test: St => ['R1', 'S1', 'S2'].every(d => { const c = C(St, d); return execOk(c.lines.con[0]) && vtyEvery(c, execOk); }), hint: 'exec-timeout 5 0 under line console 0 and the vty lines, on every device', fix: '(config-line)# exec-timeout 5 0', why: 'Idle sessions are unattended privileged shells.' },

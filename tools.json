@@ -123,7 +123,7 @@
       "icon": "path",
       "category": "cyber",
       "section": "learning",
-      "sha256": "19d1478c33360a94e1bf2a64993b206fea1008b938015c3f01bdcd818f20e6d7",
+      "sha256": "c706d92b500d60ed7eb530a5bf4cc86245ce58757246a478dd06d31540c8ed83",
       "updated": "2026-10-20"
     },
     {
@@ -381,7 +381,7 @@
           "download_as": "windows-range-walkthrough.txt"
         }
       ],
-      "sha256": "75057ef3764d928825c90f2c71acb9932cca3af157d0f664dadd9e3cce8898d7",
+      "sha256": "8f9faed2ecfc076d97533932da3c083ddb89e6e59519b894cac82ca443bc7202",
       "updated": "2026-10-20"
     },
     {
@@ -407,8 +407,8 @@
           "download_as": "linux-range-walkthrough.txt"
         }
       ],
-      "sha256": "efb080c787d14853fb78b1376523b6732f59f6ac78811c70bc3c4008f8482d6f",
-      "updated": "2026-10-19"
+      "sha256": "0471fd177df587589a7a6bfc3f902587ae076c5094cfc9e8956f8d5eed640741",
+      "updated": "2026-10-20"
     },
     {
       "slug": "lockdown-range/cisco-ios",
@@ -433,8 +433,8 @@
           "download_as": "cisco-range-walkthrough.txt"
         }
       ],
-      "sha256": "5e23eed794900b74805fc673541f4ae1bb718f1614edbb097aa1039aeeaea285",
-      "updated": "2026-10-19"
+      "sha256": "339ec29b9459cd785c25a2111a53b56519e883ca17a5065fcb68855f6df5b6a2",
+      "updated": "2026-10-20"
     },
     {
       "slug": "study-map",

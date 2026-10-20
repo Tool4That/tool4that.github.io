@@ -161,16 +161,16 @@ Totals are 100 per scenario. Availability checks are listed last. Commands
 show the prompt they belong to; "(config)#" means global configuration mode
 on that device.
 
-3.1  Level 1 Recruit: Tutoring center
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+3.1  Level 1 Recruit: Harbor Lights Tutoring Center
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   Theme: Branch router hardening
   Grade: Sophomore. Learn it: Defense Ladder > Sophomore > Cisco: configure a
   switch and a router (https://freeapp4that.store/defense-ladder/#sophomore/s5).
 Scenario Brief summary:
-  You are the new network technician at the tutoring center, an after-school
-  program with one branch router (R1) and a front-desk PC (PC1). The previous
-  technician left R1 wide open: it still has its factory hostname, a plaintext
-  enable password, an unused account, and Telnet access.
+  You are the new network technician at Harbor Lights Tutoring Center, an
+  after-school program with one branch router (R1) and a front-desk PC (PC1).
+  The previous technician left R1 wide open: it still has its factory hostname,
+  a plaintext enable password, an unused account, and Telnet access.
   Harden R1 so it meets the policy below. Work from R1's console tab and test
   from PC1. The R1 console starts password-free: press RETURN at the console to
   begin.
@@ -272,7 +272,7 @@ Checks (22, 100 points):
         R1(config-line)# transport input ssh
         why: Telnet sends passwords in clear text on the wire.
    9. Domain name configured (3 pts) [Access control]
-        R1(config)# ip domain-name tutoring.lan
+        R1(config)# ip domain-name harborlights.lan
         why: The RSA key is named hostname.domain; IOS refuses to generate one
         without a domain.
   10. RSA key pair generated (2048 bits) (6 pts) [Access control]
@@ -342,19 +342,19 @@ Availability checks (pass while the required items keep working):
         why: GigabitEthernet0/0 is a required service; shutting it or changing
         its address breaks the front desk.
 
-3.2  Level 2 Operator: Branch library
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+3.2  Level 2 Operator: Pua Lane Public Library
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   Theme: Access switch: VLANs, port security, and SSH
   Grade: Junior. Learn it: Defense Ladder > Junior > Cisco: VLANs, routing,
   and ACLs (https://freeapp4that.store/defense-ladder/#junior/j4); and, for port
   security, Defense Ladder > Sophomore > Cisco: configure a switch and a
   router (https://freeapp4that.store/defense-ladder/#sophomore/s5).
 Scenario Brief summary:
-  You are the network technician for the branch library. The branch has one
-  access switch (S1) with two staff PCs and an uplink to the district router R1.
-  District IT owns R1 and has already configured it as a router-on-a-stick: VLAN
-  10 (STAFF, gateway 192.168.10.1) and VLAN 99 (MGMT, gateway 192.168.99.1, the
-  native VLAN on the trunk).
+  You are the network technician for the Pua Lane branch of the county library.
+  The branch has one access switch (S1) with two staff PCs and an uplink to the
+  district router R1. District IT owns R1 and has already configured it as a
+  router-on-a-stick: VLAN 10 (STAFF, gateway 192.168.10.1) and VLAN 99 (MGMT,
+  gateway 192.168.99.1, the native VLAN on the trunk).
   S1 was set up by a volunteer years ago: everything sits in VLAN 1, the switch
   is managed over Telnet with the password "cisco", and the uplink runs as an
   access port. Bring S1 up to policy. R1 is view-only for you: leave it exactly
@@ -440,7 +440,7 @@ Checks (27, 100 points):
         S1(config-line)# transport input ssh
         why: Telnet exposes every keystroke, including passwords.
    9. Domain name set and 2048-bit RSA key generated (4 pts) [Access control]
-        S1(config)# ip domain-name library.lan
+        S1(config)# ip domain-name pualane.lan
         S1(config)# crypto key generate rsa general-keys modulus 2048
         why: No key, no SSH server.
   10. SSH version 2 enforced (3 pts) [Access control]
@@ -554,8 +554,8 @@ Availability checks (pass while the required items keep working):
         why: R1 belongs to district IT and is out of scope; changing a device
         you do not own risks the routing the whole branch depends on.
 
-3.3  Level 3 Captain: Animal clinic
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+3.3  Level 3 Captain: Kaulana Creek Veterinary Clinic
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   Theme: Two switches, trunks, and troubleshooting
   Grade: Senior. Learn it: Defense Ladder > Junior > Cisco: VLANs, routing,
   and ACLs (https://freeapp4that.store/defense-ladder/#junior/j4); Defense
@@ -564,11 +564,11 @@ Availability checks (pass while the required items keep working):
   NTP, and CDP, Defense Ladder > Sophomore > Cisco: configure a switch and a
   router (https://freeapp4that.store/defense-ladder/#sophomore/s5).
 Scenario Brief summary:
-  You are the lead technician at the animal clinic. The clinic network is a
-  router (R1) doing inter-VLAN routing for two switches: S1 at the front desk
-  and S2 in the exam rooms, joined by a trunk. VLAN 10 FRONTDESK (PC1), VLAN 20
-  EXAM (PC2), and VLAN 99 MGMT (R1 .1, S1 .2, S2 .3) are in use; the syslog/NTP
-  server lives at 192.168.99.50.
+  You are the lead technician at Kaulana Creek Veterinary Clinic. The clinic
+  network is a router (R1) doing inter-VLAN routing for two switches: S1 at the
+  front desk and S2 in the exam rooms, joined by a trunk. VLAN 10 FRONTDESK
+  (PC1), VLAN 20 EXAM (PC2), and VLAN 99 MGMT (R1 .1, S1 .2, S2 .3) are in use;
+  the syslog/NTP server lives at 192.168.99.50.
   Since a contractor "upgraded" things last week, PC2 and PC1 have lost
   contact, and management traffic fails to reach S1. Find and fix the faults,
   then finish hardening all three devices to policy. Each device has your
@@ -648,7 +648,7 @@ Checks (27, 100 points):
         why: A 1024-bit key no longer meets policy.
    6. SSH-only VTY access (login local + transport input ssh) on R1, S1, and S2
       (6 pts) [Access control]
-        (config)# ip domain-name clinic.lan
+        (config)# ip domain-name kaulanavet.lan
         (config)# crypto key generate rsa general-keys modulus 2048
         S1(config)# line vty 0 15
         S1(config-line)# login local
