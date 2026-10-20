@@ -3,9 +3,14 @@
      Windows Server 2025 (member server or domain controller)
  Training reference for virtual machines you own or are authorized to change.
  Three levels: L1 Doorman, L2 Watchman, L3 Hunter. Every item = COMMAND, WHY,
- NOTE and the hardening AREA it belongs to. No scripts by design: type it,
+ NOTE, and the hardening AREA it belongs to. No scripts by design: type it,
  read it, explain it. Item IDs match the Lockdown Drills trainer for this OS.
  Unofficial practice; not affiliated with or endorsed by Microsoft.
+
+ COMMAND LEGEND: PS> runs in an elevated PowerShell and CMD> in an elevated
+ Command Prompt. Type what follows the prefix, and replace each value in angle
+ brackets, such as <name>, with a real one. GUI: lines walk through a window,
+ and indented lines show values to set or read.
 
  HARDENING AREAS (CIS Critical Security Controls v8)
    Account management ........ CIS Control 5
@@ -20,8 +25,10 @@
 
 ------------------------------ DOORMAN -----------------------------------------
  Lock the doors. First find out what the box is (standalone, member server, or
- domain controller), then users, admins, passwords and policy in the place that
- actually takes effect: local, or the domain.
+ domain controller), then users, admins, passwords, and policy in the place that
+ actually takes effect: local, or the domain. Learn it first: Defense Ladder s2,
+ "Desktop, member server, or domain controller."
+ https://freeapp4that.store/defense-ladder/#sophomore/s2
 --------------------------------------------------------------------------------
 [B-00] Scenario brief and evidence first
   AREA: Investigation (forensics basics)
@@ -30,13 +37,14 @@
       0-1 standalone or member workstation, 2-3 standalone or member server, 4-5 domain controller
   PS> Get-WindowsFeature AD-Domain-Services,DNS,DHCP,Web-Server,Web-Ftp-Server | Select-Object Name,Installed
   WHY: Most outages during hardening come from acting against the documented
-       requirements: removing a user, role or service the business needs is an
-       availability failure. Investigation questions often depend on evidence
-       you destroy while fixing, so answer them before you change anything.
-       Which commands apply depends on the role: local accounts and secpol on a
-       member server, Active Directory and Group Policy on a domain controller.
-  NOTE: Unfamiliar is not the same as unauthorized: leave management, backup and
-        monitoring agents alone until the system owner confirms what they are.
+       requirements: removing a user, role, or service the business needs is an
+       availability failure. Evidence first: answer the investigation questions
+       before any change (Defense Ladder f1). Which commands apply depends on
+       the role: local accounts and secpol on a member server, Active Directory
+       and Group Policy on a domain controller.
+  NOTE: Unfamiliar is distinct from unauthorized: find what starts it, who owns
+        it, and what it does, then ask the owner before removing an agent
+        (Defense Ladder s1).
 
 [B-01] List users: local and domain
   AREA: Account management (CIS Control 5)
@@ -68,7 +76,7 @@
   PS> Get-LocalGroupMember -Group Administrators
   CMD> net localgroup Administrators baduser /delete
   WHY: Domain Admins is the whole game, and the operator groups, Backup
-       Operators and DnsAdmins are quieter roads to the same place. On a member
+       Operators, and DnsAdmins are quieter roads to the same place. On a member
        server it is still the local Administrators group.
 
 [B-04] Disable Guest; protect the built-in Administrator
@@ -89,7 +97,7 @@
   PS> Get-ADUser -Filter * | Set-ADUser -PasswordNeverExpires $false
   CMD> net user alice "Correct-Horse-Battery-2026!"
   CMD> net user alice /logonpasswordchg:yes
-  WHY: Weak, shared or blank passwords are the way in. PasswordNotRequired lets
+  WHY: Weak, shared, or blank passwords are the way in. PasswordNotRequired lets
        an account have a blank password even when policy forbids it;
        PasswordNeverExpires defeats the aging policy.
   NOTE: Record every changed password somewhere safe (on paper, in a lab).
@@ -104,6 +112,11 @@
   WHY: On a domain controller, net accounts and secpol.msc are overridden by the
        Default Domain Policy, so a change there never sticks. On a member server
        the local policy is the one that counts.
+  NOTE: The scenario brief sets the numbers; these commands show one sample
+        brief. The CIS Benchmark asks for 14 or more characters, a history of 24
+        or more, a maximum age of 365 days or fewer (and above 0), and a minimum
+        age of 1 day or more. Defense Ladder s2 compares the CIS and NIST
+        rulebooks.
 
 [B-07] Account lockout policy
   AREA: Account management (CIS Control 5)
@@ -114,6 +127,10 @@
   WHY: Turns an online brute force from thousands of guesses a minute into five
        per half hour. Search-ADAccount shows who is locked out right now, which
        is also an investigation clue.
+  NOTE: The scenario brief sets the numbers; these commands show one sample
+        brief. The CIS Benchmark asks for a threshold of 5 or fewer (and above
+        0) and a lockout duration and reset window of 15 minutes or more.
+        Defense Ladder s2 compares the CIS and NIST rulebooks.
 
 [B-08] Firewall on for all profiles
   AREA: Secure configuration (CIS Control 4)
@@ -157,7 +174,7 @@
   AREA: Secure configuration: software (CIS Controls 2 and 4)
   PS> Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*, HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | Select-Object DisplayName,DisplayVersion,Publisher | Sort-Object DisplayName
   GUI: Settings, Apps, Installed apps (or appwiz.cpl)
-  WHY: Hacking tools, games, torrent clients and remote-access tools are
+  WHY: Hacking tools, games, torrent clients, and remote-access tools are
        acceptable-use violations and attack surface.
   NOTE: Software the brief requires stays. The registry listing is instant;
         Win32_Product is slow and can trigger repairs.
@@ -182,12 +199,15 @@
        remote attacker edit the registry. RDP is a brute-force magnet. The Print
        Spooler on a domain controller is PrintNightmare: off unless the brief
        makes it a print server.
-  NOTE: If the brief requires RDP, FTP or SSH, harden it instead of killing it.
+  NOTE: If the brief requires RDP, FTP, or SSH, harden it instead of killing it.
 
 ------------------------------ WATCHMAN ----------------------------------------
  Check the windows. Roles and features, audit and policy through Group Policy,
  services, shares, tasks, ports, logs, and the required roles (IIS, FTP, DNS,
- DHCP) hardened instead of removed.
+ and DHCP) hardened instead of removed. Learn it first: Defense Ladder j1,
+ "Windows Server and Active Directory," and Defense Ladder j2, "Group Policy."
+ https://freeapp4that.store/defense-ladder/#junior/j1
+ https://freeapp4that.store/defense-ladder/#junior/j2
 --------------------------------------------------------------------------------
 [I-01] Audit policy: turn the lights on
   AREA: Audit logging (CIS Control 8)
@@ -196,7 +216,7 @@
   GUI: secpol.msc, Local Policies, Audit Policy, each set to Success and Failure
   GUI: gpmc.msc, Default Domain Controllers Policy, Computer Configuration, Policies, Windows Settings, Security Settings, Advanced Audit Policy Configuration
   WHY: Without auditing, Event Viewer has nothing to tell you or an
-       investigator. Logon, account management and policy change are the key
+       investigator. Logon, account management, and policy change are the key
        ones.
   NOTE: On a DC the Default Domain Controllers Policy overrides local auditpol;
         set it there or it will revert at the next gpupdate.
@@ -216,7 +236,9 @@
       Domain member: Digitally encrypt or sign secure channel data (always) = Enabled
   WHY: These are the classic CIS and STIG level-one settings; each blocks a
        named attack: blank-password remote logon, username harvesting, LM and
-       NTLMv1 cracking or relay, SMB relay, pre-auth shutdown, UAC bypass.
+       NTLMv1 cracking or relay, SMB relay, pre-auth shutdown, and UAC bypass.
+       Check the level on older releases and mixed domains; Windows 11 24H2 and
+       Windows Server 2025 remove NTLMv1.
   NOTE: Command-line equivalents live in the registry (Hunter A-02) or secedit
         (Hunter A-01).
 
@@ -233,12 +255,13 @@
 
 [I-04] Service audit: what runs, from where
   AREA: Secure configuration (CIS Control 4)
-  PS> Get-CimInstance Win32_Service | Select-Object Name,State,StartMode,PathName | Sort-Object Name
+  PS> Get-CimInstance Win32_Service | Select-Object Name,State,StartMode,StartName,PathName | Sort-Object Name
   PS> Get-Service | Where-Object Status -eq Running | Sort-Object DisplayName
   PS> Stop-Service -Name <name>; Set-Service -Name <name> -StartupType Disabled
-  WHY: Look for Telnet, FTP, SNMP, SSDP and UPnP, Remote Registry, Xbox
-       services, odd names, and any service whose PathName is under C:\Users or
-       C:\Temp. Those are planted.
+  WHY: Look for Telnet, FTP, SNMP, SSDP, UPnP, Remote Registry, Xbox services,
+       odd names, and any service whose PathName is under C:\Users or C:\Temp.
+       Those are planted. A StartName of LocalSystem means the service runs as
+       SYSTEM, the most powerful account on the machine.
   NOTE: Required services (IIS, DNS, DHCP, OpenSSH, MySQL, Apache) stay running;
         harden their configs instead.
 
@@ -342,10 +365,12 @@
 
 [I-14] Event Viewer for investigations
   AREA: Investigation (forensics basics)
-  GUI: eventvwr.msc, Windows Logs, Security
+  GUI: eventvwr.msc, Windows Logs, Security (and System for event 7045)
   PS> Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4728,4732,4756} | Format-List TimeCreated,Message
       4720 user created, 4726 deleted, 4728 added to global group, 4732 local group, 4756 universal group, 4740 lockout
-      4624 logon OK, 4625 failed, 4768 Kerberos TGT, 4769 service ticket, 4771 pre-auth failed, 1102 log cleared, 7045 new service
+      4624 logon OK, 4625 failed, 4768 Kerberos TGT, 4769 service ticket, 4771 pre-auth failed, 1102 log cleared
+  PS> Get-WinEvent -FilterHashtable @{LogName='System'; Id=7045} | Format-List TimeCreated,Message
+      7045 new service installed: a System log event, so it takes its own filter
   WHY: Who was added to Domain Admins and when is a question these IDs answer in
        one filter.
 
@@ -356,7 +381,7 @@
   GUI: inetmgr (IIS Manager), site, Authentication: Anonymous Authentication Disabled unless the brief says the site is public
   PS> Import-Module WebAdministration; Set-WebConfigurationProperty -Filter /system.webServer/directoryBrowse -Name enabled -Value $false -PSPath 'IIS:\Sites\Default Web Site'
   GUI: IIS Manager, FTP site, FTP Authentication: Anonymous Disabled; FTP SSL Settings: Require SSL connections
-  GUI: IIS Manager, server node, Request Filtering: deny .exe and .ps1 uploads
+  GUI: IIS Manager, server node, Request Filtering, File Name Extensions: deny .exe and .ps1 (blocks web requests for them); FTP Request Filtering, File Name Extensions: deny .exe and .ps1 (blocks uploading and downloading them)
   WHY: A required web or FTP server is kept running and made safe: no directory
        listing, no anonymous FTP, TLS on, and nothing executable in the upload
        folder.
@@ -375,7 +400,9 @@
 ------------------------------ HUNTER ------------------------------------------
  Hunt and harden. Security baselines, credential-theft hardening, Active
  Directory attack surface (roastable and stale accounts), persistence hunting,
- SMB and LDAP signing, and version notes.
+ SMB and LDAP signing, and version notes. Learn it first: Defense Ladder se7,
+ "Windows: credentials and the domain attack surface."
+ https://freeapp4that.store/defense-ladder/#senior/se7
 --------------------------------------------------------------------------------
 [A-01] Security policy as a file: secedit
   AREA: Secure configuration (CIS Control 4)
@@ -398,7 +425,9 @@
   PS> Set-ItemProperty -Path $lsa -Name LmCompatibilityLevel -Value 5 -Type DWord
   PS> Set-ItemProperty -Path $lsa -Name EveryoneIncludesAnonymous -Value 0 -Type DWord
   WHY: Null-session enumeration (RestrictAnonymous), LM hash storage that cracks
-       in seconds (NoLMHash), NTLMv1 downgrade (LmCompatibilityLevel 5).
+       in seconds (NoLMHash), and NTLMv1 downgrade (LmCompatibilityLevel 5).
+       Check the level on older releases and mixed domains; Windows 11 24H2 and
+       Windows Server 2025 remove NTLMv1.
   NOTE: This is the registry form of the Watchman Security Options.
 
 [A-03] Credential-theft hardening: LLMNR, NetBIOS, WDigest
@@ -496,7 +525,10 @@
        means Kerberoasting; stale admins and never-expiring passwords are quiet
        persistence. Each flag is one cmdlet to find and one to fix.
   NOTE: Only service accounts should carry SPNs, and they need long passwords or
-        group managed service accounts.
+        group managed service accounts. After a service account's password
+        changes, set the same password on the service: services.msc, the
+        service, Log On tab. For SQL Server services, make that change in SQL
+        Server Configuration Manager.
 
 [A-11] SMB and LDAP signing
   AREA: Secure configuration (CIS Control 4)
@@ -520,9 +552,9 @@
   PS> Get-NetFirewallProfile | Select-Object Name,Enabled
   PS> Get-LocalGroupMember Administrators
   CMD> netstat -abno
-  WHY: A change log of what, when and why is how you reverse a change that broke
-       something in thirty seconds instead of thirty minutes, and it is exactly
-       how real incident response works.
+  WHY: A change log of what, when, and why is how you reverse a change that
+       broke something in thirty seconds instead of thirty minutes, and it is
+       exactly how real incident response works.
 
 [A-13] Version notes: Windows Server 2025
       This page targets Windows Server 2025 (Windows 11 shell: Settings, Windows Update). Several defaults changed: read the current value instead of assuming.
@@ -538,8 +570,8 @@
 ------------------------------ FIX OR BREAK? (practice cards) ------------------
   Brief: Authorized administrators: alice. Authorized users: bob, carol.
   Action: Remove bob from the Administrators group.
-  Call: FIX. Bob is a standard user per the brief. Demoting him is least
-             privilege.
+  Call: FIX. Bob is a standard user per the brief. Demoting that account is
+             least privilege.
 
   Brief: Investigation 1: what is the MD5 hash of C:\Users\Public\secret.mp3?
   Action: Delete every media file on the machine first, then start the
@@ -557,8 +589,8 @@
          C:\Program Files\BackupAgent.
   Action: Delete C:\Program Files\BackupAgent because it looks like unknown
           software.
-  Call: CHECK FIRST. Unrecognized is not the same as unauthorized. Check the
-                     publisher, the service that runs it and its scheduled
+  Call: CHECK FIRST. Unrecognized is distinct from unauthorized. Check the
+                     publisher, the service that runs it, and its scheduled
                      tasks, then ask the owner before removing a backup or
                      monitoring agent.
 
@@ -601,16 +633,18 @@
                    Filter for 4728 and 4756 instead.
 
   Brief: svc_sql runs the SQL service and must keep working.
-  Action: Set-ADAccountControl -Identity svc_sql -DoesNotRequirePreAuth $false
-          and set a 25-character password.
-  Call: FIX. Removes the AS-REP roast without breaking the service.
+  Action: Set-ADAccountControl -Identity svc_sql -DoesNotRequirePreAuth $false,
+          give svc_sql a new 25-character random password, and update the SQL
+          service's logon password to match.
+  Call: FIX. Removes the AS-REP roast, and updating the service's stored logon
+             password keeps SQL running.
 
 ------------------------------ SPOT THE FINDING (output snippets) --------------
-  Output of net accounts. Tap the line that is the finding.
+  Output of net accounts. Brief: minimum length 12, maximum age 60, history 24, lockout after 5. Tap the line that is the finding.
      Minimum password length:                 12
      Maximum password age (days):             60
   >> Lockout threshold:                       Never
-     Length of password history maintained:   5
+     Length of password history maintained:   24
   WHY: Lockout threshold Never means unlimited password guesses. Set it to 5
        with net accounts /lockoutthreshold:5.
 
@@ -644,9 +678,10 @@
   >> LmCompatibilityLevel   : 0
      LimitBlankPasswordUse  : 1
   WHY: LmCompatibilityLevel 0 sends LM and NTLMv1 responses, which crack in
-       minutes. Set it to 5.
+       minutes. Set it to 5. Check the level on older releases and mixed
+       domains; Windows 11 24H2 and Windows Server 2025 remove NTLMv1.
 
-  Get-ADGroupMember "Domain Admins". Brief: authorized Domain Admins are alice and dsmith. Tap the finding.
+  Get-ADGroupMember "Domain Admins". Brief: authorized Domain Admins are alice, dsmith, and the built-in Administrator. Tap the finding.
      alice
      dsmith
   >> svc_print
@@ -685,6 +720,15 @@
      SamAccountName: svc_sql
   WHY: An account without pre-auth can be AS-REP roasted offline. Set-
        ADAccountControl -DoesNotRequirePreAuth $false.
+
+  Get-CimInstance Win32_Service output: Name, StartName, PathName. Tap the finding.
+     DNS        LocalSystem                 C:\Windows\system32\dns.exe
+     EventLog   NT AUTHORITY\LocalService   C:\Windows\System32\svchost.exe -k LocalServiceNetworkRestricted -p
+  >> HealthMon  LocalSystem                 C:\Users\Public\svc\health.exe
+     W3SVC      LocalSystem                 C:\Windows\system32\svchost.exe -k iissvcs
+  WHY: A SYSTEM service runs from a folder every user can write to, so the path
+       marks it as planted, whatever its name. Record its path and hash, then
+       stop, disable, and remove it.
 
 ------------------------------ OFFICIAL SOURCES --------------------------------
   Microsoft security baselines

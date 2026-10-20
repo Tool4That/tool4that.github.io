@@ -1,17 +1,17 @@
 LOCKDOWN RANGE: LINUX - SOLUTION WALKTHROUGH
 ================================================================================
 Companion to linux-range.html (Tool4That, Lockdown Range series).
-For instructors, study groups and anyone checking their work AFTER trying a
-scenario on their own. All names, organizations and addresses are fictional.
+For instructors, study groups, and anyone checking their work AFTER trying a
+scenario on their own. All names, organizations, and addresses are fictional.
 Unofficial practice; not affiliated with or endorsed by Canonical or Linux
 Mint.
 
 CONTENTS
   1. What the lab is (and is not)
   2. The routine: power-on to Progress Check
-  3. Scenario 1 - Recruit:  Makai Surf Supply (Ubuntu 24.04 desktop)
-  4. Scenario 2 - Operator: Lanikai Public Library (Linux Mint 22.3)
-  5. Scenario 3 - Captain:  Pali Ridge Outfitters (Ubuntu Server 24.04)
+  3. Scenario 1 - Recruit:  Shoreline Surf Supply (Ubuntu 24.04 desktop)
+  4. Scenario 2 - Operator: Community Public Library (Linux Mint 22.3)
+  5. Scenario 3 - Captain:  Summit Ridge Outfitters (Ubuntu Server 24.04)
   6. Linux hardening quick reference (commands and files)
   7. Where a real machine differs from the simulator
   8. Sources
@@ -21,12 +21,19 @@ Format of the check lists below:
            fix: the command or click-path (continuation lines end with \)
            why: one line on why it matters
 
-Hardening areas (each aligned with a CIS Critical Security Controls v8
-control): Account management (Control 5), Access control (Control 6),
-Secure configuration (Control 4; unauthorized software also Control 2),
-Patching (Control 7), Malware defenses (Control 10), Audit logging
-(Control 8). Prohibited media files count as Data protection (Control 3).
-The two questions per scenario are listed as Investigation.
+Hardening areas: Account management, Access control, Secure
+configuration, Patching, Malware defenses, and Data protection. The two
+questions per scenario are listed as Investigation. The CIS Controls
+behind the first five areas: Defense Ladder s1
+(https://freeapp4that.store/defense-ladder/#sophomore/s1). Data
+protection, which covers the prohibited media files, maps to CIS Control 3.
+The Debrief links each check to its Defense Ladder lesson: accounts,
+sudo, SSH, setuid files, firewall, updates, software, and media to s3;
+password length, history, and lockout to s3 (One PAM line); services and
+ports to s4; persistence, sysctl, /etc/shadow permissions, and
+repositories to j3; investigation questions to s6; the Captain's setuid
+question also to s3; and the Captain's package question to s4 and se1
+(FreeBSD, Hunting on any Unix).
 
 --------------------------------------------------------------------------------
 1. WHAT THE LAB IS (AND IS NOT)
@@ -39,7 +46,7 @@ an in-memory filesystem with real paths and realistic contents (/etc/passwd,
 /etc/ssh/sshd_config, /etc/ufw, /etc/apt, cron, lightdm/gdm, user homes).
 The terminal understands the commands Linux administrators use every day
 (section 6): sudo, apt, systemctl, ufw, useradd/usermod/userdel, passwd,
-chage, visudo, nano, vi, sed -i, find, grep, pipes and redirection. Every
+chage, visudo, nano, vi, sed -i, find, grep, pipes, and redirection. Every
 change re-runs the scenario's checks and the Progress Check updates live.
 Availability checks fail (in red, with negative points) when something the
 Scenario Brief says the business needs gets broken.
@@ -69,11 +76,12 @@ password prompt and messages look slightly different.
          Brief button, or cat ~/Desktop/Scenario\ Brief.txt). Write down:
          authorized administrators, authorized users, critical services,
          policy numbers (password length, maximum age...).
-  [ ] 4. Answer the two investigation questions FIRST, before changing
-         anything that might destroy the evidence. Open "Investigation 1.txt"
-         on the Desktop (Text Editor, or nano in the terminal), type the
-         answer after "ANSWER:", save (Ctrl+S in the editor; Ctrl+O Enter in
-         nano).
+  [ ] 4. Evidence first: answer the investigation questions before any
+         change (Defense Ladder f1,
+         https://freeapp4that.store/defense-ladder/#freshman/f1). Open
+         "Investigation 1.txt" on the Desktop (Text Editor, or nano in the
+         terminal), type the answer after "ANSWER:", and save (Ctrl+S in
+         the editor; Ctrl+O Enter in nano).
   [ ] 5. Read before you change (cat, systemctl status, getent). Undo is
          cheap in the lab; on a real VM, take a snapshot first.
   [ ] 6. Work by hardening area, same order every time:
@@ -88,7 +96,7 @@ password prompt and messages look slightly different.
          again faster.
 
 --------------------------------------------------------------------------------
-3. SCENARIO 1 - RECRUIT: MAKAI SURF SUPPLY (UBUNTU 24.04 WORKSTATION)
+3. SCENARIO 1 - RECRUIT: SHORELINE SURF SUPPLY (UBUNTU 24.04 WORKSTATION)
 --------------------------------------------------------------------------------
 Login   labuser / Easy!2026         Host  ubuntu-lab   (GDM user list)
 
@@ -98,10 +106,10 @@ Scenario Brief summary
   Authorized administrators: labuser, kalani
   Authorized users: noe, pika, leilani, malia, tiko
   Policy: only the two admins have sudo; every account has a password of at
-  least 10 characters that expires within 90 days and may not be changed
-  again for 7 days; no media files; no file-sharing clients or network
-  scanners; firewall on; automatic security updates; nobody logged in
-  automatically.
+  least 10 characters that expires within 90 days and stays unchanged for
+  at least 7 days after each change; no media files; no file-sharing
+  clients or network scanners; firewall on; automatic security updates;
+  nobody logged in automatically.
 
 Investigation
   Q1  Which account has an empty password?        ANSWER: tiko
@@ -124,16 +132,22 @@ Checks (100 points)
        fix: sudo sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' \
                 /etc/ssh/sshd_config && sudo systemctl restart ssh
        why: one guessed root password gives total control.
-  [6]  Password maximum age set to 90 days or less (PASS_MAX_DAYS)
-                                                          (Account management)
+  [6]  Password maximum age of 90 days or less (login.defs and every
+       account)                                           (Account management)
        fix: sudo sed -i 's/^PASS_MAX_DAYS.*/PASS_MAX_DAYS   90/' /etc/login.defs
-            (login.defs only covers accounts created later; for existing
-            ones also run: sudo chage -M 90 USER)
+            sudo chage -M 90 NAME   for each human account: labuser, kalani,
+            noe, pika, leilani, malia, and tiko
+            (login.defs sets defaults for new accounts; chage updates each
+            existing one, and sudo chage -l NAME shows its values; every
+            human account still on the machine counts, so remove rufus
+            first, or run chage on rufus too)
        why: passwords that never expire stay valid forever once leaked.
-  [4]  Password minimum age set to 7 days or more (PASS_MIN_DAYS)
+  [4]  Password minimum age of 7 days or more (login.defs and every account)
                                                           (Account management)
        fix: sudo sed -i 's/^PASS_MIN_DAYS.*/PASS_MIN_DAYS   7/' /etc/login.defs
-       why: stops cycling back to an old favourite password.
+            sudo chage -m 7 NAME    for each of the same accounts
+            (remove rufus first here too)
+       why: stops cycling back to an old favorite password.
   [7]  Minimum password length of 10 or more enforced via pam_pwquality
                                                           (Account management)
        fix: sudo apt install libpam-pwquality
@@ -177,12 +191,12 @@ Checks (100 points)
 Availability checks (points lost while broken)
   -8  Authorized user removed
   -6  Authorized administrator removed from sudo
-  -6  Required service SSH stopped, disabled or removed
+  -6  Required service SSH stopped, disabled, or removed
   -4  Firewall blocks the required SSH service (port 22)
   -10 Your own account (labuser) deleted or locked
 
 --------------------------------------------------------------------------------
-4. SCENARIO 2 - OPERATOR: LANIKAI PUBLIC LIBRARY (LINUX MINT 22.3)
+4. SCENARIO 2 - OPERATOR: COMMUNITY PUBLIC LIBRARY (LINUX MINT 22.3)
 --------------------------------------------------------------------------------
 Login   labuser / Medium!2026       Host  mint-lab   (starts auto-logged-in)
 
@@ -288,7 +302,7 @@ Availability checks (points lost while broken)
   -10 Your own account (labuser) deleted or locked
 
 --------------------------------------------------------------------------------
-5. SCENARIO 3 - CAPTAIN: PALI RIDGE OUTFITTERS (UBUNTU SERVER 24.04)
+5. SCENARIO 3 - CAPTAIN: SUMMIT RIDGE OUTFITTERS (UBUNTU SERVER 24.04)
 --------------------------------------------------------------------------------
 Login   labuser / Hard!2026         Host  ubuntu-srv   (text console)
 
@@ -318,14 +332,29 @@ Scenario Brief summary (cat ~/Desktop/Scenario\ Brief.txt)
   Authorized administrators: labuser, moana
   Authorized users: bkup (backup operator, NOT an admin), kai, lehua
   Critical: SSH (keep running and allowed through the firewall), Apache on
-  port 80, MySQL. FTP, Samba and Telnet are not authorized. Root may not log
+  port 80, MySQL. FTP, Samba, and Telnet are not authorized. Root may not log
   in over SSH; empty passwords forbidden; IP forwarding off; no unauthorized
-  software, repositories, setuid binaries or scheduled jobs; install
+  software, repositories, setuid binaries, or scheduled jobs; install
   updates; firewall on.
 
 Investigation
-  Q1  Port used by the planted listener?          ANSWER: 4444
-      (sudo ss -tulpn; also /etc/rc.local and root's crontab)
+  Q1  TCP port held by a program outside every installed package?
+                                                  ANSWER: 4444
+      (sudo ss -tulpn names each port's program, and ps aux shows the
+      full path it started from, here /tmp/.sysupd. Ubuntu packages
+      install programs in /usr/bin, /usr/sbin, and /usr/lib, which /lib
+      points to. Files in /usr/local and /tmp were put there by hand,
+      so a program that runs from /tmp sits outside every package.
+      dpkg -S /tmp/.sysupd confirms it with "no path found", and
+      dpkg -S /usr/sbin/vsftpd names vsftpd. dpkg -S
+      /usr/lib/systemd/systemd-resolved names systemd-resolved. dpkg
+      lists files by their /usr path, so dpkg -S /sbin/init says "no
+      path found" even though /sbin points to /usr/sbin; dpkg -S
+      /usr/sbin/init names systemd-sysv. Every other listener comes
+      from a package: sshd (22, held by systemd), vsftpd (21), apache2
+      (80), smbd (139 and 445), systemd-resolved (53, loopback only),
+      and mysqld (3306, loopback only). Also see
+      /etc/rc.local and root's crontab.)
   Q2  Setuid binary that gives a root shell?      ANSWER: /usr/local/bin/lsmon
       (find / -perm -4000 -type f 2>/dev/null)
 
@@ -394,9 +423,9 @@ Checks (100 points)
 Availability checks (points lost while broken)
   -6  Authorized user removed
   -5  Authorized administrator removed from sudo
-  -8  Required service Apache (apache2) stopped, disabled or removed
-  -8  Required service SSH stopped, disabled or removed
-  -5  Required service MySQL stopped, disabled or removed
+  -8  Required service Apache (apache2) stopped, disabled, or removed
+  -8  Required service SSH stopped, disabled, or removed
+  -5  Required service MySQL stopped, disabled, or removed
   -5  Firewall blocks the required SSH service (port 22)
   -4  Firewall blocks the required web (Apache) service (port 80)
   -10 Your own account (labuser) deleted or locked
@@ -423,7 +452,8 @@ Access control
 
 Password policy
   /etc/login.defs                 PASS_MAX_DAYS 90, PASS_MIN_DAYS 7,
-                                  PASS_WARN_AGE 14 (new accounts only)
+                                  PASS_WARN_AGE 14 (defaults for new
+                                  accounts; chage updates existing ones)
   /etc/pam.d/common-password      pam_pwquality.so retry=3 minlen=12
                                   pam_unix.so ... remember=5
   /etc/pam.d/common-auth          pam_faillock.so preauth / authfail /
@@ -489,7 +519,8 @@ Audit logging
   last                                  recent logins
 
 Editors
-  nano FILE        Ctrl+O Enter = save, Ctrl+X = exit, Ctrl+W = search
+  nano FILE        Ctrl+O Enter = save, Ctrl+X = exit
+                   Search: F6 (Ctrl+W can close the browser tab here).
   sed -i 's/^#\?Key.*/Key value/' FILE      change a config line in place
 
 --------------------------------------------------------------------------------
@@ -506,7 +537,7 @@ Editors
   - A broken PAM file on a real machine can lock everyone out, including
     you. Keep a root shell open in a second terminal while you edit
     /etc/pam.d/*, and test with a fresh login before closing it.
-  - Tab completion, history and man pages cover the common commands here;
+  - Tab completion, history, and man pages cover the common commands here;
     a real system has them for everything.
   - Out-of-scope commands get a "[Range] ..." note instead of pretending to
     work. If something you need is missing, try it on a practice VM.
@@ -517,7 +548,7 @@ Editors
     fresh Linux Mint 22.3 or Ubuntu 24.04.5 desktop install ships a newer
     HWE kernel (Mint 22.3: 6.14).
   - Ubuntu 26.04 LTS uses sudo-rs as the default sudo (slightly different
-    prompts and messages), chrony for time sync and apt 3.
+    prompts and messages), chrony for time sync, and apt 3.
   - Only change machines you own or are authorized to administer. Practice
     VMs and this simulator are the places to experiment.
 

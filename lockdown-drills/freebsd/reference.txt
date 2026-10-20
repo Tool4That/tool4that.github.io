@@ -3,9 +3,22 @@
      FreeBSD 15.1, with 14.x notes
  Training reference for virtual machines you own or are authorized to change.
  Three levels: L1 Doorman, L2 Watchman, L3 Hunter. Every item = COMMAND, WHY,
- NOTE and the hardening AREA it belongs to. No scripts by design: type it,
+ NOTE, and the hardening AREA it belongs to. No scripts by design: type it,
  read it, explain it. Item IDs match the Lockdown Drills trainer for this OS.
  Unofficial practice; not affiliated with or endorsed by the FreeBSD Project.
+
+ WHERE THIS FITS
+   Senior track. Start with Defense Ladder se1, FreeBSD
+   (https://freeapp4that.store/defense-ladder/#senior/se1); Doorman,
+   Watchman, and Hunter then run in that order inside Senior. Every Defense
+   Ladder lesson named in this file sits at the same address under its
+   grade: f1 is #freshman/f1, s1 is #sophomore/s1, and se1 is #senior/se1.
+
+ EDITOR (first used in B-05)
+   Steps that read # vi FILE open vi: press i to insert, Esc to stop
+   inserting, then :wq and Enter to save and quit, or :q! to leave without
+   saving. ee is the friendlier editor in base (Esc opens its menu), and
+   vipw opens vi too, unless the EDITOR variable names another editor.
 
  HARDENING AREAS (CIS Critical Security Controls v8)
    Account management ........ CIS Control 5
@@ -21,20 +34,23 @@
 ------------------------------ DOORMAN -----------------------------------------
  Lock the doors, BSD style. Users and the wheel group, master.passwd, login.conf
  policy, pf, freebsd-update and pkg, rc.conf services, the console. Commands
- below run as root (prefix with sudo or doas if the brief gives you a wheel user
- instead).
+ below run as root: from a wheel account, run su - first, or use sudo or doas
+ where their own rule files grant you access.
+ Learn it first: Defense Ladder se1, FreeBSD
+ https://freeapp4that.store/defense-ladder/#senior/se1
 --------------------------------------------------------------------------------
 [B-00] Scenario brief and evidence first
   AREA: Investigation (forensics basics)
       Read the scenario brief (the documented requirements for this machine): authorized users, wheel members, required services, anything forbidden
   # freebsd-version -kru; uname -a
   # cat /etc/rc.conf
-  WHY: Authorized users, wheel members and required services decide what is a
+  WHY: Authorized users, wheel members, and required services decide what is a
        fix and what breaks the business. rc.conf is the service list on FreeBSD;
        read it before touching anything.
-  NOTE: Unfamiliar is not the same as unauthorized: leave backup and monitoring
-        agents alone until the system owner confirms what they are. Keep a
-        second root shell open before editing pam, login.conf or sshd_config.
+  NOTE: Evidence first: answer the investigation questions before any change
+        (Defense Ladder f1). Unfamiliar is distinct from unauthorized: trace it
+        and ask before removing an agent (Defense Ladder s1). Keep a second root
+        shell open before editing pam, login.conf, or sshd_config.
 
 [B-01] List users, UID 0 accounts, and the wheel group
   AREA: Account management (CIS Control 5)
@@ -42,10 +58,12 @@
   # awk -F: '$3==0 {print $1}' /etc/passwd
   # awk -F: '$1=="toor" {print $1": "$2}' /etc/master.passwd
   # pw groupshow wheel
-  WHY: wheel is the admin group on FreeBSD (su and sudo both key off it). A
-       UID-0 account other than root is a second root, with one exception: toor
-       is FreeBSD's default disabled alternate root and is normal while its hash
-       is a star.
+  WHY: wheel is the group that may su to root. sudo, a package, follows
+       /usr/local/etc/sudoers, where the line %wheel ALL=(ALL:ALL) ALL works
+       once you uncomment it (leave the NOPASSWD line commented). A UID-0
+       account other than root is a second root, with one exception: toor is
+       FreeBSD's default disabled alternate root and is normal while its hash is
+       a star.
   NOTE: toor with a real hash instead of * means someone set it a password. That
         is a finding.
 
@@ -65,8 +83,9 @@
   # pw groupmod wheel -m alice
   # pw groupshow wheel
   # id alice
-  WHY: Least privilege. Anyone in wheel can su to root with root's password and,
-       if sudo is installed, usually run anything.
+  WHY: Least privilege. Anyone in wheel may su to root with root's password.
+       sudo has its own rules in /usr/local/etc/sudoers (B-01), so read that
+       file too (I-02).
 
 [B-04] Passwords: strong, forced change, no empties
   AREA: Account management (CIS Control 5)
@@ -95,8 +114,14 @@
        4-class passwords may be 10, 3-class need 12, fewer classes disabled).
        login.conf also lists minpasswordlen and mixpasswordcase, but they are
        reserved and not implemented in the base system.
-  NOTE: Users must belong to the class you edited (default unless pw usermod -L
-        set another).
+  NOTE: The scenario brief sets the numbers; these lines show one sample brief.
+        The CIS Benchmarks used in the other drills ask for 14 or more
+        characters and a maximum age of 365 days or fewer. This step opens vi:
+        press i to insert, Esc to stop inserting, then :wq and Enter to save and
+        quit, or :q! to leave without saving. ee is the friendlier editor in
+        base (Esc opens its menu), and vipw opens vi too, unless the EDITOR
+        variable names another editor. Users must belong to the class you edited
+        (default unless pw usermod -L set another).
 
 [B-06] Lockout: login.conf retries and blocklistd for sshd
   AREA: Account management (CIS Control 5)
@@ -111,9 +136,12 @@
   WHY: There is no pam_faillock here. login.conf limits console retries;
        blocklistd blocks an IP in pf after repeated sshd failures, which is the
        brute force that actually happens.
-  NOTE: blocklistd needs the pf anchor from B-07 to enforce anything. Older
+  NOTE: The scenario brief sets the numbers; these lines show one sample brief.
+        For comparison, the CIS Benchmarks used in the other drills lock an
+        account after 5 or fewer failed attempts, for 15 minutes or more.
+        blocklistd needs the pf anchor from B-07 to enforce anything. Older
         releases call it blacklistd, with matching old names for every knob (see
-        Version notes); use one set of names, never a mix.
+        Version notes); use one set of names throughout.
 
 [B-07] Firewall: pf
   AREA: Secure configuration (CIS Control 4)
@@ -204,6 +232,8 @@
  Check the windows. sshd, sudo and doas, cron and periodic, rc.d and shell
  startup files, master.passwd permissions and SUID, file flags, processes,
  auditd, account hygiene, pkg repositories, and the services you must keep.
+ Learn it first: Defense Ladder se1, FreeBSD
+ https://freeapp4that.store/defense-ladder/#senior/se1
 --------------------------------------------------------------------------------
 [I-01] sshd hardening, only when SSH is required
   AREA: Access control (CIS Control 6)
@@ -273,10 +303,10 @@
   # chflags noschg /etc/master.passwd
   # chflags -R noschg /tmp/evil && rm -rf /tmp/evil
   # sysctl kern.securelevel
-  WHY: schg (system immutable) makes pw, passwd and vi fail silently; sappnd
-       makes a log or rc file append-only. ls -lo shows the flags. If
-       kern.securelevel is 1 or higher the flags cannot be cleared until a
-       reboot in single-user mode.
+  WHY: schg (system immutable) blocks every change, so pw, passwd, and vi fail
+       with a misleading error such as Operation not permitted; sappnd makes a
+       log or rc file append-only. ls -lo shows the flags. If kern.securelevel
+       is 1 or higher the flags stay set until a reboot in single-user mode.
 
 [I-07] Processes and connections: find the backdoor
   AREA: Malware defenses (CIS Control 10)
@@ -343,8 +373,10 @@
 
 ------------------------------ HUNTER ------------------------------------------
  Hunt and harden. sysctl and securelevel, pkg check and audit, rootkit hunting,
- PAM internals, forensics with the BSD toolset, pf depth, the Linux-to-BSD
- translation table, and version notes.
+ PAM internals, forensics with the BSD toolset, pf depth, Linux-to-BSD
+ translation recall, and version notes.
+ Learn it first: Defense Ladder se1, FreeBSD
+ https://freeapp4that.store/defense-ladder/#senior/se1
 --------------------------------------------------------------------------------
 [A-01] Kernel and network hardening with sysctl
   AREA: Secure configuration (CIS Control 4)
@@ -399,32 +431,39 @@
   # stat <file>; file <file>; strings <file> | head; md5 <file>; sha256 <file>
   # grep -E 'su:|sshd|login' /var/log/auth.log | tail -40
   # lastlogin; last | head -30
-  WHY: The hash commands are md5 and sha256 here, not md5sum and sha256sum.
-       -newermt finds what changed most recently; auth.log holds su and ssh
-       history.
+  WHY: md5 and sha256 are the native FreeBSD commands; recent releases also
+       accept md5sum and sha256sum. -newermt finds what changed most recently;
+       auth.log holds su and ssh history.
 
 [A-05] pf depth
   AREA: Secure configuration (CIS Control 4)
   # pfctl -vnf /etc/pf.conf
   # pfctl -sr; pfctl -ss | head; pfctl -sa | head -40
+  # pfctl -sA; pfctl -a '*' -sr
   # pfctl -a 'blocklistd/22' -t port22 -T show
   # tcpdump -n -e -ttt -i pflog0
   # grep -nE '^pass in' /etc/pf.conf
-  WHY: A planted pass in rule or anchor never shows in a casual look; pfctl -sr
-       prints every loaded rule. pflog0 shows what is being blocked live, which
-       also answers investigation questions about scanning.
+  WHY: A planted pass in rule or anchor stays out of sight in a casual look.
+       pfctl -sr prints the main ruleset, where an anchor shows as one line;
+       pfctl -sA lists the anchors attached to the main ruleset (add -v to list
+       nested ones), and pfctl -a '*' -sr prints every anchor's rules. pflog0
+       shows what is being blocked live, which also answers investigation
+       questions about scanning.
 
-[A-06] Translation table: Linux habit to FreeBSD reality
-      sudo group -> wheel          /etc/shadow -> /etc/master.passwd (+ pwd_mkdb)
-      systemctl -> service + rc.conf (sysrc)     apt -> pkg (+ freebsd-update for base, unless the base is pkgbase)
-      ufw -> pf (or ipfw)          chattr/lsattr -> chflags / ls -lo
-      /etc/login.defs -> /etc/login.conf (+ cap_mkdb)    pam_faillock -> login-retries + blocklistd
-      ss -tulpn -> sockstat -46l   /etc/sudoers -> /usr/local/etc/sudoers    md5sum -> md5
-      journalctl -> /var/log/*     auditd (Linux) -> auditd (OpenBSM) + praudit
-      useradd/userdel -> pw useradd / pw userdel -r   nologin -> /usr/sbin/nologin
-  WHY: Most people meet FreeBSD after learning Linux. The concepts are
-       identical; the file paths and command names are not. This table is the
-       shortcut.
+[A-06] Recall drill: Linux habit to FreeBSD equivalent
+      Say each FreeBSD equivalent out loud, then check your answers in the places named below.
+      sudo group -> ?          /etc/shadow -> ?
+      systemctl -> ?           apt -> ?
+      ufw -> ?                 chattr/lsattr -> ?
+      /etc/login.defs -> ?     pam_faillock -> ?
+      ss -tulpn -> ?           /etc/sudoers -> ?        md5sum -> ?
+      journalctl -> ?          auditd (Linux) -> ?      useradd/userdel -> ?
+  WHY: Recall each row, then check it against Defense Ladder se1 (its tables
+       Linux habit, FreeBSD equivalent; su, sudo, and doas on FreeBSD; and
+       Hunting on any Unix) and against items B-02, I-02, I-06, I-09, and A-04
+       here. Most people meet FreeBSD after learning Linux: the concepts carry
+       over, and the file paths and command names change. Pulling each pair from
+       memory is what makes it stick.
 
 [A-07] Verify loop, every thirty minutes
   # sockstat -46l; pw groupshow wheel; awk -F: '$3==0' /etc/passwd
@@ -446,7 +485,8 @@
 ------------------------------ FIX OR BREAK? (practice cards) ------------------
   Brief: Authorized administrators: alice. Authorized users: bob, carol.
   Action: Run pw groupmod wheel -d carol after seeing carol in wheel.
-  Call: FIX. Carol is a user, not an admin. Least privilege.
+  Call: FIX. The brief lists carol as a standard user. Removing that account
+             from wheel is least privilege.
 
   Brief: SSH must remain available for the admins.
   Action: Load a pf.conf with block in all and no pass rule, then service pf
@@ -480,7 +520,9 @@
   Brief: Nothing is said about the console.
   Action: Set the console to insecure in /etc/ttys so single-user mode asks for
           the root password.
-  Call: FIX. Standard hardening with no downside on a server.
+  Call: FIX. Standard on a server: single-user mode then asks for root's
+             password. The trade-off: recovering a lost root password needs boot
+             media.
 
   Brief: Your chflags noschg keeps failing on /etc/master.passwd.
   Action: Reboot into single-user mode immediately to clear the flag.
@@ -506,7 +548,8 @@
      daemon:*:1:1::0:0:Owner of many system processes:/root:/usr/sbin/nologin
      alice:$6$...:1001:1001::0:0:Alice:/home/alice:/bin/sh
   WHY: toor is normal only while its hash is *. A real hash means a second root
-       with a password someone set. Lock it or clear the hash with vipw.
+       with a password someone set. Lock it with pw lock toor, or use vipw to
+       set the hash field back to *.
 
   Output of pw groupshow wheel. Brief: alice is the only admin. Tap the finding.
   >> wheel:*:0:root,alice,mallory
@@ -536,8 +579,9 @@
      -rw-r--r--  1 root  wheel  -     /etc/passwd
      -rw-r--r--  1 root  wheel  -     /etc/rc.conf
      -rw-r--r--  1 root  wheel  -     /etc/group
-  WHY: schg on master.passwd makes every password and user change fail silently.
-       chflags noschg /etc/master.passwd (check kern.securelevel first).
+  WHY: schg on master.passwd makes every password and user change fail with
+       Operation not permitted, an error that is easy to misread. chflags noschg
+       /etc/master.passwd (check kern.securelevel first).
 
   Output of sockstat -46l. Brief: no Telnet on this machine. Tap the finding.
      root  sshd   655  4  tcp46  *:22   *:*

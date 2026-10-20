@@ -7,23 +7,30 @@
  read it, explain it. Item IDs match the Lockdown Drills trainer for this OS.
  Unofficial practice; not affiliated with or endorsed by Cisco.
 
- HARDENING AREAS (CIS Critical Security Controls v8)
-   Account management ........ CIS Control 5
-   Access control ............ CIS Control 6
-   Secure configuration ...... CIS Control 4 (software inventory: Control 2)
-   Patching .................. CIS Control 7
-   Malware defenses .......... CIS Control 10
-   Audit logging ............. CIS Control 8
-   Also tagged: Data protection (CIS Control 3); Investigation (forensics
-   basics: answer questions and preserve evidence before you change things).
+ HARDENING AREAS
+   Account management
+   Access control
+   Secure configuration (software inventory included)
+   Patching
+   Malware defenses
+   Audit logging
+   Also tagged: Data protection; Investigation (forensics basics).
+   The six areas and their CIS Controls: Defense Ladder, Sophomore s1.
+     https://freeapp4that.store/defense-ladder/#sophomore/s1
+   Evidence first: answer any investigation question before you change a device.
+   Learn it: Defense Ladder, Freshman f1, How hands-on defense practice works.
+     https://freeapp4that.store/defense-ladder/#freshman/f1
 ================================================================================
 
 ------------------------------ DOORMAN -----------------------------------------
  Lock the doors. Hostname, enable secret, console and VTY logins, idle timeouts,
  password encryption, legal banners, and save. The basics every device needs.
+ Learn it first: Defense Ladder, Sophomore s5, Cisco: configure a switch and a
+ router.
+   https://freeapp4that.store/defense-ladder/#sophomore/s5
 --------------------------------------------------------------------------------
 [B-01] Name the device and lock privileged mode
-  AREA: Access control (CIS Control 6)
+  AREA: Access control
   Router> enable
   Router# configure terminal
   Router(config)# hostname RtrA
@@ -35,7 +42,7 @@
         Type 9 hash, which the Cisco hardening guide recommends.
 
 [B-02] Console and VTY lines: require login, time out idle sessions
-  AREA: Access control (CIS Control 6)
+  AREA: Access control
   RtrA(config)# line console 0
   RtrA(config-line)# password C0nsole-2026!
   RtrA(config-line)# login
@@ -58,14 +65,14 @@
         seconds.
 
 [B-03] Hide passwords in the config
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   RtrA(config)# service password-encryption
   WHY: Encodes line and username passwords (Type 7). Weak, but it beats
        plaintext in show run over someone's shoulder. Use secret wherever a
        command offers it.
 
 [B-04] Legal banners: MOTD and login
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   RtrA(config)# banner motd #Unauthorized access is prohibited and monitored.#
   RtrA(config)# banner login #Authorized users only. Activity is logged.#
   WHY: A legal notice that access is restricted and monitored. Have the wording
@@ -77,7 +84,7 @@
         authentication, so it carries the legal notice too.
 
 [B-05] Save the config
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   RtrA# copy running-config startup-config
   RtrA# write memory
   RtrA# show running-config | include enable|password|hostname|banner|exec-timeout
@@ -87,9 +94,11 @@
  Check the windows. Local user accounts, SSH version 2 only, unneeded services
  off, port security, user VLANs and a hardened trunk, VLAN versus SVI, login
  attack protection, logging, and time.
+ Learn it first: Defense Ladder, Junior j4, Cisco: VLANs, routing, and ACLs.
+   https://freeapp4that.store/defense-ladder/#junior/j4
 --------------------------------------------------------------------------------
 [I-01] Local user accounts and login local
-  AREA: Account management (CIS Control 5)
+  AREA: Account management
   RtrA(config)# username netadmin privilege 15 secret Adm1n-Secret-2026!
   RtrA(config)# line console 0
   RtrA(config-line)# login local
@@ -104,7 +113,7 @@
         secret <password> stores a Type 9 hash instead of Type 5.
 
 [I-02] SSH version 2 only, Telnet gone
-  AREA: Access control (CIS Control 6)
+  AREA: Access control
   RtrA(config)# ip domain-name school.lan
   RtrA(config)# crypto key generate rsa general-keys modulus 2048
   RtrA(config)# ip ssh version 2
@@ -121,7 +130,7 @@
         bits here; SSH version 2 needs at least 768), then ip ssh version 2.
 
 [I-03] Disable unneeded services
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   RtrA(config)# no ip http server
   RtrA(config)# no ip http secure-server
   RtrA(config)# no cdp run
@@ -138,7 +147,7 @@
         needs web management.
 
 [I-04] Switch port security and shut unused ports
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   SwA(config)# interface range fastEthernet 0/5 - 24
   SwA(config-if-range)# shutdown
   SwA(config-if-range)# switchport mode access
@@ -158,7 +167,7 @@
         separate from the native VLAN (99).
 
 [I-05] User VLANs above 1 and a hardened trunk
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   SwA(config)# vlan 10
   SwA(config-vlan)# name STUDENTS
   SwA(config-vlan)# vlan 20
@@ -194,7 +203,7 @@
         trunk; a 2960 speaks 802.1Q only and goes without that line.
 
 [I-06] Login attack protection and minimum password length
-  AREA: Account management (CIS Control 5)
+  AREA: Account management
   RtrA(config)# security passwords min-length 10
   RtrA(config)# login block-for 120 attempts 3 within 60
   RtrA(config)# login on-failure log
@@ -202,7 +211,7 @@
        moment a password is set.
 
 [I-07] Logging and time
-  AREA: Audit logging (CIS Control 8)
+  AREA: Audit logging
   RtrA(config)# service timestamps log datetime msec
   RtrA(config)# logging buffered 16384
   RtrA(config)# logging host 10.1.20.50
@@ -215,7 +224,7 @@
         VLAN. UTC keeps Site A and Site B on one clock.
 
 [I-08] Give the switch an SVI in VLAN 20 (a VLAN and an SVI differ)
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   SwA(config)# interface vlan 20
   SwA(config-if)# ip address 10.1.20.2 255.255.255.0
   SwA(config-if)# no shutdown
@@ -241,14 +250,19 @@
         network keeps it on Teachers so the Teachers-only ACL and the management
         subnet are one and the same. Shutting interface vlan 1 leaves the
         default VLAN devoid of an address.
+  LEARN IT: Defense Ladder, Freshman f7, A VLAN and an SVI.
+            https://freeapp4that.store/defense-ladder/#freshman/f7
 
 ------------------------------ HUNTER ------------------------------------------
  Hunt and harden. A Teachers-only VTY ACL, edge ACLs, interface hardening,
  layer-2 attack defenses, SNMP and AAA, protecting the config itself, auditing a
  config fast, router-on-a-stick, and a host route shared through OSPF.
+ Learn it first: Defense Ladder, Senior se6, Cisco: audit and extend the
+ two-site network.
+   https://freeapp4that.store/defense-ladder/#senior/se6
 --------------------------------------------------------------------------------
 [A-01] Teachers-only VTY access
-  AREA: Access control (CIS Control 6)
+  AREA: Access control
   RtrA(config)# access-list 20 remark TEACHERS-ONLY
   RtrA(config)# access-list 20 permit 10.1.20.0 0.0.0.255
   RtrA(config)# access-list 20 permit 10.2.20.0 0.0.0.255
@@ -269,14 +283,15 @@
        VTY filter needs, and the wildcard mask is the inverse of the subnet
        mask.
   NOTE: Apply it to every VTY range the device lists (show running-config |
-        section line vty): line vty 0 15 on a 2960. A 2911 lists line vty 0 4 by
+        section line vty). A 2960 lists line vty 0 4 and line vty 5 15;
+        line vty 0 15 configures both at once. A 2911 lists line vty 0 4 by
         default, both in Packet Tracer and on real IOS 15; line vty 5 15 appears
         once someone creates it, so the example adds that range with the ACL
         already applied. SSH from a Students PC then ends with % Connection
         refused by remote host.
 
 [A-02] Extended ACL on an interface: allow only what the scenario needs
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   RtrA(config)# ip access-list extended OUTSIDE-IN
   RtrA(config-ext-nacl)# permit tcp any host 203.0.113.2 eq 443
   RtrA(config-ext-nacl)# permit tcp any host 203.0.113.2 eq 80
@@ -303,7 +318,7 @@
         firewall, tracks sessions and does this job more precisely.
 
 [A-03] Interface-level hardening
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   RtrA(config)# interface gigabitEthernet 0/1
   RtrA(config-if)# no ip redirects
   RtrA(config-if)# no ip proxy-arp
@@ -319,7 +334,7 @@
         2911, G0/0, G0/1, and G0/2 all carry traffic.
 
 [A-04] Layer-2 attack defenses
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   SwA(config)# ip dhcp snooping
   SwA(config)# ip dhcp snooping vlan 10
   SwA(config)# interface gigabitEthernet 0/1
@@ -348,7 +363,7 @@
         empty relay address.
 
 [A-05] SNMP and AAA
-  AREA: Access control (CIS Control 6)
+  AREA: Access control
   RtrA(config)# no snmp-server community public
   RtrA(config)# no snmp-server community private
   RtrA(config)# snmp-server group ADMINS v3 priv
@@ -362,7 +377,7 @@
         user first so a way back in always exists.
 
 [A-06] Protect the config itself
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   RtrA(config)# service tcp-keepalives-in
   RtrA(config)# service tcp-keepalives-out
   RtrA(config)# no boot network
@@ -401,7 +416,7 @@
        route to each other's Teachers subnet.
 
 [A-08] Router-on-a-stick with a native subinterface
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   RtrA(config)# interface gigabitEthernet 0/0.10
   RtrA(config-subif)# encapsulation dot1Q 10
   RtrA(config-subif)# ip address 10.1.10.1 255.255.255.0
@@ -428,7 +443,7 @@
         GigabitEthernet0/0/0; the subinterface commands are the same.
 
 [A-09] Host route to 8.8.8.8, shared through OSPF (concept)
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   RtrA(config)# ip route 8.8.8.8 255.255.255.255 203.0.113.1
   RtrA(config)# router ospf 1
   RtrA(config-router)# network 10.0.0.0 0.0.0.3 area 0
@@ -520,11 +535,11 @@
                    works. Keep native 99 on both ends.
 
   Brief: Only Teachers at either site may manage SwA.
-  Action: Copy RtrA's line vty 0 4 / access-class 20 in onto SwA without looking
-          at which VTY ranges SwA lists.
-  Call: CHECK FIRST. SwA's show running-config | section line vty lists line vty
-                     5 15 too, so vty 0 4 alone leaves 11 lines reachable from
-                     every subnet. Apply access-class 20 in to line vty 0 15.
+  Action: Copy RtrA's line vty 0 4 / access-class 20 in onto SwA, whose show
+          running-config lists line vty 0 4 and line vty 5 15.
+  Call: BREAKS IT. vty 0 4 alone leaves lines 5 to 15 reachable from every
+                   subnet, which breaks 'Only Teachers at either site may manage
+                   SwA'. Apply access-class 20 in to line vty 0 15.
 
 ------------------------------ SPOT THE FINDING (output snippets) --------------
   Lines from show running-config. Tap the finding.

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/dGHlHLIa3Mwdh3j+zo9GIL7SHz+143/QjddKHxUq9A=' 'sha256-hiCEYQFo2pohbyIkgbi+F0l+lDyeeXWH+FOtY8mrhNc='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-jkVtay+8lBRjLfHI3Zpmem7vjx3L+KbQo/69OIS2kKU=' 'sha256-s1jXqFmaav8ZBmmswMFeLL0nAlH69xeBC8FztkxuoyI='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Configure a simulated router and switch from their consoles, then prove it from two PCs. Timed missions, from the basics to VLAN trunks, router-on-a-stick, and SSH access for the Teachers VLAN only.">
 <link rel="canonical" href="https://freeapp4that.store/net-drills/ios-cli-lab/">
@@ -80,6 +80,10 @@ h1{font:700 clamp(38px,8vw,60px)/.95 var(--head);letter-spacing:-.01em;margin:0 
 .panel h2{margin:0 0 6px;font:700 24px/1.1 var(--head);display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
 .clock{font:600 14px/1 var(--mono);color:var(--muted)}
 .brief{margin:0;color:var(--muted);font-size:15px}
+.tier{margin:8px 0 0;font-size:14px;color:var(--muted)}
+.tier:empty{display:none}
+.tier b{color:var(--ink)}
+.tier a{color:var(--ink);font-weight:600;text-decoration-color:var(--accent);text-underline-offset:3px}
 .meter{height:6px;background:var(--rule);border-radius:3px;overflow:hidden;margin:14px 0 6px}
 .meter span{display:block;height:100%;width:0;background:var(--accent)}
 details.chk summary{cursor:pointer;font-weight:600;font-size:15px;padding:4px 0}
@@ -175,6 +179,7 @@ footer{margin-top:40px;font-size:13px;color:var(--muted)}
   <section class="panel" aria-labelledby="m-title">
     <h2><span id="m-title">Mission</span><span class="clock" id="m-clock" aria-label="Elapsed time">00:00</span></h2>
     <p class="brief" id="m-brief"></p>
+    <p class="tier" id="m-tier"></p>
     <div id="m-progress">
       <div class="meter" aria-hidden="true"><span id="m-bar"></span></div>
       <details class="chk" id="m-det" open>
@@ -1792,6 +1797,7 @@ class Lab {
       s.w(`[OK] (elapsed time was ${n >= 2048 ? 2 : 1} seconds)\n`);
       if (!had) this.log(node, '%SSH-5-ENABLED: SSH 1.99 has been enabled');
       if (n < 768) s.hint('SSH version 2 needs a modulus of at least 768 bits. Use 2048.');
+      else if (n < 2048) s.hint('Use 2048 bits, the size this course and Lockdown Range expect.');
       this.io.refresh(s.term);
     });
   }
@@ -2057,6 +2063,9 @@ const edgeOK = S => EDGE.every(n => S.ports[n].portfast && S.ports[n].bpduguard)
 const hostRoute = d => d.routes.some(r => r.net === '8.8.8.8' && r.mask === '255.255.255.255' && r.via === '203.0.113.1');
 const ospfOK = d => { const o = d.ospf[1]; return !!o && o.nets.some(x => x.net === '10.1.0.0' && x.wild === '0.0.255.255' && E.areaNum(x.area) === 0) && o.redist.static && o.redist.subnets; };
 const MGMT_NOTE = 'Larger networks give management its own dedicated VLAN; this network keeps it on Teachers so the Teachers-only ACL and the management subnet are one and the same.';
+const NAT_NOTE = "The simulated ISP routes the school's 10.x ranges back; a real provider needs NAT on R1 first.";
+/* Grade tags and Defense Ladder links for the mission panel */
+const DL = 'https://freeapp4that.store/defense-ladder/#';
 
 const M5_INSTR = `
 <p>Site A of the school network needs its router and switch (R1 and S1 here; the other Site A tools call them RtrA and SwA) built from scratch, on the 10.1.x addressing plan that the Site A missions share. Complete every requirement, then press <strong>Check results</strong> to see what percentage of the spec you have met. Values are case-sensitive: on a real device a hostname, VLAN name, or password typed differently is a different value, and anything that checks your work (a peer review, a compliance script, a lab checker) compares it exactly.</p>
@@ -2075,13 +2084,13 @@ const M5_INSTR = `
 <ul><li>Hostnames R1 and S1.</li><li>Enable secret En@ble-S3cret.</li><li>Console password C0nsole-Pa55, enforced.</li><li>Turn off DNS lookup so typos return at once.</li><li>MOTD banner that includes the word Authorized.</li><li>Scramble plaintext passwords (type 7).</li></ul>
 <p>Each password here is a fixed lab value so the checker can compare it. On real devices, give every one of them its own unique passphrase.</p>
 <h3>Part 2: SSH (R1 and S1)</h3>
-<ul><li>Domain name school.lan.</li><li>User netadmin with secret N3tAdmin-2026.</li><li>RSA keys, 2048 bits (1024 or more accepted).</li><li>SSH version 2 only.</li><li>All VTY lines use local usernames and accept SSH only.</li></ul>
+<ul><li>Domain name school.lan.</li><li>User netadmin with secret N3tAdmin-2026.</li><li>RSA keys, 2048 bits.</li><li>SSH version 2 only.</li><li>All VTY lines use local usernames and accept SSH only.</li></ul>
 <h3>Part 3: switch</h3>
 <ul><li>VLAN 10 named STUDENTS, VLAN 20 named TEACHERS, VLAN 99 named NATIVE, and VLAN 999 named PARKING.</li><li>F0/1: access port in VLAN 10. F0/2: access port in VLAN 20.</li><li>F0/3 to F0/24 and G0/2: access ports parked in VLAN 999, shut down.</li><li>G0/1: static trunk, DTP off, native VLAN 99, only VLANs 10, 20, and 99 allowed. The native VLAN carries no hosts, and the parking VLAN stays separate from it.</li><li>VLAN 20 SVI addressed and enabled; VLAN 1 SVI shut down (it starts enabled here); default gateway set.</li><li>F0/1 and F0/2: port security with a maximum of 1 sticky address and violation mode restrict; PortFast and BPDU Guard.</li></ul>
 <h3>Part 4: router</h3>
 <ul><li>G0/0 enabled, without an IP address of its own.</li><li>Subinterfaces per the table, with 802.1Q encapsulation. G0/0.99 takes encapsulation dot1Q 99 native, so R1 and the trunk agree on the untagged VLAN.</li><li>G0/1 per the table, enabled.</li><li>Default route to the ISP.</li><li>DHCP: exclude 10.1.10.1 through 10.1.10.10; pool STUDENTS for 10.1.10.0/24 with default router 10.1.10.1 and DNS server 8.8.8.8.</li></ul>
 <h3>Part 5: verify and save</h3>
-<ul><li>PC1 gets an address by DHCP (ipconfig /renew).</li><li>PC1 can ping 8.8.8.8.</li><li>PC2 (Teachers) reaches S1 by SSH at 10.1.20.2.</li><li>Save both configurations.</li></ul>`;
+<ul><li>PC1 gets an address by DHCP (ipconfig /renew).</li><li>PC1 can ping 8.8.8.8. ${NAT_NOTE}</li><li>PC2 (Teachers) reaches S1 by SSH at 10.1.20.2.</li><li>Save both configurations.</li></ul>`;
 
 const M7_INSTR = `
 <p>Build all of Site A in one pass, from factory defaults: the router and switch (R1 and S1 here; the other Site A tools call them RtrA and SwA) get everything in Branch build plus the Site A additions. Press <strong>Check results</strong> whenever you want a score. Values are case-sensitive, exactly as in Branch build.</p>
@@ -2099,7 +2108,7 @@ const M7_INSTR = `
 </tbody></table>
 <p>${MGMT_NOTE}</p>
 <h3>Part 1: basic settings and SSH (R1 and S1)</h3>
-<ul><li>Hostnames R1 and S1, enable secret En@ble-S3cret, and console password C0nsole-Pa55, enforced.</li><li>DNS lookup off, a MOTD banner that includes the word Authorized, and plaintext passwords scrambled (type 7).</li><li>Domain name school.lan, user netadmin with secret N3tAdmin-2026, RSA keys of 1024 bits or more (2048 recommended), and SSH version 2 only.</li><li>Every VTY line uses local usernames and accepts SSH only.</li></ul>
+<ul><li>Hostnames R1 and S1, enable secret En@ble-S3cret, and console password C0nsole-Pa55, enforced.</li><li>DNS lookup off, a MOTD banner that includes the word Authorized, and plaintext passwords scrambled (type 7).</li><li>Domain name school.lan, user netadmin with secret N3tAdmin-2026, RSA keys of 2048 bits, and SSH version 2 only.</li><li>Every VTY line uses local usernames and accepts SSH only.</li></ul>
 <p>Each password here is a fixed lab value so the checker can compare it. On real devices, give every one of them its own unique passphrase.</p>
 <h3>Part 2: switch</h3>
 <ul><li>VLAN 10 named STUDENTS, VLAN 20 named TEACHERS, VLAN 30 named PRINCIPALS, VLAN 99 named NATIVE, and VLAN 999 named PARKING.</li><li>F0/1: access port in VLAN 10. F0/2: access port in VLAN 20. F0/3 to F0/24 and G0/2: access ports parked in VLAN 999, shut down.</li><li>G0/1: static trunk, DTP off, native VLAN 99, only VLANs 10, 20, 30, and 99 allowed.</li><li>VLAN 20 SVI addressed and enabled; VLAN 1 SVI shut down (it starts enabled here); default gateway set.</li><li>F0/1 and F0/2: port security with a maximum of 1 sticky address and violation mode restrict, plus PortFast and BPDU guard. G0/1 stays free of PortFast.</li></ul>
@@ -2108,7 +2117,7 @@ const M7_INSTR = `
 <h3>Part 4: management access (R1 and S1)</h3>
 <ul><li>Standard ACL 20 permits Teachers at both sites: 10.1.20.0/24 and 10.2.20.0/24.</li><li>access-class 20 in on every VTY line.</li><li>A login banner, shown after the MOTD and before the login prompt.</li></ul>
 <h3>Part 5: verify and save</h3>
-<ul><li>PC1 gets an address by DHCP, pings PC2 at 10.1.20.12, and pings 8.8.8.8.</li><li>PC2 (Teachers) reaches S1 by SSH at 10.1.20.2, and PC1 (Students) is refused.</li><li>Run show interfaces switchport on S1.</li><li>Save both configurations.</li></ul>`;
+<ul><li>PC1 gets an address by DHCP, pings PC2 at 10.1.20.12, and pings 8.8.8.8. ${NAT_NOTE}</li><li>PC2 (Teachers) reaches S1 by SSH at 10.1.20.2, and PC1 (Students) is refused.</li><li>Run show interfaces switchport on S1.</li><li>Save both configurations.</li></ul>`;
 
 /* Branch build (m5) requirements; Site A from scratch (m7) reuses them */
 const M5_TASKS = [
@@ -2120,7 +2129,7 @@ const M5_TASKS = [
   { t: 'R1 service password-encryption', cmd: 'service password-encryption', ok: L => L.r1.dev.spe },
   { t: 'R1 domain school.lan', cmd: 'ip domain-name school.lan', ok: L => L.r1.dev.domainName === 'school.lan' },
   { t: 'R1 user netadmin secret N3tAdmin-2026', cmd: 'username netadmin secret N3tAdmin-2026', ok: L => userOK(L.r1.dev) },
-  { t: 'R1 RSA keys, 1024 bits or more', cmd: 'crypto key generate rsa general-keys modulus 2048', ok: L => L.r1.dev.rsaBits >= 1024 },
+  { t: 'R1 RSA keys, 2048 bits', cmd: 'crypto key generate rsa general-keys modulus 2048', ok: L => L.r1.dev.rsaBits >= 2048 },
   { t: 'R1 SSH version 2', cmd: 'ip ssh version 2', ok: L => L.r1.dev.sshVersion === 2 },
   { t: 'R1 VTY lines login local, SSH only', cmd: 'line vty 0 4\nlogin local\ntransport input ssh', ok: L => vtySsh(L.r1.dev) },
   { t: 'R1 G0/0 enabled, without an IP address', cmd: 'interface g0/0\nno ip address\nno shutdown', ok: L => !L.r1.dev.ifaces[G0].shut && !L.r1.dev.ifaces[G0].ip },
@@ -2140,7 +2149,7 @@ const M5_TASKS = [
   { t: 'S1 service password-encryption', cmd: 'service password-encryption', ok: L => L.s1.dev.spe },
   { t: 'S1 domain school.lan', cmd: 'ip domain-name school.lan', ok: L => L.s1.dev.domainName === 'school.lan' },
   { t: 'S1 user netadmin secret N3tAdmin-2026', cmd: 'username netadmin secret N3tAdmin-2026', ok: L => userOK(L.s1.dev) },
-  { t: 'S1 RSA keys, 1024 bits or more', cmd: 'crypto key generate rsa general-keys modulus 2048', ok: L => L.s1.dev.rsaBits >= 1024 },
+  { t: 'S1 RSA keys, 2048 bits', cmd: 'crypto key generate rsa general-keys modulus 2048', ok: L => L.s1.dev.rsaBits >= 2048 },
   { t: 'S1 SSH version 2', cmd: 'ip ssh version 2', ok: L => L.s1.dev.sshVersion === 2 },
   { t: 'S1 VTY 0 to 15 login local, SSH only', cmd: 'line vty 0 15\nlogin local\ntransport input ssh', ok: L => vtySsh(L.s1.dev) },
   { t: 'S1 VLAN 10 named STUDENTS', cmd: 'vlan 10\nname STUDENTS', ok: L => vlanNamed(L.s1.dev, 10, 'STUDENTS') },
@@ -2160,7 +2169,7 @@ const M5_TASKS = [
   { t: 'S1 PortFast and BPDU Guard on F0/1 and F0/2', cmd: 'interface range f0/1 - 2\nspanning-tree portfast\nspanning-tree bpduguard enable', ok: L => EDGE.every(n => L.s1.dev.ports[n].portfast && L.s1.dev.ports[n].bpduguard) },
   { t: 'S1 configuration saved (after the PC tests: sticky MACs change the running-config)', cmd: 'end\ncopy running-config startup-config', ok: savedS1 },
   { t: 'PC1 received a DHCP address in 10.1.10.0/24', cmd: 'PC1 tab:\nipconfig /renew', ok: L => !!L.ev['dhcp:pc1'] && E.sameNet(L.ev['dhcp:pc1'], '10.1.10.0', '255.255.255.0') },
-  { t: 'PC1 reached 8.8.8.8', cmd: 'PC1 tab:\nping 8.8.8.8', ok: L => !!L.ev['internet:pc1'] },
+  { t: 'PC1 reached 8.8.8.8', cmd: 'PC1 tab:\nping 8.8.8.8\n(' + NAT_NOTE + ')', ok: L => !!L.ev['internet:pc1'] },
   { t: 'PC2 (Teachers) logged in to S1 by SSH at 10.1.20.2', cmd: 'PC2 tab:\nssh -l netadmin 10.1.20.2', ok: L => !!L.ev['ssh:pc2:10.1.20.2'] }
 ];
 
@@ -2178,14 +2187,14 @@ const M6_TASKS = [
   { t: 'PC1 (Students) is refused when it tries SSH to S1', cmd: 'PC1 tab:\nssh -l netadmin 10.1.20.2\n(expect "% Connection refused by remote host": 10.1.10.11 matches no permit entry, so the implicit deny refuses it)', ok: L => !!L.ev['aclRefused:pc1:s1'] },
   { t: 'R1 and S1: a login banner, shown after the MOTD and before the login prompt', cmd: '(enter it on both devices)\nbanner login #Authorized users only. Sign in with your own account.#', ok: L => !!L.r1.dev.bannerLogin && !!L.s1.dev.bannerLogin },
   { t: 'R1: host route to 8.8.8.8 through the ISP at 203.0.113.1', cmd: 'ip route 8.8.8.8 255.255.255.255 203.0.113.1\n(a /32 route matches exactly one address; check it with show ip route 8.8.8.8. OSPF can redistribute this route to Site B, while the default route stays out of redistribute static.)', ok: L => hostRoute(L.r1.dev) },
-  { t: 'PC1 reaches 8.8.8.8', cmd: 'PC1 tab:\nping 8.8.8.8', ok: L => !!L.ev['internet:pc1'] },
+  { t: 'PC1 reaches 8.8.8.8', cmd: 'PC1 tab:\nping 8.8.8.8\n(' + NAT_NOTE + ')', ok: L => !!L.ev['internet:pc1'] },
   { t: 'R1: OSPF process 1 covers Site A and redistributes static routes with subnets', cmd: 'router ospf 1\nnetwork 10.1.0.0 0.0.255.255 area 0\nnetwork 10.0.0.0 0.0.0.3 area 0\nredistribute static subnets\n(configuration only: this lab has a single router, so Site B and the adjacency over G0/2 live in Lockdown Range, level 4. Check it with show ip protocols.)', ok: L => ospfOK(L.r1.dev) },
   { t: 'R1 configuration saved', cmd: 'end\ncopy running-config startup-config', ok: savedR1 },
   { t: 'S1 configuration saved last: sticky MACs from the PC tests change the running-config', cmd: 'end\ncopy running-config startup-config', ok: savedS1 }
 ];
 
 const MISSIONS = [
-  { id: 'm1', name: 'Lock the doors', sub: 'Basics, router', kind: 'list', hintLabel: 'Show command', next: 'Next up: SSH only.',
+  { id: 'm1', name: 'Lock the doors', sub: 'Basics, router', grade: 'Sophomore', learn: [['sophomore/s5', 'Defense Ladder s5, Cisco: configure a switch and a router']], kind: 'list', hintLabel: 'Show command', next: 'Next up: SSH only.',
     brief: 'A factory-fresh router behind a factory-fresh switch. Give R1 a name, lock the console and remote lines, add a legal banner, bring up G0/0, save, then prove it from PC1. Use these exact values: names and passwords are case-sensitive, and the checks compare them character for character.',
     init: () => ({ r1: E.routerFactory(), s1: E.switchFactory(), pcs: PC_STATIC }),
     tasks: [
@@ -2201,7 +2210,7 @@ const MISSIONS = [
       { t: 'Save the configuration', cmd: 'end\ncopy running-config startup-config', ok: savedR1 },
       { t: 'From PC1, Telnet to 192.168.1.1 and log in', cmd: 'PC1 tab:\ntelnet 192.168.1.1', ok: L => !!L.ev['telnetLogin:r1'] }
     ] },
-  { id: 'm2', name: 'SSH only', sub: 'Secure remote access, router', kind: 'list', hintLabel: 'Show command', next: 'Next up: Fix the mess.',
+  { id: 'm2', name: 'SSH only', sub: 'Secure remote access, router', grade: 'Sophomore', learn: [['sophomore/s5', 'Defense Ladder s5, Cisco: configure a switch and a router']], kind: 'list', hintLabel: 'Show command', next: 'Next up: Fix the mess.',
     brief: 'R1 already has the Lock the doors basics: console password C0nsole-Pa55, enable secret En@ble-S3cret. Replace Telnet with SSH for a named admin, add password and brute-force policy, save, then test from PC1.',
     init: () => { const d = m1Final(); return { r1: d, r1Startup: d, s1: E.switchFactory(), pcs: PC_STATIC }; },
     tasks: [
@@ -2209,7 +2218,7 @@ const MISSIONS = [
       { t: 'Block logins for 120 s after 3 failures within 60 s', cmd: 'login block-for 120 attempts 3 within 60', ok: L => { const b = L.r1.dev.blockFor; return !!b && b.sec === 120 && b.attempts === 3 && b.within === 60; } },
       { t: 'Create user netadmin with the secret N3tAdmin-2026', cmd: 'username netadmin secret N3tAdmin-2026', ok: L => userOK(L.r1.dev) },
       { t: 'Set the domain name school.lan', cmd: 'ip domain-name school.lan', ok: L => L.r1.dev.domainName === 'school.lan' },
-      { t: 'Generate RSA keys of at least 1024 bits (2048 recommended)', cmd: 'crypto key generate rsa general-keys modulus 2048', ok: L => L.r1.dev.rsaBits >= 1024 },
+      { t: 'Generate RSA keys of 2048 bits', cmd: 'crypto key generate rsa general-keys modulus 2048', ok: L => L.r1.dev.rsaBits >= 2048 },
       { t: 'Allow SSH version 2 only', cmd: 'ip ssh version 2', ok: L => L.r1.dev.sshVersion === 2 },
       { t: 'VTY lines: local usernames, SSH only', cmd: 'line vty 0 4\nlogin local\ntransport input ssh', ok: L => vtySsh(L.r1.dev) },
       { t: 'Console: log in as a local user', cmd: 'line console 0\nlogin local', ok: L => L.r1.dev.con.login === 'local' },
@@ -2218,7 +2227,7 @@ const MISSIONS = [
       { t: 'From PC1, SSH in as netadmin', cmd: 'PC1 tab:\nssh -l netadmin 192.168.1.1', ok: L => !!L.ev['sshLogin:r1'] },
       { t: 'From PC1, confirm Telnet is refused', cmd: 'PC1 tab:\ntelnet 192.168.1.1', ok: L => !!L.ev['telnetRefused:r1'] }
     ] },
-  { id: 'm3', name: 'Fix the mess', sub: 'Break-fix, router', kind: 'list', hintLabel: 'Show a fix', next: 'Next up: Switch basics.',
+  { id: 'm3', name: 'Fix the mess', sub: 'Break-fix, router', grade: 'Junior', learn: [['junior/j5', 'Defense Ladder j5, Evaluate a configuration'], ['junior/j4', 'j4, Cisco: VLANs, routing, and ACLs']], kind: 'list', hintLabel: 'Show a fix', next: 'Next up: Switch basics.',
     brief: 'Someone set up R1 badly and left a sticky note: the enable password is cisco. Each item below is a symptom. Use show commands to find the cause, then fix it.',
     init: () => { const d = m3Broken(); return { r1: d, r1Startup: d, s1: E.switchFactory(), pcs: PC_STATIC }; },
     tasks: [
@@ -2234,7 +2243,7 @@ const MISSIONS = [
       { t: 'Typos freeze the CLI while it tries DNS', cmd: 'no ip domain-lookup', ok: L => !L.r1.dev.domainLookup },
       { t: 'None of the fixes would survive a reload', cmd: 'end\ncopy running-config startup-config', ok: savedR1 }
     ] },
-  { id: 'm4', name: 'Switch basics', sub: 'Basics, VLAN 20, and SSH, switch', kind: 'list', hintLabel: 'Show command', next: 'Next up: Branch build, a full build from a written spec.',
+  { id: 'm4', name: 'Switch basics', sub: 'Basics, VLAN 20, and SSH, switch', grade: 'Sophomore', learn: [['sophomore/s5', 'Defense Ladder s5, Cisco: configure a switch and a router']], kind: 'list', hintLabel: 'Show command', next: 'Next up: Branch build, a full build from a written spec.',
     brief: `R1 is already done (192.168.1.1 on G0/0, the Lock the doors basics). Now the switch: give S1 an identity and secure it the same way, create VLAN 20 for Teachers and put both PC ports and the G0/1 uplink to R1 in it, move management off VLAN 1 onto a VLAN 20 interface, shut down the VLAN 1 interface (it starts enabled here), close every unused port, and lock the two PC ports. ${MGMT_NOTE}`,
     init: () => { const d = m1Final(); return { r1: d, r1Startup: d, s1: freshSwitch(), pcs: PC_STATIC }; },
     tasks: [
@@ -2242,7 +2251,7 @@ const MISSIONS = [
       { t: 'Protect privileged EXEC with the hashed secret En@ble-S3cret', cmd: 'enable secret En@ble-S3cret', ok: L => secretOK(L.s1.dev) },
       { t: 'Console requires the password C0nsole-Pa55', cmd: 'line console 0\npassword C0nsole-Pa55\nlogin', ok: L => conPwOK(L.s1.dev) },
       { t: 'Create user netadmin with the secret N3tAdmin-2026', cmd: 'username netadmin secret N3tAdmin-2026', ok: L => userOK(L.s1.dev) },
-      { t: 'Domain name school.lan and RSA keys of at least 1024 bits', cmd: 'ip domain-name school.lan\ncrypto key generate rsa general-keys modulus 2048', ok: L => L.s1.dev.domainName === 'school.lan' && L.s1.dev.rsaBits >= 1024 },
+      { t: 'Domain name school.lan and RSA keys of 2048 bits', cmd: 'ip domain-name school.lan\ncrypto key generate rsa general-keys modulus 2048', ok: L => L.s1.dev.domainName === 'school.lan' && L.s1.dev.rsaBits >= 2048 },
       { t: 'Allow SSH version 2 only', cmd: 'ip ssh version 2', ok: L => L.s1.dev.sshVersion === 2 },
       { t: 'All 16 VTY lines: local usernames, SSH only', cmd: 'line vty 0 15\nlogin local\ntransport input ssh', ok: L => vtySsh(L.s1.dev) },
       { t: 'Create VLAN 20 named TEACHERS', cmd: 'vlan 20\nname TEACHERS', ok: L => vlanNamed(L.s1.dev, 20, 'TEACHERS') },
@@ -2255,16 +2264,16 @@ const MISSIONS = [
       { t: 'From PC1, SSH to 192.168.1.2 as netadmin', cmd: 'PC1 tab:\nssh -l netadmin 192.168.1.2', ok: L => !!L.ev['ssh:pc1:192.168.1.2'] },
       { t: 'Save the configuration last: sticky MACs learned by the SSH test change the running-config', cmd: 'end\ncopy running-config startup-config', ok: savedS1 }
     ] },
-  { id: 'm5', name: 'Branch build', sub: 'Written spec, check when ready', kind: 'pt', hintLabel: 'Show a fix', next: 'Next up: Site A, which adds Principals, Teachers-only access, and the route out.',
+  { id: 'm5', name: 'Branch build', sub: 'Written spec, check when ready', grade: 'Junior', learn: [['junior/j4', 'Defense Ladder j4, Cisco: VLANs, routing, and ACLs']], kind: 'pt', hintLabel: 'Show a fix', next: 'Next up: Site A, which adds Principals, Teachers-only access, and the route out.',
     brief: 'Written requirements for Site A on the 10.1.x plan that the later missions share. Press Check results whenever you want a score.',
     init: () => ({ r1: E.routerFactory(), s1: freshSwitch(), pcs: PC_BUILD }),
     instr: M5_INSTR,
     tasks: M5_TASKS },
-  { id: 'm6', name: 'Site A', sub: 'Principals, Teachers-only access, and the route out', kind: 'list', hintLabel: 'Show a hint', next: 'Next up: Site A from scratch, the whole build from a written spec.',
+  { id: 'm6', name: 'Site A', sub: 'Principals, Teachers-only access, and the route out', grade: 'Senior', learn: [['senior/se6', 'Defense Ladder se6, Cisco: audit and extend the two-site network']], kind: 'list', hintLabel: 'Show a hint', next: 'Next up: Site A from scratch, the whole build from a written spec.',
     brief: `Branch build is finished, and R1 and S1 now run Site A of the two-site school network (the other Site A tools call them RtrA and SwA). PC1 sits in Students at 10.1.10.11 and PC2 in Teachers at 10.1.20.12. Add VLAN 30 for Principals, repair a rushed PortFast pass (G0/1 carries PortFast, and the PC ports lack BPDU guard), limit remote management to Teachers, give 8.8.8.8 its own route, and write the OSPF process that shares it with Site B. Each check names an outcome; open a hint when you want the commands. ${MGMT_NOTE}`,
     init: m6Start,
     tasks: M6_TASKS },
-  { id: 'm7', name: 'Site A from scratch', sub: 'Written spec, the whole Site A build', kind: 'pt', hintLabel: 'Show a fix', next: 'Reset and beat your time, or try Free play.',
+  { id: 'm7', name: 'Site A from scratch', sub: 'Written spec, the whole Site A build', grade: 'Senior', learn: [['senior/se6', 'Defense Ladder se6, Cisco: audit and extend the two-site network']], kind: 'pt', hintLabel: 'Show a fix', next: 'Reset and beat your time, or try Free play.',
     brief: 'Written requirements for all of Site A, from factory defaults. Press Check results whenever you want a score.',
     init: () => ({ r1: E.routerFactory(), s1: freshSwitch(), pcs: PC_BUILD }),
     instr: M7_INSTR,
@@ -2415,7 +2424,7 @@ function renderPicker() {
     b.innerHTML = '<span class="t"></span><small></small>';
     b.querySelector('.t').textContent = m.name;
     if (m.tasks.length) { const led = document.createElement('i'); led.className = 'led' + (done[m.id] ? ' ok' : ''); led.style.marginTop = '0'; led.setAttribute('aria-hidden', 'true'); b.querySelector('.t').prepend(led); }
-    b.querySelector('small').textContent = m.sub + (done[m.id] ? ', completed' : '');
+    b.querySelector('small').textContent = m.sub + (m.grade ? ' · ' + m.grade : '') + (done[m.id] ? ', completed' : '');
     b.addEventListener('click', () => { if (m !== cur) loadMission(m.id); });
     p.append(b);
   });
@@ -2434,6 +2443,19 @@ function taskItem(t, label) {
 function renderMission() {
   $('#m-title').textContent = cur.name;
   $('#m-brief').textContent = cur.brief;
+  const tier = $('#m-tier');
+  tier.textContent = '';
+  if (cur.grade) {
+    const b = document.createElement('b');
+    b.textContent = cur.grade;
+    tier.append(b, ' · Learn it: ');
+    cur.learn.forEach(([hash, label], i) => {
+      if (i) tier.append(i === cur.learn.length - 1 ? ' and ' : ', ');
+      const a = document.createElement('a');
+      a.href = DL + hash; a.target = '_blank'; a.rel = 'noopener'; a.textContent = label;
+      tier.append(a);
+    });
+  }
   $('#m-done').hidden = true;
   const isPT = cur.kind === 'pt';
   $('#m-progress').hidden = isPT || !cur.tasks.length;

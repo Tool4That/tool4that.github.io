@@ -93,31 +93,35 @@ Deliberately NOT simulated (the console tells you with a [Range] note):
   prints Translating "shw"... and tries to telnet; the lab always gives
   the ^ marker error so the message you learn is the one that matters.
 - Port-security violations never actually happen (every PC keeps its MAC).
-- NTP never synchronises and syslog servers never answer (the server is
-  not a device in the topology); the checks only read the configuration.
+- NTP and syslog servers sit outside the topology, so NTP stays
+  unsynchronized and syslog messages go undelivered; the checks read the
+  configuration alone.
 
 How progress is measured:
 - Checks: each scenario has 22-27 checks worth 100 points in total. Each
   check belongs to a hardening area (the same areas the Windows and Linux
-  labs use, each tied to a CIS Critical Security Controls v8 control):
-    Account management (CIS Control 5)   - enable secret, local accounts,
-                                           password encryption and length
-    Access control (CIS Control 6)       - console/VTY login, SSH only,
-                                           RSA keys, timeouts, login
-                                           block-for, VTY ACLs, port security
-    Secure configuration (CIS Control 4) - hostname, banner, unneeded
-                                           services, unused ports, VLANs,
-                                           trunks, PortFast and BPDU
-                                           guard, DHCP snooping, CDP,
-                                           routing, saved config
-    Audit logging (CIS Control 8)        - syslog host, timestamps, NTP
-  Patching (CIS Control 7) and Malware defenses (CIS Control 10) have no
-  checks in this lab. Two groups sit outside the six areas:
-  Troubleshooting (restoring a broken path) and Investigation (questions
-  you answer by reading the devices).
-- Availability checks: the "A" in confidentiality, integrity and
+  labs use):
+    Account management   - enable secret, local accounts, password
+                           encryption and length
+    Access control       - console/VTY login, SSH only, RSA keys,
+                           timeouts, login block-for, VTY ACLs, port
+                           security
+    Secure configuration - hostname, banner, unneeded services, unused
+                           ports, VLANs, trunks, PortFast and BPDU guard,
+                           DHCP snooping, CDP, routing, saved config
+    Audit logging        - syslog host, timestamps, NTP
+  Patching and Malware defenses have no checks in this lab. Two groups sit
+  outside the six areas: Troubleshooting (restoring a broken path) and
+  Investigation (questions you answer by reading the devices).
+  The six areas and their CIS Controls: Defense Ladder s1
+  (https://freeapp4that.store/defense-ladder/#sophomore/s1).
+- Grade levels and lessons: Level 1 Recruit is Sophomore, Level 2 Operator
+  is Junior, and Levels 3 Captain and 4 Two sites are Senior. The level
+  pills show the grade, and each Debrief links to the Defense Ladder
+  lessons behind that level (listed under each scenario below).
+- Availability checks: the "A" in confidentiality, integrity, and
   availability. Each Scenario Brief lists what the organization needs
-  (authorized accounts, required links and addresses). Breaking one fails
+  (authorized accounts, required links, and addresses). Breaking one fails
   an availability check, shows it in red and subtracts points until you
   undo the change.
 
@@ -160,6 +164,8 @@ on that device.
 3.1  Level 1 Recruit: Tutoring center
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   Theme: Branch router hardening
+  Grade: Sophomore. Learn it: Defense Ladder > Sophomore > Cisco: configure a
+  switch and a router (https://freeapp4that.store/defense-ladder/#sophomore/s5).
 Scenario Brief summary:
   You are the new network technician at the tutoring center, an after-school
   program with one branch router (R1) and a front-desk PC (PC1). The previous
@@ -186,7 +192,9 @@ Scenario Brief summary:
       only, with Telnet turned off.
     - A message-of-the-day banner warns unauthorized users and leaves out the
       word "welcome".
-    - Idle sessions time out within 10 minutes. Passwords are stored encrypted.
+    - Every console and VTY line sets an exec-timeout shorter than the
+      10-minute default on the line itself (for example, exec-timeout 5 0;
+      0 0 turns the timeout off). Passwords are stored encrypted.
     - Unneeded services are off (HTTP server, DNS lookups). Unused interfaces
       are shut down.
     - Save the configuration when you are done.
@@ -285,10 +293,14 @@ Checks (22, 100 points):
         why: Turns plaintext line and user passwords into type 7, which stops
         shoulder-surfing but is reversible obfuscation, not real encryption:
         secrets still need enable secret / username secret.
-  14. Exec timeout of 10 minutes or less on console and VTY (5 pts) [Access
+  14. Exec timeout shorter than 10 minutes on console and VTY (5 pts) [Access
       control]
         R1(config-line)# exec-timeout 5 0
         why: An idle, logged-in session left open is a free privileged shell.
+        IOS already times out after 10 minutes by default, and show
+        running-config leaves that default out; a shorter value, such as
+        exec-timeout 5 0, shows in the configuration, where a reviewer can see
+        it.
   15. Minimum password length set to 10 or more (3 pts) [Account management]
         R1(config)# security passwords min-length 10
         why: IOS then rejects new passwords and secrets shorter than that; set
@@ -333,6 +345,10 @@ Availability checks (pass while the required items keep working):
 3.2  Level 2 Operator: Branch library
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   Theme: Access switch: VLANs, port security, and SSH
+  Grade: Junior. Learn it: Defense Ladder > Junior > Cisco: VLANs, routing,
+  and ACLs (https://freeapp4that.store/defense-ladder/#junior/j4); and, for port
+  security, Defense Ladder > Sophomore > Cisco: configure a switch and a
+  router (https://freeapp4that.store/defense-ladder/#sophomore/s5).
 Scenario Brief summary:
   You are the network technician for the branch library. The branch has one
   access switch (S1) with two staff PCs and an uplink to the district router R1.
@@ -366,8 +382,10 @@ Scenario Brief summary:
       ports only, so the uplink trunk stays free of it.
     - Enable secret only; passwords 10+ characters; a console password other
       than "cisco"; SSH only, with Telnet turned off; a banner without
-      "welcome"; timeouts within 10 minutes; passwords encrypted; HTTP server
-      and DNS lookups off.
+      "welcome"; an exec-timeout shorter than the 10-minute default on every
+      console and VTY line, set on the line itself (for example, exec-timeout
+      5 0; 0 0 turns the timeout off); passwords encrypted; HTTP server and
+      DNS lookups off.
     - Design note: this older branch layout uses VLAN 99 as both the native VLAN
       and the management VLAN. Level 4 shows the cleaner design: the native VLAN
       (99) carries no hosts, and management moves to a separate VLAN (Teachers,
@@ -435,7 +453,7 @@ Checks (27, 100 points):
   12. Service password-encryption enabled (3 pts) [Account management]
         S1(config)# service password-encryption
         why: Obscures line passwords in show running-config.
-  13. Exec timeout of 10 minutes or less on console and VTY (3 pts) [Access
+  13. Exec timeout shorter than 10 minutes on console and VTY (3 pts) [Access
       control]
         S1(config-line)# exec-timeout 5 0
         why: Closes abandoned sessions.
@@ -539,16 +557,22 @@ Availability checks (pass while the required items keep working):
 3.3  Level 3 Captain: Animal clinic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   Theme: Two switches, trunks, and troubleshooting
+  Grade: Senior. Learn it: Defense Ladder > Junior > Cisco: VLANs, routing,
+  and ACLs (https://freeapp4that.store/defense-ladder/#junior/j4); Defense
+  Ladder > Senior > Cisco: audit and extend the two-site network
+  (https://freeapp4that.store/defense-ladder/#senior/se6); and, for logging,
+  NTP, and CDP, Defense Ladder > Sophomore > Cisco: configure a switch and a
+  router (https://freeapp4that.store/defense-ladder/#sophomore/s5).
 Scenario Brief summary:
   You are the lead technician at the animal clinic. The clinic network is a
   router (R1) doing inter-VLAN routing for two switches: S1 at the front desk
   and S2 in the exam rooms, joined by a trunk. VLAN 10 FRONTDESK (PC1), VLAN 20
   EXAM (PC2), and VLAN 99 MGMT (R1 .1, S1 .2, S2 .3) are in use; the syslog/NTP
   server lives at 192.168.99.50.
-  Since a contractor "upgraded" things last week, PC2 cannot reach PC1 and the
-  front desk cannot SSH to S1. Find and fix the faults, then finish hardening
-  all three devices to policy. Each device has your account; use it on the
-  consoles.
+  Since a contractor "upgraded" things last week, PC2 and PC1 have lost
+  contact, and management traffic fails to reach S1. Find and fix the faults,
+  then finish hardening all three devices to policy. Each device has your
+  account; use it on the consoles.
   Authorized administrators:
     - vetadmin (privilege 15, on R1, S1, and S2) - your account, password
       Cl1nic-Adm1n!
@@ -573,8 +597,10 @@ Scenario Brief summary:
     - DHCP snooping on VLANs 10 and 20 with the trunks trusted.
     - Every device logs to 192.168.99.50 with timestamps and syncs time with NTP
       from 192.168.99.50.
-    - Enable secret only, encrypted passwords, exec-timeout within 10 minutes,
-      login block-for, a MOTD banner, and the HTTP server off.
+    - Enable secret only, encrypted passwords, an exec-timeout shorter than
+      the 10-minute default on every console and VTY line, set on the line
+      itself (for example, exec-timeout 5 0; 0 0 turns the timeout off), login
+      block-for, a MOTD banner, and the HTTP server off.
     - Save all three configurations.
   Warning: Removing vetadmin, breaking the trunks or the management addresses,
   or cutting PC1 off from its gateway fails an availability check.
@@ -644,8 +670,8 @@ Checks (27, 100 points):
         S1(config)# line vty 0 15
         S1(config-line)# access-class 10 in
         why: Only management stations should even see a login prompt.
-   9. Exec timeout within 10 minutes on console and VTY of all devices (4 pts)
-      [Access control]
+   9. Exec timeout shorter than 10 minutes on console and VTY of all devices
+      (4 pts) [Access control]
         (config-line)# exec-timeout 5 0
         why: Idle sessions are unattended privileged shells.
   10. Login block-for configured on all devices (3 pts) [Access control]
@@ -752,6 +778,8 @@ Availability checks (pass while the required items keep working):
 3.4  Level 4 Two sites: Two-site school network
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   Theme: VLANs, router-on-a-stick, OSPF, and SSH across two sites
+  Grade: Senior. Learn it: Defense Ladder > Senior > Cisco: audit and extend
+  the two-site network (https://freeapp4that.store/defense-ladder/#senior/se6).
 Scenario Brief summary:
   The school runs two sites joined by a private inter-site link, and each site
   has its own uplink to the provider. Site A (RtrA and SwA) is finished and

@@ -22,29 +22,32 @@
  Lock the doors. Users, admins, passwords, lockout, firewall, updates, junk
  software, obvious services, the Login Window. Mint is Ubuntu LTS underneath
  (see Version notes), with its own GUI tools on top.
+ Learn it first: Defense Ladder s3, Linux Mint and Ubuntu hardening.
+   https://freeapp4that.store/defense-ladder/#sophomore/s3
 --------------------------------------------------------------------------------
 [B-00] Scenario brief and evidence first
   AREA: Investigation (forensics basics)
   GUI: open the scenario brief (the documented requirements for this machine) and write down authorized users, admins, required services, and anything forbidden
   $ sudo timeshift --create --comments "before hardening"   (practice VMs)
-  WHY: Authorized users, admins and required services decide what is a fix and
-       what breaks the business. Answer the investigation questions before
-       changing anything.
-  NOTE: Unfamiliar is not the same as unauthorized: leave backup and monitoring
-        agents alone until the system owner confirms what they are. Keep a
-        second terminal open as root (sudo -i) before touching PAM, sudoers or
-        SSH so a typo cannot lock you out. Timeshift ships with Mint: a snapshot
-        before you start is a free undo on practice VMs.
+  WHY: Authorized users, admins, and required services decide what is a fix and
+       what breaks the business. Evidence first: answer the investigation
+       questions before any change (Defense Ladder f1).
+  NOTE: Unfamiliar is distinct from unauthorized: trace it and ask before
+        removing an agent (Defense Ladder s1). Keep a second terminal open as
+        root (sudo -i) before touching PAM, sudoers, or SSH, so a typo leaves
+        you a way back in. Timeshift ships with Mint: a snapshot before you
+        start is a free undo on practice VMs.
 
-[B-01] List human users, admins and UID-0 accounts
+[B-01] List human users, admins, and UID-0 accounts
   AREA: Account management (CIS Control 5)
   $ awk -F: '$3>=1000 && $3<65534 {print $1" uid="$3" shell="$7}' /etc/passwd
   $ awk -F: '$3==0 {print $1}' /etc/passwd
-  $ getent group sudo adm wheel docker lxd
+  $ getent group sudo adm wheel docker lxd disk
   GUI: Menu, Administration, Users and Groups.
-  WHY: An extra UID-0 user is a second root. sudo, adm and wheel are admin
-       groups. docker and lxd are root-equivalent because they can mount the
-       host filesystem.
+  WHY: An extra UID-0 user is a second root. sudo is the admin group (wheel on
+       some distributions); docker, lxd, and disk are root-equivalent, since
+       they can mount the host filesystem or read and write raw disks; adm reads
+       logs.
 
 [B-02] Remove or disable an unauthorized user
   AREA: Account management (CIS Control 5)
@@ -72,9 +75,9 @@
   $ sudo passwd -l root
   WHY: An empty shadow field means login with Enter. Locked root forces
        accountable sudo instead of a shared root password.
-  NOTE: Record changed passwords somewhere safe (on paper, in a lab). Do not
-        change the password of the account you sign in with unless the brief
-        says so.
+  NOTE: Record changed passwords somewhere safe (on paper, in a lab). Keep the
+        password of the account you sign in with unless the brief says to change
+        it.
 
 [B-05] Password aging and quality
   AREA: Account management (CIS Control 5)
@@ -84,14 +87,19 @@
   $ sudo chage -M 60 -m 1 -W 7 alice
   $ sudo apt install -y libpam-pwquality
   $ sudo nano /etc/security/pwquality.conf
-      minlen = 12  dcredit = -1  ucredit = -1  lcredit = -1  ocredit = -1  difok = 3  maxrepeat = 3  enforce_for_root
+      minlen = 12  difok = 3  maxrepeat = 3  enforce_for_root
+      dcredit = -1  ucredit = -1  lcredit = -1  ocredit = -1   (only when the brief's policy asks for character classes)
   $ sudo nano /etc/pam.d/common-password
       password  requisite  pam_pwquality.so retry=3        (ensure present)
       ... pam_unix.so ... remember=5                       (add to the pam_unix line)
   WHY: login.defs only affects new users, so chage for existing ones. pwquality
        enforces complexity when a password is changed; remember= blocks reuse.
-  NOTE: pam_pwquality is the quality module on Ubuntu, Mint and Debian alike.
-        Leave obscure in place.
+  NOTE: The scenario brief sets the numbers; these commands show one sample
+        brief. The CIS Benchmark asks for a minlen of 14 or more, a history of
+        24 or more, a maximum age of 365 days or fewer, and a minimum age of 1
+        day or more. Defense Ladder s2 compares the CIS and NIST rulebooks, and
+        s3 applies them on Linux. pam_pwquality is the quality module on Ubuntu,
+        Mint, and Debian alike. Leave obscure in place.
 
 [B-06] Account lockout with pam_faillock
   AREA: Account management (CIS Control 5)
@@ -162,7 +170,8 @@
   WHY: Many acceptable-use policies ban personal media on work machines, and the
        search also surfaces hidden folders in /home and /var/tmp.
   NOTE: Confirm, then rm. Write the path down in case an investigation question
-        needs it.
+        needs it. If a question asks for its hash, run sha256sum <file> first
+        (Defense Ladder s6).
 
 [B-11] Services: what runs, what listens
   AREA: Secure configuration (CIS Control 4)
@@ -196,6 +205,8 @@
  Check the windows. SSH, sudoers, cron and timers, shell persistence,
  permissions and SUID, processes, AppArmor, auditing, apt sources, and hardening
  the services you must keep.
+ Learn it first: Defense Ladder j3, Debian and deeper Linux.
+   https://freeapp4that.store/defense-ladder/#junior/j3
 --------------------------------------------------------------------------------
 [I-01] SSH hardening, only when SSH is required
   AREA: Access control (CIS Control 6)
@@ -209,9 +220,10 @@
   $ sudo find / -name authorized_keys -exec ls -l {} \; -exec cat {} \; 2>/dev/null
   WHY: Root over SSH means no accountability and the prime brute-force target. A
        planted authorized_keys file is a password-less backdoor that survives
-       every password you fix. Check how sshd is started: when ssh.socket owns
-       port 22, a Port change or a disable aimed only at ssh.service does not do
-       what you expect.
+       every password you fix. The && runs the restart only when sshd -t passes,
+       so a config typo leaves the running server in place. Check how sshd is
+       started: when ssh.socket owns port 22, a Port change or a disable aimed
+       only at ssh.service leaves ssh.socket listening on the old port.
   NOTE: Not required: sudo systemctl disable --now ssh.socket ssh.service &&
         sudo apt purge -y openssh-server, then confirm with sudo ss -tlpn that
         nothing holds port 22. Also read /etc/ssh/sshd_config.d/*.conf because
@@ -255,10 +267,13 @@
   $ sudo find / -xdev -type f \( -perm -4000 -o -perm -2000 \) 2>/dev/null
   $ sudo chmod u-s /path/to/evil
   WHY: A readable /etc/shadow means offline cracking. A writable /etc/passwd
-       means make yourself root. SUID on bash, nmap, find or vim is instant root
-       (see GTFOBins).
-  NOTE: Normal SUID set: passwd su sudo mount umount ping chsh chfn gpasswd
-        newgrp pkexec fusermount3 ssh-keysign. Anything else: investigate.
+       means make yourself root. SUID on bash, nmap, find, or vim is instant
+       root (see GTFOBins).
+  NOTE: Common stock SUID files: passwd, su, sudo, mount, umount, chsh, chfn,
+        gpasswd, newgrp, pkexec, fusermount3, ssh-keysign,
+        dbus-daemon-launch-helper, and polkit-agent-helper-1. Stock SGID files
+        include chage, expiry, unix_chkpwd, and crontab. Investigate anything
+        else, and compare with a clean VM of the same release.
 
 [I-06] Hosts file and name resolution
   AREA: Secure configuration (CIS Control 4)
@@ -349,6 +364,8 @@
  Hunt and harden. Kernel and network sysctl, rootkits and tampered packages, the
  immutable-flag trap, PAM internals, forensics tooling, firewall depth, version
  notes.
+ Learn it first: Defense Ladder se1, FreeBSD: Hunting on any Unix.
+   https://freeapp4that.store/defense-ladder/#senior/se1
 --------------------------------------------------------------------------------
 [A-01] Kernel and network hardening with sysctl
   AREA: Secure configuration (CIS Control 4)
@@ -366,7 +383,8 @@
   $ sysctl net.ipv4.ip_forward kernel.randomize_va_space
   WHY: ip_forward=1 turns the host into a pivot; syncookies and rp_filter blunt
        SYN floods and spoofing; ASLR at 2 and suid_dumpable 0 make exploitation
-       harder.
+       harder. sysctl --system loads every file, including /etc/sysctl.d/;
+       sysctl -p reads /etc/sysctl.conf alone.
   NOTE: A bad change can leave ip_forward=1 or randomize_va_space=0 in
         /etc/sysctl.conf or a file in /etc/sysctl.d/. grep for them.
 
@@ -390,9 +408,10 @@
   $ sudo nano /etc/security/limits.conf
       * hard core 0
   $ sudo systemctl mask ctrl-alt-del.target
-  WHY: Attackers set the immutable flag so your useradd, passwd and chage
-       silently fail. It is the number one reason a fix will not stick on a
-       compromised machine.
+  WHY: Attackers set the immutable flag so your useradd, passwd, and chage fail
+       with a misleading error, such as 'useradd: cannot open /etc/passwd' or
+       'Authentication token manipulation error', even as root. It is the most
+       common reason a fix refuses to stick on a compromised machine.
 
 [A-04] PAM deep dive
   AREA: Access control (CIS Control 6)
@@ -447,8 +466,8 @@
 ------------------------------ FIX OR BREAK? (practice cards) ------------------
   Brief: Authorized administrators: alice. Authorized users: bob, carol.
   Action: Run sudo gpasswd -d bob sudo because bob is in the sudo group.
-  Call: FIX. Bob is a user, not an admin. Removing him from sudo is least
-             privilege.
+  Call: FIX. The brief lists bob as a standard user. Removing that account from
+             sudo is least privilege.
 
   Brief: This server hosts the company website with Apache.
   Action: Run sudo apt purge apache2 to remove the web server.
@@ -461,10 +480,9 @@
 
   Brief: Nothing in the brief mentions /opt/backup-agent.
   Action: Delete /opt/backup-agent because it is not a standard package.
-  Call: CHECK FIRST. Unrecognized is not the same as unauthorized. Find what
-                     runs it (a systemd unit, a cron job, the file owner) and
-                     ask the system owner before removing a backup or monitoring
-                     agent.
+  Call: CHECK FIRST. Unrecognized is distinct from unauthorized. Find what runs
+                     it (a systemd unit, a cron job, the file owner) and ask the
+                     system owner before removing a backup or monitoring agent.
 
   Brief: Only alice may log in with SSH; SSH must stay available.
   Action: Run sudo systemctl disable --now ssh.socket ssh.service.
@@ -493,11 +511,12 @@
   Action: Set net.ipv4.ip_forward = 0 and run sudo sysctl --system.
   Call: FIX. Matches the brief and removes a pivot.
 
-  Brief: Your useradd and passwd commands keep failing silently on this machine.
+  Brief: Your useradd and passwd commands keep failing on this machine with
+         confusing errors, even under sudo.
   Action: Reinstall the passwd package.
   Call: CHECK FIRST. Check sudo lsattr /etc/passwd /etc/shadow first. The
-                     immutable flag is the usual cause; reinstalling fixes
-                     nothing.
+                     immutable flag is the usual cause, and a reinstall leaves
+                     it in place.
 
   Brief: Timeshift is used for backups on this workstation.
   Action: Run sudo apt purge timeshift because backups are not a security
@@ -564,8 +583,8 @@
   >> ----i---------e------- /etc/passwd
      --------------e------- /etc/sudoers
      --------------e------- /etc/group
-  WHY: The i flag makes /etc/passwd immutable, so user changes silently fail.
-       sudo chattr -i /etc/passwd.
+  WHY: The i flag makes /etc/passwd immutable, so user changes fail with a
+       misleading error. Clear it with sudo chattr -i /etc/passwd.
 
   Lines from /etc/sysctl.conf. Tap the finding.
      net.ipv4.tcp_syncookies = 1

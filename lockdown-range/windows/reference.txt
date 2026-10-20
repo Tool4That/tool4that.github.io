@@ -3,15 +3,15 @@ LOCKDOWN RANGE: WINDOWS - SOLUTION WALKTHROUGH
 Companion to windows-range.html (Tool4That, Lockdown Range series).
 For instructors and study groups, and for learners AFTER they have tried a
 scenario on their own.
-All names, companies and addresses are fictional practice material.
+All names, companies, and addresses are fictional practice material.
 Unofficial practice; not affiliated with or endorsed by Microsoft.
 
 CONTENTS
   1. What the lab is (and is not)
   2. The routine: power-on to Progress Check
-  3. Scenario 1 - Recruit:  Kaimana Dental Clinic — front desk PC
-  4. Scenario 2 - Operator: Hale Kula Robotics Lab — station 4
-  5. Scenario 3 - Captain:  Makai Logistics — portal server
+  3. Scenario 1 - Recruit:  Brightsmile Dental Clinic — front desk PC
+  4. Scenario 2 - Operator: Harbor Knoll Robotics Lab — station 4
+  5. Scenario 3 - Captain:  Harborline Logistics — portal server
   6. Windows hardening quick reference (GUI paths and commands)
   7. Where the real machine differs from the lab
   8. Sources
@@ -29,14 +29,14 @@ Format of the check lists below:
 Windows Range is a single HTML page that behaves like a small Windows machine
 you have been asked to secure: OEM boot screen, lock screen, sign-in, and a
 Windows 11 (version 26H2) or Windows Server 2025 desktop with taskbar, Start,
-Search and a Run box. The administration tools are faithful subsets of the real
-ones, with the real names, menu paths and control types: Local Users and Groups
+Search, and a Run box. The administration tools are faithful subsets of the real
+ones, with the real names, menu paths, and control types: Local Users and Groups
 (lusrmgr.msc), Local Security Policy (secpol.msc), Local Group Policy Editor
 (gpedit.msc), Services, Task Scheduler, Windows Defender Firewall with Advanced
 Security (wf.msc), Programs and Features (appwiz.cpl), Windows Features
 (optionalfeatures), Settings (Accounts, Windows Update, Remote Desktop,
 Installed apps), Windows Security, the UAC slider, System Properties, File
-Explorer, Notepad and Server Manager. Windows Terminal has Command Prompt and
+Explorer, Notepad, and Server Manager. Windows Terminal has Command Prompt and
 PowerShell tabs with the commands in section 6, including pipes, findstr,
 redirection (> and >>), secedit /export and /configure, and reg query/add for
 the security registry values that hardening guides such as the CIS Benchmarks
@@ -62,50 +62,50 @@ nothing but the checks already passed.
          in the Scenario Brief). If "Do not display last user name" is on, type
          the user name too.
   [ ] 3. Open Scenario Brief.txt on the Desktop. Write down the authorized
-         administrators, users, required services and policy numbers: those must
-         stay available.
-  [ ] 4. Answer the two investigation questions FIRST: open Investigation 1.txt
-         and 2.txt in Notepad, type the answer after "ANSWER:", press Ctrl+S.
-         Reading the machine before changing it preserves the evidence.
-  [ ] 5. Snapshot mentality: read before you change (net user, net localgroup
-         Administrators, services.msc, wf.msc).
-  [ ] 6. Work by hardening area, in the same order every time (see the list
+         administrators, users, required services, and policy numbers: those
+         must stay available.
+  [ ] 4. Evidence first: answer the investigation questions before any change
+         (Defense Ladder f1:
+         https://freeapp4that.store/defense-ladder/#freshman/f1). Open
+         Investigation 1.txt and 2.txt in Notepad, type the answer after
+         "ANSWER:", and press Ctrl+S.
+  [ ] 5. Work by hardening area, in the same order every time (see the list
          below).
-  [ ] 7. Elevate when needed: right-click a tool > Run as administrator, or
+  [ ] 6. Elevate when needed: right-click a tool > Run as administrator, or
          Ctrl+Shift+Enter in Start/Run. Commands that change the machine need an
          administrator window.
-  [ ] 8. Verify each area (net accounts, auditpol /get /category:*, sc query,
+  [ ] 7. Verify each area (net accounts, auditpol /get /category:*, sc query,
          netsh advfirewall show allprofiles).
-  [ ] 9. Install updates and restart when Windows asks; sign in again and
+  [ ] 8. Install updates and restart when Windows asks; sign in again and
          confirm the progress is still there.
-  [ ] 10. Finish / Debrief: read every miss and its fix. Reset lab and run it
+  [ ] 9. Finish / Debrief: read every miss and its fix. Reset lab and run it
          again faster.
 
-Hardening areas (aligned with the CIS Critical Security Controls v8):
-  - Account management (CIS Control 5): who has an account, passwords, expiry,
-    history
-  - Access control (CIS Control 6): who is an administrator, lockout, sign-in
-    and UAC settings, NLA
-  - Secure configuration (CIS Controls 4 and 2): services, firewall, features,
-    remote access, unauthorized software
-  - Patching (CIS Control 7): Windows Update
-  - Malware defenses (CIS Control 10): Defender, planted services and scheduled
-    tasks
-  - Audit logging (CIS Control 8): audit policy
-  - Data protection (CIS Control 3): prohibited media files
+Hardening areas (the Operator Progress Check counts what remains in each one,
+and every check below names its area). The areas and their CIS Controls: Defense
+Ladder s1 (https://freeapp4that.store/defense-ladder/#sophomore/s1).
+  - Account management: who has an account, passwords, expiry, history
+  - Access control: who is an administrator, lockout, sign-in and UAC settings,
+    and NLA
+  - Secure configuration: services, firewall, features, remote access,
+    unauthorized software
+  - Patching: Windows Update
+  - Malware defenses: Defender, planted services, and scheduled tasks
+  - Audit logging: audit policy
+  - Data protection: prohibited media files
   - Investigation: the two questions on the Desktop (forensics basics).
 
 --------------------------------------------------------------------------------
-3. SCENARIO 1 - RECRUIT: KAIMANA DENTAL CLINIC — FRONT DESK PC
+3. SCENARIO 1 - RECRUIT: BRIGHTSMILE DENTAL CLINIC — FRONT DESK PC
 --------------------------------------------------------------------------------
-Sign-in  labuser / Easy!2026        Host  KAIMANA-FD1
+Sign-in  labuser / Easy!2026        Host  BRIGHT-FD1
 System   Windows 11 Pro, version 26H2, build 26300.9550
 
 Scenario Brief summary
-  Kaimana Dental Clinic, a two-dentist practice in Kailua. This Windows 11 PC
-  sits at the front desk and runs the appointment book. The office manager
-  (nalani) is the only other administrator. A temp receptionist used it over the
-  summer and the dentists suspect "helpful" changes were made.
+  Brightsmile Dental Clinic, a two-dentist practice. This Windows 11 PC sits at
+  the front desk and runs the appointment book. The office manager (nalani) is
+  the only other administrator. A temp receptionist used it over the summer and
+  the dentists suspect "helpful" changes were made.
   Authorized administrators: labuser (you) - password: Easy!2026; nalani
   Authorized users: kekoa, ailani, moana, leilani
   Required services and settings:
@@ -117,11 +117,14 @@ Scenario Brief summary
     - Only the two Authorized Administrators may be in the Administrators group.
     - The Guest account must be disabled.
     - Passwords must be at least 10 characters, complex, and expire regularly;
-      no account may have "Password never expires".
-    - Account lockout must be configured.
+      "Password never expires" must be cleared on every account.
+    - Account lockout must be configured: lock an account after 10 or fewer
+      failed attempts, for 15 minutes or more.
     - Sign-in attempts must be audited.
-    - No media files (music, video) and no unauthorized software (file-sharing
-      clients, games, network scanners).
+    - Remove media files (music and video) and unauthorized software
+      (file-sharing clients, games, and network scanners).
+    - Remove anything an intruder planted: unknown accounts, scheduled tasks,
+      and services that run from user folders.
 
 Investigation questions
   Q1  A scheduled task on this PC runs a batch file from C:\Users\Public. What
@@ -136,7 +139,7 @@ Investigation questions
        Properties)
 
 Checks (100 points)
-  [7]  Unauthorized user "dwight" removed
+  [6]  Unauthorized user "dwight" removed
        area: Account management
        fix: lusrmgr.msc > Users > dwight > Delete
        or:  net user dwight /delete
@@ -153,7 +156,7 @@ Checks (100 points)
        or:  net localgroup Administrators moana /delete
        why: Administrators can undo every other fix; only the administrators
             named in the Scenario Brief belong there (least privilege).
-  [6]  Guest account disabled
+  [5]  Guest account disabled
        area: Account management
        fix: lusrmgr.msc > Guest > Properties > check "Account is disabled"
        or:  net user Guest /active:no
@@ -176,13 +179,16 @@ Checks (100 points)
             Notepad, then secedit /configure /db C:\Windows\security\local.sdb
             /cfg C:\sec.inf
        why: Complexity blocks "password1" and the user's own name.
-  [6]  Account lockout threshold set (1 to 10 attempts)
+  [6]  Account lockout after 1 to 10 failed attempts, with a lockout duration of
+       15 minutes or more
        area: Access control
        fix: secpol.msc > Account Lockout Policy > threshold 5, duration 30,
             reset 30
        or:  net accounts /lockoutthreshold:5 /lockoutduration:30
             /lockoutwindow:30
-       why: Lockout turns a million guesses into five.
+       why: Lockout turns a million guesses into five. A duration of 0 also
+            passes: it keeps the account locked until an administrator unlocks
+            it.
   [5]  Audit logon events audited for Success and Failure
        area: Audit logging
        fix: secpol.msc > Audit Policy > Audit logon events = Success, Failure
@@ -220,18 +226,27 @@ Checks (100 points)
        or:  schtasks /delete /tn "SystemUpdaterSvc" /f
        why: A task that runs a .bat from a public folder re-infects the machine
             on schedule.
-  [6]  Unauthorized software removed (TorrentBolt 3.1, GameLoop Arcade,
+  [4]  Rogue service "Windows System Helper" (WinSysHelper) disabled or removed
+       area: Malware defenses
+       fix: services.msc > "Windows System Helper" > Stop, Startup type =
+            Disabled
+       or:  sc stop WinSysHelper && sc delete WinSysHelper
+       why: A homemade service running from a user folder is persistence for an
+            intruder.
+  [5]  Unauthorized software removed (TorrentBolt 3.1, GameLoop Arcade,
        PortProbe Toolkit)
        area: Secure configuration
        fix: Settings > Apps > Installed apps > ... > Uninstall (each):
             TorrentBolt 3.1, GameLoop Arcade, PortProbe Toolkit
        or:  appwiz.cpl
-       why: File-sharing clients, miners and scanners are banned by policy and
+       why: File-sharing clients, miners, and scanners are banned by policy and
             often carry malware.
-  [6]  Prohibited media files removed from user folders
+  [5]  Prohibited media files removed from user folders
        area: Data protection
-       fix: File Explorer > C:\Users\<user>\Music, Videos > Delete
-       or:  del /s C:\Users\*.mp3 C:\Users\*.mp4
+       fix: File Explorer > C:\Users\<user>\Music, Videos, Downloads > Delete
+       or:  del /s /a C:\Users\*.mp3 C:\Users\*.m4a C:\Users\*.wav
+            C:\Users\*.flac C:\Users\*.mp4 C:\Users\*.mkv C:\Users\*.avi
+            C:\Users\*.mov
        why: Policy bans media; it is also where pirated and malicious files
             hide.
   [5]  Investigation 1 answered
@@ -242,19 +257,19 @@ Checks (100 points)
 Availability checks (points lost if you break what the business needs)
   -6  Authorized user removed or disabled
   -5  Authorized administrator removed from Administrators
-  -10  Your own account deleted, disabled or locked out
+  -10  Your own account deleted, disabled, or locked out
   -5  Required service "Windows Defender Firewall" stopped or disabled
   -5  Required service "Microsoft Defender Antivirus" stopped or disabled
   -5  Windows Update service disabled
 
 --------------------------------------------------------------------------------
-4. SCENARIO 2 - OPERATOR: HALE KULA ROBOTICS LAB — STATION 4
+4. SCENARIO 2 - OPERATOR: HARBOR KNOLL ROBOTICS LAB — STATION 4
 --------------------------------------------------------------------------------
 Sign-in  labuser / Medium!2026        Host  HKROBOTICS-04
 System   Windows 11 Pro, version 26H2, build 26300.9550
 
 Scenario Brief summary
-  Hale Kula High School robotics lab, shared workstation #4. Students sign in
+  Harbor Knoll High School robotics lab, shared workstation #4. Students sign in
   with their own accounts to program the team robots. The coach (coachk)
   maintains the lab PCs. Someone installed "helper" software, a student account
   seems to have become an administrator, and the PC has been slow and noisy at
@@ -268,13 +283,14 @@ Scenario Brief summary
   Security policy:
     - Only the Authorized Administrators may be in the Administrators group.
     - Guest must be disabled; every account must have a password of at least 10
-      characters, complex, with history and expiry.
-    - Account lockout and auditing of logons and account changes are required.
-    - The last signed-in user must not be shown and CTRL+ALT+DEL must be
-      required.
-    - User Account Control must not be turned off.
-    - SMB 1.0 and the Telnet client are not allowed. No media files, no
-      unauthorized software (file sharing, miners, scanners, games).
+      characters, complex, with a history of 5 or more, a maximum age of 30 to
+      90 days, and a minimum age of 1 day or more.
+    - Account lockout (after 10 or fewer failed attempts, for 15 minutes or
+      more) and auditing of logons and account changes are required.
+    - The last signed-in user name stays hidden, and CTRL+ALT+DEL is required.
+    - User Account Control stays on.
+    - SMB 1.0 and the Telnet client stay off. Remove media files and
+      unauthorized software (file sharing, miners, scanners, and games).
 
 Investigation questions
   Q1  One student account (not a built-in account) was set up so that it does
@@ -286,8 +302,10 @@ Investigation questions
   Q2  An inbound firewall rule was added that is not part of Windows. What TCP
       port does it allow?
       ANSWER: 4444
-      (Hint: wf.msc > Inbound Rules (sort by Group), or: netsh advfirewall
-       firewall show rule name=all | findstr /i helper)
+      (Hint: wf.msc > Inbound Rules, sort by Group, and open the rule whose
+       Group sits outside the Windows set (Core Networking, File and Printer
+       Sharing, and the like), or: netsh advfirewall firewall show rule
+       name="Remote Helper (TCP-In)" and read the LocalPort line.)
 
 Checks (100 points)
   [6]  Unauthorized user "svc_backup" removed
@@ -331,24 +349,28 @@ Checks (100 points)
        fix: secpol.msc > Password Policy > Enforce password history = 5
        or:  net accounts /uniquepw:5
        why: Stops toggling between two favourite passwords.
-  [2]  Maximum password age between 30 and 90 days
+  [2]  Maximum password age is between 30 and 90 days
        area: Account management
        fix: secpol.msc > Password Policy > Maximum password age = 60
        or:  net accounts /maxpwage:60
        why: 0 means passwords never expire.
-  [2]  Minimum password age of 1 day or more
+  [2]  Minimum password age is 1 day or more
        area: Account management
        fix: secpol.msc > Password Policy > Minimum password age = 1
        or:  net accounts /minpwage:1
-       why: Without it users cycle through history in seconds to reuse an old
-            password.
-  [4]  Account lockout threshold set (1 to 10 attempts)
+       why: Without it, users cycle through the history in seconds to reuse an
+            old password. When a maximum age is set, the minimum must be lower
+            than it.
+  [4]  Account lockout after 1 to 10 failed attempts, with a lockout duration of
+       15 minutes or more
        area: Access control
        fix: secpol.msc > Account Lockout Policy > threshold 5, duration 30,
             reset 30
        or:  net accounts /lockoutthreshold:5 /lockoutduration:30
             /lockoutwindow:30
-       why: Lockout turns a million guesses into five.
+       why: Lockout turns a million guesses into five. A duration of 0 also
+            passes: it keeps the account locked until an administrator unlocks
+            it.
   [3]  Audit logon events audited for Success and Failure
        area: Audit logging
        fix: secpol.msc > Audit Policy > Audit logon events = Success, Failure
@@ -378,7 +400,7 @@ Checks (100 points)
             HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v
             DisableCAD /t REG_DWORD /d 0 /f
        why: The secure attention sequence defeats fake login screens.
-  [3]  User Account Control set to notify (not "Never notify")
+  [3]  UAC at the default level or higher (prompts on the secure desktop)
        area: Access control
        fix: Control Panel > User Accounts > Change User Account Control settings
             > default or "Always notify"
@@ -442,12 +464,14 @@ Checks (100 points)
        fix: Settings > Apps > Installed apps > ... > Uninstall (each):
             CoinSweeper Miner, TorrentBolt 3.1, PortProbe Toolkit, ArcadeLoop
        or:  appwiz.cpl
-       why: File-sharing clients, miners and scanners are banned by policy and
+       why: File-sharing clients, miners, and scanners are banned by policy and
             often carry malware.
   [4]  Prohibited media files removed from user folders
        area: Data protection
-       fix: File Explorer > C:\Users\<user>\Music, Videos > Delete
-       or:  del /s C:\Users\*.mp3 C:\Users\*.mp4
+       fix: File Explorer > C:\Users\<user>\Music, Videos, Downloads > Delete
+       or:  del /s /a C:\Users\*.mp3 C:\Users\*.m4a C:\Users\*.wav
+            C:\Users\*.flac C:\Users\*.mp4 C:\Users\*.mkv C:\Users\*.avi
+            C:\Users\*.mov
        why: Policy bans media; it is also where pirated and malicious files
             hide.
   [4]  Planted scheduled task "DriverCleanupSvc" removed or disabled
@@ -464,19 +488,19 @@ Checks (100 points)
 Availability checks (points lost if you break what the business needs)
   -6  Authorized user removed or disabled
   -5  Authorized administrator removed from Administrators
-  -10  Your own account deleted, disabled or locked out
+  -10  Your own account deleted, disabled, or locked out
   -5  Required service "Windows Defender Firewall" stopped or disabled
   -5  Required service "Microsoft Defender Antivirus" stopped or disabled
   -5  Windows Update service disabled
 
 --------------------------------------------------------------------------------
-5. SCENARIO 3 - CAPTAIN: MAKAI LOGISTICS — PORTAL SERVER
+5. SCENARIO 3 - CAPTAIN: HARBORLINE LOGISTICS — PORTAL SERVER
 --------------------------------------------------------------------------------
-Sign-in  labuser / Hard!2026        Host  MAKAI-SRV1
+Sign-in  labuser / Hard!2026        Host  HARBOR-SRV1
 System   Windows Server 2025 Standard, version 24H2, build 26100.33296
 
 Scenario Brief summary
-  Makai Logistics, a freight forwarder with a small office on Sand Island. This
+  Harborline Logistics, a freight forwarder with a small harbor office. This
   Windows Server 2025 machine hosts the internal web portal (IIS) and the HR and
   Ops file shares. Administrators manage it over Remote Desktop from the office
   LAN. The previous administrator left in a hurry and the owner wants the server
@@ -489,17 +513,18 @@ Scenario Brief summary
       reachable through the firewall.
     - The IIS web portal (World Wide Web Publishing Service) must stay running
       and allowed on port 80.
-    - FTP is NOT authorized on this server; neither is SMB 1.0 or the Telnet
-      client.
-    - Windows Update, Microsoft Defender and the firewall must stay on.
+    - FTP, SMB 1.0, and the Telnet client stay off this server.
+    - Windows Update, Microsoft Defender, and the firewall must stay on.
   Security policy:
     - Only the Authorized Administrators may be in the Administrators group.
     - Guest must be disabled. Passwords: at least 12 characters, complex, 5
-      remembered, expiring within 90 days; no "Password never expires".
-    - Account lockout, logon auditing and account-management auditing are
-      required.
-    - NTLMv2 only; the last signed-in user must not be shown; UAC must stay on.
-    - No unauthorized software or scheduled jobs.
+      remembered, a maximum age of 30 to 90 days, and a minimum age of 1 day or
+      more; "Password never expires" cleared on every account.
+    - Account lockout (after 10 or fewer failed attempts, for 15 minutes or
+      more), logon auditing, and account-management auditing are required.
+    - NTLMv2 only (LAN Manager authentication level 5); the last signed-in user
+      name stays hidden; UAC stays on.
+    - Remove unauthorized software and unauthorized scheduled jobs.
 
 Investigation questions
   Q1  Which account is a member of the Administrators group but is NOT listed in
@@ -529,7 +554,7 @@ Checks (100 points)
        fix: lusrmgr.msc > Guest > Properties > check "Account is disabled"
        or:  net user Guest /active:no
        why: Guest is an anonymous login with no password.
-  [4]  Minimum password length is 10 or more
+  [4]  Minimum password length is 12 or more
        area: Account management
        fix: secpol.msc > Password Policy > Minimum password length = 12
        or:  net accounts /minpwlen:12
@@ -547,24 +572,28 @@ Checks (100 points)
        fix: secpol.msc > Password Policy > Enforce password history = 5
        or:  net accounts /uniquepw:5
        why: Stops toggling between two favourite passwords.
-  [3]  Maximum password age between 30 and 90 days
+  [3]  Maximum password age is between 30 and 90 days
        area: Account management
        fix: secpol.msc > Password Policy > Maximum password age = 60
        or:  net accounts /maxpwage:60
        why: 0 means passwords never expire.
-  [2]  Minimum password age of 1 day or more
+  [2]  Minimum password age is 1 day or more
        area: Account management
        fix: secpol.msc > Password Policy > Minimum password age = 1
        or:  net accounts /minpwage:1
-       why: Without it users cycle through history in seconds to reuse an old
-            password.
-  [5]  Account lockout threshold set (1 to 10 attempts)
+       why: Without it, users cycle through the history in seconds to reuse an
+            old password. When a maximum age is set, the minimum must be lower
+            than it.
+  [5]  Account lockout after 1 to 10 failed attempts, with a lockout duration of
+       15 minutes or more
        area: Access control
        fix: secpol.msc > Account Lockout Policy > threshold 5, duration 30,
             reset 30
        or:  net accounts /lockoutthreshold:5 /lockoutduration:30
             /lockoutwindow:30
-       why: Lockout turns a million guesses into five.
+       why: Lockout turns a million guesses into five. A duration of 0 also
+            passes: it keeps the account locked until an administrator unlocks
+            it.
   [3]  Audit logon events audited for Success and Failure
        area: Audit logging
        fix: secpol.msc > Audit Policy > Audit logon events = Success, Failure
@@ -586,7 +615,7 @@ Checks (100 points)
             HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v
             DontDisplayLastUserName /t REG_DWORD /d 1 /f
        why: Showing the last user hands an attacker half of the credentials.
-  [3]  LAN Manager authentication level set to NTLMv2 only
+  [3]  LAN Manager authentication level set to NTLMv2 only (level 5)
        area: Access control
        fix: secpol.msc > Security Options > "Network security: LAN Manager
             authentication level" = Send NTLMv2 response only. Refuse LM & NTLM
@@ -596,7 +625,7 @@ Checks (100 points)
             there and hardening baselines still require level 5: a lower value
             is a deliberate downgrade to undo, and on older systems the same
             policy reaches, LM and NTLMv1 responses crack in seconds.
-  [3]  User Account Control set to notify (not "Never notify")
+  [3]  UAC at the default level or higher (prompts on the secure desktop)
        area: Access control
        fix: Control Panel > User Accounts > Change User Account Control settings
             > default or "Always notify"
@@ -664,7 +693,7 @@ Checks (100 points)
        or:  schtasks /delete /tn "IISLogCleaner" /f
        why: A task that runs a .bat from a public folder re-infects the machine
             on schedule.
-  [3]  Rogue service "Server Health Monitor" disabled or removed
+  [3]  Rogue service "Server Health Monitor" (SrvHealthMon) disabled or removed
        area: Malware defenses
        fix: services.msc > "Server Health Monitor" > Stop, Startup type =
             Disabled
@@ -676,7 +705,7 @@ Checks (100 points)
        fix: Settings > Apps > Installed apps > ... > Uninstall (each): PortProbe
             Toolkit, TorrentBolt 3.1
        or:  appwiz.cpl
-       why: File-sharing clients, miners and scanners are banned by policy and
+       why: File-sharing clients, miners, and scanners are banned by policy and
             often carry malware.
   [5]  Investigation 1 answered
        fix: Answer: backup_admin
@@ -686,7 +715,7 @@ Checks (100 points)
 Availability checks (points lost if you break what the business needs)
   -8  Authorized user removed or disabled
   -6  Authorized administrator removed from Administrators
-  -10  Your own account deleted, disabled or locked out
+  -10  Your own account deleted, disabled, or locked out
   -10  Remote Desktop disabled on a server that requires it
   -10  Web server (IIS) stopped, removed, or blocked by the firewall
   -5  Required service "Windows Defender Firewall" stopped or disabled
@@ -763,10 +792,13 @@ Firewall, Defender, features
               (SMB1Protocol, IIS-FTPServer the same way)
 
 Files
-  dir C:\Users\*.mp3 /s /b         find media files
-  del /s C:\Users\*.mp3 C:\Users\*.mp4
+  Find media in every profile, Downloads included (PowerShell): Get-ChildItem
+    C:\Users -Recurse -Force -Include
+    *.mp3,*.m4a,*.wav,*.flac,*.mp4,*.mkv,*.avi,*.mov -ErrorAction
+    SilentlyContinue
+  Delete them with one pattern per extension found (/a includes hidden files):
+    del /s /a C:\Users\*.mp3 C:\Users\*.m4a C:\Users\*.mp4 C:\Users\*.mkv
   File Explorer: View > Show > Hidden items to see hidden folders
-  PowerShell: Get-ChildItem C:\Users -Recurse -Include *.mp3,*.mp4 -Force
 
 --------------------------------------------------------------------------------
 7. WHERE THE REAL MACHINE DIFFERS
@@ -777,8 +809,9 @@ Files
   - UAC prompts on a real machine appear for every elevation; the lab asks once
     per sign-in.
   - Windows+R cannot be captured by a web page: use Alt+R or the Run tile.
-  - Registry Editor, Event Viewer, Task Manager and most third-party programs
-    are not simulated. reg.exe covers only the values listed in section 6.
+  - Registry Editor, Event Viewer, Task Manager, and most third-party programs
+    sit outside the simulation. reg.exe covers only the values listed in section
+    6.
   - Compliance scanners and Group Policy read the same settings the lab checks,
     but some changes only take effect after a policy refresh (gpupdate /force)
     or a restart.
@@ -789,7 +822,7 @@ Files
   - Version notes (Windows 11 version 26H2, Windows Server 2025): WMIC is
     removed from Windows 11, so use PowerShell instead (Get-CimInstance,
     Get-HotFix, Get-LocalUser, Get-Service); Windows PowerShell 2.0, Microsoft
-    Defender Application Guard and NTLMv1 are removed; new installs of Windows
+    Defender Application Guard, and NTLMv1 are removed; new installs of Windows
     11 22H2 and later lock an account after 10 failed sign-ins for 10 minutes by
     default.
 

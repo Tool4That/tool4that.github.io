@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-nmgopvmqEVMT/TfvFMJhNOSGz6pB4nlTDRdCE+WHrE8='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-vdtWhFH6IXxNKr/FifNCkDbEg/bXIzr8R5POxAlivFM='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Flag every risky line in a running-config, choose the best fix, and name the protections that are missing entirely. Four configs, including a Site B switch and router.">
 <link rel="canonical" href="https://freeapp4that.store/net-drills/config-audit/">
@@ -121,6 +121,9 @@ button.ln:hover{background:color-mix(in srgb,var(--accent) 9%,transparent)}
 .summary{border-left:4px solid var(--accent);padding:10px 14px;background:var(--face);border-radius:0 8px 8px 0;margin:0 0 20px}
 .summary h2{margin:0 0 4px;font:700 22px/1.15 var(--head)}
 .summary p{margin:0 0 8px}
+.learn{margin:0 0 8px;font-size:14px}
+.learn a,.summary a,.miss .why a{color:var(--accent);font-weight:600;text-underline-offset:3px}
+.miss .cov{margin:4px 0 0 29px;font-size:14px;color:var(--muted)}
 footer{margin-top:40px;font-size:13px;color:var(--muted)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 </style>
@@ -221,8 +224,8 @@ const ACL20 = {
 
 const SCEN = {
   r1: {
-    name: 'R1 edge router', sub: '11 problems to find', head: ['R1#show running-config', 'IOS 15.1, 2911-style router'],
-    intro: 'R1 connects the office LAN (G0/0) to the internet (G0/1). The last admin left in a hurry. Tap any line you think is a problem.',
+    name: 'R1 edge router', sub: '12 problems to find', grade: 'Sophomore', head: ['R1#show running-config', 'IOS 15.1, 2911-style router'],
+    intro: 'R1 connects the office LAN (G0/0) to the internet (G0/1). Besides the console and VTY lines, a router has an AUX (auxiliary) port: a second console-style line, configured under line aux 0 and often wired to a modem. The last admin left in a hurry. Tap any line you think is a problem.',
     lines: [
       '!', 'version 15.1',
       ['no service timestamps log datetime msec', 'ts'], ['no service timestamps debug datetime msec', 'ts'],
@@ -237,7 +240,7 @@ const SCEN = {
       ['snmp-server community public RW', 'snmp'], '!',
       ['banner motd ^CWelcome to R1! Come on in.^C', 'banner'], '!',
       'line con 0', [' exec-timeout 0 0', 'timeout'], [' password cisco', 'conlogin'], '!',
-      'line aux 0', '!',
+      ['line aux 0', 'aux'], '!',
       'line vty 0 4', ' login local', [' transport input telnet', 'telnet'],
       'line vty 5 15', [' no login', 'nologin'], '!', 'end'
     ],
@@ -272,6 +275,10 @@ const SCEN = {
         why: 'Without the login command the line password is ignored, so anyone at the console port gets straight in.',
         opts: ['login', 'password Str0ng-Console', 'transport input none'],
         note: 'Add login under line con 0, and pick a stronger password than cisco while you are there.', clue: 'Under line con 0, is the password actually enforced?' },
+      aux: { sev: 'Medium', title: 'The AUX port opens a CLI session for anyone',
+        why: 'The AUX (auxiliary) port is a second console-style port, often wired to a modem. An empty line aux 0 accepts a session on it without a password, so anyone who plugs a cable or a modem into it reaches the CLI.',
+        opts: ['line aux 0\nno exec', 'line aux 0\npassword cisco', 'line aux 0\ntransport input none'],
+        note: 'no exec stops the port from starting a CLI session, the simple fix for an idle port. If an admin does dial in through it, use login local and exec-timeout 5 0 under line aux 0 instead. A password line without login is ignored, and transport input none stops only connections that arrive over the network, so a cable on the port still reaches a prompt.', clue: 'Below the console line: which other line stands empty?' },
       telnet: TELNET,
       nologin: { sev: 'High', title: 'VTY lines 5 to 15 need no login at all',
         why: 'Lines 0 to 4 are set up, but 5 to 15 accept remote sessions with no authentication. An attacker just opens a sixth session.',
@@ -288,8 +295,8 @@ const SCEN = {
     ]
   },
   s1: {
-    name: 'S1 access switch', sub: '9 problems to find', head: ['S1#show running-config', 'IOS 15.0, 2960-style switch'],
-    intro: 'S1 connects Students PCs (VLAN 10) and uplinks to the core on G0/1. It looks tidier than R1, but Layer 2 has its own traps.',
+    name: 'S1 access switch', sub: '9 problems to find', grade: 'Junior', head: ['S1#show running-config', 'IOS 15.0, 2960-style switch'],
+    intro: 'S1 connects Students PCs (VLAN 10) and uplinks to the core on G0/1. The network design puts switch management on VLAN 20 (Teachers): 192.168.20.0/24, with the router at 192.168.20.1 as the gateway. S1 looks tidier than R1, but Layer 2 has its own traps.',
     lines: [
       '!', 'version 15.0', 'no service pad', 'service timestamps debug datetime msec', 'service timestamps log datetime msec',
       'service password-encryption', '!', 'hostname S1', '!', 'enable secret 5 $1$mERr$9cTjUIEqNGurQiFU.ZeCi1', '!',
@@ -345,8 +352,8 @@ const SCEN = {
     missing: [
       { t: 'DHCP snooping (ip dhcp snooping)', present: false, why: 'Not configured: a rogue DHCP server on any port could hand out a fake gateway.' },
       { t: 'BPDU Guard on every PortFast port', present: false, why: 'F0/1 has PortFast without BPDU Guard (F0/3 has both).' },
-      { t: 'Trunk native VLAN moved to an unused VLAN (99)', present: false, why: 'G0/1 carries no native VLAN setting, so untagged frames still ride VLAN 1.' },
-      { t: 'VTP mode confirmed as transparent with show vtp status', present: false, why: 'show running-config lists the vtp mode only in transparent mode; server and client modes live in vlan.dat, outside the running-config. This config lists no vtp line, so the switch runs as a VTP server (the default) or client and accepts updates that could overwrite its VLANs. show vtp status confirms the mode, and vtp mode transparent sets it.' },
+      { t: 'Trunk native VLAN moved to an unused VLAN (99)', present: false, covered: 'trunk', coveredName: 'trunk', why: 'G0/1 carries no native VLAN setting, so untagged frames still ride VLAN 1.' },
+      { t: 'VTP mode confirmed as transparent with show vtp status', present: false, why: 'show running-config lists the vtp mode only in transparent mode; server and client modes live in vlan.dat, outside the running-config. This config lists no vtp line, so the switch runs as a VTP server (the default) or client and accepts updates that could overwrite its VLANs. show vtp status confirms the mode, and vtp mode transparent sets it.', learn: ['junior/j4', 'Learn it: Defense Ladder j4, Trunk negotiation and VTP detail panel.'] },
       { t: 'A legal warning banner (banner motd)', present: false, why: 'There is no banner, so nobody is warned before logging in.' },
       { t: 'Encryption of plaintext passwords', present: true, why: 'Present: service password-encryption (though type 7 is weak).' },
       { t: 'A hashed enable secret', present: true, why: 'Present: enable secret 5. Type 5 (MD5) counts as hashed here, but Cisco now recommends type 8 (PBKDF2-SHA-256) or type 9 (scrypt) where the IOS release supports them: enable algorithm-type scrypt secret <password>.' },
@@ -354,7 +361,7 @@ const SCEN = {
     ]
   },
   swb: {
-    name: 'Site B switch', sub: '10 problems to find', head: ['SwB#show running-config', 'IOS 15.0, 2960-style switch'],
+    name: 'Site B switch', sub: '10 problems to find', grade: 'Senior', head: ['SwB#show running-config', 'IOS 15.0, 2960-style switch'],
     intro: 'SwB serves Site B: Students on Fa0/1 to 0/8 (VLAN 10), Teachers on Fa0/9 to 0/16 (VLAN 20), and Principals on Fa0/17 to 0/20 (VLAN 30), with G0/1 trunking to RtrB G0/0 for router on a stick. VLAN 99 is the native VLAN, and VLAN 999 parks unused ports. Teachers doubles as the management VLAN: larger networks give management its own dedicated VLAN; this network keeps it on Teachers so the Teachers-only ACL and the management subnet are one and the same. Tap any line you think is a problem.',
     lines: [
       '!', 'version 15.0', 'no service pad', 'service timestamps debug datetime msec', 'service timestamps log datetime msec',
@@ -417,7 +424,7 @@ const SCEN = {
       banner: BANNER
     },
     missing: [
-      { t: 'BPDU Guard on every PortFast port by default (spanning-tree portfast bpduguard default)', present: false, why: 'Absent: Fa0/9 through 0/21 set BPDU Guard port by port, and Fa0/1 through 0/8 go without it.' },
+      { t: 'BPDU Guard on every PortFast port by default (spanning-tree portfast bpduguard default)', present: false, covered: 'bpdu', coveredName: 'BPDU Guard', why: 'Absent: Fa0/9 through 0/21 set BPDU Guard port by port, and Fa0/1 through 0/8 go without it.' },
       { t: 'Unused ports parked in VLAN 999 and shut down', present: false, why: 'Fa0/22 through 0/24 and G0/2 carry no settings, so they sit in VLAN 1, enabled. VLAN 999 PARKING exists and holds no ports.' },
       { t: 'SSH limited to version 2', present: true, why: 'Present: ip ssh version 2.' },
       { t: 'Encryption of plaintext passwords (service password-encryption)', present: true, why: 'Present: service password-encryption, with hashed secrets for enable and netadmin.' },
@@ -425,7 +432,7 @@ const SCEN = {
     ]
   },
   rtrb: {
-    name: 'Site B router', sub: '5 problems to find', head: ['RtrB#show running-config', 'IOS 15.1, 2911-style router'],
+    name: 'Site B router', sub: '5 problems to find', grade: 'Senior', head: ['RtrB#show running-config', 'IOS 15.1, 2911-style router'],
     intro: 'RtrB routes between the Site B VLANs on G0/0 subinterfaces (router on a stick, trunked to SwB G0/1), links to RtrA on G0/2 (10.0.0.0/30), and reaches the ISP on G0/1. OSPF shares both sites\' routes, and each router redistributes its own static route to 8.8.8.8 so the other site has a backup path. Tap any line you think is a problem.',
     lines: [
       '!', 'version 15.1', 'service timestamps debug datetime msec', 'service timestamps log datetime msec', 'service password-encryption', '!',
@@ -473,7 +480,8 @@ const SCEN = {
       { t: 'SSH limited to version 2', present: true, why: 'Present: ip ssh version 2.' },
       { t: 'A login banner (banner login)', present: false, why: 'Absent: RtrB sets only banner motd. banner login shows its warning right before the username prompt, and SSH clients display it before they authenticate.' },
       { t: 'Brute-force protection (login block-for)', present: false, why: 'Absent: the VTY lines accept unlimited password guesses from any permitted host.' },
-      { t: 'Minimum password length (security passwords min-length)', present: false, why: 'Absent: nothing enforces a minimum length on new passwords.' }
+      { t: 'Minimum password length (security passwords min-length)', present: false, why: 'Absent: nothing enforces a minimum length on new passwords.' },
+      { t: 'OSPF hellos kept off the user subnets (passive-interface on g0/0.10, g0/0.20, and g0/0.30)', present: false, why: 'Absent: router ospf 1 runs without passive-interface, so RtrB sends OSPF hellos to every host in Students, Teachers, and Principals, and a rogue device there could answer and form an adjacency. passive-interface keeps advertising those subnets while it stops the hellos. passive-interface default, then no passive-interface g0/2, does the same and leaves only the link to RtrA talking OSPF.', learn: ['senior/se6', 'Learn it: Defense Ladder se6, Share the route through OSPF and its OSPF behind the scenes detail panel.'] }
     ]
   }
 };
@@ -490,7 +498,6 @@ const BENIGN = [
   [/^ no ip address$/, 'No address on this interface. Fine.'],
   [/^ shutdown$/, 'Good: an unused interface is shut down.'],
   [/^ip classless$/, 'Default routing behavior. Nothing risky.'],
-  [/^line aux 0$/, 'The AUX port. Check what sits under it: without no exec or a login, a cable here reaches an EXEC prompt.'],
   [/^line /, 'Selects terminal lines. The settings under it are what matter.'],
   [/^ login local$/, "login local checks the local username list. Good idea, but check that user's password."],
   [/^ login$/, 'login makes the line ask for its password. Good, but look at the password itself.'],
@@ -528,6 +535,23 @@ const BENIGN = [
   [/^ transport input ssh$/, 'Good: SSH only, so passwords cross the network encrypted.'],
   [/^banner motd .*Authorized access only/, 'Good: the banner warns and states that activity is monitored.']
 ];
+/* Defense Ladder home for each finding's concept, shown as a Learn it link after the fix (ids repeat across scenarios with the same home) */
+const DL = 'https://freeapp4that.store/defense-ladder/#';
+const LEARN = {
+  ts: 'sophomore/s6',
+  spe: 'sophomore/s5', en: 'sophomore/s5', user: 'sophomore/s5', enpw: 'sophomore/s5', t7: 'sophomore/s5',
+  http: 'sophomore/s5', snmp: 'sophomore/s5', banner: 'sophomore/s5', timeout: 'sophomore/s5', conlogin: 'sophomore/s5', con: 'sophomore/s5', aux: 'sophomore/s5',
+  telnet: 'sophomore/s5', tinall: 'sophomore/s5', nologin: 'sophomore/s5', bpdu: 'sophomore/s5',
+  dtp: 'junior/j4', trunk: 'junior/j4', nativeuser: 'junior/j4', nativetag: 'junior/j4', allowed: 'junior/j4', pftrunk: 'junior/j4',
+  unused: 'junior/j4', vlan1: 'junior/j4', mgmt1: 'junior/j4', v1user: 'junior/j4', aclwrong: 'junior/j4', vtygap: 'junior/j4',
+  subnets: 'senior/se6'
+};
+const UNIT = { 'sophomore/s5': 'Cisco: configure a switch and a router', 'sophomore/s6': 'Investigation questions and the change log', 'junior/j4': 'Cisco: VLANs, routing, and ACLs', 'senior/se6': 'Cisco: audit and extend the two-site network' };
+function learnLink(hash, text) {
+  const a = document.createElement('a');
+  a.href = DL + hash; a.target = '_blank'; a.rel = 'noopener'; a.textContent = text;
+  return a;
+}
 const benignWhy = t => (BENIGN.find(([re]) => re.test(t)) || [0, 'Nothing risky on this line.'])[1];
 
 /* ---------- state ---------- */
@@ -560,7 +584,7 @@ function renderPicker() {
     b.innerHTML = '<span class="t"><i class="led" aria-hidden="true"></i><span></span></span><small></small>';
     b.querySelector('.t span').textContent = sc.name;
     if (done[k]) b.querySelector('.led').classList.add('ok');
-    b.querySelector('small').textContent = sc.sub + (done[k] ? ', completed' : '');
+    b.querySelector('small').textContent = sc.sub + ' · ' + sc.grade + (done[k] ? ', completed' : '');
     b.addEventListener('click', () => { if (k !== key) load(k); });
     p.append(b);
   });
@@ -612,6 +636,7 @@ function updStats() {
   const left = vals.filter(v => !v.found && !v.missed).length;
   $('#b-hint').disabled = !left;
   $('#b-reveal').disabled = !left;
+  syncCovered();
   maybeSummary();
 }
 function closeCard() { const c = $('#cfg .card'); if (c) c.remove(); S.open = null; }
@@ -662,6 +687,8 @@ function findingCard(st) {
     v.textContent = st.right ? 'Best fix.' : 'Not the best fix. The one outlined in green is.';
     v.className = 'verdict ' + (st.right ? 'good' : 'nope');
     res.querySelectorAll('p')[1].textContent = f.note;
+    const hash = LEARN[st.id];
+    if (hash) { const l = document.createElement('p'); l.className = 'learn'; l.append(learnLink(hash, 'Learn it in the Defense Ladder: ' + hash.split('/')[1] + ', ' + UNIT[hash])); res.append(l); }
   };
   st.order.forEach(oi => {
     const b = document.createElement('button');
@@ -690,23 +717,37 @@ function renderMissing() {
   ul.textContent = '';
   S.sc.missing.forEach((m, i) => {
     const li = document.createElement('li');
-    li.innerHTML = '<label><input type="checkbox"><span></span></label><p class="why" hidden></p>';
+    li.innerHTML = '<label><input type="checkbox"><span></span></label><p class="cov" hidden></p><p class="why" hidden></p>';
     li.querySelector('span').textContent = m.t;
     li.querySelector('input').id = 'm' + i;
+    /* Scored once per scenario: an item a finding card already covers is scored with that finding, so it stays out of this count */
+    if (m.covered) {
+      li.querySelector('input').disabled = true;
+      const c = li.querySelector('.cov');
+      c.hidden = false;
+      c.textContent = `Scored with the ${m.coveredName} finding above.`;
+    }
     ul.append(li);
   });
   $('#b-miss').disabled = false;
 }
+/* A covered item's box shows the state of its finding: checked once that finding is found or revealed */
+function syncCovered() {
+  $$('#miss li').forEach((li, i) => { const m = S.sc.missing[i]; if (m.covered) li.querySelector('input').checked = S.F[m.covered].found || S.F[m.covered].missed; });
+}
+const scoredMissing = () => S.sc.missing.filter(m => !m.covered).length;
 function checkMissing() {
   let right = 0;
   $$('#miss li').forEach((li, i) => {
-    const m = S.sc.missing[i], box = li.querySelector('input'), ok = box.checked === !m.present;
-    if (ok) right++;
+    const m = S.sc.missing[i], box = li.querySelector('input'), w = li.querySelector('.why');
     box.disabled = true;
-    const w = li.querySelector('.why');
     w.hidden = false;
+    if (m.covered) { w.className = 'why'; w.textContent = m.why; return; }
+    const ok = box.checked === !m.present;
+    if (ok) right++;
     w.className = 'why ' + (ok ? 'good' : 'nope');
     w.textContent = (ok ? 'Right. ' : m.present ? 'This one is actually there. ' : 'This one is missing. ') + m.why;
+    if (m.learn) w.append(' ', learnLink(m.learn[0], m.learn[1]));
   });
   S.missChecked = true; S.missRight = right;
   $('#b-miss').disabled = true;
@@ -717,13 +758,14 @@ function maybeSummary() {
   const huntDone = vals.every(v => v.found || v.missed);
   if (!huntDone || !S.missChecked) { box.hidden = true; return; }
   const found = vals.filter(v => v.found).length, answered = vals.filter(v => v.answered).length, right = vals.filter(v => v.right).length;
-  const perfect = found === vals.length && right === vals.length && S.missRight === S.sc.missing.length;
+  const perfect = found === vals.length && right === vals.length && S.missRight === scoredMissing();
   box.hidden = false;
   box.innerHTML = '<h2></h2><p></p><p></p><button type="button" class="btn primary"></button>';
   box.querySelector('h2').textContent = perfect ? 'Clean audit.' : 'Audit complete.';
   const p = box.querySelectorAll('p');
-  p[0].textContent = `You found ${found} of ${vals.length} problems, chose the best fix ${right} of ${answered} times, and judged ${S.missRight} of ${S.sc.missing.length} missing protections correctly. Mistaps: ${S.mistaps.size}. Hints: ${S.hints}.`;
-  p[1].textContent = answered < found ? 'Tip: open any red line you have not answered yet and pick its fix.' : 'Think it through: which three of these would an attacker try first, and why?';
+  p[0].textContent = `You found ${found} of ${vals.length} problems, chose the best fix ${right} of ${answered} times, and judged ${S.missRight} of ${scoredMissing()} missing protections correctly. Mistaps: ${S.mistaps.size}. Hints: ${S.hints}.`;
+  if (answered < found) p[1].textContent = 'Tip: open any red line you have not answered yet and pick its fix.';
+  else p[1].append('Think it through (a Junior skill): which three of these would an attacker try first, and why? ', learnLink('junior/j5', 'Learn it: Defense Ladder j5, Evaluate a configuration.'));
   const keys = Object.keys(SCEN), other = keys[(keys.indexOf(key) + 1) % keys.length], b = box.querySelector('button');
   b.textContent = `Audit ${SCEN[other].name}`;
   b.addEventListener('click', () => { load(other); window.scrollTo({ top: 0 }); });

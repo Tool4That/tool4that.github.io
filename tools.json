@@ -123,8 +123,8 @@
       "icon": "path",
       "category": "cyber",
       "section": "learning",
-      "sha256": "099b7a78e6d52de3f37c2ef305e519586cbe3a97bef22f9dc3248f88a54ded4b",
-      "updated": "2026-10-19"
+      "sha256": "19d1478c33360a94e1bf2a64993b206fea1008b938015c3f01bdcd818f20e6d7",
+      "updated": "2026-10-20"
     },
     {
       "slug": "net-drills/subnet-sprint",
@@ -141,7 +141,7 @@
       "download_as": "subnet-sprint.html",
       "icon": "subnet",
       "category": "cyber",
-      "sha256": "204774633441b1c8e445ede1f836a3864e93b76a2748494ac2fec0b032c84b22",
+      "sha256": "f4761428fb974fe7baaeb556ea1646a7cf6c98f059c264ce7745c92cb7929c63",
       "updated": "2026-10-19",
       "series": "net-drills"
     },
@@ -160,7 +160,7 @@
       "download_as": "ios-cli-lab.html",
       "icon": "terminal",
       "category": "cyber",
-      "sha256": "7017db97e2834b2439f893b3844ec12fbc1c392766e44b584e9299325d39bd7c",
+      "sha256": "5096756c9919bfe5e2106890b5c82f41cd97f704dfb3368619f2e082bce65b54",
       "updated": "2026-10-19",
       "series": "net-drills"
     },
@@ -179,8 +179,8 @@
       "download_as": "config-audit.html",
       "icon": "search",
       "category": "cyber",
-      "sha256": "7256d8d270d04240d0c14a76663fa298c07da615ef3283aad59ac9a22a444eaf",
-      "updated": "2026-10-19",
+      "sha256": "5a6ec3f9c9dd33966bc0a70d950bc034ba53ca139f09ebef92375bfb27ce0aef",
+      "updated": "2026-10-20",
       "series": "net-drills"
     },
     {
@@ -198,7 +198,7 @@
       "download_as": "trouble-tickets.html",
       "icon": "wrench",
       "category": "cyber",
-      "sha256": "d4eeceb71c5a9b03fa8d7493a244de61c950689a400c0bd0d189adb6e5a6a433",
+      "sha256": "46a46a132fbdff5f7023c6e1ea4a4da8a791c9811d9cf6c58ba64145d17a1fc4",
       "updated": "2026-10-19",
       "series": "net-drills"
     },
@@ -225,8 +225,8 @@
           "download_as": "windows-11-lockdown-reference.txt"
         }
       ],
-      "sha256": "23cb50816b4089d8e00fabe1548e6dbb663034758028dc2889ba8eb429a8d7a3",
-      "updated": "2026-10-14"
+      "sha256": "c127b15693d02d144aeed8d646c2b23422b8ee7df5a35e6f732f1f09e5ac9a70",
+      "updated": "2026-10-20"
     },
     {
       "slug": "lockdown-drills/windows-server",
@@ -251,8 +251,8 @@
           "download_as": "windows-server-lockdown-reference.txt"
         }
       ],
-      "sha256": "38fe1296a2eb6a4f586540c40e65ffbbc1f3807c1f72b56591bd0fb87ca2fee0",
-      "updated": "2026-10-14"
+      "sha256": "c081e8e0e3f7b6117fda4dcdfe45181b6e36f487a8ca9f1bc53200b40be4cb30",
+      "updated": "2026-10-19"
     },
     {
       "slug": "lockdown-drills/linux-mint",
@@ -277,8 +277,8 @@
           "download_as": "linux-mint-lockdown-reference.txt"
         }
       ],
-      "sha256": "04dfd948f46ccec8fb6f5a0b83b986fb9d0845d19ccaa2d079c4fc32445c4085",
-      "updated": "2026-10-14"
+      "sha256": "b206ee71cc87976168e3a0e036ee9dcfd8244f4f9fa4c93f36ecf76c86d70eda",
+      "updated": "2026-10-20"
     },
     {
       "slug": "lockdown-drills/ubuntu",
@@ -303,8 +303,8 @@
           "download_as": "ubuntu-lockdown-reference.txt"
         }
       ],
-      "sha256": "aca50ea11850da147e911e9f3f1509c725e6b4c615716b2cc7b33b9661e7c5fd",
-      "updated": "2026-10-14"
+      "sha256": "f303bda3d53b51c90acd075c6c04a804ff51b8eef3b53ee7ddb8bcf4426a4ded",
+      "updated": "2026-10-20"
     },
     {
       "slug": "lockdown-drills/freebsd",
@@ -329,8 +329,8 @@
           "download_as": "freebsd-lockdown-reference.txt"
         }
       ],
-      "sha256": "abcc9e649b986fd1f5067a4f2b3039ec71b111b093795885614746630fc77c26",
-      "updated": "2026-10-14"
+      "sha256": "01da9a62fbe4efd0a615a6fcc928b392b338ab749a3a646060ec84a164f32560",
+      "updated": "2026-10-19"
     },
     {
       "slug": "lockdown-drills/cisco-ios",
@@ -348,7 +348,7 @@
       "icon": "lock",
       "category": "cyber",
       "series": "lockdown-drills",
-      "sha256": "db2d4db518c29c1c9265ec5d4fd5e4826ca84166a54bc36022c27fc8f71f1c97",
+      "sha256": "23a77f0043716431138871ff35f2b8e0387f567cc6bc7dbfdb497b8a735e51c4",
       "updated": "2026-10-19",
       "extras": [
         {
@@ -381,8 +381,8 @@
           "download_as": "windows-range-walkthrough.txt"
         }
       ],
-      "sha256": "b91170b1b2162582bcad9d47c7d2fae7250d5276d0ce5ce2815f25741a9e3222",
-      "updated": "2026-10-14"
+      "sha256": "75057ef3764d928825c90f2c71acb9932cca3af157d0f664dadd9e3cce8898d7",
+      "updated": "2026-10-20"
     },
     {
       "slug": "lockdown-range/linux",
@@ -407,8 +407,8 @@
           "download_as": "linux-range-walkthrough.txt"
         }
       ],
-      "sha256": "8009f93089b4b26b64df8f5c8c41623c05e29d9c4764d454ea36d26fde3b0258",
-      "updated": "2026-10-14"
+      "sha256": "efb080c787d14853fb78b1376523b6732f59f6ac78811c70bc3c4008f8482d6f",
+      "updated": "2026-10-19"
     },
     {
       "slug": "lockdown-range/cisco-ios",
@@ -433,7 +433,7 @@
           "download_as": "cisco-range-walkthrough.txt"
         }
       ],
-      "sha256": "e3f23411b29934f1e53366e09d46d1fa7b74c4df9ae8341bf1fd1a36ce8d43ba",
+      "sha256": "5e23eed794900b74805fc673541f4ae1bb718f1614edbb097aa1039aeeaea285",
       "updated": "2026-10-19"
     },
     {
@@ -452,8 +452,8 @@
       "icon": "map",
       "category": "cyber",
       "section": "learning",
-      "sha256": "3081a4bf771a97b933c9aaace2b5584155508fc8c13429a56dedb93fbeafd5c6",
-      "updated": "2026-10-19"
+      "sha256": "2a3719d1ef7bbedae93a57afca0a9bc2b3b4a7e272090457761f3ca4be2d5137",
+      "updated": "2026-10-20"
     }
   ]
 }

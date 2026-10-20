@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-4+hvCuAqLeadrND3beAwLx5nEd1/gXVoB9cpaGyHjcA='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-pxVvL68lQyUZNF6Jl5CVDpRRRpyzsrFagTnT+5J36+o='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Slide the mask in the sandbox and watch every value react, then work out network, broadcast, and host ranges against the clock. Includes VLSM planning and IPv6 drills.">
 <link rel="canonical" href="https://freeapp4that.store/net-drills/subnet-sprint/">
@@ -174,6 +174,13 @@ fieldset.topics legend{font-size:14px;color:var(--muted);padding:0;margin-bottom
 .bbtn[aria-pressed="true"] .pv{color:inherit}
 .total{display:flex;align-items:center;gap:10px;font-size:17px;margin:14px 0 4px}
 .total strong{font:700 24px/1 var(--mono)}
+.fld[hidden]{display:none}
+.tier{margin:0 0 14px;font-size:14px;color:var(--muted);max-width:75ch}
+.tier b{color:var(--ink)}
+.tier a,.work a{color:var(--ink);font-weight:600;text-decoration-color:var(--accent);text-underline-offset:3px}
+.ref .work{margin-top:10px}
+.ref .work p{margin:0 0 6px}
+.work code{font-family:var(--mono);font-size:14px;overflow-wrap:anywhere}
 footer{margin-top:40px;font-size:13px;color:var(--muted)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @media (prefers-reduced-motion:no-preference){.led{transition:background-color .15s}}
@@ -202,6 +209,7 @@ footer{margin-top:40px;font-size:13px;color:var(--muted)}
 </div>
 
 <section id="p-sand" role="tabpanel" aria-labelledby="t-sand">
+  <p class="tier"><b>Sophomore</b> · Learn it: <a href="https://freeapp4that.store/defense-ladder/#sophomore/s5" target="_blank" rel="noopener">Defense Ladder s5, Addresses and subnets</a></p>
   <p class="lede small">Change the address or slide the boundary and watch every value react. Orange bits are locked by the mask; blue bits are free to vary.</p>
   <div class="sand-controls">
     <label class="fld"><span>IP address</span><input class="t" id="sb-ip" value="192.168.10.141" inputmode="decimal" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off"><i class="led ok"></i></label>
@@ -222,13 +230,17 @@ footer{margin-top:40px;font-size:13px;color:var(--muted)}
 </section>
 
 <section id="p-full" role="tabpanel" aria-labelledby="t-full" hidden>
+  <p class="tier"><b>Sophomore</b> · Learn it: <a href="https://freeapp4that.store/defense-ladder/#sophomore/s5" target="_blank" rel="noopener">Defense Ladder s5, Addresses and subnets</a>. The wildcard field is <b>Junior</b> · Learn it: <a href="https://freeapp4that.store/defense-ladder/#junior/j4" target="_blank" rel="noopener">j4, Cisco: VLANs, routing, and ACLs</a></p>
   <div class="row between">
     <div class="seg" role="radiogroup" aria-label="Difficulty" id="f-levels">
       <button role="radio" aria-checked="true" data-level="starter">Starter<small>/24 to /30</small></button>
       <button role="radio" aria-checked="false" data-level="standard">Standard<small>/16 to /30</small></button>
       <button role="radio" aria-checked="false" data-level="expert">Expert<small>/8 to /30</small></button>
     </div>
-    <label class="check"><input type="checkbox" id="showbits" checked> Show bits</label>
+    <div class="row">
+      <label class="check"><input type="checkbox" id="showbits" checked> Show bits</label>
+      <label class="check"><input type="checkbox" id="showwild"> Wildcard field (Junior: ACLs)</label>
+    </div>
   </div>
 
   <p class="problem" aria-live="polite"><span id="pip">0.0.0.0</span><span class="pfx" id="ppfx">/24</span></p>
@@ -243,7 +255,7 @@ footer{margin-top:40px;font-size:13px;color:var(--muted)}
       <label class="fld"><span>Broadcast address</span><input class="t" id="a-bc" inputmode="decimal" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="x.x.x.x"><i class="led"></i></label>
       <label class="fld"><span>Usable hosts</span><input class="t" id="a-hosts" inputmode="numeric" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="number"><i class="led"></i></label>
       <label class="fld"><span>Subnet mask</span><input class="t" id="a-mask" inputmode="decimal" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="x.x.x.x"><i class="led"></i></label>
-      <label class="fld"><span>Wildcard mask</span><input class="t" id="a-wild" inputmode="decimal" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="x.x.x.x"><i class="led"></i></label>
+      <label class="fld" id="f-wildfld" hidden><span>Wildcard mask (Junior: ACLs)</span><input class="t" id="a-wild" inputmode="decimal" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="x.x.x.x"><i class="led"></i></label>
     </div>
     <div class="actions">
       <button class="btn primary" type="submit" id="f-check">Check answers</button>
@@ -258,19 +270,19 @@ footer{margin-top:40px;font-size:13px;color:var(--muted)}
     <summary>Reference: the last-octet pattern</summary>
     <div class="tablewrap">
       <table>
-        <thead><tr><th>Prefix</th><th>Mask</th><th>Block size</th><th>Usable hosts</th></tr></thead>
+        <thead><tr><th>Prefix</th><th>Mask</th><th>Block size</th><th>Usable hosts</th><th>Wildcard</th></tr></thead>
         <tbody>
-          <tr><td>/24</td><td class="m">255.255.255.0</td><td>256</td><td>254</td></tr>
-          <tr><td>/25</td><td class="m">255.255.255.128</td><td>128</td><td>126</td></tr>
-          <tr><td>/26</td><td class="m">255.255.255.192</td><td>64</td><td>62</td></tr>
-          <tr><td>/27</td><td class="m">255.255.255.224</td><td>32</td><td>30</td></tr>
-          <tr><td>/28</td><td class="m">255.255.255.240</td><td>16</td><td>14</td></tr>
-          <tr><td>/29</td><td class="m">255.255.255.248</td><td>8</td><td>6</td></tr>
-          <tr><td>/30</td><td class="m">255.255.255.252</td><td>4</td><td>2</td></tr>
+          <tr><td>/24</td><td class="m">255.255.255.0</td><td>256</td><td>254</td><td class="m">0.0.0.255</td></tr>
+          <tr><td>/25</td><td class="m">255.255.255.128</td><td>128</td><td>126</td><td class="m">0.0.0.127</td></tr>
+          <tr><td>/26</td><td class="m">255.255.255.192</td><td>64</td><td>62</td><td class="m">0.0.0.63</td></tr>
+          <tr><td>/27</td><td class="m">255.255.255.224</td><td>32</td><td>30</td><td class="m">0.0.0.31</td></tr>
+          <tr><td>/28</td><td class="m">255.255.255.240</td><td>16</td><td>14</td><td class="m">0.0.0.15</td></tr>
+          <tr><td>/29</td><td class="m">255.255.255.248</td><td>8</td><td>6</td><td class="m">0.0.0.7</td></tr>
+          <tr><td>/30</td><td class="m">255.255.255.252</td><td>4</td><td>2</td><td class="m">0.0.0.3</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="cap">The same 128-192-224-240-248-252-254-255 pattern repeats one octet to the left for /16 to /23, and two octets left for /8 to /15.</p>
+    <p class="cap">The same 128-192-224-240-248-252-254-255 pattern repeats one octet to the left for /16 to /23, and two octets left for /8 to /15. The wildcard is 255.255.255.255 minus the mask, so in these rows its last octet is the block size minus 1. ACLs use wildcards, a Junior topic.</p>
   </details>
 
   <dl class="stats">
@@ -281,6 +293,7 @@ footer{margin-top:40px;font-size:13px;color:var(--muted)}
 </section>
 
 <section id="p-plan" role="tabpanel" aria-labelledby="t-plan" hidden>
+  <p class="tier"><b>Sophomore</b> · Learn it: <a href="https://freeapp4that.store/defense-ladder/#sophomore/s5" target="_blank" rel="noopener">Defense Ladder s5, Addresses and subnets</a>. VLSM (variable-length subnet masks) gives each subnet the size it needs, carving the largest first. Learn it in depth: <a href="https://freeapp4that.store/defense-ladder/#senior/se6" target="_blank" rel="noopener">Senior se6, Cisco: audit and extend the two-site network</a></p>
   <div class="row between">
     <div class="seg" role="radiogroup" aria-label="Plan difficulty" id="pl-levels">
       <button role="radio" aria-checked="true" data-level="starter">Starter<small>/24 block</small></button>
@@ -312,13 +325,14 @@ footer{margin-top:40px;font-size:13px;color:var(--muted)}
 </section>
 
 <section id="p-quick" role="tabpanel" aria-labelledby="t-quick" hidden>
+  <p class="tier"><b>Sophomore</b> · Learn it: <a href="https://freeapp4that.store/defense-ladder/#sophomore/s5" target="_blank" rel="noopener">Defense Ladder s5, Addresses and subnets</a>; for binary and decimal, <a href="https://freeapp4that.store/defense-ladder/#freshman/f7" target="_blank" rel="noopener">Freshman f7, Core ideas</a>; for IPv6, <a href="https://freeapp4that.store/defense-ladder/#freshman/f7" target="_blank" rel="noopener">Freshman f7, Networking fundamentals and Cisco basics</a> (the IPv6 addresses in text detail panel). Wildcard masks are <b>Junior</b> · Learn it: <a href="https://freeapp4that.store/defense-ladder/#junior/j4" target="_blank" rel="noopener">j4, Cisco: VLANs, routing, and ACLs</a></p>
   <fieldset class="topics">
     <legend>Topics in the mix</legend>
     <div class="chips" id="chips">
       <button class="chip" type="button" data-topic="hosts" aria-pressed="true">Hosts per prefix</button>
       <button class="chip" type="button" data-topic="mask" aria-pressed="true">Prefix and mask</button>
       <button class="chip" type="button" data-topic="netbc" aria-pressed="true">Network and broadcast</button>
-      <button class="chip" type="button" data-topic="wild" aria-pressed="true">Wildcard masks</button>
+      <button class="chip" type="button" data-topic="wild" aria-pressed="false">Wildcard masks (Junior: ACLs)</button>
       <button class="chip" type="button" data-topic="size" aria-pressed="true">Right-size a subnet</button>
       <button class="chip" type="button" data-topic="bin" aria-pressed="true">Binary and decimal</button>
       <button class="chip" type="button" data-topic="v6" aria-pressed="true">IPv6 compress and expand</button>
@@ -331,6 +345,19 @@ footer{margin-top:40px;font-size:13px;color:var(--muted)}
     <button class="btn primary" type="submit">Check</button>
     <i class="led" id="q-led"></i>
   </form>
+  <details class="ref" id="q-v6ref">
+    <summary>Reference: IPv6 in text</summary>
+    <div class="work">
+      <p>An IPv6 address is 128 bits, written as eight groups of four hex digits split by colons: <code>2001:0db8:0000:0000:0000:ff00:0042:8329</code>.</p>
+      <ol>
+        <li>Drop the leading zeros in each group: <code>2001:db8:0:0:0:ff00:42:8329</code>.</li>
+        <li>Replace the longest run of two or more all-zero groups with <code>::</code>, once (the first run on a tie), and write the letters in lowercase: <code>2001:db8::ff00:42:8329</code>.</li>
+        <li>To write it out in full, expand <code>::</code> into as many <code>0000</code> groups as it takes to reach eight, and pad every group to four digits.</li>
+        <li>A /64 keeps the first four groups as the network: <code>2001:db8::/64</code>.</li>
+      </ol>
+      <p>Learn it: <a href="https://freeapp4that.store/defense-ladder/#freshman/f7" target="_blank" rel="noopener">Defense Ladder, Freshman f7, Networking fundamentals and Cisco basics</a> (the IPv6 addresses in text detail panel).</p>
+    </div>
+  </details>
   <p class="fb" id="q-fb" role="status"></p>
   <div class="timer" id="q-timer" hidden><span></span></div>
   <div class="actions">
@@ -348,6 +375,7 @@ footer{margin-top:40px;font-size:13px;color:var(--muted)}
 </section>
 
 <section id="p-bin" role="tabpanel" aria-labelledby="t-bin" hidden>
+  <p class="tier"><b>Sophomore</b> · Learn it: <a href="https://freeapp4that.store/defense-ladder/#freshman/f7" target="_blank" rel="noopener">Defense Ladder, Freshman f7, Core ideas</a></p>
   <p class="target">Build this number<strong id="b-target">0</strong></p>
   <div class="bytes" id="b-bits">
     <button class="bbtn" type="button" data-v="128" aria-pressed="false"><span class="v">0</span><span class="pv">128</span></button>
@@ -556,17 +584,25 @@ function grade(kind, raw, a) {
   if (!s) return null;
   if (kind === 'ip') { const v = parseIP(s); return v !== null && v === a; }
   if (kind === 'int') { const t = s.replace(/[,\s]/g, ''); return /^\d+$/.test(t) && Number(t) === a; }
-  if (kind === 'prefix') {
-    const t = s.replace(/\s/g, '');
-    if (/^\/?\d{1,2}$/.test(t)) return Number(t.replace('/', '')) === a;
-    const v = parseIP(t); return v !== null && prefixOf(v) === a;
-  }
-  if (kind === 'bin') { const t = s.replace(/\s/g, ''); return /^[01]{1,8}$/.test(t) && parseInt(t, 2) === a; }
-  if (kind === 'v6' || kind === 'v6e') { const u = v6Expand(s); return !!u && u.join(':') === a.join(':'); }
+  if (kind === 'prefix') { const t = s.replace(/\s/g, ''); return /^\/?\d{1,2}$/.test(t) && Number(t.replace('/', '')) === a; }
+  if (kind === 'bin') { const t = s.replace(/\s/g, ''); return /^[01]{8}$/.test(t) && parseInt(t, 2) === a; }
+  if (kind === 'v6') return s === v6Compress(a);
+  if (kind === 'v6e') return s.toLowerCase() === a.join(':');
   if (kind === 'v6pfx') { const m = /^(.+)\/(\d{1,3})$/.exec(s); if (!m || Number(m[2]) !== 64) return false; const u = v6Expand(m[1]); return !!u && u.join(':') === a.join(':'); }
   return false;
 }
 const answerText = (kind, a) => kind === 'ip' ? toStr(a) : kind === 'prefix' ? `/${a}` : kind === 'bin' ? spaced(bin8(a)) : kind === 'v6' ? v6Compress(a) : kind === 'v6e' ? a.join(':') : kind === 'v6pfx' ? v6Compress(a) + '/64' : fmt(a);
+// Feedback for a wrong answer in the wrong form: a dotted mask where a prefix length belongs, or the right value written another way
+function formNote(kind, raw, a) {
+  const s = String(raw || '').trim(), t = s.replace(/\s/g, '');
+  if (kind === 'prefix' && parseIP(t) !== null) return `Answer with the prefix length, such as /26. The answer is /${a}.`;
+  if (kind === 'bin' && /^[01]{1,7}$/.test(t) && parseInt(t, 2) === a) return `Same value, written with fewer than 8 bits. Shown in full form: ${spaced(bin8(a))}.`;
+  if (kind === 'v6' || kind === 'v6e') {
+    const u = v6Expand(s);
+    if (u && u.join(':') === a.join(':')) return kind === 'v6' ? `Same address, in another form. Shown in compressed form: ${v6Compress(a)}.` : `Same address, in another form. Shown in full form: ${a.join(':')}.`;
+  }
+  return '';
+}
 // ==PURE-END==
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -591,7 +627,9 @@ $$('.tabs [role=tab]').forEach(tab => tab.addEventListener('click', () => {
 
 /* Sandbox */
 const SB = { ip: parseIP('192.168.10.141'), p: 27, parent: 'auto' };
+// Class A 0-127 (/8), class B 128-191 (/16), class C 192-223 (/24); 224 and up has no classful mask, so the tool falls back to /24
 const classful = ip => { const o = ip >>> 24; return o < 128 ? 8 : o < 192 ? 16 : 24; };
+const CLASS_NOTE = 'Addresses from 224 up are multicast (class D) and reserved (class E) ranges, which sit outside the classful masks, so this tool starts from /24.';
 const parentPrefix = () => (SB.parent === 'auto' ? classful(SB.ip) : Number(SB.parent));
 function sbFacts(p) {
   const ip = SB.ip, mask = maskOf(p), wild = u32(~mask), net = u32(ip & mask), bc = u32(net | wild), h = 32 - p, size = 2 ** h;
@@ -635,6 +673,7 @@ function sbRender(prev) {
       : `/${p} is shorter than the parent /${f.pp}, so this is a supernet: it covers ${fmt(2 ** (f.pp - p))} /${f.pp} blocks.`,
     p > 1 && p < 32 ? `Slide left to /${p - 1}: hosts double, subnets halve. Slide right to /${p + 1}: hosts halve, subnets double. Every bit you give the network you take from the hosts.` : 'Every bit you give the network you take from the hosts.'
   ];
+  if (SB.parent === 'auto' && f.ip >>> 24 >= 224) why.splice(4, 0, CLASS_NOTE);
   $('#sb-why').innerHTML = '<h3>What is going on</h3><ol>' + why.map(x => `<li>${esc(x)}</li>`).join('') + '</ol>';
   const tb = $('#sb-table');
   if (!K) { setText('#sb-tabletitle', ''); tb.innerHTML = ''; }
@@ -673,6 +712,9 @@ $('#sb-rows').addEventListener('keydown', e => { const c = e.target.closest('.b.
 
 /* Full breakdown */
 const FIELDS = [['net', 'ip'], ['first', 'ip'], ['last', 'ip'], ['bc', 'ip'], ['hosts', 'int'], ['mask', 'ip'], ['wild', 'ip']];
+/* The wildcard field is Junior content (ACLs), so it joins the check only when switched on */
+const wildOn = () => $('#showwild').checked;
+const activeFields = () => FIELDS.filter(([k]) => k !== 'wild' || wildOn());
 const F = { level: 'starter', prob: null, done: false, firstTry: true, solved: 0, streak: 0 };
 function renderBits() {
   const { ip, p } = F.prob;
@@ -706,37 +748,37 @@ function newProblem() {
 }
 function showWork() {
   const w = $('#f-work');
-  w.innerHTML = '<h3>How it works</h3><ol>' + steps(F.prob.ip, F.prob.p).map(s => `<li>${esc(s)}</li>`).join('') + '</ol>';
+  w.innerHTML = '<h3>How it works</h3><ol>' + steps(F.prob.ip, F.prob.p).filter(s => wildOn() || !/^Wildcard/.test(s)).map(s => `<li>${esc(s)}</li>`).join('') + '</ol>';
   w.hidden = false;
 }
 $('#ff').addEventListener('submit', e => {
   e.preventDefault();
   if (F.done) { newProblem(); $('#a-net').focus(); return; }
-  const r = F.prob.r;
+  const r = F.prob.r, fields = activeFields(), n = fields.length;
   let right = 0, filled = 0;
-  FIELDS.forEach(([k, kind]) => {
+  fields.forEach(([k, kind]) => {
     const i = $('#a-' + k), g = grade(kind, i.value, r[k]);
     if (g !== null) filled++;
     if (g) right++;
     i.setAttribute('aria-invalid', g ? 'false' : 'true');
     i.nextElementSibling.className = 'led ' + (g ? 'ok' : 'bad');
   });
-  if (right === FIELDS.length) {
+  if (right === n) {
     F.done = true; F.solved++;
     if (F.firstTry) { F.streak++; if (F.streak > best.full) { best.full = F.streak; saveBest(); } }
     FIELDS.forEach(([k]) => { $('#a-' + k).readOnly = true; });
-    setText('#f-status', F.firstTry ? 'All 7 correct on the first try. Press Enter for a new address.' : 'All 7 correct. The streak only counts first-try solves. Press Enter for a new address.');
+    setText('#f-status', F.firstTry ? `All ${n} correct on the first try. Press Enter for a new address.` : `All ${n} correct. The streak only counts first-try solves. Press Enter for a new address.`);
     showWork();
   } else {
     F.firstTry = false; F.streak = 0;
-    setText('#f-status', filled < FIELDS.length ? `${right} of 7 correct, ${FIELDS.length - filled} still blank.` : `${right} of 7 correct. Fix the red ones or use Reveal.`);
+    setText('#f-status', filled < n ? `${right} of ${n} correct, ${n - filled} still blank.` : `${right} of ${n} correct. Fix the red ones or use Reveal.`);
   }
   updFull();
 });
 $('#f-reveal').addEventListener('click', () => {
   if (F.done) return;
   const r = F.prob.r;
-  FIELDS.forEach(([k, kind]) => {
+  activeFields().forEach(([k, kind]) => {
     const i = $('#a-' + k);
     i.value = answerText(kind, r[k]); i.readOnly = true; i.removeAttribute('aria-invalid');
     i.nextElementSibling.className = 'led rev';
@@ -751,6 +793,13 @@ $$('#f-levels [role=radio]').forEach(b => b.addEventListener('click', () => {
   F.level = b.dataset.level; newProblem();
 }));
 $('#showbits').addEventListener('change', () => $('#bitbar').classList.toggle('nobits', !$('#showbits').checked));
+$('#showwild').addEventListener('change', () => {
+  $('#f-wildfld').hidden = !wildOn();
+  if (!F.done) return;
+  const i = $('#a-wild');
+  if (wildOn() && !i.value) { i.value = answerText('ip', F.prob.r.wild); i.nextElementSibling.className = 'led rev'; }
+  showWork();
+});
 
 /* Plan */
 const PL = { level: 'starter', type: 'vlsm', prob: null, fields: [], done: false, firstTry: true, solved: 0, streak: 0 };
@@ -826,7 +875,7 @@ $$('#pl-levels [role=radio]').forEach(b => b.addEventListener('click', () => { $
 $$('#pl-types [role=radio]').forEach(b => b.addEventListener('click', () => { $$('#pl-types [role=radio]').forEach(x => x.setAttribute('aria-checked', x === b ? 'true' : 'false')); PL.type = b.dataset.type; newPlan(); }));
 
 /* Quick fire */
-const Q = { topics: new Set(Object.keys(GEN)), cur: null, answered: false, correct: 0, total: 0, streak: 0, sprint: null, timer: 0 };
+const Q = { topics: new Set($$('#chips .chip[aria-pressed="true"]').map(c => c.dataset.topic)), v6seen: false, cur: null, answered: false, correct: 0, total: 0, streak: 0, sprint: null, timer: 0 };
 function updQuick() {
   setText('#s-q-correct', Q.correct); setText('#s-q-total', Q.total); setText('#s-q-streak', Q.streak);
   setText('#s-q-best', best.quick); setText('#s-q-sprint', best.sprint);
@@ -838,8 +887,10 @@ function nextQ(focus) {
   const inp = $('#q-in');
   inp.value = ''; inp.readOnly = false; inp.removeAttribute('aria-invalid');
   inp.setAttribute('inputmode', Q.cur.kind === 'ip' || Q.cur.kind === 'prefix' ? 'decimal' : /^v6/.test(Q.cur.kind) ? 'text' : 'numeric');
-  inp.placeholder = { ip: 'x.x.x.x', int: 'number', prefix: 'e.g. 26', bin: '8 bits', v6: 'xxxx:xxxx::xxxx', v6e: 'xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx', v6pfx: 'xxxx:xxxx:xxxx:xxxx::/64' }[Q.cur.kind];
+  inp.placeholder = { ip: 'x.x.x.x', int: 'number', prefix: 'such as /26', bin: '8 bits', v6: 'xxxx:xxxx::xxxx', v6e: 'xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx', v6pfx: 'xxxx:xxxx:xxxx:xxxx::/64' }[Q.cur.kind];
   $('#q-led').className = 'led'; setText('#q-fb', '');
+  /* The IPv6 reference card opens ahead of the first IPv6 item */
+  if (/^v6/.test(Q.cur.kind) && !Q.v6seen) { Q.v6seen = true; $('#q-v6ref').open = true; }
   if (focus) inp.focus({ preventScroll: true });
 }
 $('#qf').addEventListener('submit', e => {
@@ -851,7 +902,7 @@ $('#qf').addEventListener('submit', e => {
   if (g) { Q.correct++; Q.streak++; if (Q.streak > best.quick) { best.quick = Q.streak; saveBest(); } } else Q.streak = 0;
   $('#q-led').className = 'led ' + (g ? 'ok' : 'bad');
   $('#q-in').setAttribute('aria-invalid', g ? 'false' : 'true');
-  setText('#q-fb', (g ? 'Correct. ' : `Not quite. The answer is ${answerText(Q.cur.kind, Q.cur.a)}. `) + Q.cur.why);
+  setText('#q-fb', (g ? 'Correct. ' : `Not quite. ${formNote(Q.cur.kind, $('#q-in').value, Q.cur.a) || `The answer is ${answerText(Q.cur.kind, Q.cur.a)}.`} `) + Q.cur.why);
   if (Q.sprint) {
     Q.sprint.answered++; if (g) Q.sprint.score++;
     const s = Q.sprint;
@@ -888,6 +939,7 @@ $$('#chips .chip').forEach(c => c.addEventListener('click', () => {
   if (on && Q.topics.size === 1) return;
   if (on) Q.topics.delete(t); else Q.topics.add(t);
   c.setAttribute('aria-pressed', on ? 'false' : 'true');
+  $('#q-v6ref').hidden = !Q.topics.has('v6');
 }));
 
 /* Binary builder */

@@ -3,9 +3,15 @@
      Windows 11 26H2 (Pro / Enterprise)
  Training reference for virtual machines you own or are authorized to change.
  Three levels: L1 Doorman, L2 Watchman, L3 Hunter. Every item = COMMAND, WHY,
- NOTE and the hardening AREA it belongs to. No scripts by design: type it,
+ NOTE, and the hardening AREA it belongs to. No scripts by design: type it,
  read it, explain it. Item IDs match the Lockdown Drills trainer for this OS.
  Unofficial practice; not affiliated with or endorsed by Microsoft.
+
+ PS> runs in an elevated PowerShell and CMD> in an elevated Command Prompt.
+ Type what follows the prefix, and replace each <name> with a real value. GUI:
+ lines walk through a window, and indented lines show values to set or read.
+ Each level names the Defense Ladder unit to learn first:
+ https://freeapp4that.store/defense-ladder/
 
  HARDENING AREAS (CIS Critical Security Controls v8)
    Account management ........ CIS Control 5
@@ -21,17 +27,18 @@
 ------------------------------ DOORMAN -----------------------------------------
  Lock the doors. These are the fixes that are safe on almost any machine and
  close the most common gaps: users, admins, passwords, firewall, updates,
- Defender, unapproved software.
+ Defender, and unapproved software. Learn it first: Defense Ladder s2, "Windows
+ 11 hardening."
 --------------------------------------------------------------------------------
 [B-00] Scenario brief and evidence first
   AREA: Investigation (forensics basics)
   GUI: open the scenario brief (the documented requirements for this machine) and write down authorized users, admins, required services, and anything forbidden
   WHY: Most outages during hardening come from acting against the documented
-       requirements: removing a user, role or service the business needs is an
-       availability failure. Investigation questions often depend on evidence
-       you destroy while fixing, so answer them before you change anything.
-  NOTE: Unfamiliar is not the same as unauthorized: leave management, backup and
-        monitoring agents alone until the system owner confirms what they are.
+       requirements: removing a user, role, or service the business needs is an
+       availability failure. Evidence first: answer the investigation questions
+       before any change (Defense Ladder f1).
+  NOTE: Unfamiliar software is distinct from unauthorized software: trace it,
+        and ask the owner before removing an agent (Defense Ladder s1).
 
 [B-01] List local users
   AREA: Account management (CIS Control 5)
@@ -40,9 +47,10 @@
   GUI: Win+R, lusrmgr.msc (not available on Home)
   WHY: Unauthorized accounts are backdoors. Compare the list to the authorized
        users in the scenario brief.
-  NOTE: PasswordRequired=False is its own finding: that account has a blank
-        password. Windows 11 Home has no lusrmgr.msc or secpol.msc: use
-        Settings, Accounts, Other users, or netplwiz.
+  NOTE: PasswordRequired False means the account is allowed a blank password:
+        set one and require it (net user <name> /passwordreq:yes). Windows 11
+        Home leaves out lusrmgr.msc and secpol.msc: use Settings, Accounts,
+        Other users, or netplwiz.
 
 [B-02] Remove an unauthorized user
   AREA: Account management (CIS Control 5)
@@ -85,24 +93,30 @@
 
 [B-06] Password policy
   AREA: Account management (CIS Control 5)
-  CMD> net accounts /minpwlen:12 /maxpwage:60 /minpwage:1 /uniquepw:5
+  CMD> net accounts /minpwlen:12 /maxpwage:60 /minpwage:1 /uniquepw:24
   CMD> net accounts
-  GUI: secpol.msc, Account Policies, Password Policy: complexity Enabled, reversible encryption Disabled
   GUI: secpol.msc, Account Policies, Password Policy. Turn on 'Password must
        meet complexity requirements' and keep 'Store passwords using reversible
        encryption' off.
   WHY: Length beats everything. Minimum age plus history stops the trick of
-       changing it five times and setting it back. Reversible encryption is
-       plaintext in disguise.
-  NOTE: Complexity has no net accounts switch, so use secpol.msc (or secedit at
-        Hunter level). On Home edition, net accounts is all you have for policy.
+       cycling through 24 new passwords to reuse an old one. Reversible
+       encryption is plaintext in disguise.
+  NOTE: The scenario brief sets the numbers; these commands show one sample
+        brief. The CIS Benchmark asks for 14 or more characters, a history of
+        24, a maximum age of 365 days or fewer (and above 0), and a minimum age
+        of 1 day. Complexity sits outside net accounts, so use secpol.msc (or
+        secedit at Hunter level). On Home edition, net accounts is all you have
+        for policy.
 
 [B-07] Account lockout policy
   AREA: Account management (CIS Control 5)
   CMD> net accounts /lockoutthreshold:5 /lockoutduration:30 /lockoutwindow:30
   WHY: Turns an online brute force from thousands of guesses a minute into five
        per half hour.
-  NOTE: A threshold of 0 means never lock, which is a finding.
+  NOTE: The scenario brief sets the numbers; these commands show one sample
+        brief. The CIS Benchmark asks for a threshold of 5 or fewer (and above
+        0), and a lockout duration and reset window of 15 minutes or more. A
+        threshold of 0 means never lock, which is a finding.
 
 [B-08] Firewall on for all profiles
   AREA: Secure configuration (CIS Control 4)
@@ -119,11 +133,13 @@
 
 [B-09] Windows Update: run it and automate it
   AREA: Patching (CIS Control 7)
-  GUI: Settings, Windows Update, Check for updates; Advanced options: receive updates for other Microsoft products
+  GUI: Settings, Windows Update: Resume updates if paused, then Check for updates; Advanced options: receive updates for other Microsoft products
   PS> Set-Service -Name wuauserv -StartupType Automatic; Start-Service wuauserv
   PS> Get-Service wuauserv | Select-Object Status,StartType
+  PS> Get-HotFix | Sort-Object InstalledOn -Descending | Select-Object -First 5
   WHY: Patching closes the vulnerabilities scanners actually find. Two separate
-       checks: updates applied now, and automatic updates left enabled.
+       checks: updates applied now (Get-HotFix shows the newest install date),
+       and automatic updates left enabled.
   NOTE: Start it first and let it run in the background. Save your work before
         any reboot.
 
@@ -146,7 +162,7 @@
   PS> winget uninstall --name "Wireshark"
   PS> Get-AppxPackage -AllUsers | Select-Object Name | Sort-Object Name
   PS> Get-AppxPackage -AllUsers *xbox* | Remove-AppxPackage -AllUsers
-  WHY: Hacking tools, games, torrent clients and remote-access tools are
+  WHY: Hacking tools, games, torrent clients, and remote-access tools are
        acceptable-use violations and attack surface.
   NOTE: Software the brief requires stays. The registry listing is instant;
         Win32_Product is slow and can trigger repairs. Store apps do not appear
@@ -166,16 +182,16 @@
   PS> Get-Service -Name ftpsvc,TermService,RemoteRegistry,SNMP -ErrorAction SilentlyContinue | Select-Object Name,Status,StartType
   PS> Stop-Service -Name RemoteRegistry; Set-Service -Name RemoteRegistry -StartupType Disabled
   PS> Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server' -Name fDenyTSConnections -Value 1
-  GUI: services.msc, Startup type Disabled; Settings, System, Remote Desktop
   GUI: Settings, System, Remote Desktop: Off unless the brief requires it.
-       services.msc for the rest.
+       services.msc for the rest: set Startup type to Disabled.
   WHY: Telnet and FTP leak credentials in cleartext. Remote Registry lets a
        remote attacker edit the registry. RDP is a brute-force magnet.
-  NOTE: If the brief requires RDP, FTP or SSH, harden it instead of killing it.
+  NOTE: If the brief requires RDP, FTP, or SSH, harden it instead of killing it.
 
 ------------------------------ WATCHMAN ----------------------------------------
  Check the windows. Policy, services, shares, scheduled tasks, startup items,
- hosts file, listening ports, logs. This is where the hidden stuff lives.
+ hosts file, listening ports, and logs. This is where the hidden stuff lives.
+ Learn it first: Defense Ladder j2, "Group Policy."
 --------------------------------------------------------------------------------
 [I-01] Audit policy: turn the lights on
   AREA: Audit logging (CIS Control 8)
@@ -183,7 +199,7 @@
   CMD> auditpol /get /category:*
   GUI: secpol.msc, Local Policies, Audit Policy, each set to Success and Failure
   WHY: Without auditing, Event Viewer has nothing to tell you or an
-       investigator. Logon, account management and policy change are the key
+       investigator. Logon, account management, and policy change are the key
        ones.
   NOTE: Fine-grained subcategories are a Hunter item.
 
@@ -200,7 +216,9 @@
       User Account Control: Run all administrators in Admin Approval Mode = Enabled
   WHY: These are the classic CIS and STIG level-one settings; each blocks a
        named attack: blank-password remote logon, username harvesting, LM and
-       NTLMv1 cracking or relay, SMB relay, pre-auth shutdown, UAC bypass.
+       NTLMv1 cracking or relay, SMB relay, pre-auth shutdown, and UAC bypass.
+       Check the level on older releases and mixed domains; Windows 11 24H2 and
+       Windows Server 2025 remove NTLMv1.
   NOTE: Command-line equivalents live in the registry (Hunter A-02) or secedit
         (Hunter A-01).
 
@@ -209,10 +227,15 @@
   PS> Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name EnableLUA -Value 1 -Type DWord
   PS> Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name ConsentPromptBehaviorAdmin -Value 2 -Type DWord
   PS> Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name PromptOnSecureDesktop -Value 1 -Type DWord
+  PS> Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name FilterAdministratorToken -Value 1 -Type DWord
   GUI: Control Panel, User Accounts, Change User Account Control settings,
        slider to the top.
-  WHY: UAC off means every process an admin runs is full admin with no prompt,
-       which malware loves. Value 2 means prompt on the secure desktop.
+  WHY: UAC off means every process an admin runs gets full admin rights
+       silently, which malware loves. ConsentPromptBehaviorAdmin 2 (Always
+       notify) prompts on the secure desktop for every elevation; 5, the
+       default, prompts only for programs outside Windows.
+       FilterAdministratorToken 1 puts the built-in Administrator account under
+       UAC too.
   NOTE: Changing EnableLUA needs a reboot to fully apply.
 
 [I-04] Service audit: what runs, from where
@@ -243,7 +266,7 @@
   PS> Remove-SmbShare -Name "badshare" -Force
   WHY: An unexpected share is a data exfiltration path. Check the ACLs on the
        shares you must keep.
-  NOTE: ADMIN$, C$ and IPC$ are system defaults; leave them alone.
+  NOTE: ADMIN$, C$, and IPC$ are system defaults; leave them alone.
 
 [I-07] Scheduled tasks
   AREA: Malware defenses (CIS Control 10)
@@ -270,7 +293,7 @@
 [I-09] Hosts file
   AREA: Secure configuration (CIS Control 4)
   PS> Get-Content C:\Windows\System32\drivers\etc\hosts
-  GUI: notepad as admin, open the hosts file, delete every non-comment line except localhost
+  GUI: notepad as admin, open the hosts file, and delete every non-comment line except localhost and the entries the brief names
   WHY: Malware points update and antivirus domains at 127.0.0.1 or an attacker
        IP, so Defender and Windows Update silently fail.
 
@@ -289,9 +312,12 @@
   PS> Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name UserAuthentication -Value 1
   CMD> net localgroup "Remote Desktop Users"
   PS> Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Remote Assistance' -Name fAllowToGetHelp -Value 0
+  PS> Set-NetFirewallRule -DisplayGroup "Remote Desktop" -RemoteAddress <admin subnet>
   WHY: Network Level Authentication forces a login before a session exists,
        which kills pre-auth exploits. The Remote Desktop Users group is a
-       privilege list; audit it. Remote Assistance should be off.
+       privilege list; audit it. Remote Assistance should be off. Scope the
+       Remote Desktop firewall rule to the admin subnet that the brief names, so
+       only those addresses reach the port.
 
 [I-12] Firewall allow-rule review
   AREA: Secure configuration (CIS Control 4)
@@ -347,7 +373,8 @@
 ------------------------------ HUNTER ------------------------------------------
  Hunt and harden. Baselines from the command line, registry hardening against
  credential theft, persistence hunting, Defender depth, SMB signing, and version
- notes.
+ notes. Learn it first: Defense Ladder se7, "Windows: credentials and the domain
+ attack surface."
 --------------------------------------------------------------------------------
 [A-01] Security policy as a file: secedit
   AREA: Secure configuration (CIS Control 4)
@@ -369,7 +396,9 @@
   PS> Set-ItemProperty -Path $lsa -Name LmCompatibilityLevel -Value 5 -Type DWord
   PS> Set-ItemProperty -Path $lsa -Name EveryoneIncludesAnonymous -Value 0 -Type DWord
   WHY: Null-session enumeration (RestrictAnonymous), LM hash storage that cracks
-       in seconds (NoLMHash), NTLMv1 downgrade (LmCompatibilityLevel 5).
+       in seconds (NoLMHash), and NTLMv1 downgrade (LmCompatibilityLevel 5).
+       Check the level on older releases and mixed domains; Windows 11 24H2 and
+       Windows Server 2025 remove NTLMv1.
   NOTE: This is the registry form of the Watchman Security Options.
 
 [A-03] Credential-theft hardening: LLMNR, NetBIOS, WDigest
@@ -414,8 +443,8 @@
   WHY: WMI event subscriptions and PowerShell profiles are the persistence spots
        checklists miss. Autoruns shows every auto-start location at once.
   NOTE: Download Sysinternals tools only from Microsoft
-        (learn.microsoft.com/sysinternals), and only where policy allows third-
-        party tools on the machine.
+        (learn.microsoft.com/sysinternals), and only where policy allows
+        third-party tools on the machine.
 
 [A-07] NTFS permissions
   AREA: Access control (CIS Control 6)
@@ -488,16 +517,16 @@
   PS> Get-NetFirewallProfile | Select-Object Name,Enabled
   PS> Get-LocalGroupMember Administrators
   CMD> netstat -abno
-  WHY: A change log of what, when and why is how you reverse a change that broke
-       something in thirty seconds instead of thirty minutes, and it is exactly
-       how real incident response works.
+  WHY: A change log of what, when, and why is how you reverse a change that
+       broke something in thirty seconds instead of thirty minutes, and it is
+       exactly how real incident response works.
 
 [A-13] Version notes: Windows 11 26H2
       This page targets Windows 11 26H2 (the 24H2 core). Several defaults changed in recent releases: read the current value instead of assuming.
       Account lockout: installs since 22H2 apply a lockout policy at setup (KB5020282; Microsoft recommends 10 attempts and 10 minutes), so Lockout threshold Never means someone turned it off
-      SMB: since 24H2, Pro, Enterprise and Education require SMB signing in both directions, and Pro blocks insecure guest logons; Home edition does not require signing
+      SMB: since 24H2, Pro, Enterprise, and Education require SMB signing in both directions, and Pro blocks insecure guest logons; Home edition leaves signing optional
       Removed since 24H2: Microsoft Defender Application Guard (and its WDAGUtilityAccount), WMIC (use Get-CimInstance), Windows PowerShell 2.0, NTLMv1
-      Home edition: no lusrmgr.msc, secpol.msc or gpedit.msc; use Settings, net user, net accounts
+      Home edition: leaves out lusrmgr.msc, secpol.msc, and gpedit.msc; use Settings, net user, or net accounts
   WHY: Every other item on this page is written to hold across releases; what
        changed lives here, so a normal default is not mistaken for a finding and
        a changed default is not mistaken for a fix.
@@ -505,8 +534,8 @@
 ------------------------------ FIX OR BREAK? (practice cards) ------------------
   Brief: Authorized administrators: alice. Authorized users: bob, carol.
   Action: Remove bob from the Administrators group.
-  Call: FIX. Bob is a standard user per the brief. Demoting him is least
-             privilege.
+  Call: FIX. Bob is a standard user per the brief. Demoting that account is
+             least privilege.
 
   Brief: The company depends on this machine's FTP server for client uploads.
   Action: Stop and disable the FTP service because FTP is insecure.
@@ -529,10 +558,10 @@
          C:\Program Files\BackupAgent.
   Action: Delete C:\Program Files\BackupAgent because it looks like unknown
           software.
-  Call: CHECK FIRST. Unrecognized is not the same as unauthorized. Check the
-                     publisher, the service that runs it and its scheduled
-                     tasks, then ask the owner before removing a backup or
-                     monitoring agent.
+  Call: CHECK FIRST. Unrecognized software is distinct from unauthorized
+                     software. Check the publisher, the service that runs it,
+                     and its scheduled tasks, then ask the owner before removing
+                     a backup or monitoring agent.
 
   Brief: Remote Desktop must remain available for the helpdesk.
   Action: Set fDenyTSConnections to 1.
@@ -567,12 +596,29 @@
   Call: BREAKS IT. Required service. Keep it, harden sshd_config, and restrict
                    the firewall rule to the admin subnet.
 
+  Brief: Admins on 10.0.20.0/24 need Remote Desktop to this PC.
+  Action: Set the Remote Desktop firewall rule's RemoteAddress to 10.0.20.0/24.
+  Call: FIX. RDP stays available to the admins who need it, and every other
+             address meets the default inbound block.
+
+  Brief: Staff save scans to an old NAS that the business requires, and its SMB
+         signing support still awaits confirmation. On this PC,
+         Get-SmbClientConfiguration shows RequireSecuritySignature False.
+  Action: Run Set-SmbClientConfiguration -RequireSecuritySignature $true right
+          away.
+  Call: CHECK FIRST. Required signing stops an attacker in the middle from
+                     tampering with or hijacking this PC's SMB sessions, and
+                     24H2 Pro, Enterprise, and Education turn it on by default.
+                     A NAS that cannot sign would lose its connection, so
+                     confirm its support first (a firmware update often adds
+                     it), then require signing.
+
 ------------------------------ SPOT THE FINDING (output snippets) --------------
   Output of net accounts. Tap the line that is the finding.
      Minimum password length:                 12
      Maximum password age (days):             60
   >> Lockout threshold:                       Never
-     Length of password history maintained:   5
+     Length of password history maintained:   24
   WHY: Lockout threshold Never means unlimited password guesses. Set it to 5
        with net accounts /lockoutthreshold:5.
 
@@ -589,8 +635,20 @@
      bob     True   PasswordRequired: True
   >> svc_backup  True   PasswordRequired: False
      Guest   False  PasswordRequired: False
-  WHY: An enabled account with PasswordRequired False has a blank password.
+  WHY: An enabled account with PasswordRequired False is allowed a blank
+       password: set one and require it (net user svc_backup /passwordreq:yes).
        Guest is disabled, so it is fine for now.
+
+  Today is 10/19/2026. Status lines gathered from this PC. Tap the finding.
+     Get-Service wuauserv:    Running   Automatic
+  >> Newest Get-HotFix:       Security Update   InstalledOn 5/14/2026
+     Defender signatures:     10/19/2026
+     Firewall, all profiles:  Enabled True
+  WHY: The newest update is five months old, so updates stopped even though the
+       service runs. Open Settings, Windows Update: resume updates if they are
+       paused, then check for updates and install them. Defender signatures
+       update on their own schedule, so their date tells you about Defender
+       alone.
 
   netstat -abno output. Tap the finding.
      TCP    0.0.0.0:135    LISTENING   [svchost.exe]
@@ -599,6 +657,24 @@
      TCP    127.0.0.1:5040 LISTENING   [svchost.exe]
   WHY: A netcat listener on 4444 is a backdoor. Find its PID, its path, and
        whatever task or Run key starts it.
+
+  UAC registry values. The brief requires a prompt on the secure desktop. Tap the finding.
+     EnableLUA                  : 1
+  >> ConsentPromptBehaviorAdmin : 0
+     PromptOnSecureDesktop      : 1
+     FilterAdministratorToken   : 1
+  WHY: ConsentPromptBehaviorAdmin 0 lets admins elevate silently. Set 2 (Always
+       notify) or 5, the default; with PromptOnSecureDesktop 1, both prompt on
+       the secure desktop.
+
+  Get-Content of the hosts file. The brief names the intranet server at 10.0.0.5. Tap the finding.
+     127.0.0.1       localhost
+     ::1             localhost
+  >> 127.0.0.1       update.antivirus-vendor.example
+     10.0.0.5        intranet.example.com
+  WHY: This line points the antivirus update site at this PC itself, so every
+       update check fails and signatures go stale. Remove it. The intranet line
+       matches the brief, so it stays.
 
   Get-MpPreference output. Tap the finding.
      PUAProtection          : 1
@@ -614,7 +690,8 @@
   >> LmCompatibilityLevel   : 0
      LimitBlankPasswordUse  : 1
   WHY: LmCompatibilityLevel 0 sends LM and NTLMv1 responses, which crack in
-       minutes. Set it to 5.
+       minutes. Set it to 5. Check the level on older releases and mixed
+       domains; Windows 11 24H2 and Windows Server 2025 remove NTLMv1.
 
 ------------------------------ OFFICIAL SOURCES --------------------------------
   Microsoft security baselines

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-GjMX9FRgGBnmi31GzRhFe/BtoVGgzNQGqi0xvp4Qg+8='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-CFuEEx39BWu4phz1ZQx2TjzVJOqAyZgse4fgFCnATdM='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/lockdown-range/cisco-ios/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%96%A5%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -60,6 +60,7 @@ header.top{ position:sticky; top:0; z-index:40; background:var(--panel); border-
 .levels button .lv{ font-size:.75rem; opacity:.85; }
 .levels button .best{ font-size:.72rem; background:rgba(0,0,0,.12); border-radius:999px; padding:0 6px; }
 .levels button[aria-selected="true"] .best{ background:rgba(255,255,255,.25); }
+.levels button .gr{ font-size:.72rem; opacity:.85; }
 .score{ margin-left:auto; font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; padding:4px 12px; border-radius:8px; background:var(--soft); border:1px solid var(--line); }
 .score.neg{ color:var(--bad); }
 .theme{ white-space:nowrap; }
@@ -200,6 +201,7 @@ footer .spacer{ flex:1; }
 .debrief td.fix{ font-family:var(--mono); font-size:.8rem; white-space:pre-wrap; }
 .debrief td.why{ color:var(--muted); }
 .debrief .sum{ display:flex; gap:16px; flex-wrap:wrap; margin-bottom:10px; font-weight:600; }
+.debrief .learn{ margin:0 0 10px; font-size:.9rem; }
 .help dl{ display:grid; grid-template-columns:auto 1fr; gap:4px 12px; margin:8px 0; }
 .help dt{ font-family:var(--mono); font-size:.85rem; white-space:nowrap; }
 .help dd{ margin:0; }
@@ -2598,7 +2600,8 @@ function lineNumber(dev, ref) { if (ref.type === 'con') return 0; if (ref.type =
 function lnExecTimeout(ctx) {
   if (ctx.no) { eachLine(ctx, L => { L.exec = null; }); return; }
   const m = +ctx.w[1], s = ctx.w[2] !== undefined ? +ctx.w[2] : 0;
-  eachLine(ctx, L => { L.exec = { m: m, s: s }; });
+  /* IOS treats 10 0 as the default and leaves it out of show running-config */
+  eachLine(ctx, L => { L.exec = (m * 60 + s === 600) ? null : { m: m, s: s }; });
 }
 function lnLoggingSync(ctx) { eachLine(ctx, L => { L.sync = !ctx.no; }); }
 function lnTransport(ctx) {
@@ -3589,7 +3592,7 @@ const CAT = { acct: 'Account management', access: 'Access control', config: 'Sec
 const C = (St, n) => St.devices[n].running;
 const Dv = (St, n) => St.devices[n];
 const vtyEvery = (cfg, pred) => cfg.lines.vty.length > 0 && cfg.lines.vty.every(pred);
-const execOk = L => !!(L.exec && (L.exec.m * 60 + L.exec.s) > 0 && (L.exec.m * 60 + L.exec.s) <= 600);
+const execOk = L => !!(L.exec && (L.exec.m * 60 + L.exec.s) > 0 && (L.exec.m * 60 + L.exec.s) < 600);
 const sshOnly = L => L.transport === 'ssh';
 const bannerOk = t => !!(t && t.trim().length >= 8 && !/welcome/i.test(t));
 const hasAdmin = (cfg, name) => { const u = userByName(cfg, name); return !!(u && u.secret && u.privilege === 15); };
@@ -3609,6 +3612,8 @@ const aclLineOnly = (cfg, L, nets, need) => {
 /* every VTY line of `dev` is restricted that way */
 const aclOnly = (St, dev, nets, need) => { const cfg = C(St, dev); return vtyEvery(cfg, L => aclLineOnly(cfg, L, nets, need)); };
 const MGMT99 = [['192.168.99.0', '0.0.0.255']];
+/* Defense Ladder lessons behind each level (absolute, so a downloaded copy still finds them when online) */
+const DL_URL = 'https://freeapp4that.store/defense-ladder/#';
 /* PortFast belongs on edge (PC) ports; BPDU guard protects them; trunks stay free of PortFast in either form */
 const edgeOn = (cfg, f) => !!(f.portfast || (cfg.stpPortfast && f.mode === 'access'));
 const bpduOn = (cfg, f) => f.bpduguard === true || (cfg.stpBpduguard && edgeOn(cfg, f) && f.bpduguard !== false);
@@ -3639,7 +3644,8 @@ function hardenedDevice(d, host, domain) { // the district-managed template
 const SCENARIOS = [
   /* ---------------------------------------------------------------- 1 Recruit */
   {
-    id: 's1', level: 1, levelName: 'Recruit', name: 'Tutoring center', short: 'Branch router hardening',
+    id: 's1', level: 1, levelName: 'Recruit', grade: 'Sophomore', name: 'Tutoring center', short: 'Branch router hardening',
+    learn: [['sophomore/s5', 'Sophomore', 'Cisco: configure a switch and a router']],
     layout: { R1: { x: 220, y: 80 }, PC1: { x: 220, y: 215 } },
     build() {
       const R1 = mkDevice('router', 'R1'), cfg = R1.running;
@@ -3658,7 +3664,7 @@ const SCENARIOS = [
       admins: ['techlead (existing account, privilege 15) - keep it', 'netadmin (your account - create it with privilege 15 and a secret of 10+ characters)'],
       users: ['No other accounts are authorized. The "guest" account is not authorized.'],
       required: ['R1 GigabitEthernet0/0 (192.168.1.1) is the front-desk LAN and must stay up with its address.', 'SSH management from PC1 to R1 is required once you finish.'],
-      policy: ['Privileged access uses an enable secret in place of a plaintext enable password.', 'Passwords and secrets are at least 10 characters.', 'The console and VTY lines require authentication; remote access is SSH only, with Telnet turned off.', 'A message-of-the-day banner warns unauthorized users and leaves out the word "welcome".', 'Idle sessions time out within 10 minutes. Passwords are stored encrypted.', 'Unneeded services are off (HTTP server, DNS lookups). Unused interfaces are shut down.', 'Save the configuration when you are done.'],
+      policy: ['Privileged access uses an enable secret in place of a plaintext enable password.', 'Passwords and secrets are at least 10 characters.', 'The console and VTY lines require authentication; remote access is SSH only, with Telnet turned off.', 'A message-of-the-day banner warns unauthorized users and leaves out the word "welcome".', 'Every console and VTY line sets an exec-timeout shorter than the 10-minute default on the line itself (for example, exec-timeout 5 0; 0 0 turns the timeout off). Passwords are stored encrypted.', 'Unneeded services are off (HTTP server, DNS lookups). Unused interfaces are shut down.', 'Save the configuration when you are done.'],
       warning: 'Keep every authorized account and keep GigabitEthernet0/0 online: removing either one fails an availability check.',
       creds: 'R1 console: password-free for now (press RETURN). Enable password: letmein123 (replace it with an enable secret). PC1 is already addressed.',
     },
@@ -3680,9 +3686,9 @@ const SCENARIOS = [
       { id: 'domain', title: 'Domain name configured', pts: 3, cat: CAT.access, test: St => !!C(St, 'R1').domainName, hint: 'ip domain-name tutoring.lan', fix: 'R1(config)# ip domain-name tutoring.lan', why: 'The RSA key is named hostname.domain; IOS refuses to generate one without a domain.' },
       { id: 'rsa', title: 'RSA key pair generated (2048 bits)', pts: 6, cat: CAT.access, test: St => { const k = C(St, 'R1').rsa; return !!(k && k.bits >= 2048); }, hint: 'crypto key generate rsa general-keys modulus 2048 (needs hostname + domain first)', fix: 'R1(config)# crypto key generate rsa general-keys modulus 2048', why: 'Keys shorter than 2048 bits are considered weak; the key is what enables the SSH server.' },
       { id: 'sshv2', title: 'SSH version 2 enforced', pts: 5, cat: CAT.access, test: St => C(St, 'R1').sshVersion === 2, hint: 'ip ssh version 2 (after the RSA key exists)', fix: 'R1(config)# ip ssh version 2', why: 'SSHv1 has known weaknesses; v2 only is the standard.' },
-      { id: 'banner', title: 'MOTD banner warns unauthorized users (and leaves out "welcome")', pts: 4, cat: CAT.config, test: St => bannerOk(C(St, 'R1').bannerMotd), hint: 'banner motd #Authorized access only. Violators will be prosecuted.#', fix: 'R1(config)# banner motd #Authorized access only. Activity is monitored.#', why: 'States that access is restricted and monitored. Cisco advises banners that reveal nothing about the device or owner; "welcome" reads as an invitation, and legal wording is a question for counsel.' },
+      { id: 'banner', title: 'MOTD banner warns unauthorized users (and leaves out "welcome")', pts: 4, cat: CAT.config, test: St => bannerOk(C(St, 'R1').bannerMotd), hint: 'banner motd #Authorized access only. Activity is monitored.#', fix: 'R1(config)# banner motd #Authorized access only. Activity is monitored.#', why: 'States that access is restricted and monitored. Cisco advises banners that reveal nothing about the device or owner; "welcome" reads as an invitation, and legal wording is a question for counsel.' },
       { id: 'pwenc', title: 'Service password-encryption enabled', pts: 4, cat: CAT.acct, test: St => C(St, 'R1').pwEnc, hint: 'service password-encryption', fix: 'R1(config)# service password-encryption', why: 'Turns plaintext line and user passwords into type 7, which stops shoulder-surfing but is reversible obfuscation, not real encryption: secrets still need enable secret / username secret.' },
-      { id: 'exec', title: 'Exec timeout of 10 minutes or less on console and VTY', pts: 5, cat: CAT.access, test: St => { const cfg = C(St, 'R1'); return execOk(cfg.lines.con[0]) && vtyEvery(cfg, execOk); }, hint: 'exec-timeout 5 0 under line console 0 and line vty 0 4', fix: 'R1(config-line)# exec-timeout 5 0', why: 'An idle, logged-in session left open is a free privileged shell.' },
+      { id: 'exec', title: 'Exec timeout shorter than 10 minutes on console and VTY', pts: 5, cat: CAT.access, test: St => { const cfg = C(St, 'R1'); return execOk(cfg.lines.con[0]) && vtyEvery(cfg, execOk); }, hint: 'exec-timeout 5 0 under line console 0 and line vty 0 4', fix: 'R1(config-line)# exec-timeout 5 0', why: 'An idle, logged-in session left open is a free privileged shell. IOS already times out after 10 minutes by default, and show running-config leaves that default out; a shorter value, such as exec-timeout 5 0, shows in the configuration, where a reviewer can see it.' },
       { id: 'minlen', title: 'Minimum password length set to 10 or more', pts: 3, cat: CAT.acct, test: St => (C(St, 'R1').minLength || 0) >= 10, hint: 'security passwords min-length 10', fix: 'R1(config)# security passwords min-length 10', why: 'IOS then rejects new passwords and secrets shorter than that; set it before you set the passwords.' },
       { id: 'block', title: 'Login attempts limited (login block-for)', pts: 4, cat: CAT.access, test: St => !!C(St, 'R1').loginBlock, hint: 'login block-for 120 attempts 3 within 60', fix: 'R1(config)# login block-for 120 attempts 3 within 60', why: 'Slows password guessing against the VTY lines.' },
       { id: 'http', title: 'HTTP server disabled', pts: 3, cat: CAT.config, test: St => !C(St, 'R1').httpServer, hint: 'no ip http server', fix: 'R1(config)# no ip http server', why: 'An unneeded management interface is attack surface.' },
@@ -3699,7 +3705,8 @@ const SCENARIOS = [
   },
   /* ---------------------------------------------------------------- 2 Operator */
   {
-    id: 's2', level: 2, levelName: 'Operator', name: 'Branch library', short: 'Access switch: VLANs, port security, and SSH',
+    id: 's2', level: 2, levelName: 'Operator', grade: 'Junior', name: 'Branch library', short: 'Access switch: VLANs, port security, and SSH',
+    learn: [['junior/j4', 'Junior', 'Cisco: VLANs, routing, and ACLs'], ['sophomore/s5', 'Sophomore', 'Cisco: configure a switch and a router', 'port security']],
     layout: { R1: { x: 220, y: 42 }, S1: { x: 220, y: 135 }, PC1: { x: 66, y: 266 }, PC2: { x: 374, y: 266 } },
     build() {
       const R1 = hardenedDevice(mkDevice('router', 'R1'), 'R1', 'district.lan'), rc = R1.running;
@@ -3729,7 +3736,7 @@ const SCENARIOS = [
       admins: ['libadmin (district account, privilege 15) - keep it', 'netadmin (your account - create it with privilege 15 and a secret of 10+ characters)'],
       users: ['No other accounts are authorized. "tempadmin" was never approved.'],
       required: ['PC1 and PC2 must keep connectivity to each other; after the migration both belong to VLAN 10 (STAFF).', 'The uplink GigabitEthernet0/1 to R1 is required. R1 is district-managed and stays as it is.', 'S1 must be manageable over SSH on VLAN 99 (192.168.99.2) from a staff PC.'],
-      policy: ['User traffic uses VLANs above 1; management uses VLAN 99 (192.168.99.2/24, default gateway 192.168.99.1).', 'The uplink is an 802.1Q trunk with native VLAN 99, allowed VLANs 10 and 99, and DTP negotiation turned off.', 'Unused ports are shut down and parked in VLAN 999 (PARKING).', 'PC-facing ports run port security (max 1-2 sticky addresses, violation shutdown or restrict), PortFast, and BPDU guard. PortFast belongs on edge ports only, so the uplink trunk stays free of it.', 'Enable secret only; passwords 10+ characters; a console password other than "cisco"; SSH only, with Telnet turned off; a banner without "welcome"; timeouts within 10 minutes; passwords encrypted; HTTP server and DNS lookups off.', 'Design note: this older branch layout uses VLAN 99 as both the native VLAN and the management VLAN. Level 4 shows the cleaner design: the native VLAN (99) carries no hosts, and management moves to a separate VLAN (Teachers, VLAN 20).', 'Save the configuration when you are done.'],
+      policy: ['User traffic uses VLANs above 1; management uses VLAN 99 (192.168.99.2/24, default gateway 192.168.99.1).', 'The uplink is an 802.1Q trunk with native VLAN 99, allowed VLANs 10 and 99, and DTP negotiation turned off.', 'Unused ports are shut down and parked in VLAN 999 (PARKING).', 'PC-facing ports run port security (max 1-2 sticky addresses, violation shutdown or restrict), PortFast, and BPDU guard. PortFast belongs on edge ports only, so the uplink trunk stays free of it.', 'Enable secret only; passwords 10+ characters; a console password other than "cisco"; SSH only, with Telnet turned off; a banner without "welcome"; an exec-timeout shorter than the 10-minute default on every console and VTY line, set on the line itself (for example, exec-timeout 5 0; 0 0 turns the timeout off); passwords encrypted; HTTP server and DNS lookups off.', 'Design note: this older branch layout uses VLAN 99 as both the native VLAN and the management VLAN. Level 4 shows the cleaner design: the native VLAN (99) carries no hosts, and management moves to a separate VLAN (Teachers, VLAN 20).', 'Save the configuration when you are done.'],
       warning: 'Removing libadmin, breaking PC1-PC2 connectivity, or modifying R1 fails an availability check.',
       creds: 'S1 console password: cisco. S1 enable password: library (replace it). R1: no credentials are provided (user EXEC only).',
     },
@@ -3751,7 +3758,7 @@ const SCENARIOS = [
       { id: 'sshv2', title: 'SSH version 2 enforced', pts: 3, cat: CAT.access, test: St => C(St, 'S1').sshVersion === 2, hint: 'ip ssh version 2', fix: 'S1(config)# ip ssh version 2', why: 'Disables the weaker protocol version.' },
       { id: 'banner', title: 'MOTD banner warns unauthorized users', pts: 3, cat: CAT.config, test: St => bannerOk(C(St, 'S1').bannerMotd), hint: 'banner motd #Authorized access only#', fix: 'S1(config)# banner motd #Authorized library staff only. Activity is monitored.#', why: 'Legal notice shown before login.' },
       { id: 'pwenc', title: 'Service password-encryption enabled', pts: 3, cat: CAT.acct, test: St => C(St, 'S1').pwEnc, hint: 'service password-encryption', fix: 'S1(config)# service password-encryption', why: 'Obscures line passwords in show running-config.' },
-      { id: 'exec', title: 'Exec timeout of 10 minutes or less on console and VTY', pts: 3, cat: CAT.access, test: St => { const c = C(St, 'S1'); return execOk(c.lines.con[0]) && vtyEvery(c, execOk); }, hint: 'exec-timeout 5 0 on line console 0 and line vty 0 15', fix: 'S1(config-line)# exec-timeout 5 0', why: 'Closes abandoned sessions.' },
+      { id: 'exec', title: 'Exec timeout shorter than 10 minutes on console and VTY', pts: 3, cat: CAT.access, test: St => { const c = C(St, 'S1'); return execOk(c.lines.con[0]) && vtyEvery(c, execOk); }, hint: 'exec-timeout 5 0 on line console 0 and line vty 0 15', fix: 'S1(config-line)# exec-timeout 5 0', why: 'Closes abandoned sessions.' },
       { id: 'http', title: 'HTTP server disabled', pts: 3, cat: CAT.config, test: St => !C(St, 'S1').httpServer, hint: 'no ip http server', fix: 'S1(config)# no ip http server', why: 'Removes the web management interface.' },
       { id: 'dns', title: 'DNS lookups disabled', pts: 2, cat: CAT.config, test: St => !C(St, 'S1').domainLookup, hint: 'no ip domain-lookup', fix: 'S1(config)# no ip domain-lookup', why: 'Prevents typo lookups from hanging the console.' },
       { id: 'vlan10', title: 'VLAN 10 "STAFF" created and both PC ports are access ports in it', pts: 4, cat: CAT.config, test: St => { const c = C(St, 'S1'); return !!(c.vlans[10] && /^staff$/i.test(c.vlans[10].name) && ['FastEthernet0/1', 'FastEthernet0/2'].every(n => c.ifaces[n].mode === 'access' && c.ifaces[n].accessVlan === 10)); }, hint: 'vlan 10 / name STAFF; interface range fa0/1 - 2 / switchport mode access / switchport access vlan 10', fix: 'S1(config)# vlan 10\nS1(config-vlan)# name STAFF\nS1(config)# interface range fa0/1 - 2\nS1(config-if-range)# switchport mode access\nS1(config-if-range)# switchport access vlan 10', why: 'User traffic leaves the default VLAN; access mode stops DTP games on user ports.' },
@@ -3775,7 +3782,8 @@ const SCENARIOS = [
   },
   /* ---------------------------------------------------------------- 3 Captain */
   {
-    id: 's3', level: 3, levelName: 'Captain', name: 'Animal clinic', short: 'Two switches, trunks, and troubleshooting',
+    id: 's3', level: 3, levelName: 'Captain', grade: 'Senior', name: 'Animal clinic', short: 'Two switches, trunks, and troubleshooting',
+    learn: [['junior/j4', 'Junior', 'Cisco: VLANs, routing, and ACLs'], ['senior/se6', 'Senior', 'Cisco: audit and extend the two-site network'], ['sophomore/s5', 'Sophomore', 'Cisco: configure a switch and a router', 'logging, NTP, and CDP']],
     layout: { R1: { x: 100, y: 52 }, S1: { x: 100, y: 152 }, S2: { x: 340, y: 152 }, PC1: { x: 100, y: 252 }, PC2: { x: 340, y: 252 } },
     build() {
       const admin = () => ({ privilege: 15, secret: { text: 'Cl1nic-Adm1n!', type: 5 } });
@@ -3809,11 +3817,11 @@ const SCENARIOS = [
     },
     brief: {
       blurb: ['You are the lead technician at the animal clinic. The clinic network is a router (R1) doing inter-VLAN routing for two switches: S1 at the front desk and S2 in the exam rooms, joined by a trunk. VLAN 10 FRONTDESK (PC1), VLAN 20 EXAM (PC2), and VLAN 99 MGMT (R1 .1, S1 .2, S2 .3) are in use; the syslog/NTP server lives at 192.168.99.50.',
-        'Since a contractor "upgraded" things last week, PC2 cannot reach PC1 and the front desk cannot SSH to S1. Find and fix the faults, then finish hardening all three devices to policy. Each device has your account; use it on the consoles.'],
+        'Since a contractor "upgraded" things last week, PC2 and PC1 have lost contact, and management traffic fails to reach S1. Find and fix the faults, then finish hardening all three devices to policy. Each device has your account; use it on the consoles.'],
       admins: ['vetadmin (privilege 15, on R1, S1, and S2) - your account, password Cl1nic-Adm1n!', 'Enable secret on all devices: Cl1nic-En@ble'],
       users: ['No other accounts are authorized: "svc_backup" (R1) and "kiosk" (S2) were never approved.'],
       required: ['PC1 (192.168.10.10) and PC2 (192.168.20.10) must be able to reach each other.', 'The trunks R1-S1 and S1-S2 and the management addresses in VLAN 99 are required.', 'Remote management is SSH only, from the management subnet 192.168.99.0/24 only.'],
-      policy: ['SSH only on all VTY lines, protected by a standard ACL permitting just 192.168.99.0/24; RSA keys 2048 bits; SSH version 2.', 'Trunks use native VLAN 99 and switchport nonegotiate; unused ports are shut down.', 'Access ports: port security (sticky, max 2), PortFast, BPDU guard, and CDP off. PortFast belongs on edge ports only, so every trunk stays free of it.', 'DHCP snooping on VLANs 10 and 20 with the trunks trusted.', 'Every device logs to 192.168.99.50 with timestamps and syncs time with NTP from 192.168.99.50.', 'Enable secret only, encrypted passwords, exec-timeout within 10 minutes, login block-for, a MOTD banner, and the HTTP server off.', 'Save all three configurations.'],
+      policy: ['SSH only on all VTY lines, protected by a standard ACL permitting just 192.168.99.0/24; RSA keys 2048 bits; SSH version 2.', 'Trunks use native VLAN 99 and switchport nonegotiate; unused ports are shut down.', 'Access ports: port security (sticky, max 2), PortFast, BPDU guard, and CDP off. PortFast belongs on edge ports only, so every trunk stays free of it.', 'DHCP snooping on VLANs 10 and 20 with the trunks trusted.', 'Every device logs to 192.168.99.50 with timestamps and syncs time with NTP from 192.168.99.50.', 'Enable secret only, encrypted passwords, an exec-timeout shorter than the 10-minute default on every console and VTY line, set on the line itself (for example, exec-timeout 5 0; 0 0 turns the timeout off), login block-for, a MOTD banner, and the HTTP server off.', 'Save all three configurations.'],
       warning: 'Removing vetadmin, breaking the trunks or the management addresses, or cutting PC1 off from its gateway fails an availability check.',
       creds: 'Console login on R1, S1, and S2: vetadmin / Cl1nic-Adm1n! (lands in privileged EXEC). Enable secret: Cl1nic-En@ble.',
     },
@@ -3831,7 +3839,7 @@ const SCENARIOS = [
       { id: 'sshonly', title: 'SSH-only VTY access (login local + transport input ssh) on R1, S1, and S2', pts: 6, cat: CAT.access, test: St => ['R1', 'S1', 'S2'].every(d => { const c = C(St, d); return !!(c.domainName && c.rsa && vtyEvery(c, L => L.login === 'local' && sshOnly(L))); }), hint: 'each device: ip domain-name + RSA key, line vty 0 15 (0 4 on R1): login local, transport input ssh', fix: '(config)# ip domain-name clinic.lan\n(config)# crypto key generate rsa general-keys modulus 2048\nS1(config)# line vty 0 15\nS1(config-line)# login local\nS1(config-line)# transport input ssh\n(same on S2; R1 uses line vty 0 4, the VTY range it already has)', why: 'Telnet on any one device exposes the shared admin password.' },
       { id: 'aclr1', title: 'R1 VTY access list permits only 192.168.99.0/24 (outside host removed)', pts: 4, cat: CAT.access, test: St => aclOnly(St, 'R1', MGMT99), hint: 'R1: show access-lists, then ip access-list standard 10 / no 20 (on a numbered list, no access-list 10 ... deletes the whole list); keep access-class 10 in on the VTYs', fix: 'R1(config)# ip access-list standard 10\nR1(config-std-nacl)# no 20\nR1(config-std-nacl)# exit\nR1(config)# line vty 0 4\nR1(config-line)# access-class 10 in', why: 'An ACL that lets an internet host in is worse than none - it looks secure.' },
       { id: 'aclsw', title: 'VTY access-class restricting to 192.168.99.0/24 applied on S1 and S2', pts: 5, cat: CAT.access, test: St => ['S1', 'S2'].every(d => aclOnly(St, d, MGMT99)), hint: 'S1, S2: access-list 10 permit 192.168.99.0 0.0.0.255; line vty 0 15 / access-class 10 in', fix: 'S1(config)# access-list 10 permit 192.168.99.0 0.0.0.255\nS1(config)# line vty 0 15\nS1(config-line)# access-class 10 in', why: 'Only management stations should even see a login prompt.' },
-      { id: 'exec', title: 'Exec timeout within 10 minutes on console and VTY of all devices', pts: 4, cat: CAT.access, test: St => ['R1', 'S1', 'S2'].every(d => { const c = C(St, d); return execOk(c.lines.con[0]) && vtyEvery(c, execOk); }), hint: 'exec-timeout 5 0 under line console 0 and the vty lines, on every device', fix: '(config-line)# exec-timeout 5 0', why: 'Idle sessions are unattended privileged shells.' },
+      { id: 'exec', title: 'Exec timeout shorter than 10 minutes on console and VTY of all devices', pts: 4, cat: CAT.access, test: St => ['R1', 'S1', 'S2'].every(d => { const c = C(St, d); return execOk(c.lines.con[0]) && vtyEvery(c, execOk); }), hint: 'exec-timeout 5 0 under line console 0 and the vty lines, on every device', fix: '(config-line)# exec-timeout 5 0', why: 'Idle sessions are unattended privileged shells.' },
       { id: 'block', title: 'Login block-for configured on all devices', pts: 3, cat: CAT.access, test: St => ['R1', 'S1', 'S2'].every(d => !!C(St, d).loginBlock), hint: 'login block-for 120 attempts 3 within 60 on every device', fix: '(config)# login block-for 120 attempts 3 within 60', why: 'Rate-limits brute force on SSH.' },
       { id: 'banner', title: 'MOTD banner (without "welcome") on all devices', pts: 3, cat: CAT.config, test: St => ['R1', 'S1', 'S2'].every(d => bannerOk(C(St, d).bannerMotd)), hint: 'banner motd #Authorized access only# on every device', fix: '(config)# banner motd #Authorized clinic staff only. Activity is monitored.#', why: 'Legal notice on every login path.' },
       { id: 'http', title: 'HTTP server disabled on all devices', pts: 3, cat: CAT.config, test: St => ['R1', 'S1', 'S2'].every(d => !C(St, d).httpServer), hint: 'no ip http server on every device', fix: '(config)# no ip http server', why: 'Unused management surface.' },
@@ -3860,7 +3868,8 @@ const SCENARIOS = [
   },
   /* ---------------------------------------------------------------- 4 Two sites */
   {
-    id: 's4', level: 4, levelName: 'Two sites', name: 'Two-site school network', short: 'VLANs, router-on-a-stick, OSPF, and SSH across two sites',
+    id: 's4', level: 4, levelName: 'Two sites', grade: 'Senior', name: 'Two-site school network', short: 'VLANs, router-on-a-stick, OSPF, and SSH across two sites',
+    learn: [['senior/se6', 'Senior', 'Cisco: audit and extend the two-site network']],
     layout: { ISP: { x: 186, y: 30 }, Resolver: { x: 372, y: 30 }, RtrA: { x: 62, y: 110 }, RtrB: { x: 352, y: 110 }, SwA: { x: 62, y: 190 }, SwB: { x: 352, y: 190 }, 'Teacher-A': { x: 62, y: 270 }, 'Student-B': { x: 196, y: 270 }, 'Teacher-B': { x: 352, y: 270 } },
     build() {
       const R = '255.255.255.0', P30 = '255.255.255.252';
@@ -4060,7 +4069,7 @@ function evaluate() {
 function renderReport(res) {
   const body = $('#rbody'); body.textContent = '';
   const lvl = SC.level;
-  body.appendChild(el('p', { class: 'scen', text: SC.name + ' - Level ' + lvl + ' (' + SC.levelName + ')' }));
+  body.appendChild(el('p', { class: 'scen', text: SC.name + ' - Level ' + lvl + ' (' + SC.levelName + ') - ' + SC.grade + ' level' }));
   body.appendChild(el('p', { class: 'total' + (res.score < 0 ? ' neg' : ''), text: 'Progress: ' + res.score + ' / ' + res.max + ' points' }));
   body.appendChild(el('p', { class: 'found', text: 'Checks passed: ' + res.earned.length + ' of ' + SC.checks.length }));
   const meter = el('div', { class: 'meter', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': res.max, 'aria-valuenow': Math.max(0, res.score) });
@@ -4112,8 +4121,8 @@ const TASK_MAP = { s1: [['host'], ['ensec', 'enpw'], ['guest', 'admin'], ['con',
 function renderLevels() {
   const box = $('.levels'); box.textContent = '';
   for (const sc of SCENARIOS) {
-    const b = el('button', { type: 'button', role: 'tab', 'aria-selected': SC && sc.id === SC.id ? 'true' : 'false', dataset: { level: sc.id }, title: sc.name + ' - ' + sc.short });
-    b.appendChild(el('span', { class: 'lv', text: sc.level + ' · ' })); b.appendChild(el('span', { text: sc.levelName }));
+    const b = el('button', { type: 'button', role: 'tab', 'aria-selected': SC && sc.id === SC.id ? 'true' : 'false', dataset: { level: sc.id }, title: sc.name + ' - ' + sc.short + ' (' + sc.grade + ')' });
+    b.appendChild(el('span', { class: 'lv', text: sc.level + ' · ' })); b.appendChild(el('span', { text: sc.levelName })); b.appendChild(document.createTextNode(' ')); b.appendChild(el('span', { class: 'gr', text: sc.grade }));
     const best = bestOf(sc.id); if (best !== null) b.appendChild(el('span', { class: 'best', text: 'best ' + best }));
     box.appendChild(b);
   }
@@ -4442,7 +4451,10 @@ function openDebrief() {
   for (const c of SC.checks) { const ok = res.earned.includes(c); const row = el('tr', { class: ok ? 'ok' : 'no' }); row.appendChild(el('td', { text: ok ? '✓' : '✗' })); row.appendChild(el('td', { text: c.title })); row.appendChild(el('td', { text: String(c.pts) })); row.appendChild(el('td', { class: 'fix', text: c.fix })); row.appendChild(el('td', { class: 'why', text: c.why })); tb.appendChild(row); }
   for (const p of SC.availability) { const hit = res.failed.includes(p); const row = el('tr', { class: hit ? 'no' : 'ok' }); row.appendChild(el('td', { text: hit ? '!' : '✓' })); row.appendChild(el('td', { text: 'Availability check: ' + p.title })); row.appendChild(el('td', { text: String(p.pts) })); row.appendChild(el('td', { class: 'fix', text: hit ? 'Failed: undo the change that caused it (see the Scenario Brief).' : 'Passing' })); row.appendChild(el('td', { class: 'why', text: p.why })); tb.appendChild(row); }
   tbl.appendChild(tb);
-  openModal('Debrief — ' + SC.name, [sum, el('div', { class: 'tblwrap' }, [tbl])], [el('button', { type: 'button', dataset: { close: '1' }, text: 'Back to the range' })], 'debrief');
+  const learn = el('p', { class: 'learn' }, [el('strong', { text: SC.grade + ' level. Learn it: ' })]);
+  SC.learn.forEach(([hash, grade, title, topic], i) => { if (i) learn.appendChild(document.createTextNode('; ')); learn.appendChild(el('a', { href: DL_URL + hash, target: '_blank', rel: 'noopener', text: 'Defense Ladder › ' + grade + ' › ' + title })); if (topic) learn.appendChild(document.createTextNode(' (' + topic + ')')); });
+  learn.appendChild(document.createTextNode('.'));
+  openModal('Debrief — ' + SC.name, [sum, learn, el('div', { class: 'tblwrap' }, [tbl])], [el('button', { type: 'button', dataset: { close: '1' }, text: 'Back to the range' })], 'debrief');
 }
 function openReset() {
   openModal('Reset lab?', [el('p', { text: 'This reverts "' + SC.name + '" to its snapshot: every device goes back to the way it was handed to you, answers are cleared, and the timer restarts. Your best score for this scenario is kept.' })],

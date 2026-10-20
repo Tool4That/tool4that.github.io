@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-f6Trzc7EAi6R4tawrqhonydjguHpOQ0O/OgPvO1YW+M='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-32t+rQhXTYmT0A66zrM3vLeLlJ02f1pkLz9uydYRKtk='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Study the complaint and real device output, then pick the root cause. Every ticket ends with the fix and the configuration habits that prevent it.">
 <link rel="canonical" href="https://freeapp4that.store/net-drills/trouble-tickets/">
@@ -90,6 +90,8 @@ fieldset.topics legend{font-size:14px;color:var(--muted);padding:0;margin-bottom
 .res p{margin:0 0 8px}
 .fixl{font-weight:600;margin:10px 0 4px}
 .swipe{margin:4px 0 0;font-size:13px;color:var(--muted)}
+.learn{margin:10px 0 0;font-size:14px;color:var(--muted)}
+.learn a{color:var(--ink);font-weight:600;text-decoration-color:var(--accent);text-underline-offset:3px}
 .fix{margin:0;padding:10px 12px;background:var(--face);border:1px solid var(--rule);border-radius:6px;font:13.5px/1.5 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere}
 .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
 .btn{min-height:44px;padding:10px 16px;border-radius:6px;border:1.5px solid var(--ink);background:transparent;color:var(--ink);font-weight:600;font-size:15px}
@@ -275,10 +277,12 @@ line vty 5 15
  access-class 20 in
  login local
  transport input ssh`],
+    ['SwA console: the filter returned nothing', `SwA#show running-config | include default-gateway
+SwA#`],
     ['Pings to 10.1.20.2', `From Site A Teachers PC 10.1.20.30: Reply from 10.1.20.2: bytes=32 time<1ms TTL=255
 From Site B Teachers PC 10.2.20.20: Request timed out.`]],
   opts: ['SwA is missing its ip default-gateway', 'Access list 20 blocks the Site B Teachers subnet', 'The Site B PC needs the switch MAC address', 'SSH is disabled on SwA'],
-  why: 'A Layer 2 switch reaches other networks through ip default-gateway. Without it, SwA answers same-subnet hosts, and its replies to other subnets have nowhere to go. Access list 20 permits both Teachers subnets, and access-class filters only VTY logins, so pings pass it by. Larger networks give management its own dedicated VLAN; this network keeps it on Teachers so the Teachers-only ACL and the management subnet are one and the same.',
+  why: 'A Layer 2 switch reaches other networks through ip default-gateway, and the filtered show running-config comes back empty, so SwA lacks one. Without it, SwA answers same-subnet hosts, and its replies to other subnets have nowhere to go. Access list 20 permits both Teachers subnets, and access-class filters only VTY logins, so pings pass it by. Larger networks give management its own dedicated VLAN; this network keeps it on Teachers so the Teachers-only ACL and the management subnet are one and the same.',
   fix: 'ip default-gateway 10.1.20.1' },
 { id: 'mode', cat: 'Device config', title: 'The hostname command fails',
   sym: 'A new technician typed the exact command from the setup guide and got an error.',
@@ -355,13 +359,13 @@ Security Violation Count   : 1`]],
   fix: 'If the new laptop is approved, remove the old sticky MAC and bounce the port. On real IOS:\nclear port-security sticky interface f0/5\nIn Packet Tracer, under the interface:\nno switchport port-security mac-address sticky <old MAC from show port-security address>\nThen:\ninterface f0/5\nshutdown\nno shutdown' },
 { id: 'cable', cat: 'Physical', title: 'The link stays red in Packet Tracer',
   sym: 'In Packet Tracer, the link between PC0 and R1 stays red even after no shutdown.',
-  ev: [['Packet Tracer', `Connection: PC0 FastEthernet0  <->  R1 GigabitEthernet0/0
+  ev: [['Packet Tracer: the cable between PC0 and R1', `Connection: PC0 FastEthernet0  <->  R1 GigabitEthernet0/0
 Cable:      Copper Straight-Through`],
     ['R1 console', `R1#show ip interface brief
 Interface              IP-Address      OK? Method Status                Protocol
 GigabitEthernet0/0     192.168.1.1     YES manual down                  down`]],
   opts: ['A PC-to-router link needs a crossover cable', 'The router port needs speed 100', 'PCs can never connect straight to routers', 'The PC needs a default gateway before the link comes up'],
-  why: 'A PC and a router transmit on the same pins, so they need a crossover cable. Straight-through joins unlike devices, such as PC to switch or switch to router. Many real ports auto-detect this (Auto-MDIX), but Packet Tracer and certification exams expect you to know the rule.',
+  why: 'A PC and a router transmit on the same pins, so they need a crossover cable. Straight-through joins unlike devices, such as PC to switch or switch to router. Many real ports auto-detect this (Auto-MDIX), but Packet Tracer and certification exams expect you to know the rule. Here the cable chosen between the PC and the router is Copper Straight-Through; that pair needs a crossover, so the link shows red.',
   fix: 'Replace it with a Copper Cross-Over cable, or connect the PC through a switch.' },
 { id: 'native', cat: 'Switching', title: 'A warning keeps scrolling on S1',
   sym: 'This message keeps appearing on the S1 console since the trunk changes.',
@@ -486,7 +490,7 @@ L        192.168.10.1/32 is directly connected, GigabitEthernet0/0.10
 C        203.0.113.0/30 is directly connected, GigabitEthernet0/1
 L        203.0.113.2/32 is directly connected, GigabitEthernet0/1`]],
   opts: ['R1 has no default route toward the ISP', 'The ISP link needs DHCP', 'The LAN subnet mask is wrong', 'Pings to the internet require a routing protocol'],
-  why: '"Gateway of last resort is not set" means R1 only knows its connected networks. A default route sends everything else to the ISP.',
+  why: '"Gateway of last resort is not set" means R1 only knows its connected networks. A default route sends everything else to the ISP. NAT on the edge router is assumed here, since a provider routes only public addresses.',
   fix: 'ip route 0.0.0.0 0.0.0.0 203.0.113.1' },
 { id: 'studentnative', cat: 'Switching', title: 'Students lost their gateway',
   sym: 'Every Students PC at Site A lost its gateway this morning. Teachers and Principals work fine.',
@@ -610,6 +614,19 @@ router ospf 1
 ];
 
 const CATS = ['Addressing', 'Physical', 'Switching', 'Device config', 'Services', 'Remote access', 'Access lists', 'Config accuracy'];
+/* Grade tag and Defense Ladder links per ticket: [grade, [[unit hash, link text], ...], ticket ids] */
+const DL = 'https://freeapp4that.store/defense-ladder/#';
+const S5 = ['sophomore/s5', 'Defense Ladder s5, Cisco: configure a switch and a router'], J4 = ['junior/j4', 'Defense Ladder j4, Cisco: VLANs, routing, and ACLs'];
+const TIERS = [
+  ['Sophomore', [['freshman/f4', 'Defense Ladder f4, Computers, virtualization, and the network']], ['apipa', 'dns']],
+  ['Sophomore', [['freshman/f7', 'Defense Ladder f7, the Cables, link lights, and header sizes detail panel'], S5], ['cable']],
+  ['Sophomore', [S5], ['gw', 'admin', 'phys', 'svi', 'dgw', 'mode', 'netaddr', 'refused', 'nopw', 'keys', 'vlan', 'hostcase', 'bannertext', 'wrongif', 'bpduerr']],
+  ['Junior', [S5], ['mask', 'overlap', 'psec']],
+  ['Junior', [J4], ['native', 'parent', 'allowed', 'encap', 'helper', 'acldir', 'defroute', 'studentnative', 'allowed30', 'vtyacl']],
+  ['Senior', [['senior/se6', 'Defense Ladder se6, Cisco: audit and extend the two-site network']], ['noredist']]
+];
+const TIER = {};
+TIERS.forEach(([grade, learn, ids]) => ids.forEach(id => { TIER[id] = { grade, learn }; }));
 const on = new Set(CATS);
 let deck = [], pos = 0, order = [], answered = false, missed = [];
 const S = { ok: 0, all: 0, streak: 0, best: Number(store.get('netdrills.tickets.best', 0)) || 0 };
@@ -650,7 +667,7 @@ function show() {
   const t = deck[pos];
   answered = false;
   $('#t-no').textContent = `Ticket ${pos + 1} of ${deck.length}`;
-  $('#t-cat').textContent = t.cat;
+  $('#t-cat').textContent = t.cat + (TIER[t.id] ? ' · ' + TIER[t.id].grade : '');
   $('#t-title').textContent = t.title;
   $('#t-sym').textContent = '\u201C' + t.sym + '\u201D';
   const ev = $('#t-ev');
@@ -705,6 +722,18 @@ function answer(oi) {
   v.className = 'verdict ' + (right ? 'good' : 'nope');
   res.querySelector('.why').textContent = t.why;
   res.querySelector('.fix').textContent = t.fix;
+  if (TIER[t.id]) {
+    const l = document.createElement('p');
+    l.className = 'learn';
+    l.textContent = 'Learn it: ';
+    TIER[t.id].learn.forEach(([hash, text], i) => {
+      if (i) l.append(' and ');
+      const a = document.createElement('a');
+      a.href = DL + hash; a.target = '_blank'; a.rel = 'noopener'; a.textContent = text;
+      l.append(a);
+    });
+    res.append(l);
+  }
   res.hidden = false;
   const nb = $('#t-next');
   nb.textContent = pos + 1 < deck.length ? 'Next ticket' : 'See results';
