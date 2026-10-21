@@ -6,4 +6,14 @@
   Cross-Origin-Opener-Policy: same-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=()
   Strict-Transport-Security: max-age=31536000
+  Cache-Control: public, max-age=0, must-revalidate
+
+# The offline PFAT edition verifies every embedded file by SHA-256 and carries library license text with
+# email addresses, so Cloudflare must deliver it byte for byte: no compression, and no email rewriting.
+/spend-lens/pfat-offline.html
+  ! Cache-Control
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
+
+/spend-lens/pfat-offline
+  ! Cache-Control
   Cache-Control: public, max-age=0, must-revalidate, no-transform
