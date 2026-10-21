@@ -111,7 +111,7 @@
       "slug": "defense-ladder",
       "name": "Defense Ladder",
       "tagline": "Start here: the course, one grade at a time.",
-      "description": "A four-grade cybersecurity learning ladder, Freshman to Senior, built on Bloom's taxonomy and aligned with the NICE Framework and CIS Controls. Concepts first, then quizzes and config-reading drills, then a hardening checklist and study plan you build yourself. Everything stays in your browser.",
+      "description": "A free, four-grade cybersecurity course, Freshman to Senior, built on Bloom's taxonomy: 54 units across Windows, Linux, networking, security foundations, defense operations, and web and cloud, with diagrams, drills on realistic logs, captures, and configs, a readiness check for each grade, and a glossary. Works offline, and everything stays in your browser.",
       "badges": [
         "Cybersecurity",
         "Study",
@@ -123,8 +123,8 @@
       "icon": "path",
       "category": "cyber",
       "section": "learning",
-      "sha256": "c706d92b500d60ed7eb530a5bf4cc86245ce58757246a478dd06d31540c8ed83",
-      "updated": "2026-10-20"
+      "sha256": "4e783efb4b43461a317c11b778ef489d631569c102d6b458a1cf7ccdb208c46d",
+      "updated": "2026-10-21"
     },
     {
       "slug": "net-drills/subnet-sprint",
@@ -381,8 +381,8 @@
           "download_as": "windows-range-walkthrough.txt"
         }
       ],
-      "sha256": "8f9faed2ecfc076d97533932da3c083ddb89e6e59519b894cac82ca443bc7202",
-      "updated": "2026-10-20"
+      "sha256": "666cb362cf1c94ab3cc322fe1cd9d3e6b48a9bf447d5dcda1b190fb987fbf340",
+      "updated": "2026-10-21"
     },
     {
       "slug": "lockdown-range/linux",
@@ -407,8 +407,8 @@
           "download_as": "linux-range-walkthrough.txt"
         }
       ],
-      "sha256": "0471fd177df587589a7a6bfc3f902587ae076c5094cfc9e8956f8d5eed640741",
-      "updated": "2026-10-20"
+      "sha256": "e4216f53de07e704f5a040671340d63188c321f214057b377c4243f032a7e469",
+      "updated": "2026-10-21"
     },
     {
       "slug": "lockdown-range/cisco-ios",
@@ -452,8 +452,8 @@
       "icon": "map",
       "category": "cyber",
       "section": "learning",
-      "sha256": "2a3719d1ef7bbedae93a57afca0a9bc2b3b4a7e272090457761f3ca4be2d5137",
-      "updated": "2026-10-20"
+      "sha256": "e6d1af9b25d84277c05018545befa317b62f41498bbc207e4d1748a2f74cbe7c",
+      "updated": "2026-10-21"
     }
   ]
 }

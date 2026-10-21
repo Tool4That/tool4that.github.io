@@ -11,7 +11,7 @@ CONTENTS
   2. The routine: power-on to Progress Check
   3. Scenario 1 - Recruit:  Kaimana Dental Clinic — front desk PC
   4. Scenario 2 - Operator: Hale Kula Robotics Lab — station 4
-  5. Scenario 3 - Captain:  Makai Logistics — portal server
+  5. Scenario 3 - Captain:  Honua Logistics — portal server
   6. Windows hardening quick reference (GUI paths and commands)
   7. Where the real machine differs from the lab
   8. Sources
@@ -494,13 +494,13 @@ Availability checks (points lost if you break what the business needs)
   -5  Windows Update service disabled
 
 --------------------------------------------------------------------------------
-5. SCENARIO 3 - CAPTAIN: MAKAI LOGISTICS — PORTAL SERVER
+5. SCENARIO 3 - CAPTAIN: HONUA LOGISTICS — PORTAL SERVER
 --------------------------------------------------------------------------------
-Sign-in  labuser / Hard!2026        Host  MAKAI-SRV1
+Sign-in  labuser / Hard!2026        Host  HONUA-SRV1
 System   Windows Server 2025 Standard, version 24H2, build 26100.33296
 
 Scenario Brief summary
-  Makai Logistics, a freight forwarder with a small office on Sand Island. This
+  Honua Logistics, a freight forwarder with a small office on Sand Island. This
   Windows Server 2025 machine hosts the internal web portal (IIS) and the HR and
   Ops file shares. Administrators manage it over Remote Desktop from the office
   LAN. The previous administrator left in a hurry and the owner wants the server

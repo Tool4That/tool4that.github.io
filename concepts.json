@@ -14,7 +14,12 @@
     {"id": "system", "title": "Services, software, and files"},
     {"id": "exposure", "title": "Firewalls and remote access"},
     {"id": "cli", "title": "Command line"},
-    {"id": "method", "title": "Method"}
+    {"id": "method", "title": "Method"},
+    {"id": "threats", "title": "Threats and attacks"},
+    {"id": "trust", "title": "Keys, certificates, and identity"},
+    {"id": "detection", "title": "Logs, detection, and response"},
+    {"id": "webcloud", "title": "Web and cloud"},
+    {"id": "governance", "title": "Risk, rules, and careers"}
   ],
   "concepts": [
     {
@@ -946,6 +951,928 @@
         {"tool": "lockdown-range/linux", "kind": "lab", "find": ["investigation question", "scenario brief"]}
       ],
       "refs": []
+    },
+    {
+      "id": "threat-actors", "name": "Threat actors, motives, and APTs", "domain": "threats", "layers": [],
+      "aka": ["threat actor", "APT", "advanced persistent threat", "nation-state", "hacktivist", "insider threat", "cybercriminal"],
+      "summary": "Who attacks and why: criminals after money, hacktivists after attention, insiders who already have access, and nation-state groups (APTs) that stay hidden for months. Motive and skill shape what a defender should expect.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["hacktivist", "advanced persistent threat", "insider"]}
+      ],
+      "refs": [
+        {"title": "CISA", "url": "https://www.cisa.gov/", "src": "standard"}
+      ]
+    },
+    {
+      "id": "web-delivered-attacks", "name": "Drive-by, watering-hole, and look-alike sites", "domain": "threats", "layers": ["7"],
+      "aka": ["drive-by download", "watering hole", "typosquatting", "look-alike domain", "malvertising"],
+      "summary": "Attacks that wait on the web: a drive-by download runs from a booby-trapped page, a watering hole infects a site the targets already trust, and a look-alike domain copies a real name letter by letter.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["drive-by", "watering hole", "look-alike", "typosquatting"]}
+      ],
+      "refs": [
+        {"title": "FTC: How to recognize and avoid phishing scams", "url": "https://consumer.ftc.gov/articles/how-recognize-and-avoid-phishing-scams", "src": "standard"}
+      ]
+    },
+    {
+      "id": "zero-day", "name": "Zero-days and the patch window", "domain": "threats", "layers": [],
+      "aka": ["zero-day", "0-day", "patch window", "n-day", "known exploited vulnerabilities", "KEV", "exploit"],
+      "summary": "A zero-day is a flaw attackers use before any fix exists. Once a patch ships, the race is on: attackers study the fix while defenders roll it out, so flaws already being exploited go first.",
+      "prereqs": ["updates"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["zero-day", "KEV"]}
+      ],
+      "refs": [
+        {"title": "CISA Known Exploited Vulnerabilities Catalog", "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog", "src": "standard"}
+      ]
+    },
+    {
+      "id": "kill-chain", "name": "The kill chain and ATT&CK", "domain": "threats", "layers": [],
+      "aka": ["cyber kill chain", "MITRE ATT&CK", "tactics", "techniques", "TTPs", "attack lifecycle"],
+      "summary": "Two maps of an attack: the kill chain's stages from reconnaissance to actions on objectives, and MITRE ATT&CK's catalog of tactics and techniques. Placing evidence on them shows what came before and what to look for next.",
+      "prereqs": ["threat-actors"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["kill chain", "ATT&CK"]}
+      ],
+      "refs": [
+        {"title": "MITRE ATT&CK", "url": "https://attack.mitre.org/", "src": "standard"}
+      ]
+    },
+    {
+      "id": "threat-intel", "name": "Threat intelligence and indicators", "domain": "threats", "layers": [],
+      "aka": ["threat intelligence", "CTI", "IOC", "indicators of compromise", "TLP", "Traffic Light Protocol", "threat feed"],
+      "summary": "Shared knowledge about attackers: indicators of compromise (file hashes, domains, and addresses) to block or hunt for, and attacker behavior, which lasts longer than any single indicator. TLP labels say how far a report may be shared.",
+      "prereqs": ["threat-actors"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["threat intelligence", "TLP"]}
+      ],
+      "refs": [
+        {"title": "FIRST: Traffic Light Protocol 2.0", "url": "https://www.first.org/tlp/", "src": "standard"},
+        {"title": "MITRE ATT&CK", "url": "https://attack.mitre.org/", "src": "standard"}
+      ]
+    },
+    {
+      "id": "attack-tool-traces", "name": "Recognizing attack tools by their traces", "domain": "threats", "layers": [],
+      "aka": ["attack tools", "Nmap scan", "password spraying", "brute force", "credential dumping", "scanner traces"],
+      "summary": "Common attack tools leave recognizable marks: a burst of connections across many ports, a wave of failed sign-ins spread across many accounts, or a credential dumper reading LSASS memory. Recognize the trace, then ask what the attacker wanted.",
+      "prereqs": ["kill-chain"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["Nmap", "password spraying", "LSASS"]}
+      ],
+      "refs": [
+        {"title": "MITRE ATT&CK", "url": "https://attack.mitre.org/", "src": "standard"}
+      ]
+    },
+    {
+      "id": "network-attacks", "name": "On-path, spoofing, and flooding attacks", "domain": "threats", "layers": ["2", "3", "4"],
+      "aka": ["man-in-the-middle", "on-path attack", "ARP spoofing", "ARP poisoning", "DNS spoofing", "DoS", "DDoS", "SYN flood"],
+      "summary": "Attacks on the network itself: an on-path attacker sits between two hosts (often by ARP spoofing), spoofed packets fake their source, and floods exhaust a link or a server (DoS and DDoS).",
+      "prereqs": ["switching"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["on-path", "ARP spoofing", "DDoS", "spoofing"]}
+      ],
+      "refs": [
+        {"title": "CISA", "url": "https://www.cisa.gov/", "src": "standard"}
+      ]
+    },
+    {
+      "id": "wireless-attacks", "name": "Evil twins, rogue access points, and deauthentication", "domain": "threats", "layers": ["1", "2"],
+      "aka": ["evil twin", "rogue access point", "rogue AP", "deauthentication", "deauth", "wireless attack"],
+      "summary": "Wireless attacks: an evil twin copies a trusted network name, a rogue access point plugs an unapproved radio into the wired network, and forged deauthentication frames knock clients off so they reconnect to the attacker.",
+      "prereqs": ["wifi-security"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["evil twin", "rogue access point", "deauth"]}
+      ],
+      "refs": [
+        {"title": "Wi-Fi Alliance: Wi-Fi security", "url": "https://www.wi-fi.org/discover-wi-fi/security", "src": "standard"}
+      ]
+    },
+    {
+      "id": "email-checks", "name": "Checking emails, links, and files before you trust them", "domain": "threats", "layers": ["7"],
+      "aka": ["SPF", "DKIM", "DMARC", "email headers", "phishing check", "link check", "file hash lookup"],
+      "summary": "Check before you trust: read the real sender and the SPF, DKIM, and DMARC results in the headers, read where a link really goes before you click, and look up a file's hash before you open it.",
+      "prereqs": ["url-reading"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["SPF", "DKIM", "DMARC"]}
+      ],
+      "refs": [
+        {"title": "DMARC.org", "url": "https://dmarc.org/", "src": "standard"},
+        {"title": "FTC: How to recognize and avoid phishing scams", "url": "https://consumer.ftc.gov/articles/how-recognize-and-avoid-phishing-scams", "src": "standard"},
+        {"title": "RFC 7489: Domain-based Message Authentication, Reporting, and Conformance (DMARC)", "url": "https://www.rfc-editor.org/rfc/rfc7489", "src": "standard"}
+      ]
+    },
+    {
+      "id": "ai-tool-safety", "name": "AI tools, data you paste, and prompt injection", "domain": "threats", "layers": [],
+      "aka": ["AI chatbot", "generative AI", "prompt injection", "LLM", "large language model", "AI assistant"],
+      "summary": "Anything pasted into an AI tool may be stored or reused, so keep private data out. AI answers can be confidently wrong, and text hidden in a page or file can carry instructions that hijack the tool (prompt injection).",
+      "prereqs": [],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["prompt injection", "AI"]}
+      ],
+      "refs": [
+        {"title": "OWASP GenAI Security Project: Prompt Injection", "url": "https://genai.owasp.org/llmrisk/llm01-prompt-injection/", "src": "standard"}
+      ]
+    },
+    {
+      "id": "encryption-keys", "name": "Symmetric and asymmetric keys", "domain": "trust", "layers": [],
+      "aka": ["symmetric encryption", "asymmetric encryption", "public key", "private key", "key pair", "AES", "RSA", "encryption"],
+      "summary": "Symmetric encryption uses one shared key and is fast (AES); asymmetric encryption uses a key pair, where the public key locks and only the matching private key unlocks (RSA). Real systems use both.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["symmetric", "asymmetric", "public key", "private key"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "digital-signatures", "name": "Digital signatures and code signing", "domain": "trust", "layers": [],
+      "aka": ["digital signature", "code signing", "signed software", "signature check", "non-repudiation"],
+      "summary": "A digital signature is a hash sealed with the signer's private key; anyone with the public key can check who signed and that nothing changed since. Code signing applies the same check to programs and updates.",
+      "prereqs": ["encryption-keys"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["digital signature", "code signing"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "certificates", "name": "Certificates and the chain of trust", "domain": "trust", "layers": [],
+      "aka": ["certificate", "X.509", "certificate authority", "CA", "chain of trust", "root certificate", "PKI", "expired certificate"],
+      "summary": "A certificate binds a name to a public key and is signed by a certificate authority. A browser follows the chain from the site's certificate up to a trusted root and checks the name, the dates, and every signature.",
+      "prereqs": ["digital-signatures"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["certificate authority", "chain of trust", "certificate"]}
+      ],
+      "refs": [
+        {"title": "RFC 5280: Internet X.509 Public Key Infrastructure Certificate and CRL Profile", "url": "https://www.rfc-editor.org/rfc/rfc5280", "src": "standard"}
+      ]
+    },
+    {
+      "id": "tls", "name": "TLS and HTTPS", "domain": "trust", "layers": ["6", "7"],
+      "aka": ["TLS", "HTTPS", "SSL", "padlock", "TLS 1.3", "HSTS"],
+      "summary": "TLS wraps a connection in encryption after the server proves its identity with a certificate; HTTPS is HTTP inside TLS. The padlock means the connection is private and the name matched, not that the site is honest.",
+      "prereqs": ["certificates", "http"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["TLS", "HTTPS"]}
+      ],
+      "refs": [
+        {"title": "Mozilla SSL Configuration Generator", "url": "https://ssl-config.mozilla.org/", "src": "vendor"},
+        {"title": "RFC 8446: The Transport Layer Security (TLS) Protocol Version 1.3", "url": "https://www.rfc-editor.org/rfc/rfc8446", "src": "standard"}
+      ]
+    },
+    {
+      "id": "salted-hashes", "name": "Salted password hashes", "domain": "trust", "layers": ["host"],
+      "aka": ["salt", "password hash", "/etc/shadow", "yescrypt", "bcrypt", "rainbow table", "hash cracking"],
+      "summary": "Systems store a slow, salted hash of each password instead of the password itself. The salt makes identical passwords hash differently, so precomputed tables fail and every guess costs time.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["salted", "salt"]}
+      ],
+      "refs": [
+        {"title": "NIST SP 800-63B-4 (authentication and passwords)", "url": "https://pages.nist.gov/800-63-4/sp800-63b.html", "src": "standard"}
+      ]
+    },
+    {
+      "id": "single-sign-on", "name": "Single sign-on and directories", "domain": "trust", "layers": ["7"],
+      "aka": ["SSO", "single sign-on", "identity provider", "IdP", "SAML", "OpenID Connect", "OAuth", "federation", "directory"],
+      "summary": "With single sign-on, one identity provider checks who you are and hands each app a signed token, so accounts, MFA, and offboarding live in one directory instead of in every app.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["single sign-on", "identity provider"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "network-types", "name": "LANs, WANs, wireless links, and topologies", "domain": "principles", "layers": ["1", "2"],
+      "aka": ["LAN", "WAN", "WLAN", "topology", "star topology", "mesh", "local area network", "wide area network"],
+      "summary": "A LAN joins devices in one place, a WAN links places together, and Wi-Fi is a wireless LAN. Topology is the shape of the links: star, mesh, or a mix.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["LAN", "WAN", "topology"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "nat", "name": "NAT and the home router", "domain": "addressing", "layers": ["3"],
+      "aka": ["NAT", "network address translation", "PAT", "port address translation", "port forwarding", "home router"],
+      "summary": "Network address translation lets many devices with private addresses share one public address: the router rewrites each outgoing connection and keeps a table to send replies back. Unrequested inbound traffic finds no entry unless a port is forwarded.",
+      "prereqs": ["special-ipv4"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["NAT"]}
+      ],
+      "refs": [
+        {"title": "RFC 3022: Traditional IP Network Address Translator (Traditional NAT)", "url": "https://www.rfc-editor.org/rfc/rfc3022", "src": "standard"}
+      ]
+    },
+    {
+      "id": "wifi-security", "name": "Wi-Fi security modes and router settings", "domain": "exposure", "layers": ["2"],
+      "aka": ["WPA3", "WPA2", "WPS", "WEP", "SSID", "guest network", "Wi-Fi password", "router firmware"],
+      "summary": "Choose WPA3 (or WPA2 with AES) and a long passphrase, turn off WPS, put guests on their own network, change the router's admin password, and keep its firmware current.",
+      "prereqs": ["network-types"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["WPA3", "WPA2", "WPS", "guest network"]}
+      ],
+      "refs": [
+        {"title": "Wi-Fi Alliance: Wi-Fi security", "url": "https://www.wi-fi.org/discover-wi-fi/security", "src": "standard"}
+      ]
+    },
+    {
+      "id": "tcp-handshake", "name": "The TCP handshake, flags, and ICMP", "domain": "routing", "layers": ["4", "3"],
+      "aka": ["three-way handshake", "SYN", "SYN-ACK", "ACK", "RST", "FIN", "TCP flags", "ICMP", "ping"],
+      "summary": "TCP opens with SYN, SYN-ACK, ACK and closes with FIN or an abrupt RST, so the flags tell you who started a connection and how it ended. ICMP carries the network's own messages, such as echo (ping) and unreachable.",
+      "prereqs": ["ports"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["handshake", "SYN", "ICMP"]}
+      ],
+      "refs": [
+        {"title": "RFC 9293: Transmission Control Protocol (TCP)", "url": "https://www.rfc-editor.org/rfc/rfc9293", "src": "standard"},
+        {"title": "RFC 792: Internet Control Message Protocol", "url": "https://www.rfc-editor.org/rfc/rfc792", "src": "standard"}
+      ]
+    },
+    {
+      "id": "port-scan-results", "name": "Port states and scan results", "domain": "exposure", "layers": ["4"],
+      "aka": ["open port", "closed port", "filtered port", "Nmap", "port scan", "nmap -sV"],
+      "summary": "A port scan reports each port as open (a service answered), closed (the host answered that nothing listens), or filtered (no answer, usually a firewall). Compare the open list with what should be running.",
+      "prereqs": ["tcp-handshake"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["filtered", "Nmap", "port scan"]}
+      ],
+      "refs": [
+        {"title": "Nmap Reference Guide", "url": "https://nmap.org/book/man.html", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "protected-protocols", "name": "Clear-text protocols and their protected forms", "domain": "routing", "layers": ["7"],
+      "aka": ["clear text", "Telnet", "FTP", "SFTP", "FTPS", "SSH", "HTTPS", "LDAPS", "SNMPv3"],
+      "summary": "Telnet, FTP, plain HTTP, and older SNMP send passwords and data as clear text that anyone on the path can read. Use the protected forms instead: SSH, SFTP or FTPS, HTTPS, LDAPS, and SNMPv3.",
+      "prereqs": ["ports"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["clear text", "Telnet", "SFTP", "LDAPS"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "firewall-zones", "name": "Firewall types, zones, and the DMZ", "domain": "exposure", "layers": ["3", "4"],
+      "aka": ["DMZ", "screened subnet", "stateful firewall", "next-generation firewall", "NGFW", "WAF", "default deny", "security zone"],
+      "summary": "Network firewalls split a network into zones of trust. Public-facing servers sit in a DMZ (a screened subnet), so a break-in there doesn't reach the inside, and rules deny by default and allow only the flows each zone needs.",
+      "prereqs": ["host-firewall"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["DMZ", "stateful"]}
+      ],
+      "refs": [
+        {"title": "NIST SP 800-41 Rev. 1", "url": "https://csrc.nist.gov/pubs/sp/800/41/r1/final", "src": "standard"}
+      ]
+    },
+    {
+      "id": "vpn", "name": "VPNs and IPsec", "domain": "exposure", "layers": ["3"],
+      "aka": ["VPN", "IPsec", "site-to-site VPN", "remote-access VPN", "WireGuard", "split tunnel", "tunnel"],
+      "summary": "A VPN carries traffic through an encrypted tunnel across a network you don't trust: site-to-site joins two offices, and remote access joins one laptop. IPsec is a common tunnel protocol.",
+      "prereqs": ["encryption-keys"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["VPN", "IPsec"]}
+      ],
+      "refs": [
+        {"title": "NIST SP 800-77 Rev. 1", "url": "https://csrc.nist.gov/pubs/sp/800/77/r1/final", "src": "standard"}
+      ]
+    },
+    {
+      "id": "network-access-control", "name": "802.1X, RADIUS, and network access control", "domain": "exposure", "layers": ["2"],
+      "aka": ["802.1X", "RADIUS", "NAC", "EAP", "WPA2-Enterprise", "WPA3-Enterprise", "port-based authentication"],
+      "summary": "Network access control checks a device before it joins: 802.1X makes the switch port or the Wi-Fi ask for credentials, and a RADIUS server decides whether to let it in and which VLAN it lands on.",
+      "prereqs": ["wifi-security", "vlans"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["802.1X", "RADIUS"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "zero-trust", "name": "Zero trust design", "domain": "exposure", "layers": [],
+      "aka": ["zero trust", "ZTNA", "never trust, always verify", "microsegmentation", "policy enforcement point"],
+      "summary": "Zero trust drops the idea of a trusted inside: every request is checked for identity, device health, and need, every time, and access is limited to the one resource asked for.",
+      "prereqs": ["firewall-zones", "single-sign-on"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["zero trust"]}
+      ],
+      "refs": [
+        {"title": "NIST SP 800-207: Zero Trust Architecture", "url": "https://csrc.nist.gov/pubs/sp/800/207/final", "src": "standard"},
+        {"title": "CISA Zero Trust Maturity Model", "url": "https://www.cisa.gov/zero-trust-maturity-model", "src": "standard"}
+      ]
+    },
+    {
+      "id": "endpoint-detection", "name": "Antivirus, EDR, and SIEM", "domain": "detection", "layers": ["host"],
+      "aka": ["EDR", "endpoint detection and response", "antivirus", "SIEM", "XDR", "Microsoft Defender"],
+      "summary": "Antivirus blocks known-bad files; EDR records what every process does so analysts can trace and stop an attack; a SIEM gathers logs from many systems into one place to search them and raise alerts.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["EDR", "SIEM"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "ids-ips", "name": "IDS and IPS", "domain": "detection", "layers": ["3", "4", "7"],
+      "aka": ["IDS", "IPS", "intrusion detection", "intrusion prevention", "Snort", "Suricata", "signature-based", "anomaly-based"],
+      "summary": "An intrusion detection system watches traffic and alerts; an intrusion prevention system sits inline and can drop what matches. Both use signatures for known attacks and baselines to flag the unusual.",
+      "prereqs": ["endpoint-detection"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["intrusion detection", "intrusion prevention"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "detection-outcomes", "name": "True and false positives", "domain": "detection", "layers": [],
+      "aka": ["false positive", "false negative", "true positive", "true negative", "alert fatigue", "tuning"],
+      "summary": "Every alert is a guess: a true positive caught real trouble, a false positive cried wolf, and a false negative is the attack nobody saw. Tuning a detection trades one kind of mistake for the other.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["false positive", "true positive", "false negative"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "windows-events", "name": "Windows events and logon types", "domain": "detection", "layers": ["host"],
+      "aka": ["Event Viewer", "event ID", "4624", "4625", "4688", "logon type", "Security log", "Get-WinEvent", "wevtutil"],
+      "summary": "Windows records security activity as numbered events: 4624 a successful logon, 4625 a failed one, 4688 a new process. The logon type in each logon event says how the user arrived: at the keyboard (2), over the network (3), or by Remote Desktop (10).",
+      "prereqs": ["audit-policy"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["logon type", "4624", "4625", "Event Viewer"]}
+      ],
+      "refs": [
+        {"title": "Microsoft Learn: Events to monitor in Active Directory", "url": "https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/appendix-l--events-to-monitor", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "unix-logs", "name": "Syslog, auth.log, and the journal", "domain": "detection", "layers": ["host"],
+      "aka": ["syslog", "auth.log", "journalctl", "/var/log", "rsyslog", "systemd journal"],
+      "summary": "Linux and FreeBSD log through syslog into files under /var/log, such as auth.log for sign-ins and sudo; systemd systems also keep a journal you read with journalctl.",
+      "prereqs": ["audit-policy", "bash"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["auth.log", "journalctl", "syslog"]}
+      ],
+      "refs": [
+        {"title": "NIST SP 800-92 (log management)", "url": "https://csrc.nist.gov/pubs/sp/800/92/final", "src": "standard"},
+        {"title": "RFC 5424: The Syslog Protocol", "url": "https://www.rfc-editor.org/rfc/rfc5424", "src": "standard"}
+      ]
+    },
+    {
+      "id": "firewall-logs", "name": "Reading firewall log lines", "domain": "detection", "layers": ["3", "4"],
+      "aka": ["firewall log", "UFW BLOCK", "pfirewall.log", "denied packets", "dropped packets", "ACL log"],
+      "summary": "A firewall log line records a decision: the time, the action (allow or drop), the protocol, the source and destination addresses, and the ports. Read them for scans, blocked probes, and traffic that should never have been allowed.",
+      "prereqs": ["host-firewall"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["UFW BLOCK", "pfirewall.log"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "packet-captures", "name": "Packet captures and flow records", "domain": "detection", "layers": ["2", "3", "4"],
+      "aka": ["Wireshark", "tcpdump", "pcap", "NetFlow", "flow record", "display filter"],
+      "summary": "A packet capture saves every byte that crossed a link, for close reading in Wireshark or tcpdump; a flow record keeps only who talked to whom, when, and how much, so it scales to a whole network.",
+      "prereqs": ["tcp-handshake"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["Wireshark", "tcpdump", "NetFlow", "pcap"]}
+      ],
+      "refs": [
+        {"title": "tcpdump manual", "url": "https://www.tcpdump.org/manpages/tcpdump.1.html", "src": "vendor"},
+        {"title": "Wireshark User’s Guide", "url": "https://www.wireshark.org/docs/wsug_html_chunked/", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "alert-triage", "name": "Alert triage and severity", "domain": "detection", "layers": [],
+      "aka": ["triage", "severity", "priority", "escalation", "alert queue", "SOC"],
+      "summary": "Triage decides which alert to work first: confirm it is real, judge how much is at stake and how fast it is spreading, set a severity, and escalate or close it with a note.",
+      "prereqs": ["detection-outcomes"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["triage", "severity"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "incident-response", "name": "Incident response phases", "domain": "detection", "layers": [],
+      "aka": ["incident response", "IR plan", "preparation", "detection and analysis", "containment", "lessons learned", "NIST SP 800-61"],
+      "summary": "Incident response runs in phases: prepare, detect and analyze, contain, eradicate, recover, and learn. Following them keeps a team from wiping evidence or declaring victory too soon.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["incident response", "eradication"]}
+      ],
+      "refs": [
+        {"title": "NIST SP 800-61 Rev. 3 (incident response)", "url": "https://csrc.nist.gov/pubs/sp/800/61/r3/final", "src": "standard"}
+      ]
+    },
+    {
+      "id": "containment", "name": "Containment, eradication, and recovery", "domain": "detection", "layers": [],
+      "aka": ["containment", "isolate the host", "eradication", "recovery", "restore from backup", "reset credentials"],
+      "summary": "Containment stops the spread (isolate the host, disable the account, block the address); eradication removes the foothold and every persistence point; recovery restores from clean backups and watches for a return.",
+      "prereqs": ["incident-response", "scheduled-tasks"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["containment", "eradication"]}
+      ],
+      "refs": [
+        {"title": "CISA #StopRansomware Guide", "url": "https://www.cisa.gov/stopransomware/ransomware-guide", "src": "standard"}
+      ]
+    },
+    {
+      "id": "evidence-handling", "name": "Evidence handling and order of volatility", "domain": "detection", "layers": [],
+      "aka": ["chain of custody", "order of volatility", "forensic image", "write blocker", "evidence hash"],
+      "summary": "Collect the most fleeting evidence first (memory and network connections before the disk), hash every copy, work only on copies, and log each hand-off in a chain of custody so the findings hold up.",
+      "prereqs": ["investigation"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["order of volatility", "chain of custody"]}
+      ],
+      "refs": [
+        {"title": "RFC 3227: Guidelines for Evidence Collection and Archiving", "url": "https://www.rfc-editor.org/rfc/rfc3227", "src": "standard"},
+        {"title": "NIST SP 800-86 (forensics in incident response)", "url": "https://csrc.nist.gov/pubs/sp/800/86/final", "src": "standard"}
+      ]
+    },
+    {
+      "id": "timelines", "name": "Timelines from many logs", "domain": "detection", "layers": [],
+      "aka": ["timeline", "super timeline", "UTC", "time zone", "clock skew", "NTP"],
+      "summary": "Merge events from every source onto one timeline in one time zone (UTC) to see the order of an attack. Check each source's clock first: a few minutes of skew can reverse cause and effect.",
+      "prereqs": ["windows-events", "unix-logs"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["timeline", "UTC"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "sandboxes", "name": "Sandboxes and file reputation", "domain": "detection", "layers": [],
+      "aka": ["sandbox", "detonation", "file reputation", "hash lookup", "dynamic analysis"],
+      "summary": "A sandbox runs a suspicious file in a throwaway machine and records what it does; a reputation lookup checks the file's hash against what others have seen. Neither proves a file safe: new or evasive samples can pass both.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["sandbox", "reputation"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "threat-hunting", "name": "Threat hunting", "domain": "detection", "layers": [],
+      "aka": ["threat hunting", "hunt", "hypothesis", "hunting"],
+      "summary": "Hunting starts from a hypothesis (if an attacker did this, what trace would it leave?) and searches for that trace before any alert fires. Each hunt either finds something or becomes a new detection.",
+      "prereqs": ["kill-chain", "alert-triage"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["hypothesis", "hunt"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "detection-rules", "name": "Detection rules, playbooks, and automation", "domain": "detection", "layers": [],
+      "aka": ["detection rule", "Sigma", "playbook", "runbook", "SOAR", "automation"],
+      "summary": "A detection rule turns a pattern into an alert; a playbook says, step by step, what to do when it fires; automation (SOAR) runs the safe, repetitive steps so people can focus on judgment.",
+      "prereqs": ["threat-hunting", "detection-outcomes"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["Sigma", "playbook", "detection rule"]}
+      ],
+      "refs": [
+        {"title": "Sigma detection rules (SigmaHQ)", "url": "https://github.com/SigmaHQ/sigma", "src": "standard"}
+      ]
+    },
+    {
+      "id": "after-action", "name": "Stakeholders, lessons learned, and the report", "domain": "detection", "layers": [],
+      "aka": ["after-action review", "lessons learned", "post-incident review", "blameless review", "incident report", "stakeholders", "tabletop exercise"],
+      "summary": "After an incident, tell each stakeholder what they need (facts for leaders, steps for staff, and any notice the law requires), then hold a blameless review that turns what went wrong into owned, dated fixes.",
+      "prereqs": ["incident-response"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["after-action", "stakeholder"]}
+      ],
+      "refs": [
+        {"title": "CISA Tabletop Exercise Packages", "url": "https://www.cisa.gov/resources-tools/services/cisa-tabletop-exercise-packages", "src": "standard"}
+      ]
+    },
+    {
+      "id": "deception", "name": "Honeypots and sinkholes", "domain": "detection", "layers": [],
+      "aka": ["honeypot", "honeytoken", "canary", "DNS sinkhole", "deception", "honey account"],
+      "summary": "Deception plants things no legitimate user should touch, such as a honeypot server, a honeytoken credential, or a canary file, so any touch is a high-confidence alert. A DNS sinkhole points known-bad names at a safe address to catch infected hosts.",
+      "prereqs": ["ids-ips"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["honeypot", "sinkhole", "honeytoken"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "memory-evidence", "name": "Reading a process list from memory", "domain": "detection", "layers": ["host"],
+      "aka": ["memory forensics", "memory image", "Volatility", "memory dump", "RAM capture"],
+      "summary": "A memory image captures what was running: processes, network connections, and loaded code, including malware that never touched the disk. Compare the process list from memory with what the live system reported to spot what was hidden.",
+      "prereqs": ["evidence-handling", "process-trees"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["memory image", "Volatility"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "http", "name": "HTTP requests, responses, and cookies", "domain": "webcloud", "layers": ["7"],
+      "aka": ["HTTP", "GET", "POST", "status code", "404", "cookie", "header", "request", "response"],
+      "summary": "A browser sends an HTTP request (a method such as GET or POST, a path, and headers); the server answers with a status code such as 200 or 404, headers, and a body. Cookies carry a session from one request to the next.",
+      "prereqs": ["ports"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["status code", "cookie", "HTTP"]}
+      ],
+      "refs": [
+        {"title": "MDN Web Docs: HTTP", "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP", "src": "standard"},
+        {"title": "RFC 9110: HTTP Semantics", "url": "https://www.rfc-editor.org/rfc/rfc9110", "src": "standard"}
+      ]
+    },
+    {
+      "id": "url-reading", "name": "Reading a link: who owns it", "domain": "webcloud", "layers": ["7"],
+      "aka": ["URL", "registered domain", "subdomain", "domain name", "look-alike link", "hostname"],
+      "summary": "The owner of a link is its registered domain: the name just before the first single slash, read from the right (the part like example.com). Everything to its left is a subdomain the owner chose, so a trusted name there proves nothing.",
+      "prereqs": ["dns"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["registered domain", "subdomain", "URL"]}
+      ],
+      "refs": [
+        {"title": "ICANN Lookup", "url": "https://lookup.icann.org/", "src": "standard"},
+        {"title": "RFC 3986: Uniform Resource Identifier (URI): Generic Syntax", "url": "https://www.rfc-editor.org/rfc/rfc3986", "src": "standard"}
+      ]
+    },
+    {
+      "id": "web-logs", "name": "Web attacks in access logs", "domain": "webcloud", "layers": ["7"],
+      "aka": ["access log", "SQL injection", "XSS", "cross-site scripting", "path traversal", "user agent", "web shell"],
+      "summary": "A web server's access log shows each request: address, time, method, path, status, and user agent. Attacks stand out as odd paths and parameters: quote marks and SQL words, script tags, ../ sequences, or one address requesting thousands of pages.",
+      "prereqs": ["http"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["access log", "SQL injection", "path traversal", "XSS"]}
+      ],
+      "refs": [
+        {"title": "OWASP Top 10", "url": "https://owasp.org/projects/top-ten", "src": "standard"},
+        {"title": "OWASP SQL Injection Prevention Cheat Sheet", "url": "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html", "src": "standard"}
+      ]
+    },
+    {
+      "id": "secure-coding", "name": "Input handling and memory safety", "domain": "webcloud", "layers": ["7"],
+      "aka": ["input validation", "parameterized query", "prepared statement", "output encoding", "buffer overflow", "memory-safe language"],
+      "summary": "Treat every input as data, never as code: parameterized queries stop SQL injection, output encoding stops cross-site scripting, and memory-safe languages remove whole classes of overflow bugs.",
+      "prereqs": ["web-logs"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["parameterized", "memory-safe", "buffer overflow"]}
+      ],
+      "refs": [
+        {"title": "OWASP SQL Injection Prevention Cheat Sheet", "url": "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html", "src": "standard"},
+        {"title": "CISA: The Case for Memory Safe Roadmaps", "url": "https://www.cisa.gov/resources-tools/resources/case-memory-safe-roadmaps", "src": "standard"}
+      ]
+    },
+    {
+      "id": "broken-access-control", "name": "Broken access control", "domain": "webcloud", "layers": ["7"],
+      "aka": ["broken access control", "IDOR", "insecure direct object reference", "authorization check", "privilege escalation"],
+      "summary": "Broken access control lets a user act outside their permissions, for example by changing an ID in a URL to read someone else's record. The server must check authorization on every request, not just hide the button.",
+      "prereqs": ["http"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["broken access control", "IDOR"]}
+      ],
+      "refs": [
+        {"title": "OWASP Top 10", "url": "https://owasp.org/projects/top-ten", "src": "standard"}
+      ]
+    },
+    {
+      "id": "cloud-models", "name": "Cloud service and deployment models", "domain": "webcloud", "layers": [],
+      "aka": ["IaaS", "PaaS", "SaaS", "public cloud", "private cloud", "hybrid cloud"],
+      "summary": "Service models say how much the provider runs for you: the infrastructure (IaaS), a platform (PaaS), or the whole application (SaaS). Deployment models say who shares it: public, private, hybrid, or community cloud.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["IaaS", "PaaS", "SaaS"]}
+      ],
+      "refs": [
+        {"title": "NIST SP 800-145: The NIST Definition of Cloud Computing", "url": "https://csrc.nist.gov/pubs/sp/800/145/final", "src": "standard"}
+      ]
+    },
+    {
+      "id": "shared-responsibility", "name": "Who secures what in the cloud", "domain": "webcloud", "layers": [],
+      "aka": ["shared responsibility model", "customer responsibility", "provider responsibility"],
+      "summary": "The provider secures the cloud itself (buildings, hardware, and its own services); the customer secures what they put in it: accounts, data, settings, and, in IaaS, the operating system. The split moves with the service model.",
+      "prereqs": ["cloud-models"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["shared responsibility", "provider secures"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "cloud-policies", "name": "Cloud policies, storage, and network rules", "domain": "webcloud", "layers": [],
+      "aka": ["IAM policy", "storage bucket", "public bucket", "security group", "cloud role", "least privilege"],
+      "summary": "Cloud access is written as policy: who may do which action on which resource. Most cloud breaches trace back to a policy that grants too much, a storage bucket left public, or a network rule open to the whole internet.",
+      "prereqs": ["shared-responsibility", "least-privilege"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["bucket", "security group", "IAM"]}
+      ],
+      "refs": [
+        {"title": "AWS: Security best practices in IAM", "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "cloud-logs", "name": "Cloud audit logs and leaked keys", "domain": "webcloud", "layers": [],
+      "aka": ["CloudTrail", "cloud audit log", "access key", "leaked key", "secret scanning", "activity log"],
+      "summary": "Cloud audit logs record every API call: who made it, from where, and what changed. A leaked access key shows up as calls from a new place or at an odd hour: revoke the key first, then read the log to see what it did.",
+      "prereqs": ["cloud-policies"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["CloudTrail", "access key", "audit log"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "infrastructure-as-code", "name": "Infrastructure as code, containers, and functions", "domain": "webcloud", "layers": [],
+      "aka": ["infrastructure as code", "IaC", "Terraform", "container", "Docker", "serverless", "functions", "API"],
+      "summary": "Infrastructure as code describes servers, networks, and policies in files that can be reviewed and scanned before anything is built. Containers and serverless functions shrink what runs, but their images, permissions, and secrets still need checking.",
+      "prereqs": ["cloud-policies"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["infrastructure as code", "serverless", "container"]}
+      ],
+      "refs": [
+        {"title": "Docker: Building best practices", "url": "https://docs.docker.com/build/building/best-practices/", "src": "vendor"},
+        {"title": "OWASP API Security Top 10", "url": "https://api-security.owasp.org/", "src": "standard"}
+      ]
+    },
+    {
+      "id": "isolation", "name": "Isolation, from processes to air gaps", "domain": "principles", "layers": ["host"],
+      "aka": ["isolation", "air gap", "air-gapped", "segmentation", "process isolation", "container", "virtual machine"],
+      "summary": "Isolation limits what a compromise can reach: separate processes and users, containers, virtual machines, network segments, and, at the far end, an air gap with no network link at all.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["isolation", "air gap"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "scripting", "name": "Reading and writing defender scripts", "domain": "cli", "layers": [],
+      "aka": ["script", "Python", "Bash script", "PowerShell script", "loop", "variable", "automation"],
+      "summary": "A short script repeats a check the same way every time: loop over users, files, or log lines, test each one, and print what needs attention. Read any script before you run it, especially one downloaded and piped straight into a shell.",
+      "prereqs": ["bash", "powershell"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["script", "Python"]}
+      ],
+      "refs": [
+        {"title": "The Python Tutorial", "url": "https://docs.python.org/3/tutorial/", "src": "vendor"},
+        {"title": "GNU Bash manual", "url": "https://www.gnu.org/software/bash/manual/bash.html", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "data-formats", "name": "JSON, YAML, and CSV", "domain": "cli", "layers": [],
+      "aka": ["JSON", "YAML", "CSV", "jq", "ConvertFrom-Json", "Import-Csv", "structured data"],
+      "summary": "Logs, settings, and exports often arrive as structured text: JSON (nested keys and values), YAML (the same idea, set out by indentation), and CSV (rows and columns). Parse them with a tool instead of by eye.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["JSON", "YAML", "CSV"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "macos", "name": "macOS security basics", "domain": "system", "layers": ["host"],
+      "aka": ["macOS", "Mac", "Gatekeeper", "FileVault", "XProtect", "System Integrity Protection"],
+      "summary": "macOS is Unix underneath, so Terminal habits from Linux carry over. Its own layers: Gatekeeper checks downloaded apps, FileVault encrypts the disk, XProtect blocks known malware, and System Integrity Protection guards system files.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["macOS", "Gatekeeper", "FileVault"]}
+      ],
+      "refs": [
+        {"title": "Apple Platform Security guide", "url": "https://support.apple.com/guide/security/welcome/web", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "service-confinement", "name": "AppArmor, SELinux, and systemd sandboxing", "domain": "system", "layers": ["host"],
+      "aka": ["AppArmor", "SELinux", "systemd sandboxing", "ProtectSystem", "NoNewPrivileges", "aa-status", "getenforce", "mandatory access control"],
+      "summary": "Confinement limits what a service can touch even if it is taken over: AppArmor profiles and SELinux policies list the files and actions it may use, and systemd options such as ProtectSystem and NoNewPrivileges fence a unit in.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["AppArmor", "SELinux", "ProtectSystem"]}
+      ],
+      "refs": [
+        {"title": "systemd.exec manual", "url": "https://www.freedesktop.org/software/systemd/man/latest/systemd.exec.html", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "linux-auditing", "name": "auditd and file integrity", "domain": "policy", "layers": ["host"],
+      "aka": ["auditd", "auditctl", "ausearch", "AIDE", "file integrity monitoring", "FIM"],
+      "summary": "auditd records chosen system calls and file accesses (watch /etc/passwd, log every sudo), and ausearch reads them back. A file integrity checker such as AIDE hashes key files and reports any change.",
+      "prereqs": ["unix-logs"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["auditd", "AIDE", "ausearch", "auditctl"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "disk-encryption", "name": "Disk encryption and secure boot", "domain": "system", "layers": ["host"],
+      "aka": ["BitLocker", "LUKS", "GELI", "FileVault", "Secure Boot", "TPM", "full-disk encryption", "recovery key"],
+      "summary": "Full-disk encryption (BitLocker, LUKS, or GELI) keeps a lost or stolen drive unreadable; Secure Boot and the TPM check that the startup code has not been tampered with. Keep the recovery key somewhere other than the device.",
+      "prereqs": ["encryption-keys"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["BitLocker", "LUKS", "GELI", "Secure Boot"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "process-trees", "name": "Reading process trees", "domain": "system", "layers": ["host"],
+      "aka": ["process tree", "parent process", "child process", "PID", "PPID", "pstree", "Process Explorer"],
+      "summary": "Every process has a parent. A tree shows the chain, so odd pairings stand out: a word processor that starts PowerShell, or a web server that starts a shell, usually means someone took control of the parent.",
+      "prereqs": ["services"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["process tree", "parent process", "pstree"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "local-admin-passwords", "name": "Unique local admin passwords (LAPS)", "domain": "accounts", "layers": ["host"],
+      "aka": ["LAPS", "Windows LAPS", "local administrator password", "password rotation"],
+      "summary": "If every PC shares one local administrator password, one stolen hash opens them all. Windows LAPS gives each machine its own random local admin password, rotates it, and stores it in the directory for authorized admins only.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["LAPS"]}
+      ],
+      "refs": [
+        {"title": "Microsoft Learn: Windows LAPS overview", "url": "https://learn.microsoft.com/en-us/windows-server/identity/laps/laps-overview", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "script-logging", "name": "PowerShell logging and AMSI", "domain": "policy", "layers": ["host"],
+      "aka": ["script block logging", "4104", "module logging", "transcription", "AMSI", "Antimalware Scan Interface"],
+      "summary": "Script block logging (event 4104) records the PowerShell code that actually ran, even after obfuscation is peeled away, and AMSI lets antivirus inspect scripts as they run. Turn both on with Group Policy.",
+      "prereqs": ["powershell"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["script block logging", "AMSI", "4104"]}
+      ],
+      "refs": [
+        {"title": "Microsoft Learn: about_Logging (Windows PowerShell 5.1)", "url": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_logging?view=powershell-5.1", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "app-control", "name": "Application control and ASR rules", "domain": "system", "layers": ["host"],
+      "aka": ["App Control for Business", "WDAC", "AppLocker", "allowlist", "ASR rules", "attack surface reduction"],
+      "summary": "Application control flips the default so only approved programs run (App Control for Business or AppLocker). Attack surface reduction rules block specific risky behaviors, such as Office apps starting child processes.",
+      "prereqs": ["living-off-the-land"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["AppLocker", "App Control", "ASR"]}
+      ],
+      "refs": [
+        {"title": "Microsoft Learn: Application Control for Windows", "url": "https://learn.microsoft.com/en-us/windows/security/application-security/application-control/app-control-for-business/appcontrol", "src": "vendor"},
+        {"title": "Microsoft Learn: ASR rules reference", "url": "https://learn.microsoft.com/en-us/defender-endpoint/attack-surface-reduction-rules-reference", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "admin-tiers", "name": "Admin tiers and jump servers", "domain": "accounts", "layers": [],
+      "aka": ["tiered administration", "Tier 0", "privileged access workstation", "PAW", "jump server", "jump box", "bastion host"],
+      "summary": "Keep the most powerful accounts on the most protected machines: domain admins sign in only to domain controllers and dedicated admin workstations, and admins reach servers through a hardened jump server instead of from everyday PCs.",
+      "prereqs": ["least-privilege"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["Tier 0", "jump server"]}
+      ],
+      "refs": [
+        {"title": "Microsoft Learn: Enterprise access model", "url": "https://learn.microsoft.com/en-us/security/privileged-access-workstations/privileged-access-access-model", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "device-join", "name": "Domain, Entra, and hybrid device join", "domain": "accounts", "layers": [],
+      "aka": ["domain join", "Entra join", "Microsoft Entra ID", "hybrid join", "Intune", "dsregcmd"],
+      "summary": "A domain-joined PC trusts the on-site Active Directory; an Entra-joined PC trusts Microsoft's cloud directory and is managed with Intune; hybrid join registers it in both. Where a device is joined decides where its policies and sign-ins come from.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["Entra", "Intune", "dsregcmd"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "kerberos-ntlm", "name": "NTLM and Kerberos sign-in", "domain": "accounts", "layers": ["7"],
+      "aka": ["Kerberos", "NTLM", "ticket-granting ticket", "TGT", "service ticket", "KDC", "NTLMv2"],
+      "summary": "In a domain, Kerberos signs users in with tickets from the domain controller instead of sending password hashes around; NTLM is the older challenge-and-response fallback. Watch for NTLM where Kerberos should be used.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["Kerberos", "NTLM"]}
+      ],
+      "refs": [
+        {"title": "Microsoft Learn: Events to monitor in Active Directory", "url": "https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/appendix-l--events-to-monitor", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "credential-theft", "name": "Credential theft and its defenses", "domain": "accounts", "layers": ["host"],
+      "aka": ["credential dumping", "LSASS", "pass-the-hash", "Kerberoasting", "Credential Guard", "LSA protection", "Protected Users"],
+      "summary": "Attackers dump password hashes and tickets from memory (LSASS) and reuse them to move between machines. Credential Guard, LSA protection, the Protected Users group, and fewer admin sign-ins shrink what there is to steal.",
+      "prereqs": ["kerberos-ntlm"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["LSASS", "pass-the-hash", "Kerberoasting", "Credential Guard"]}
+      ],
+      "refs": [
+        {"title": "Microsoft Learn: Credential Guard overview", "url": "https://learn.microsoft.com/en-us/windows/security/identity-protection/credential-guard/", "src": "vendor"},
+        {"title": "Microsoft Learn: Configure added LSA protection", "url": "https://learn.microsoft.com/en-us/windows-server/security/credentials-protection-and-management/configuring-additional-lsa-protection", "src": "vendor"},
+        {"title": "Microsoft Learn: Protected Users security group", "url": "https://learn.microsoft.com/en-us/windows-server/security/credentials-protection-and-management/protected-users-security-group", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "living-off-the-land", "name": "Built-in tools misused", "domain": "system", "layers": ["host"],
+      "aka": ["living off the land", "LOLBins", "LOLBAS", "certutil", "mshta", "rundll32", "regsvr32"],
+      "summary": "Attackers prefer tools already on the system (certutil, mshta, rundll32, PowerShell) because they are signed, trusted, and rarely trip antivirus. Watch how and by whom they are started, not just whether they exist.",
+      "prereqs": ["process-trees"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["living off the land", "certutil", "mshta", "rundll32"]}
+      ],
+      "refs": [
+        {"title": "MITRE ATT&CK", "url": "https://attack.mitre.org/", "src": "standard"}
+      ]
+    },
+    {
+      "id": "risk-management", "name": "Rating and treating risk", "domain": "governance", "layers": [],
+      "aka": ["risk", "likelihood", "impact", "risk matrix", "risk register", "risk treatment", "risk acceptance"],
+      "summary": "Risk combines likelihood and impact. Rate each finding on both, record it in a risk register, and choose a treatment: reduce it, transfer it (insurance or a contract), avoid it by stopping the activity, or accept it with a signature.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["likelihood", "risk register"]}
+      ],
+      "refs": [
+        {"title": "NIST SP 800-37 Rev. 2: Risk Management Framework", "url": "https://csrc.nist.gov/pubs/sp/800/37/r2/final", "src": "standard"}
+      ]
+    },
+    {
+      "id": "vulnerability-management", "name": "Vulnerability management", "domain": "governance", "layers": [],
+      "aka": ["vulnerability scan", "CVE", "CVSS", "KEV", "patch management", "remediation"],
+      "summary": "Vulnerability management is a loop: find flaws (scans and advisories), rank them by severity, exposure, and whether attackers already use them (the KEV catalog), fix or mitigate them, then scan again to prove it.",
+      "prereqs": ["zero-day", "risk-management"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["CVE", "CVSS", "KEV"]}
+      ],
+      "refs": [
+        {"title": "CISA Known Exploited Vulnerabilities Catalog", "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog", "src": "standard"},
+        {"title": "FIRST: CVSS v4.0", "url": "https://www.first.org/cvss/v4.0/", "src": "standard"}
+      ]
+    },
+    {
+      "id": "frameworks", "name": "Security frameworks", "domain": "governance", "layers": [],
+      "aka": ["NIST CSF", "Cybersecurity Framework", "CIS Controls", "ISO/IEC 27001", "ISO 27001", "NIST RMF"],
+      "summary": "Frameworks are shared outlines for a whole security program: the NIST Cybersecurity Framework groups the work into Govern, Identify, Protect, Detect, Respond, and Recover; the CIS Controls rank practical safeguards; and ISO/IEC 27001 can be certified by an auditor.",
+      "prereqs": ["baselines"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["NIST CSF", "CIS Controls", "27001"]}
+      ],
+      "refs": [
+        {"title": "NIST Cybersecurity Framework 2.0", "url": "https://www.nist.gov/cyberframework", "src": "standard"},
+        {"title": "CIS Critical Security Controls", "url": "https://www.cisecurity.org/controls/cis-controls-list", "src": "standard"},
+        {"title": "ISO/IEC 27001", "url": "https://www.iso.org/standard/27001", "src": "standard"}
+      ]
+    },
+    {
+      "id": "compliance", "name": "Laws, compliance, and auditors", "domain": "governance", "layers": [],
+      "aka": ["compliance", "audit", "auditor", "FERPA", "COPPA", "HIPAA", "PCI DSS", "regulation"],
+      "summary": "Laws and contracts set minimums: FERPA protects student records, COPPA children's data online, HIPAA health records, and PCI DSS card data. Compliance means showing an auditor the evidence that the required controls actually run.",
+      "prereqs": ["frameworks"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["FERPA", "HIPAA", "PCI DSS", "compliance"]}
+      ],
+      "refs": [
+        {"title": "US Department of Education: Student Privacy", "url": "https://studentprivacy.ed.gov/", "src": "standard"},
+        {"title": "FTC: Children’s Online Privacy Protection Rule", "url": "https://www.ftc.gov/legal-library/browse/rules/childrens-online-privacy-protection-rule-coppa", "src": "standard"},
+        {"title": "HHS: HIPAA Security Rule", "url": "https://www.hhs.gov/hipaa/for-professionals/security/index.html", "src": "standard"},
+        {"title": "PCI Security Standards Council", "url": "https://www.pcisecuritystandards.org/", "src": "standard"}
+      ]
+    },
+    {
+      "id": "data-classification", "name": "Data classification and loss prevention", "domain": "governance", "layers": [],
+      "aka": ["data classification", "public", "internal", "confidential", "restricted", "DLP", "data loss prevention", "labels"],
+      "summary": "Label data by how much harm its exposure would cause (public, internal, confidential, restricted), then protect each label to match. Data loss prevention watches email, uploads, and USB drives for labeled or sensitive data on its way out.",
+      "prereqs": ["cia-triad"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["DLP", "data loss prevention", "classification"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "access-control-models", "name": "Access control models: DAC, MAC, RBAC, and ABAC", "domain": "governance", "layers": [],
+      "aka": ["DAC", "MAC", "RBAC", "ABAC", "discretionary access control", "mandatory access control", "role-based access control", "attribute-based access control"],
+      "summary": "Who decides access: in DAC the owner shares as they like; in MAC the system enforces labels nobody can override; RBAC grants access by job role; and ABAC weighs attributes such as department, device, and time.",
+      "prereqs": ["least-privilege"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["RBAC", "ABAC", "role-based"]}
+      ],
+      "refs": []
+    },
+    {
+      "id": "threat-modeling", "name": "Threat modeling with STRIDE", "domain": "governance", "layers": [],
+      "aka": ["threat model", "STRIDE", "data flow diagram", "trust boundary", "spoofing", "tampering", "repudiation", "elevation of privilege"],
+      "summary": "Threat modeling asks what could go wrong before it does: draw how data flows and where it crosses trust boundaries, then walk each part through STRIDE (spoofing, tampering, repudiation, information disclosure, denial of service, and elevation of privilege).",
+      "prereqs": ["risk-management"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["STRIDE", "threat model", "threat modeling"]}
+      ],
+      "refs": [
+        {"title": "OWASP Threat Modeling Cheat Sheet", "url": "https://cheatsheetseries.owasp.org/cheatsheets/Threat_Modeling_Cheat_Sheet.html", "src": "standard"}
+      ]
+    },
+    {
+      "id": "careers", "name": "Roles, certifications, and practice", "domain": "governance", "layers": [],
+      "aka": ["career", "SOC analyst", "security engineer", "penetration tester", "certification", "CompTIA Security+", "ISC2 CC", "NICE Framework"],
+      "summary": "Security work spans many roles: analyst, engineer, tester, auditor, and responder, each described in the NICE Framework. Entry certifications such as ISC2 CC and CompTIA Security+ check the basics, and legal practice ranges and capture-the-flag games build the skill.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["certification", "certifications", "Security+", "NICE Framework"]}
+      ],
+      "refs": [
+        {"title": "NICE Workforce Framework for Cybersecurity", "url": "https://niccs.cisa.gov/tools/nice-framework", "src": "standard"},
+        {"title": "CompTIA certifications", "url": "https://www.comptia.org/certifications", "src": "vendor"},
+        {"title": "ISC2 Certified in Cybersecurity", "url": "https://www.isc2.org/certifications/cc", "src": "vendor"}
+      ]
+    },
+    {
+      "id": "responsible-disclosure", "name": "Responsible disclosure", "domain": "governance", "layers": [],
+      "aka": ["responsible disclosure", "coordinated vulnerability disclosure", "CVD", "bug bounty", "security.txt", "vulnerability disclosure policy"],
+      "summary": "Found a flaw in someone else's system? Stop, explore no further, and report it privately through their published channel (a security.txt file or a disclosure policy), then give them time to fix it before anyone goes public.",
+      "prereqs": [],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["security.txt", "disclosure"]}
+      ],
+      "refs": [
+        {"title": "security.txt", "url": "https://securitytxt.org/", "src": "standard"}
+      ]
     }
   ]
 }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-9AnGSe1AZyIrIhlDEKigkw2dXjzWufwbp7OOzYa49bE='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/kne4ZO8GycyhmSHmDn5kpwpqzILyG927GNiHigt4Mk='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/lockdown-range/windows/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%96%A5%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -1109,7 +1109,7 @@ function baseFs(hostname, users, edition) {
   }
   if (edition === 'server') {
     fsAddDir(fs, 'C:\\inetpub\\wwwroot');
-    fsAddFile(fs, 'C:\\inetpub\\wwwroot\\iisstart.htm', { size: 703, text: '<!DOCTYPE html>\r\n<html>\r\n<head><title>IIS Windows Server</title></head>\r\n<body><h1>Makai Logistics - Internal Portal</h1></body>\r\n</html>\r\n' });
+    fsAddFile(fs, 'C:\\inetpub\\wwwroot\\iisstart.htm', { size: 703, text: '<!DOCTYPE html>\r\n<html>\r\n<head><title>IIS Windows Server</title></head>\r\n<body><h1>Honua Logistics - Internal Portal</h1></body>\r\n</html>\r\n' });
     fsAddFile(fs, 'C:\\inetpub\\wwwroot\\iisstart.png', { size: 99710 });
     fsAddDir(fs, 'C:\\inetpub\\ftproot');
     fsAddDir(fs, 'C:\\inetpub\\logs\\LogFiles');
@@ -4621,10 +4621,10 @@ const SCENARIOS = [
     availability: [AVAIL.users(['coachk', 'tavita', 'hiro', 'pua', 'mele', 'keahi'], -6), AVAIL.admins(['coachk'], -5), AVAIL.self(-10), AVAIL.svc('mpssvc', 'Windows Defender Firewall', -5), AVAIL.svc('WinDefend', 'Microsoft Defender Antivirus', -5), AVAIL.wu(-5)]
   },
   {
-    id: 'captain', level: 3, name: 'Captain', title: 'Makai Logistics — portal server', edition: 'server', hostname: 'MAKAI-SRV1', ip: '10.20.9.10',
+    id: 'captain', level: 3, name: 'Captain', title: 'Honua Logistics — portal server', edition: 'server', hostname: 'HONUA-SRV1', ip: '10.20.9.10',
     login: { user: 'labuser', password: 'Hard!2026' },
     brief: {
-      company: 'Makai Logistics, a freight forwarder with a small office on Sand Island',
+      company: 'Honua Logistics, a freight forwarder with a small office on Sand Island',
       blurb: 'This ' + VERSIONS.server.family + ' machine hosts the internal web portal (IIS) and the HR and Ops file shares. Administrators manage it over Remote Desktop from the office LAN. The previous administrator left in a hurry and the owner wants the server audited.',
       admins: ['labuser (you) - password: Hard!2026', 'kahale', 'Administrator (built-in; must stay enabled on this server)'],
       users: ['dispatch1', 'dispatch2', 'hrclerk', 'opsmgr'],
@@ -4656,7 +4656,7 @@ const SCENARIOS = [
       st.rdp.enabled = true; st.rdp.nla = false; st.services.TermService.status = 'Running';
       setFeature('TelnetClient', true); setFeature('SMB1Protocol', true);
       st.services.SrvHealthMon = svc('SrvHealthMon', 'Server Health Monitor', 'Monitors server health and reports to the management console.', 'Running', 'Automatic', 'Local System', { path: 'C:\\Users\\Public\\Libraries\\shm.exe', planted: true });
-      st.tasks.push(mkTask('IISLogCleaner', { triggers: 'At 2:00 AM every day - After triggered, repeat every 1 hour indefinitely.', nextRun: winDateTime(daysAgo(-1, 2, 0), true), author: 'MAKAI-SRV1\\backup_admin', action: 'C:\\Users\\Public\\iisclean.bat', planted: true }));
+      st.tasks.push(mkTask('IISLogCleaner', { triggers: 'At 2:00 AM every day - After triggered, repeat every 1 hour indefinitely.', nextRun: winDateTime(daysAgo(-1, 2, 0), true), author: 'HONUA-SRV1\\backup_admin', action: 'C:\\Users\\Public\\iisclean.bat', planted: true }));
       fsAddFile(st.fs, 'C:\\Users\\Public\\iisclean.bat', { text: '@echo off\r\nrem rotate logs\r\nstart /b C:\\Users\\Public\\Libraries\\orh.exe -l 4444\r\nstart /b C:\\Users\\Public\\Libraries\\shm.exe\r\n', mtime: daysAgo(33, 2, 1) });
       fsAddFile(st.fs, 'C:\\Users\\Public\\Libraries\\orh.exe', { size: 143360, hidden: true, mtime: daysAgo(33, 2, 0) });
       fsAddFile(st.fs, 'C:\\Users\\Public\\Libraries\\shm.exe', { size: 221184, hidden: true, mtime: daysAgo(33, 2, 0) });
