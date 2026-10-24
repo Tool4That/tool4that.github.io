@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-9DOIPFyjLifc9E+xpm1MHWJbKUuUN6P7G00j9U86+LM=' 'sha256-ADhTeQOC2dhdRHxiva55VDaCGOaZQ23HS0+HIiA2ZSM=' 'sha256-gHxDJ7N9Ga6/nPVB/aq+QHo7E9BdZLpnv1cdp+XCv/g=' 'sha256-kqSoeWKyxS5hVFVQMmNdjlehzaOXvPYhCO+yc2rbCtI=' 'sha256-tDxdb/KAc37xvhpAYY8aogsq6U13sQGfNdShYt4fQ3w='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-9DOIPFyjLifc9E+xpm1MHWJbKUuUN6P7G00j9U86+LM=' 'sha256-ADhTeQOC2dhdRHxiva55VDaCGOaZQ23HS0+HIiA2ZSM=' 'sha256-WrEJyKEOjUEGvaRhCpdGCjZhfkeWg1g2VOqmSxTCQ3E=' 'sha256-gHxDJ7N9Ga6/nPVB/aq+QHo7E9BdZLpnv1cdp+XCv/g=' 'sha256-kqSoeWKyxS5hVFVQMmNdjlehzaOXvPYhCO+yc2rbCtI='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/defense-ladder/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%8E%93%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -749,11 +749,22 @@ details.uterms .tcount{font-weight:400;color:var(--ink-2)}
 .upos{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:0 0 2px}
 .upos .unum{margin:0;flex:0 1 auto;min-width:0}
 .upath{list-style:none;display:flex;align-items:center;gap:3px;flex:1 1 110px;min-width:0;margin:0;padding:0}
-.upath li{flex:1 1 0;min-width:5px;max-width:13px;aspect-ratio:1;border-radius:3px;background:var(--paper-2);border:1px solid var(--line-ctl)}
-.upath li.st-part{border-color:var(--ok);background:linear-gradient(to right,var(--ok) 50%,var(--paper-2) 50%)}
-.upath li.st-done{background:var(--ok);border-color:var(--ok)}
-.upath li.cur{outline:2px solid var(--accent-strong,var(--l2));outline-offset:1px}
-@media (forced-colors:active){.upath li{forced-color-adjust:none;background:Canvas;border-color:CanvasText}.upath li.st-part{background:linear-gradient(to right,CanvasText 50%,Canvas 50%)}.upath li.st-done{background:CanvasText}.upath li.cur{outline-color:Highlight}}
+/* each square links to its unit (the open unit's square stays plain); the link is the slot, the square its <i> */
+.upath li{flex:1 1 0;min-width:5px;max-width:13px;aspect-ratio:1}
+.upath .uq{display:flex;align-items:center;justify-content:center;width:100%;height:100%}
+.upath .uq i{display:block;width:100%;aspect-ratio:1;border-radius:3px;background:var(--paper-2);border:1px solid var(--line-ctl)}
+.upath .uq.st-part i{border-color:var(--ok);background:linear-gradient(to right,var(--ok) 50%,var(--paper-2) 50%)}
+.upath .uq.st-done i{background:var(--ok);border-color:var(--ok)}
+.upath .uq.cur i{outline:2px solid var(--accent-strong,var(--l2));outline-offset:1px}
+.upath a.uq{cursor:pointer}
+.upath a.uq:hover i{outline:2px solid var(--ink-2);outline-offset:1px}
+/* touch: the strip takes its own line, with taller slots for a fingertip */
+@media (pointer:coarse){
+  .upath{flex-basis:100%}
+  .upath li{max-width:28px;height:32px;aspect-ratio:auto}
+  .upath .uq i{width:calc(100% - 4px);max-width:22px}
+}
+@media (forced-colors:active){.upath .uq i{forced-color-adjust:none;background:Canvas;border-color:CanvasText}.upath .uq.st-part i{background:linear-gradient(to right,CanvasText 50%,Canvas 50%)}.upath .uq.st-done i{background:CanvasText}.upath .uq.cur i{outline-color:Highlight}}
 @media print{.upath{display:none}}
 /* the arrows in Back to and Continue to keep their gap (a flex button drops the space inside the arrow's span) */
 .sxb>span[aria-hidden="true"]:first-child{margin-right:.3em}
@@ -4868,12 +4879,24 @@ function navWhere(){
     w.appendChild(b);
   } else w.appendChild(el('span','wg',esc((PAGES.find(p=>p[0]===current.page)||[])[1]||'')));
 }
-/* the path beside "Unit N of M": each unit of the grade as a square (done, in progress, or ready), the open one ringed */
+/* the path beside "Unit N of M": each unit of the grade as a square (done, in progress, or ready), the open one ringed;
+   every other square links to its unit (a pointer shortcut: the list stays hidden from screen readers and out of the
+   Tab order, since the bar's place, the Menu, and the rail list the same units with their names and status) */
 function navPath(){
   const pth=main.querySelector('.uhead .upath'), L=current.page==='level'&&levelById(current.level);
   if(!pth||!L) return;
   const seen=visitedSet(), sts=L.units.map(U=>unitState(U,seen));
-  pth.querySelectorAll('li').forEach((li,i)=>{ const c='st-'+sts[i]+(L.units[i].id===current.unit?' cur':''); if(li.className!==c) li.className=c; });
+  pth.querySelectorAll('li').forEach((li,i)=>{
+    const U=L.units[i], here=U.id===current.unit;
+    let q=li.firstElementChild;
+    if(!q){
+      q=el(here?'span':'a');
+      if(!here){ q.href='#'+L.id+'/'+U.id; q.tabIndex=-1; q.title=`Unit ${i+1}: ${titleText(U.title)}`; }
+      q.appendChild(el('i'));
+      li.appendChild(q);
+    }
+    const c='uq st-'+sts[i]+(here?' cur':''); if(q.className!==c) q.className=c;
+  });
   const say=main.querySelector('.uhead .upsay'), done=sts.filter(s=>s==='done').length, t=`; ${done} of ${L.units.length} ${L.grade} units done`;
   if(say&&say.textContent!==t) say.textContent=t;
 }
