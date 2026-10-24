@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-2a8sv5qYs/cRPLMkMf4GML3ClUBfmCJTICjucMaAbvM=' 'sha256-9DOIPFyjLifc9E+xpm1MHWJbKUuUN6P7G00j9U86+LM=' 'sha256-ADhTeQOC2dhdRHxiva55VDaCGOaZQ23HS0+HIiA2ZSM=' 'sha256-gHxDJ7N9Ga6/nPVB/aq+QHo7E9BdZLpnv1cdp+XCv/g=' 'sha256-kqSoeWKyxS5hVFVQMmNdjlehzaOXvPYhCO+yc2rbCtI='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-9DOIPFyjLifc9E+xpm1MHWJbKUuUN6P7G00j9U86+LM=' 'sha256-ADhTeQOC2dhdRHxiva55VDaCGOaZQ23HS0+HIiA2ZSM=' 'sha256-gHxDJ7N9Ga6/nPVB/aq+QHo7E9BdZLpnv1cdp+XCv/g=' 'sha256-kqSoeWKyxS5hVFVQMmNdjlehzaOXvPYhCO+yc2rbCtI=' 'sha256-tDxdb/KAc37xvhpAYY8aogsq6U13sQGfNdShYt4fQ3w='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/defense-ladder/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%8E%93%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -745,6 +745,30 @@ details.uterms .tcount{font-weight:400;color:var(--ink-2)}
 /* Read aloud */
 .ra-row{display:flex;justify-content:flex-end;margin-top:10px}
 @media print{.sxnav,.sxpos,.cmp-tg,.v-rows,.fdock,.ra-row,.mnote,dialog.fdlg{display:none !important}}
+/* ---- the path (mobile round, 2026-10-24): "Unit N of M" beside a square per unit of the grade ---- */
+.upos{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:0 0 2px}
+.upos .unum{margin:0;flex:0 1 auto;min-width:0}
+.upath{list-style:none;display:flex;align-items:center;gap:3px;flex:1 1 110px;min-width:0;margin:0;padding:0}
+.upath li{flex:1 1 0;min-width:5px;max-width:13px;aspect-ratio:1;border-radius:3px;background:var(--paper-2);border:1px solid var(--line-ctl)}
+.upath li.st-part{border-color:var(--ok);background:linear-gradient(to right,var(--ok) 50%,var(--paper-2) 50%)}
+.upath li.st-done{background:var(--ok);border-color:var(--ok)}
+.upath li.cur{outline:2px solid var(--accent-strong,var(--l2));outline-offset:1px}
+@media (forced-colors:active){.upath li{forced-color-adjust:none;background:Canvas;border-color:CanvasText}.upath li.st-part{background:linear-gradient(to right,CanvasText 50%,Canvas 50%)}.upath li.st-done{background:CanvasText}.upath li.cur{outline-color:Highlight}}
+@media print{.upath{display:none}}
+/* the arrows in Back to and Continue to keep their gap (a flex button drops the space inside the arrow's span) */
+.sxb>span[aria-hidden="true"]:first-child{margin-right:.3em}
+.sxc>span[aria-hidden="true"]:last-child{margin-left:.3em}
+/* phones: the bar's "Grade · Unit N of M ▾" opens the unit list; its tap area covers the bar's left side */
+.wbtn{display:none}
+@media (max-width:919.98px){
+  .mwho{position:relative;align-self:stretch;display:flex;flex-direction:column;justify-content:center}
+  .where .wbtn{display:flex;align-items:center;gap:5px;max-width:100%;margin:0;padding:0;border:0;background:none;color:inherit;font:inherit;line-height:inherit;text-align:left;cursor:pointer}
+  .where .wbtn::after{content:"";position:absolute;inset:-2px 0}
+  .where .wtx{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .where .wcar{flex:none;font-size:.8em;color:var(--ink-2)}
+  .where .wbtn:focus{outline:none}
+  .where .wbtn:focus-visible::after{outline:3px solid var(--focus);outline-offset:-1px;border-radius:6px}
+}
 /* ---- acceptance fixes (2026-10-21): the laptop rail, the Menu at large text, the dialog, 72ch text, command and
    terminal tables, compare by row, match and order marks, invest groups, the progress list, contrast, and forced colors ---- */
 /* the Menu and the rail reflow at large text (125% to 200%): grades wrap to one column, and long words break */
@@ -3316,7 +3340,7 @@ function renderLevel(){
 
   const U=L.units.find(u=>u.id===current.unit)||L.units[0];
   const uh=el('div','uhead');
-  uh.innerHTML=`<p class="unum">${L.grade} · Unit ${L.units.indexOf(U)+1} of ${L.units.length}</p><h2 tabindex="-1">${U.title}<span class="sr">, thinking level: </span><span class="blm">${U.bloom}</span></h2><p class="sum">${U.sum}</p>`;
+  uh.innerHTML=`<div class="upos"><p class="unum">${L.grade} · Unit ${L.units.indexOf(U)+1} of ${L.units.length}<span class="sr upsay"></span></p><ol class="upath" aria-hidden="true">${L.units.map(()=>'<li></li>').join('')}</ol></div><h2 tabindex="-1">${U.title}<span class="sr">, thinking level: </span><span class="blm">${U.bloom}</span></h2><p class="sum">${U.sum}</p>`;
   main.appendChild(uh);
   main.appendChild(unitOutline(L,U));
 
@@ -4812,6 +4836,7 @@ function navMark(){
   markOutline();
   flowMark();
   navWhere();
+  navPath();
   if(wideMQ&&wideMQ.matches) requestAnimationFrame(railToCurrent);
 }
 function navRefresh(){ navMark(); }
@@ -4823,14 +4848,34 @@ function railToCurrent(){
   if(c.top<r.top+8) railEl.scrollTop+=c.top-r.top-8;
   else if(c.bottom>r.bottom-8-tb) railEl.scrollTop+=c.bottom-(r.bottom-8-tb);
 }
+/* the bar's place: on a unit, a button ("Grade · Unit N of M ▾") that opens the Menu at the grade's unit list */
+let menuFrom=null;
 function navWhere(){
   const w=document.getElementById('where'); if(!w) return;
+  const gi=current.page==='level'?gradeInfo(current.level):null, ids=gi?gradeUnitIds(current.level):[];
+  const k=gi?current.level+'/'+current.unit:'p/'+current.page;
+  if(w.dataset.k===k&&w.firstChild) return;
+  w.dataset.k=k;
   w.innerHTML='';
-  if(current.page==='level'){
-    const gi=gradeInfo(current.level), ids=gradeUnitIds(current.level);
-    w.appendChild(el('span','wg',esc(gi?gi.grade:'')));
-    if(ids.includes(current.unit)) w.appendChild(el('span','wu',esc(` · Unit ${ids.indexOf(current.unit)+1} of ${ids.length}`)));
+  if(gi){
+    const b=el('button','wbtn'), t=el('span','wtx');
+    b.type='button';b.setAttribute('aria-haspopup','dialog');b.setAttribute('aria-controls','navPanel');
+    t.appendChild(el('span','wg',esc(gi.grade)));
+    if(ids.includes(current.unit)) t.appendChild(el('span','wu',esc(` · Unit ${ids.indexOf(current.unit)+1} of ${ids.length}`)));
+    b.append(t,el('span','wcar','▾'),el('span','sr',esc(`, open the ${gi.grade} unit list`)));
+    b.querySelector('.wcar').setAttribute('aria-hidden','true');
+    b.addEventListener('click',()=>{ menuFrom=b; openMenu(); });
+    w.appendChild(b);
   } else w.appendChild(el('span','wg',esc((PAGES.find(p=>p[0]===current.page)||[])[1]||'')));
+}
+/* the path beside "Unit N of M": each unit of the grade as a square (done, in progress, or ready), the open one ringed */
+function navPath(){
+  const pth=main.querySelector('.uhead .upath'), L=current.page==='level'&&levelById(current.level);
+  if(!pth||!L) return;
+  const seen=visitedSet(), sts=L.units.map(U=>unitState(U,seen));
+  pth.querySelectorAll('li').forEach((li,i)=>{ const c='st-'+sts[i]+(L.units[i].id===current.unit?' cur':''); if(li.className!==c) li.className=c; });
+  const say=main.querySelector('.uhead .upsay'), done=sts.filter(s=>s==='done').length, t=`; ${done} of ${L.units.length} ${L.grade} units done`;
+  if(say&&say.textContent!==t) say.textContent=t;
 }
 /* ---- the phone bar: it hides while the reader scrolls down and returns on the way up ---- */
 let barY=-1, barTick=false, barQuietUntil=0;
@@ -4877,7 +4922,9 @@ function closeMenu(back){
   menuBtn.setAttribute('aria-expanded','false');
   ['role','aria-modal','aria-labelledby'].forEach(a=>navPanel.removeAttribute(a));
   main.inert=false; if(mbar) mbar.inert=false;
-  if(back) menuBtn.focus();
+  /* focus returns to the control that opened the Menu (the bar's place or the Menu button) */
+  if(back){ const f=menuFrom&&menuFrom.isConnected&&menuFrom.getClientRects().length?menuFrom:menuBtn; f.focus(); }
+  menuFrom=null;
 }
 /* ---- after each view: Continue on the landing view, and the visit saved (after the view has painted) ---- */
 function navAfterRender(){
@@ -4937,7 +4984,10 @@ function continueCard(o){
 /* ---- the grade intro: whole on the first view of a grade, then folded into a summary (its open state is kept) ---- */
 function gradeIntro(L,head){
   const s=navState();
-  if(!(s.seen&&s.seen[L.id])) return;
+  /* phones: the whole intro shows on the grade's first unit; any other unit opens with the closed summary, so the
+     unit's heading starts on the first screen */
+  const U0=L.units.find(u=>u.id===current.unit)||L.units[0];
+  if(!(s.seen&&s.seen[L.id])&&!(!(wideMQ&&wideMQ.matches)&&U0!==L.units[0])) return;
   const kids=[...head.children].slice(2);
   if(!kids.length) return;
   const d=el('details','gintro');
@@ -5017,7 +5067,8 @@ function unitFoot(L,U,pager){
   const i=L.units.indexOf(U);
   d.appendChild(el('summary',null,`<span class="uj-n">Unit ${i+1} of ${L.units.length}</span> <span class="uj-l">· All ${esc(L.grade)} units</span>`));
   d.appendChild(unitList(L));
-  w.append(d,pager);
+  /* mobile round (2026-10-24): the unit list lives in the bar's "Unit N of M" (phones) and the rail (laptops) */
+  w.append(pager);
   return w;
 }
 /* ---- My progress: every unit as a cell with its status, and where to invest next across every quiz ---- */
@@ -5368,8 +5419,11 @@ function flowTerms(L,U,uh){
   const d=el('details','uterms');d.dataset.at=at;
   d.innerHTML='<summary>Terms in this unit<span class="tcount"></span></summary><div class="tbody"></div>';
   /* open by default, with the first five terms before the lesson; a student who closes it keeps it closed (per device) */
-  d.open=flowLsGet(TERMS_KEY)!=='closed';
-  d.addEventListener('toggle',()=>{ if(d.open) flowTermsFill(d); if(d.dataset.ready&&d.open!==(flowLsGet(TERMS_KEY)!=='closed')) flowLsSet(TERMS_KEY,d.open?null:'closed'); });
+  /* mobile round (2026-10-24): closed by default on phones, so the lesson starts on the first screen; the student's
+     own choice, open or closed, is kept (per device) */
+  const tWant=()=>{ const p=flowLsGet(TERMS_KEY); return p==='open'?true:p==='closed'?false:!!(wideMQ&&wideMQ.matches); };
+  d.open=tWant();
+  d.addEventListener('toggle',()=>{ if(d.open) flowTermsFill(d); if(d.dataset.ready&&d.open!==tWant()) flowLsSet(TERMS_KEY,d.open?'open':'closed'); });
   const s=uh.querySelector('.sum'); if(s) s.after(d); else uh.appendChild(d);
   flowTermsCount(d);
   d.dataset.ready='1';
