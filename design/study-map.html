@@ -155,6 +155,34 @@ code{font:var(--t-sm) var(--mono);overflow-wrap:anywhere}
 #all .gap{color:var(--muted);font-style:italic}
 #all .list{margin:.3rem 0 .9rem;padding-left:1.1rem}
 #all .toc{columns:2 14rem;margin:.6rem 0 0;padding-left:1.1rem}
+/* CLI tab: a command per row with its system bubble; the detail lists options and every place the command appears */
+.it code.t{font-size:var(--t-md);overflow-wrap:anywhere}
+.sb{flex:none;padding:.05rem .5rem;border:1.5px solid var(--sbc,var(--muted));border-radius:999px;font-size:var(--t-xs);font-weight:700;line-height:1.4;color:var(--sbc,var(--muted));white-space:nowrap}
+.sb-windows{--sbc:var(--app)}.sb-linux{--sbc:var(--tra)}.sb-freebsd{--sbc:var(--int)}.sb-cisco{--sbc:var(--lnk)}
+.d h2 code{font:700 var(--t-xl)/1.3 var(--mono)}
+.d h2 .sb{margin-left:.5rem;vertical-align:.2em}
+.how{margin:.2rem 0 .4rem;font-size:var(--t-sm);color:var(--muted)}
+.how code{color:var(--ink)}
+.care{margin:.6rem 0;padding:.5rem .75rem;border-left:4px solid var(--int);border-radius:4px;background:color-mix(in srgb,var(--int) 10%,var(--face));font-size:var(--t-md)}
+.opts{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.35rem .8rem;margin:0}
+.opts dt{font-weight:600}
+.opts dd{margin:0;font-size:var(--t-md)}
+.opts .k{margin-left:.3rem}
+.k-try{display:inline-block;max-width:100%;border-color:var(--tra);color:var(--tra);white-space:normal;line-height:1.3}
+.k-exp{border-color:var(--ink);background:var(--ink);color:var(--on-ink)}
+details.app{margin:.3rem 0;border-top:1px solid var(--rule)}
+details.app>summary{cursor:pointer;padding:.45rem 0;font-weight:650}
+details.app>summary .ct{margin-left:.35rem}
+.pls{margin:0 0 .5rem;padding:0;list-style:none}
+.pls>li{margin:0 0 .55rem;padding-left:.6rem;border-left:3px solid var(--rule)}
+.pls .bc{font-size:var(--t-md)}
+.pls .ln{display:block;margin:.1rem 0}
+.pls .cx{display:block;font-size:var(--t-sm);color:var(--muted)}
+details.ans{display:inline-block;margin:.15rem 0 0}
+details.ans>summary{cursor:pointer;font-size:var(--t-sm);color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+details.ans[open]>summary{margin-bottom:.15rem}
+details.more>summary{cursor:pointer;margin:.4rem 0;font-size:var(--t-md);color:var(--accent)}
+.sup{margin:.2rem 0 0;padding-left:1.1rem;font-size:var(--t-md)}
 @media print{
   #app,.skip{display:none!important}
   #all{display:block!important}
@@ -169,16 +197,17 @@ code{font:var(--t-sm) var(--mono);overflow-wrap:anywhere}
 <div class="wrap">
 <header class="top">
   <h1>Study Map</h1>
-  <p class="lede">Every concept in the course: where to learn it and where to practice it. <span class="star">&#9733;</span> marks what every track needs.</p>
+  <p class="lede">Every concept and command in the course: where to learn it and where to practice it. <span class="star">&#9733;</span> marks what every track needs.</p>
 </header>
 <div id="app">
-  <div class="search"><label class="vh" for="q">Search concepts</label><input id="q" type="search" placeholder="Search: OSI, VLAN, lockout, sudo, net accounts" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+  <div class="search"><label class="vh" for="q">Search concepts and commands</label><input id="q" type="search" placeholder="Search: OSI, VLAN, lockout, sudo, show ip route" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
   <div class="tabs" role="tablist" aria-label="Browse by">
     <button class="tab" type="button" role="tab" id="t-topic" data-tab="topic" aria-selected="true">Topic</button>
     <button class="tab" type="button" role="tab" id="t-track" data-tab="track" aria-selected="false">Track</button>
     <button class="tab" type="button" role="tab" id="t-grade" data-tab="grade" aria-selected="false">Grade</button>
     <button class="tab" type="button" role="tab" id="t-layer" data-tab="layer" aria-selected="false">Layer</button>
     <button class="tab" type="button" role="tab" id="t-app" data-tab="app" aria-selected="false">App</button>
+    <button class="tab" type="button" role="tab" id="t-cli" data-tab="cli" aria-selected="false">CLI</button>
     <button class="tab" type="button" role="tab" id="t-path" data-tab="path" aria-selected="false">My path<span id="t-path-n"></span></button>
   </div>
   <div class="panes">
@@ -191,6 +220,7 @@ code{font:var(--t-sm) var(--mono);overflow-wrap:anywhere}
   </div>
 </div>
 <script type="application/json" id="sm-data">{"study_map":"no data yet"}</script>
+<script type="application/json" id="cli-data">{"cli":"no data yet"}</script>
 <script>
 (function () {
   'use strict';
@@ -232,7 +262,7 @@ code{font:var(--t-sm) var(--mono);overflow-wrap:anywhere}
   var BANDS = ['freshman', 'sophomore', 'junior', 'senior'];
   var BAND_TAG = {freshman: 'Freshman', sophomore: 'Sophomore', junior: 'Junior', senior: 'Senior'};
   var RATE = {'new': 'New', shaky: 'Shaky', solid: 'Solid'};
-  var TABS = ['topic', 'track', 'grade', 'layer', 'app', 'path'];
+  var TABS = ['topic', 'track', 'grade', 'layer', 'app', 'cli', 'path'];
   var KR = 't4t.study-map.ratings', KP = 't4t.study-map.prefs';
   var store = {
     get: function (k) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } },
@@ -245,7 +275,8 @@ code{font:var(--t-sm) var(--mono);overflow-wrap:anywhere}
   var S = {
     tab: TABS.indexOf(prefs.tab) >= 0 ? prefs.tab : 'topic',
     track: trackIds.indexOf(prefs.track) >= 0 ? prefs.track : 'all',
-    q: '', layer: null, sel: null, app: null
+    q: '', layer: null, sel: null, app: null,
+    sys: ['all', 'windows', 'linux', 'freebsd', 'cisco'].indexOf(prefs.sys) >= 0 ? prefs.sys : 'all', cmd: null
   };
   var wide = window.matchMedia('(min-width: 900px)');
 
@@ -422,6 +453,238 @@ code{font:var(--t-sm) var(--mono);overflow-wrap:anywhere}
     lg.appendChild(dl);
     d.appendChild(lg);
     return d;
+  }
+
+  /* ---------- CLI: every command in the apps, its options, and every place it appears ---------- */
+  var CLI = null;
+  var ROLE = {answer: 'Answer', fix: 'Fix', hint: 'Hint', drill: 'Drill', teach: 'Lesson', reference: 'Walkthrough'};
+  function cliData() {
+    if (CLI) return CLI;
+    try { CLI = JSON.parse($('#cli-data').textContent); } catch (e) { CLI = null; }
+    if (!CLI || !Array.isArray(CLI.families)) CLI = {families: [], systems: [], tools: {}, toolOrder: [], cats: []};
+    CLI.byId = {};
+    CLI.sysName = {};
+    CLI.systems.forEach(function (s) { CLI.sysName[s[0]] = s[1]; });
+    CLI.families.forEach(function (f) {
+      CLI.byId[f.id] = f;
+      var bits = [f.name, f.what || '', (f.tags || []).join(' '), f.cat || '', f.how || ''];
+      f.forms.forEach(function (x) { bits.push(x.l); });
+      (f.opts || []).forEach(function (o) { bits.push(o.o, o.w || ''); });
+      (f.sup || []).forEach(function (s) { bits.push(s.p); });
+      f.hay = norm(bits.join(' '));
+      f.nameN = norm(f.name);
+      f.tagsN = norm((f.tags || []).join(' | '));
+    });
+    return CLI;
+  }
+  /* best first: the exact name, then names that start with the query, then every word of the query (Cisco
+     abbreviations such as "sh ip int br" match because each word starts a word of the command) */
+  function cliScore(f, q) {
+    if (f.nameN === q) return 1000;
+    var ws = q.split(' ');
+    if (!ws.every(function (w) { return f.hay.indexOf(w) >= 0; })) return -1;
+    var s = 1;
+    if (f.nameN.indexOf(q) === 0) s += 500;
+    else if (f.nameN.indexOf(q) >= 0) s += 200;
+    var nw = f.nameN.split(' '), i = 0, hit = 0;
+    ws.forEach(function (w) { var j = i; while (j < nw.length && nw[j].indexOf(w) !== 0) j++; if (j < nw.length) { hit++; i = j + 1; } });
+    s += hit === ws.length ? 300 : hit * 20;
+    if (f.tagsN.indexOf(q) >= 0) s += 150;
+    return s + Math.min(f.n, 60);
+  }
+  function cliList() {
+    var C = cliData(), q = norm(S.q);
+    var list = C.families.filter(function (f) { return S.sys === 'all' || f.os === S.sys; });
+    if (!q) return list;
+    return list.map(function (f) { return [f, cliScore(f, q)]; }).filter(function (x) { return x[1] >= 0; })
+      .sort(function (a, z) { return z[1] - a[1] || (a[0].name < z[0].name ? -1 : 1); }).map(function (x) { return x[0]; });
+  }
+  function sysBubble(os) { return el('span', {cls: 'sb sb-' + os, text: cliData().sysName[os] || os}); }
+  function cliItem(f) {
+    var li = el('li', null, [el('button', {cls: 'it', type: 'button', 'data-cmd': f.id, 'aria-current': String(S.cmd === f.id),
+      'aria-expanded': wide.matches ? null : String(S.cmd === f.id)}, [
+      el('code', {cls: 't', text: f.name}), sysBubble(f.os), el('span', {cls: 'tg', text: String(f.n), title: plural(f.n, 'use', 'uses') + ' in the apps'})
+    ])]);
+    if (!wide.matches && S.cmd === f.id) li.appendChild(el('div', {cls: 'inline'}, [cmdDetail(f)]));
+    return li;
+  }
+  function renderCli(box, filters) {
+    var C = cliData();
+    var seg = el('div', {cls: 'seg', role: 'radiogroup', 'aria-label': 'System'});
+    [['all', 'All systems']].concat(C.systems).forEach(function (s) {
+      seg.appendChild(el('button', {cls: 'pill', type: 'button', role: 'radio', 'aria-checked': String(S.sys === s[0]), 'data-sys': s[0], text: s[1]}));
+    });
+    filters.appendChild(seg);
+    var list = cliList(), st = $('#status');
+    st.textContent = plural(list.length, 'command', 'commands') + (S.sys === 'all' ? '' : ' on ' + C.sysName[S.sys]) + (S.q ? ' matching “' + S.q + '”' : '') + '.';
+    if (S.q) st.appendChild(el('button', {cls: 'linkish', type: 'button', 'data-clear': '1', text: 'Show all'}));
+    if (!list.length) {
+      box.appendChild(el('p', {cls: 'empty', text: S.q ? 'Nothing matches “' + S.q + '”. Try a task word such as vlan, routing table, firewall, or password, or the start of a command such as sh ip int.' : 'Nothing here yet.'}));
+      return;
+    }
+    // a search opens its best match on a laptop, so the answer is one glance away
+    if (S.q && wide.matches && (S.cmdQ !== S.q || !S.cmd || list.indexOf(C.byId[S.cmd]) < 0)) S.cmd = list[0].id;
+    S.cmdQ = S.q;
+    if (S.q) {
+      var ul = el('ul', {cls: 'items'});
+      list.slice(0, 200).forEach(function (f) { ul.appendChild(cliItem(f)); });
+      box.appendChild(ul);
+      if (list.length > 200) box.appendChild(el('p', {cls: 'none', text: 'Showing the best 200. Add a word to narrow the list.'}));
+      return;
+    }
+    C.cats.forEach(function (cat) {
+      var fs = list.filter(function (f) { return f.cat === cat; });
+      if (!fs.length) return;
+      box.appendChild(el('h3', {cls: 'gh', text: cat}));
+      var ul = el('ul', {cls: 'items'});
+      fs.forEach(function (f) { ul.appendChild(cliItem(f)); });
+      box.appendChild(ul);
+    });
+  }
+  /* does a typed line use this option? Option words match line words in order; a placeholder (<n>, <name>) matches any
+     word except a keyword another option names there (so mac-address <mac> skips mac-address sticky), and a word with a
+     placeholder inside (/minpwlen:<n>) matches by its start */
+  function optWords(o) { return norm(o).split(' ').filter(Boolean); }
+  function hasOpt(line, opt, lits) {
+    var w = norm(line).split(' '), t = optWords(opt);
+    for (var i = 0; i + t.length <= w.length; i++) {
+      var ok = true;
+      for (var j = 0; j < t.length && ok; j++) {
+        var tw = t[j], lw = w[i + j];
+        if (/^<[^>]*>$/.test(tw)) ok = !lits[lw];
+        else if (tw.indexOf('<') > 0) ok = lw.indexOf(tw.slice(0, tw.indexOf('<'))) === 0;
+        else ok = lw === tw;
+      }
+      if (ok) return true;
+    }
+    return false;
+  }
+  /* one entry per place (app + breadcrumb): its roles, every line of this command it uses, its context, and any
+     expected answer behind a reveal */
+  function placeItem(g, f) {
+    var C = cliData(), p = g.p, t = C.tools[p.t] || {name: p.t};
+    var target = p.t === 'defense-ladder' && p.an ? dlHref(p.an) : href(p.t + '/');
+    var bc = [el('a', {href: target, text: p.w.join(' › ') || t.name})];
+    g.roles.forEach(function (r) { bc.push(el('span', {cls: 'k' + (r === 'answer' || r === 'fix' ? ' k-exp' : ''), text: ROLE[r] || r})); });
+    var kids = [el('span', {cls: 'bc'}, bc)];
+    g.lines.forEach(function (l) { if (l !== f.name || g.lines.length > 1) kids.push(el('span', {cls: 'ln'}, [el('code', {text: l})])); });
+    if (g.c) kids.push(el('span', {cls: 'cx', text: g.c}));
+    if (g.a.length) kids.push(el('details', {cls: 'ans'}, [el('summary', {text: 'Show the expected answer'}), el('code', {text: g.a.join('  or  ')})]));
+    return el('li', null, kids);
+  }
+  function placeGroups(list) {
+    var out = [], by = {};
+    list.forEach(function (x) {
+      var p = x[0], k = p.w.join('\u0001');
+      var g = by[k];
+      if (!g) { g = by[k] = {p: p, roles: [], lines: [], c: '', a: []}; out.push(g); }
+      if (g.roles.indexOf(p.r) < 0) g.roles.push(p.r);
+      var line = (p.d ? p.d + ': ' : '') + x[1];
+      if (g.lines.indexOf(line) < 0) g.lines.push(line);
+      if (!g.c && p.c && p.r !== 'reference') g.c = p.c;
+      (p.a || []).forEach(function (a) { if (g.a.indexOf(a) < 0) g.a.push(a); });
+    });
+    return out;
+  }
+  function cmdDetail(f) {
+    var C = cliData(), d = el('div', {cls: 'd'});
+    d.appendChild(el('h2', null, [el('code', {text: f.name}), sysBubble(f.os)]));
+    var meta = [f.cat, plural(f.n, 'use', 'uses') + ' in the apps'];
+    d.appendChild(el('p', {cls: 'meta', text: meta.join(' · ')}));
+    if (f.what) d.appendChild(el('p', {text: f.what}));
+    if (f.how) d.appendChild(el('p', {cls: 'how'}, ['Type it at: ', el('code', {text: f.how})]));
+    if (f.care) d.appendChild(el('p', {cls: 'care'}, [el('b', {text: 'Careful: '}), f.care]));
+    // options: what each does, and whether an answer or fix expects it, a lesson shows it, or a simulator lets you try it
+    var used = {}, lines = [];
+    f.forms.forEach(function (x) { x.p.forEach(function (p) { lines.push([x.l, p.r]); }); });
+    if (f.opts && f.opts.length) {
+      d.appendChild(el('h3', {text: 'Options and arguments'}));
+      var dl = el('dl', {cls: 'opts'}), lits = {};
+      f.opts.forEach(function (o) { optWords(o.o).forEach(function (x) { if (!/</.test(x)) lits[x] = true; }); });
+      f.opts.forEach(function (o) {
+        var exp = lines.some(function (x) { return x[1] !== 'teach' && x[1] !== 'reference' && hasOpt(x[0], o.o, lits); });
+        var shown = !exp && lines.some(function (x) { return hasOpt(x[0], o.o, lits); });
+        var tries = (f.sup || []).filter(function (s) { return hasOpt(s.p.replace(/\b(WORD|LINE|IFACE|RANGE|A\.B\.C\.D|H\.H\.H)\b/g, '<$1>'), o.o, lits); });
+        tries.forEach(function (s) { used[s.p] = true; });
+        var tryTools = [];
+        tries.forEach(function (s) { s.t.forEach(function (t) { if (tryTools.indexOf(t) < 0) tryTools.push(t); }); });
+        dl.appendChild(el('dt', null, [el('code', {text: o.o})]));
+        dl.appendChild(el('dd', null, [o.w || '',
+          exp ? el('span', {cls: 'k k-exp', text: 'Expected'}) : shown ? el('span', {cls: 'k', text: 'In a lesson'}) : null,
+          tryTools.length && !exp ? el('span', {cls: 'k k-try', text: 'Try it: ' + tryTools.map(function (t) { return (C.tools[t] || {name: t}).name; }).join(', ')}) : null]));
+      });
+      d.appendChild(dl);
+    }
+    var rest = (f.sup || []).filter(function (s) { return !used[s.p]; });
+    if (rest.length) {
+      var byTool = {};
+      rest.forEach(function (s) { s.t.forEach(function (t) { (byTool[t] = byTool[t] || []).push(s.p); }); });
+      var more = el('details', {cls: 'more'}, [el('summary', {text: 'Everything the simulators accept (' + rest.length + ')'})]);
+      Object.keys(byTool).forEach(function (t) {
+        more.appendChild(el('p', {cls: 'how', text: 'Try these in ' + (C.tools[t] || {name: t}).name + ':'}));
+        more.appendChild(el('ul', {cls: 'sup'}, byTool[t].map(function (p) { return el('li', null, [el('code', {text: p})]); })));
+      });
+      d.appendChild(more);
+    }
+    // every place it appears, app by app, in the order students meet them
+    d.appendChild(el('h3', {text: 'Where it appears'}));
+    var groups = {};
+    f.forms.forEach(function (x) { x.p.forEach(function (p) { (groups[p.t] = groups[p.t] || []).push([p, x.l]); }); });
+    var order = C.toolOrder.filter(function (t) { return groups[t]; });
+    if (!order.length) d.appendChild(el('p', {cls: 'none', text: 'Only in the simulators so far: try it there.'}));
+    order.forEach(function (t, i) {
+      var key = function (x) { return x[0].r === 'reference' ? 1 : 0; };
+      var ps = placeGroups(groups[t].sort(function (a, z) { return key(a) - key(z); }));
+      var box = el('details', {cls: 'app'}, [el('summary', null, [(C.tools[t] || {name: t}).name, el('span', {cls: 'ct', text: '(' + plural(ps.length, 'place', 'places') + ')'})])]);
+      if (i < 2 || ps.length <= 6) box.setAttribute('open', '');
+      box.appendChild(el('p', null, [el('a', {href: href(t + '/'), text: 'Open ' + (C.tools[t] || {name: t}).name})]));
+      box.appendChild(el('ul', {cls: 'pls'}, ps.map(function (g) { return placeItem(g, f); })));
+      d.appendChild(box);
+    });
+    var vf = (f.verify || []).filter(function (id) { return C.byId[id]; });
+    if (vf.length) { d.appendChild(el('h3', {text: 'Check your work with'})); d.appendChild(cmdChips(vf)); }
+    var same = (f.same || []).filter(function (id) { return C.byId[id]; });
+    if (same.length) { d.appendChild(el('h3', {text: 'Same job on other systems'})); d.appendChild(cmdChips(same)); }
+    d.appendChild(el('p', {cls: 'share'}, [el('button', {cls: 'chip', type: 'button', 'data-copycmd': f.id, text: 'Copy a link to this command'})]));
+    return d;
+  }
+  function cmdChips(ids) {
+    var C = cliData();
+    return el('div', {cls: 'chips'}, ids.map(function (id) {
+      var f = C.byId[id];
+      return el('button', {cls: 'chip', type: 'button', 'data-cmd': id}, [el('code', {text: f.name}), ' ', sysBubble(f.os)]);
+    }));
+  }
+  function cliPlaceholder() {
+    var d = el('div', {cls: 'd'});
+    d.appendChild(el('h2', {text: 'Find a command'}));
+    d.appendChild(el('p', {text: 'Type what you want to do, such as routing table, vlan, lockout, or firewall, or the start of a command, such as sh ip int. Pick a command to see its options, where each lesson, drill, and lab uses it, and the expected answers.'}));
+    var lg = el('div', {cls: 'legend'}, [el('p', {text: 'Labels on options and places:'})]);
+    var dl = el('dl');
+    [['k k-exp', 'Expected', 'An answer, a fix, or a drill needs it.'], ['k', 'In a lesson', 'A lesson or reference shows it.'],
+     ['k k-try', 'Try it', 'A simulator accepts it, so you can practice it there.']].forEach(function (r) {
+      dl.appendChild(el('dt', null, [el('span', {cls: r[0], text: r[1]})])); dl.appendChild(el('dd', {text: r[2]}));
+    });
+    lg.appendChild(dl);
+    d.appendChild(lg);
+    return d;
+  }
+  function selectCmd(id) {
+    S.cmd = id;
+    mark('cmd=' + id);
+    render();
+    if (wide.matches) { $('#detail').scrollTop = 0; }
+    else { var x = document.querySelector('.it[data-cmd="' + id + '"]'); if (x) x.scrollIntoView({block: 'start'}); }
+    refocus('.it[data-cmd="' + id + '"]');
+  }
+  function copyCmdLink(id, btn) {
+    var url = (D.self || site + '/') + '#cmd=' + encodeURIComponent(id);
+    function fallback() {
+      var inp = el('input', {cls: 'cpy', type: 'text', readonly: 'readonly', value: url, 'aria-label': 'Link to this command'});
+      btn.replaceWith(inp); inp.focus(); inp.select();
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(function () { btn.textContent = 'Link copied'; }, fallback);
+    else fallback();
   }
 
   /* ---------- list ---------- */
@@ -618,14 +881,16 @@ code{font:var(--t-sm) var(--mono);overflow-wrap:anywhere}
     else if (S.tab === 'grade') renderGrade(box);
     else if (S.tab === 'layer') renderLayer(box, filters);
     else if (S.tab === 'app') renderApp(box);
+    else if (S.tab === 'cli') renderCli(box, filters);
     else renderPath(box);
     var det = $('#detail');
     det.textContent = '';
-    if (S.tab === 'app' && S.app && !S.sel) det.appendChild(appDetail(S.app));
+    if (S.tab === 'cli') det.appendChild(S.cmd && cliData().byId[S.cmd] ? cmdDetail(cliData().byId[S.cmd]) : cliPlaceholder());
+    else if (S.tab === 'app' && S.app && !S.sel) det.appendChild(appDetail(S.app));
     else if (S.sel && byId[S.sel]) det.appendChild(conceptDetail(byId[S.sel]));
     else if (S.tab === 'app' && S.app) det.appendChild(appDetail(S.app));
     else det.appendChild(placeholder());
-    store.set(KP, {tab: S.tab, track: S.track});
+    store.set(KP, {tab: S.tab, track: S.track, sys: S.sys});
   }
 
   function select(id, keepTab) {
@@ -657,6 +922,14 @@ code{font:var(--t-sm) var(--mono);overflow-wrap:anywhere}
   function route() {
     var h = '';
     try { h = decodeURIComponent(location.hash.replace(/^#/, '')); } catch (e) { h = ''; }
+    var mc = /^cmd=(.+)$/.exec(h);
+    if (mc && cliData().byId[mc[1]]) {
+      S.tab = 'cli'; S.cmd = mc[1];
+      if (cliList().indexOf(cliData().byId[mc[1]]) < 0) { S.q = ''; $('#q').value = ''; S.sys = 'all'; }
+      render();
+      if (!wide.matches) { var xc = document.querySelector('.it[data-cmd="' + mc[1] + '"]'); if (xc) xc.scrollIntoView({block: 'start'}); }
+      return;
+    }
     var m = /^c=([a-z0-9.-]+)$/.exec(h);
     if (m) {
       var id = byId[m[1]] ? m[1] : null;
@@ -682,6 +955,15 @@ code{font:var(--t-sm) var(--mono);overflow-wrap:anywhere}
     var d = b.dataset;
     if (d.tab) { S.tab = d.tab; S.sel = null; if (d.tab !== 'app') S.app = null; mark('t=' + d.tab); render(); refocus('#t-' + d.tab); return; }
     if (d.track) { S.track = d.track; render(); refocus('[data-track="' + d.track + '"]'); return; }
+    if (d.sys) { S.sys = d.sys; render(); refocus('[data-sys="' + d.sys + '"]'); return; }
+    if (d.cmd) {
+      if (!wide.matches && S.cmd === d.cmd && b.classList.contains('it')) { S.cmd = null; mark(''); render(); refocus('.it[data-cmd="' + d.cmd + '"]'); return; }
+      S.tab = 'cli';
+      if (cliList().indexOf(cliData().byId[d.cmd]) < 0) { S.q = ''; $('#q').value = ''; S.sys = 'all'; }
+      selectCmd(d.cmd);
+      return;
+    }
+    if (d.copycmd) { copyCmdLink(d.copycmd, b); return; }
     if (d.layer) { S.layer = S.layer === d.layer ? null : d.layer; render(); refocus('[data-layer="' + d.layer + '"]'); return; }
     if (d.rate) {
       if (ratings[d.id] === d.rate) delete ratings[d.id]; else ratings[d.id] = d.rate;
