@@ -407,8 +407,8 @@
           "download_as": "linux-range-walkthrough.txt"
         }
       ],
-      "sha256": "e4216f53de07e704f5a040671340d63188c321f214057b377c4243f032a7e469",
-      "updated": "2026-10-21"
+      "sha256": "32a51720344d1e638ea03ef7edaea3308eb4e49082779c2099ecd37aea4bf3e2",
+      "updated": "2026-10-26"
     },
     {
       "slug": "lockdown-range/cisco-ios",

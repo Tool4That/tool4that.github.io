@@ -2,7 +2,7 @@
 <html lang="en">
 <head><meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-AhfIYFFuXSBeNOC8/qxuK5dH56P84Ll3jXo2Hqj6Zt8='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-a3/Vb84kP74L2a+Q6f1bx4eH+Y/FL+qlfuA25ZQh5uY='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/lockdown-range/linux/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%96%A5%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -2536,7 +2536,10 @@ const PKG = {
   less: { v: '590-2ubuntu2.1', d: 'pager program similar to more', bins: ['less', 'lesspipe'] },
   'man-db': { v: '2.12.0-4build2', d: 'tools for reading manual pages', bins: ['man', 'whatis', 'apropos', 'mandb'] },
   tar: { v: '1.35+dfsg-3ubuntu0.4', d: 'GNU version of the tar archiving utility', ess: 1, bins: ['tar'] },
-  gzip: { v: '1.10-4ubuntu4.1', d: 'GNU compression utilities', ess: 1, bins: ['gzip', 'gunzip', 'zcat'] },
+  gzip: { v: '1.10-4ubuntu4.1', d: 'GNU compression utilities', ess: 1, bins: ['gzip', 'gunzip', 'zcat', 'zgrep'] },
+  'libc-bin': { v: '2.39-0ubuntu8.4', d: 'GNU C Library: Binaries', ess: 1, bins: ['getent'] },
+  debianutils: { v: '5.17build1', d: 'Miscellaneous utilities specific to Debian', ess: 1, bins: ['which'] },
+  'ncurses-bin': { v: '6.4+20240113-1ubuntu2.1', d: 'terminal-related programs and man pages', ess: 1, bins: ['clear'] },
   python3: { v: '3.12.3-0ubuntu2.1', d: 'interactive high-level object-oriented language (default python3 version)', bins: ['python3', 'pydoc3'] },
   perl: { v: '5.34.0-3ubuntu1.3', d: 'Larry Wall\'s Practical Extraction and Report Language', bins: ['perl'] },
   dpkg: { v: '1.21.1ubuntu2.3', d: 'Debian package management system', ess: 1, bins: ['dpkg', 'dpkg-query', 'dpkg-deb'], sbins: ['dpkg-reconfigure'] },
@@ -4297,7 +4300,7 @@ function buildBase(sc) {
   if (!gui) B.f('/etc/netplan/00-installer-config.yaml', '# This is the network config written by \'subiquity\'\nnetwork:\n  ethernets:\n    ' + S.net.iface + ':\n      dhcp4: true\n  version: 2\n');
   /* ---- packages ---- */
   S.pkgs = {}; S.svc = {}; S.journal = []; S.procs = []; S.nextPid = 300; S.boot = nowSec();
-  const basePkgs = ['base-files', 'lsb-release', 'bash', 'coreutils', 'util-linux', 'mount', 'fdisk', 'hostname', 'ncal', 'procps', 'psmisc', 'iproute2', 'grep', 'sed', 'mawk', 'findutils', 'login', 'passwd', 'adduser', 'sudo', 'systemd', 'systemd-sysv', 'systemd-resolved', 'systemd-timesyncd', 'udev', 'init-system-helpers', 'dbus', 'cron', 'rsyslog', 'openssh-client', 'nano', 'vim-tiny', 'less', 'man-db', 'tar', 'gzip', 'python3', 'perl', 'dpkg', 'apt', 'unattended-upgrades', 'ufw', 'iptables', 'curl', 'wget', 'libpam-modules', 'apparmor', 'tzdata'];
+  const basePkgs = ['base-files', 'lsb-release', 'bash', 'coreutils', 'util-linux', 'mount', 'fdisk', 'hostname', 'ncal', 'procps', 'psmisc', 'iproute2', 'grep', 'sed', 'mawk', 'findutils', 'libc-bin', 'debianutils', 'ncurses-bin', 'login', 'passwd', 'adduser', 'sudo', 'systemd', 'systemd-sysv', 'systemd-resolved', 'systemd-timesyncd', 'udev', 'init-system-helpers', 'dbus', 'cron', 'rsyslog', 'openssh-client', 'nano', 'vim-tiny', 'less', 'man-db', 'tar', 'gzip', 'python3', 'perl', 'dpkg', 'apt', 'unattended-upgrades', 'ufw', 'iptables', 'curl', 'wget', 'libpam-modules', 'apparmor', 'tzdata'];
   const guiPkgs = mint ? ['lightdm', 'slick-greeter', 'cinnamon', 'nemo', 'xed', 'mintupdate', 'network-manager', 'cups', 'avahi-daemon', 'bluez', 'firefox', 'net-tools', 'vim', 'htop'] : ['gdm3', 'gnome-shell', 'gnome-terminal', 'nautilus', 'gnome-text-editor', 'update-manager', 'software-properties-gtk', 'network-manager', 'cups', 'avahi-daemon', 'bluez', 'snapd', 'firefox'];
   const srvPkgs = ['vim', 'openssh-server', 'htop'];
   for (const p of basePkgs.concat(gui ? guiPkgs : srvPkgs, sc.packages || [])) pkgInstall(p, { mt: B.now, quiet: true, active: false, enabled: true });
