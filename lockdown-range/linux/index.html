@@ -2,7 +2,7 @@
 <html lang="en">
 <head><meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-a3/Vb84kP74L2a+Q6f1bx4eH+Y/FL+qlfuA25ZQh5uY='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-1g3KWZQK6XQYd2DnNmP+NaGTi8DcdUYO67Sn0dqSN6A='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/lockdown-range/linux/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%96%A5%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -1949,6 +1949,112 @@ def('find', async c => {
   for (const b of batches) { if (b.batch.length) { const argv = b.cmd.flatMap(w => w === '{}' ? b.batch : [w]); const sub = Object.assign({}, c, { argv, args: argv.slice(1), stdin: null }); await dispatch(sub); } }
   return code;
 });
+/* ---- locate (plocate 1.1.19): it searches the index updatedb last wrote, never the disk itself, so a file made since
+   then is missing and a deleted one still shows (-e checks). Messages, exit codes, and matching follow plocate.cpp:
+   every pattern must match; a pattern with * ? [ is an anchored glob, otherwise a substring; a result in a folder
+   the caller cannot read and enter stays hidden. ---- */
+const LOCATE_DB = '/var/lib/plocate/plocate.db';
+const LOCATE_PRUNE = /^\/(proc|sys|dev|run|tmp|var\/spool|media)(\/|$)/; // PRUNEPATHS plus the PRUNEFS mounts in /etc/updatedb.conf
+const UPDATEDB_CONF = 'PRUNE_BIND_MOUNTS="yes"\n# PRUNENAMES=".git .bzr .hg .svn"\nPRUNEPATHS="/tmp /var/spool /media /var/lib/os-prober /var/lib/ceph /home/.ecryptfs /var/lib/schroot"\nPRUNEFS="NFS afs autofs binfmt_misc ceph cgroup cgroup2 cifs coda configfs curlftpfs debugfs devfs devpts devtmpfs ecryptfs ftpfs fuse.ceph fuse.cryfs fuse.encfs fuse.glusterfs fuse.gocryptfs fuse.gvfsd-fuse fuse.mfs fuse.rclone fuse.rozofs fuse.sshfs fusectl fusesmb hugetlbfs iso9660 lustre lustre_lite mfs mqueue ncpfs nfs nfs4 ocfs ocfs2 proc pstore rpc_pipefs securityfs shfs smbfs sysfs tmpfs tracefs udev udf usbfs"\n';
+function plocateGid() { const g = U.group('plocate'); if (g) return g.gid; let gid = 100; while (U.groups().some(x => x.gid === gid)) gid++; U.addGroup('plocate', gid); return gid; }
+/* the package's postinst: the plocate group, setgid plocate on the binary, and (Mint) the index the timer already wrote */
+function plocateSetup(indexed) {
+  const gid = plocateGid(), mt = nowSec();
+  if (!S.fs['/etc/updatedb.conf']) FS.mk('/etc/updatedb.conf', { t: 'f', m: 0o644, u: 0, g: 0, c: UPDATEDB_CONF, mt });
+  if (!S.fs['/var/lib/plocate']) FS.mk('/var/lib/plocate', { t: 'd', m: 0o755, u: 0, g: 0, mt });
+  if (!S.fs['/var/lib/plocate/CACHEDIR.TAG']) FS.mk('/var/lib/plocate/CACHEDIR.TAG', { t: 'f', m: 0o644, u: 0, g: 0, c: 'Signature: 8a477f597d28d172789f06886806bc55\n', mt });
+  if (S.fs['/usr/bin/plocate']) Object.assign(S.fs['/usr/bin/plocate'], { m: 0o2755, g: gid });
+  if (indexed) updatedbRun();
+}
+function updatedbRun() {
+  S.locdb = Object.keys(S.fs).filter(p => p !== '/' && p !== LOCATE_DB && !LOCATE_PRUNE.test(p)).sort(cmpStr);
+  const g = U.group('plocate');
+  FS.mk(LOCATE_DB, { t: 'f', m: 0o640, u: 0, g: g ? g.gid : 0, bin: 1, sz: 1024 + S.locdb.length * 9, mt: nowSec() });
+}
+const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+def(['locate', 'plocate'], c => {
+  const a = c.args, pats = [], o = { lim: Infinity };
+  const longs = { 'ignore-case': 'i', basename: 'b', count: 'c', existing: 'e', regexp: 'r', null: '0', wholename: 'w', all: 'A', literal: 'N', help: 'h', version: 'V' };
+  const limit = v => { o.lim = parseInt(v, 10) || 0; if (o.lim > 0) return true; c.err('Error: limit must be a strictly positive number.\n'); return false; };
+  for (let k = 0; k < a.length; k++) {
+    const s = a[k];
+    if (s === '--') { pats.push(...a.slice(k + 1)); break; }
+    if (s.startsWith('--')) {
+      const eq = s.indexOf('='), name = eq > 0 ? s.slice(2, eq) : s.slice(2);
+      if (name === 'regex') { o.r = o.ere = true; continue; }
+      if (name === 'limit' || name === 'database') {
+        const v = eq > 0 ? s.slice(eq + 1) : a[++k];
+        if (v == null) { c.err(c.argv[0] + ": option '--" + name + "' requires an argument\n"); return 1; }
+        if (name === 'database') o.d = v; else if (!limit(v)) return 1;
+        continue;
+      }
+      if (longs[name]) { o[longs[name]] = true; if (name === 'wholename') o.b = false; continue; }
+      c.err(c.argv[0] + ": unrecognized option '" + s + "'\n"); return 1;
+    }
+    if (s[0] === '-' && s.length > 1) {
+      for (let j = 1; j < s.length; j++) {
+        const ch = s[j];
+        if ('ldn'.includes(ch)) {
+          const v = s.slice(j + 1) || a[++k];
+          if (v == null) { c.err(c.argv[0] + ": option requires an argument -- '" + ch + "'\n"); return 1; }
+          if (ch === 'd') o.d = v; else if (!limit(v)) return 1;
+          break;
+        }
+        if ('AbceihrN0wV'.includes(ch)) { o[ch] = true; if (ch === 'w') o.b = false; continue; }
+        c.err(c.argv[0] + ": invalid option -- '" + ch + "'\n"); return 1;
+      }
+      continue;
+    }
+    pats.push(s);
+  }
+  if (o.h) { c.out('Usage: plocate [OPTION]... PATTERN...\n\n  -b, --basename         search only the file name portion of path names\n  -c, --count            print number of matches instead of the matches\n  -d, --database DBPATH  search for files in DBPATH\n                         (default is ' + LOCATE_DB + ')\n  -e, --existing         print only entries that refer to files existing at the\n                         time locate is run\n  -i, --ignore-case      search case-insensitively\n  -l, --limit LIMIT      stop after LIMIT matches\n  -0, --null             delimit matches by NUL instead of newline\n  -N, --literal          do not quote filenames, even if printing to a tty\n  -r, --regexp           interpret patterns as basic regexps (slow)\n      --regex            interpret patterns as extended regexps (slow)\n  -w, --wholename        search the entire path name (default; see -b)\n      --help             print this help\n      --version          print version information\n'); return 0; }
+  if (o.V) { c.out('plocate 1.1.19\n'); return 0; }
+  if (!pats.length) { c.err('plocate: no pattern to search for specified\n'); return 1; }
+  const db = o.d ? FS.norm(o.d, c.cwd) : LOCATE_DB;
+  if (db !== LOCATE_DB || !S.fs[LOCATE_DB] || !S.locdb) { c.err(db + ': No such file or directory\n'); return 1; }
+  const tests = [];
+  for (const p of pats) {
+    if (o.r) {
+      // basic regexps (-r) use \( \) \{ \} \| \+ \? as operators; extended (--regex) use the bare characters, as JavaScript does
+      const src = o.ere ? p : p.replace(/\\([(){}|+?])|([(){}|+?])/g, (m, op, lit) => op || '\\' + lit);
+      let re; try { re = new RegExp(src, o.i ? 'i' : ''); } catch (e) { c.err('plocate: Invalid regular expression\n'); return 1; }
+      tests.push(s => re.test(s));
+    } else if (/[*?[]/.test(p)) {
+      let re = '^';
+      for (let i = 0; i < p.length; i++) {
+        const ch = p[i];
+        if (ch === '*') re += '.*';
+        else if (ch === '?') re += '.';
+        else if (ch === '[') { const j = p.indexOf(']', i + 2); if (j > i) { let cls = p.slice(i + 1, j); if (cls[0] === '!') cls = '^' + cls.slice(1); re += '[' + cls.replace(/\\/g, '\\\\') + ']'; i = j; } else re += '\\['; }
+        else if (ch === '\\' && i + 1 < p.length) re += reEsc(p[++i]);
+        else re += reEsc(ch);
+      }
+      const rx = new RegExp(re + '$', o.i ? 'i' : ''); tests.push(s => rx.test(s));
+    } else if (o.i) { const n = p.toLowerCase(); tests.push(s => s.toLowerCase().includes(n)); }
+    else { const n = p.replace(/\\(.)/g, '$1'); tests.push(s => s.includes(n)); }
+  }
+  const seen = new Map();
+  const reach = path => {
+    if (c.uid === 0) return true;
+    const dir = FS.parent(path); if (seen.has(dir)) return seen.get(dir);
+    // access(parent, R_OK | X_OK): the folder itself needs read and enter, every folder above it needs enter
+    const n = FS.get(dir); const ok = !!n && !FS.traverse(path, c.ctx) && FS.canRead(n, c.ctx) && FS.canExec(n, c.ctx);
+    seen.set(dir, ok); return ok;
+  };
+  let hits = 0; const out = [];
+  for (const p of S.locdb) {
+    if (hits >= o.lim) break;
+    if (!tests.every(t => t(o.b ? FS.base(p) : p)) || !reach(p) || (o.e && !FS.get(p, true))) continue;
+    hits++; if (!o.c) out.push(p + (o['0'] ? '\u0000' : '\n'));
+  }
+  c.out(o.c ? hits + '\n' : out.join(''));
+  return hits ? 0 : 1;
+});
+def(['updatedb', 'updatedb.plocate'], c => {
+  if (c.uid !== 0) { c.err('/var/lib/plocate/: Permission denied\n'); return 1; }
+  if (!S.fs['/var/lib/plocate']) plocateSetup(false);
+  updatedbRun(); return 0;
+});
 /* ---- misc info ---- */
 def('df', c => { const o = opts(c, 'hTai', ''); if (o.err) { c.err(o.err); return 1; } const f = n => o.h ? humanSize(n * 1024) : String(n); const row = (fs, size, used, mnt) => c.out(padR(fs, 15) + padL(f(size), 10) + padL(f(used), 10) + padL(f(size - used), 10) + padL(Math.round(used / size * 100) + '%', 5) + ' ' + mnt + '\n'); c.out(padR('Filesystem', 15) + padL(o.h ? 'Size' : '1K-blocks', 10) + padL('Used', 10) + padL('Avail', 10) + padL('Use%', 5) + ' Mounted on\n'); row('tmpfs', 401412, 1580, '/run'); row('/dev/sda2', 25669564, 10588700, '/'); row('tmpfs', 2007056, 0, '/dev/shm'); row('/dev/sda1', 523248, 6220, '/boot/efi'); return 0; });
 def('free', c => { const o = opts(c, 'hmgkbt', ''); if (o.err) { c.err(o.err); return 1; } const f = o.h ? n => humanSize(n * 1024) + 'i' : o.m ? n => String(Math.round(n / 1024)) : n => String(n); c.out(padR('', 15) + padL('total', 11) + padL('used', 12) + padL('free', 12) + padL('shared', 12) + padL('buff/cache', 12) + padL('available', 12) + '\nMem:   ' + padL(f(4014112), 19) + padL(f(1130488), 12) + padL(f(1686684), 12) + padL(f(27392), 12) + padL(f(1196940), 12) + padL(f(2598212), 12) + '\nSwap:  ' + padL(f(2097148), 19) + padL(f(0), 12) + padL(f(2097148), 12) + '\n'); return 0; });
@@ -2448,6 +2554,8 @@ manp('ls', 1, 'list directory contents', ['ls [OPTION]... [FILE]...'], ['-a  do 
 manp(['cat', 'less', 'more'], 1, 'concatenate files and print on the standard output', ['cat [OPTION]... [FILE]...'], ['-n  number all output lines']);
 manp(['grep', 'egrep'], 1, 'print lines that match patterns', ['grep [OPTION...] PATTERNS [FILE...]'], ['-i ignore case, -v invert match, -r recurse into directories, -n line numbers, -E extended regexp'], ['grep -i root /etc/passwd', 'grep -v nologin /etc/passwd', 'grep -rn PermitRootLogin /etc/ssh/']);
 manp('find', 1, 'search for files in a directory hierarchy', ['find [starting-point...] [expression]'], ['-name pattern   base of file name matches shell pattern (quote it!)', '-type f|d       regular file / directory', '-perm -4000     all of the given permission bits are set (setuid)', '-user NAME      file is owned by NAME', '-delete         delete matching files (use with care)'], ['find /home -name "*.mp3"', 'find / -perm -4000 -type f 2>/dev/null', 'find /home -type f \\( -name "*.mp3" -o -name "*.mp4" \\)']);
+manp(['locate', 'plocate'], 1, 'find files by name, quickly', ['plocate [OPTION]... PATTERN...'], ['Searches the index updatedb(8) last built (/var/lib/plocate/plocate.db), not the disk itself: a file', 'made since then is missing until the next updatedb, and a deleted one still shows (-e hides it).', 'Every PATTERN must match. Without * ? [ a pattern matches anywhere in the path; with them it must match the whole path.', 'Results in folders you cannot read and enter stay hidden.', '-i ignore case, -b match only the file name, -c count matches, -e only files that still exist,', '-l N stop after N matches, -r basic regexp, --regex extended regexp'], ['locate sshd_config', 'locate -i "*.mp3"', 'sudo updatedb && locate -b notes.txt']);
+manp(['updatedb', 'updatedb.plocate'], 8, 'update the database for plocate', ['updatedb [OPTION]...'], ['Walks the file system (skipping PRUNEPATHS and PRUNEFS in /etc/updatedb.conf) and rewrites', '/var/lib/plocate/plocate.db. Needs root. The plocate-updatedb.timer runs it daily.'], ['sudo updatedb']);
 manp('chmod', 1, 'change file mode bits', ['chmod [OPTION]... MODE[,MODE]... FILE...', 'chmod [OPTION]... OCTAL-MODE FILE...'], ['MODE is [ugoa]*([-+=]([rwxXst]*|[ugo]))+ or an octal number.', 'u-s removes the setuid bit; 640 gives rw to owner, r to group, nothing to others.'], ['chmod 640 /etc/shadow', 'chmod u-s /usr/local/bin/suspicious']);
 manp(['chown', 'chgrp'], 1, 'change file owner and group', ['chown [OPTION]... [OWNER][:[GROUP]] FILE...'], ['Change the owner and/or group of each FILE.'], ['chown root:shadow /etc/shadow']);
 manp('sudo', 8, 'execute a command as another user', ['sudo [-u user] command', 'sudo -i', 'sudo -l'], ['sudo allows a permitted user to execute a command as the superuser, as specified by /etc/sudoers.', '-i  run a login shell as root', '-l  list what the invoking user may run', '-k  forget the cached password']);
@@ -2515,6 +2623,10 @@ const PKG = {
   mawk: { v: '1.3.4.20200120-3', d: 'a pattern scanning and text processing language', bins: ['awk', 'mawk'] },
   gawk: { v: '1:5.1.0-1ubuntu0.1', d: 'GNU awk, a pattern scanning and processing language', bins: ['gawk'] },
   findutils: { v: '4.8.0-1ubuntu3', d: 'utilities for finding files--find, xargs', ess: 1, bins: ['find', 'xargs'] },
+  /* plocate 1.1.19-2ubuntu2 (noble universe): Linux Mint 22.3 ships it, Ubuntu 24.04 does not (both ISO manifests). Its postinst
+     points the locate and updatedb alternatives at plocate and adds the plocate group, but builds no index: until updatedb
+     runs (the daily plocate-updatedb.timer, or by hand), locate reports the missing database. */
+  plocate: { v: '1.1.19-2ubuntu2', d: 'much faster locate', bins: ['plocate', 'locate', 'updatedb'], sbins: ['plocate-build', 'updatedb.plocate'], comp: 'universe', conf: ['/etc/updatedb.conf'], hook: 'plocate' },
   login: { v: '1:4.8.1-2ubuntu2.2', d: 'system login tools', ess: 1, bins: ['login', 'newgrp', 'sg', 'lastlog'] },
   passwd: { v: '1:4.8.1-2ubuntu2.2', d: 'change and administer password and group data', bins: ['passwd', 'chage', 'chsh', 'chfn', 'gpasswd', 'expiry'], sbins: ['useradd', 'userdel', 'usermod', 'groupadd', 'groupdel', 'groupmod', 'chpasswd', 'newusers', 'pwck', 'grpck', 'vipw', 'vigr'] },
   adduser: { v: '3.118ubuntu5', d: 'add and remove users and groups', sbins: ['adduser', 'deluser', 'addgroup', 'delgroup'] },
@@ -2774,6 +2886,7 @@ function pkgInstall(name, opts) {
     if (!S.fs['/etc/security/pwquality.conf']) FS.mk('/etc/security/pwquality.conf', { t: 'f', m: 0o644, u: 0, g: 0, c: PWQUALITY_CONF, mt: nowSec() });
   }
   if (d.hook === 'cracklib' && !opts.quiet) { const f = '/etc/pam.d/common-password'; const t = FS.text(f); if (!/pam_cracklib\.so/.test(t)) FS.setText(f, t.replace(/^(password\s+\[success=1 default=ignore\]\s+pam_unix\.so.*)$/m, 'password        requisite                       pam_cracklib.so retry=3 minlen=8 difok=3\n$1')); }
+  if (d.hook === 'plocate' && !opts.quiet) plocateSetup(false);
   if (d.hook === 'autoupgrades' && !opts.quiet) FS.setText('/etc/apt/apt.conf.d/20auto-upgrades', 'APT::Periodic::Update-Package-Lists "1";\nAPT::Periodic::Unattended-Upgrade "1";\n');
   /* inetutils-telnetd's postinst (noble) runs update-inetd --add "#<off># telnet ... root /usr/sbin/tcpd /usr/sbin/telnetd":
      a fresh install adds the line switched off. The scenario's planted server was switched on by whoever installed it. */
@@ -2785,6 +2898,7 @@ function pkgRemove(name, purge) {
   for (const p of pkgBinPaths(name)) delete S.fs[p];
   FS.rmTree('/usr/share/doc/' + name);
   if (d.svc) svcRemove(d.svc); if (d.svc2) svcRemove(d.svc2);
+  if (d.hook === 'plocate' && purge) { S.locdb = null; FS.rmTree('/var/lib/plocate'); }
   if (d.hook === 'pwquality') { const f = '/etc/pam.d/common-password'; FS.setText(f, FS.text(f).split('\n').filter(l => !/pam_pwquality\.so/.test(l)).join('\n')); }
   if (d.hook === 'inetd') { const f = '/etc/inetd.conf'; if (S.fs[f]) FS.setText(f, FS.text(f).split('\n').filter(l => !/^(#<off># )?telnet\s/.test(l)).join('\n')); }
   if (name === 'openssh-server') sshSocketRemove();
@@ -2863,7 +2977,7 @@ async function aptInstall(c, names, yes) {
   if (extra.length) c.out('The following additional packages will be installed:\n  ' + extra.join(' ') + '\n');
   c.out('The following NEW packages will be installed:\n  ' + all.join(' ') + '\n' + aptSummary(0, all.length, 0, upgradable().length) + 'Need to get ' + fmtNum(kb) + ' kB of archives.\nAfter this operation, ' + fmtNum(Math.round(kb * 3.1)) + ' kB of additional disk space will be used.\n');
   if (all.length > 1 || extra.length) { if (!(await aptConfirm(c, yes))) return 1; }
-  let i = 1; for (const n of all) c.out('Get:' + (i++) + ' file:/srv/mirror/ubuntu ' + aptSuite() + '/' + (PKG[n].kb ? 'multiverse' : 'main') + ' amd64 ' + n + ' amd64 ' + PKG[n].v + ' [' + fmtNum(PKG[n].kb || 100 + hash32(n) % 2000) + ' kB]\n');
+  let i = 1; for (const n of all) c.out('Get:' + (i++) + ' file:/srv/mirror/ubuntu ' + aptSuite() + '/' + (PKG[n].comp || (PKG[n].kb ? 'multiverse' : 'main')) + ' amd64 ' + n + ' amd64 ' + PKG[n].v + ' [' + fmtNum(PKG[n].kb || 100 + hash32(n) % 2000) + ' kB]\n');
   c.out('Fetched ' + fmtNum(kb) + ' kB in 1s (' + fmtNum(kb * 2) + ' kB/s)\n');
   if (all.includes('libpam-pwquality')) c.out('Preconfiguring packages ...\n');
   for (const n of all) c.out('Selecting previously unselected package ' + n + '.\n(Reading database ... ' + fmtNum(dbCount()) + ' files and directories currently installed.)\nPreparing to unpack .../' + n + '_' + PKG[n].v.replace(/:/g, '%3a') + '_amd64.deb ...\nUnpacking ' + n + ' (' + PKG[n].v + ') ...\n');
@@ -4301,7 +4415,7 @@ function buildBase(sc) {
   /* ---- packages ---- */
   S.pkgs = {}; S.svc = {}; S.journal = []; S.procs = []; S.nextPid = 300; S.boot = nowSec();
   const basePkgs = ['base-files', 'lsb-release', 'bash', 'coreutils', 'util-linux', 'mount', 'fdisk', 'hostname', 'ncal', 'procps', 'psmisc', 'iproute2', 'grep', 'sed', 'mawk', 'findutils', 'libc-bin', 'debianutils', 'ncurses-bin', 'login', 'passwd', 'adduser', 'sudo', 'systemd', 'systemd-sysv', 'systemd-resolved', 'systemd-timesyncd', 'udev', 'init-system-helpers', 'dbus', 'cron', 'rsyslog', 'openssh-client', 'nano', 'vim-tiny', 'less', 'man-db', 'tar', 'gzip', 'python3', 'perl', 'dpkg', 'apt', 'unattended-upgrades', 'ufw', 'iptables', 'curl', 'wget', 'libpam-modules', 'apparmor', 'tzdata'];
-  const guiPkgs = mint ? ['lightdm', 'slick-greeter', 'cinnamon', 'nemo', 'xed', 'mintupdate', 'network-manager', 'cups', 'avahi-daemon', 'bluez', 'firefox', 'net-tools', 'vim', 'htop'] : ['gdm3', 'gnome-shell', 'gnome-terminal', 'nautilus', 'gnome-text-editor', 'update-manager', 'software-properties-gtk', 'network-manager', 'cups', 'avahi-daemon', 'bluez', 'snapd', 'firefox'];
+  const guiPkgs = mint ? ['lightdm', 'slick-greeter', 'cinnamon', 'nemo', 'xed', 'mintupdate', 'network-manager', 'cups', 'avahi-daemon', 'bluez', 'firefox', 'net-tools', 'vim', 'htop', 'plocate'] : ['gdm3', 'gnome-shell', 'gnome-terminal', 'nautilus', 'gnome-text-editor', 'update-manager', 'software-properties-gtk', 'network-manager', 'cups', 'avahi-daemon', 'bluez', 'snapd', 'firefox'];
   const srvPkgs = ['vim', 'openssh-server', 'htop'];
   for (const p of basePkgs.concat(gui ? guiPkgs : srvPkgs, sc.packages || [])) pkgInstall(p, { mt: B.now, quiet: true, active: false, enabled: true });
   // the display manager / NetworkManager / snapd are enabled services; ssh depends on the scenario
@@ -4667,6 +4781,8 @@ function initialState(id) {
   else FS.mk(home + '/Desktop/' + BRIEF_TXT, { t: 'f', m: 0o644, u: u.uid, g: u.gid, mt, c: briefText(sc) });
   sc.questions.forEach((q, i) => FS.mk(home + '/Desktop/' + questionFile(i + 1), { t: 'f', m: 0o644, u: u.uid, g: u.gid, mt, c: questionText(i + 1, q) }));
   if (sc.plant) sc.plant();
+  // Mint ships plocate and its daily timer has already indexed the disk, planted files included
+  if (S.pkgs.plocate) plocateSetup(true);
   // services that the scenario leaves running at the start
   for (const n of Object.keys(S.svc)) S.svc[n].enabled = S.svc[n].enabled !== false;
   if (S.svc.ufw) S.svc.ufw.enabled = true;

@@ -123,7 +123,7 @@
       "icon": "path",
       "category": "cyber",
       "section": "learning",
-      "sha256": "5916b22a577c3d6424351d33322f6150920e5fdf012892a6346363999e6a5592",
+      "sha256": "f08faf6c4f0b1f26ef8495bbea6a89121c4e991abb958a22c16fdb19caf11baa",
       "updated": "2026-10-26"
     },
     {
@@ -407,7 +407,7 @@
           "download_as": "linux-range-walkthrough.txt"
         }
       ],
-      "sha256": "32a51720344d1e638ea03ef7edaea3308eb4e49082779c2099ecd37aea4bf3e2",
+      "sha256": "a67f6ca26ff1aca58050c4e702764d64d09ab14055bd4e6bfadb5f4485cdbb44",
       "updated": "2026-10-26"
     },
     {
@@ -452,7 +452,7 @@
       "icon": "map",
       "category": "cyber",
       "section": "learning",
-      "sha256": "7f7172dfe2716436a7dbfdde51b6d2013f2cbb0f7781abf01f40eca22244c0a2",
+      "sha256": "aac2897e4284941c76a2cbb16e31a44c8b746633e7d2a8756ebc0a8ae802845f",
       "updated": "2026-10-26"
     }
   ]

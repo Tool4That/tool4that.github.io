@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/QwXOvH5+zzlpANnp9yAaGCsfwb6ZylvGPZxvsRVC2c=' 'sha256-8eFJI+3dvBdGTnM3PU3+VyXrg1icUCGtf7Ca16hFvKc=' 'sha256-Djzm1LoHYib3J2pAIgyIKWQoMpbvQEp4whHQ05V9S7o=' 'sha256-VwCsMLcX4Z7n+TKlpfGPYqOMJUNiMQOYtkPNtDV1UJk=' 'sha256-q10ozPyotaIuHVI49oSM2If29RG4qpTkuLn2SDQn1wg='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/QwXOvH5+zzlpANnp9yAaGCsfwb6ZylvGPZxvsRVC2c=' 'sha256-7ai3RTnS5Bexvix0YCwJycitF46uxsAmeR11wBn7NJ8=' 'sha256-Djzm1LoHYib3J2pAIgyIKWQoMpbvQEp4whHQ05V9S7o=' 'sha256-FOg2e9I3QOZgFzFNC1SSparPMofV6FC+aDqtHGWrfP4=' 'sha256-q10ozPyotaIuHVI49oSM2If29RG4qpTkuLn2SDQn1wg='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/defense-ladder/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%8E%93%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -6404,6 +6404,7 @@ LADDER.addLevel({
        ['sudo nano /etc/ssh/sshd_config','Set PermitRootLogin no, PermitEmptyPasswords no, and X11Forwarding no. Keep PasswordAuthentication yes unless the brief says keys only.'],
        ['sudo sshd -t && sudo systemctl restart ssh','Test, then restart (the service is ssh on Debian, Ubuntu, and Mint). On Ubuntu 24.04 and Mint 22, ssh.socket holds port 22 (systemctl status ssh.socket), so disabling ssh.service leaves it open, and a Port change needs sudo systemctl daemon-reload &amp;&amp; sudo systemctl restart ssh.socket. After each boot, ssh.service and /run/sshd appear only with the first SSH sign-in. Before that, sshd -t and sshd -T stop at Missing privilege separation directory: /run/sshd, so run sudo mkdir -p /run/sshd and test again. Use restart rather than reload while ssh.service is inactive.'],
        ['sudo find / -type f \\( -iname "*.mp3" -o -iname "*.mp4" -o -iname "*.mkv" -o -iname "*.jpg" \\) 2>/dev/null','Media files anywhere. Check the brief before deleting.'],
+       ['sudo locate -i "*.mp3"','The fast way: plocate searches the file-name index that updatedb builds, rather than the disk. Mint 22 ships it; on Ubuntu, run sudo apt install plocate, then sudo updatedb. The index holds only what existed at its last update (a daily timer, or sudo updatedb), and without sudo it lists only folders you can open, so finish every hunt with find.'],
        ['sudo find /home -type f \\( -iname "*.sh" -o -iname "*.py" \\) 2>/dev/null','Scripts in home folders: read them.'],
        ['sudo find / -perm -4000 -type f 2>/dev/null','SUID binaries. Compare to a clean VM; unknown ones are suspicious.'],
        ['dpkg -l | grep -i NAME','Installed .deb packages.'],
@@ -12212,6 +12213,7 @@ LADDER.addGlossary([
   {term:'UID',def:'The number that identifies an account to the kernel: 0 is root, and people get 1000 and up.',at:'freshman/f6'},
   {term:'umask',def:'The permission bits new files and folders start without: 022 gives files 644, and 027 gives 640.',at:'junior/j3'},
   {term:'Update ring',def:'A group of machines that gets updates at the same stage: test, pilot, or broad.',at:'junior/j2'},
+  {term:'updatedb',def:'The command that rebuilds the file-name index locate searches. It runs daily on a timer; run sudo updatedb to include files made since then.',at:'sophomore/s3'},
   {term:'UPnP',def:'A router feature that lets apps open port forwards on their own. Turn it off and forward only what the brief names.',at:'sophomore/s7'},
   {term:'URL scanner',def:'A service that visits a link in its own browser and reports the redirects, final address, screenshot, and domains contacted.',at:'sophomore/s9'},
   {term:'Use after free',def:'A memory flaw where a program keeps using memory it already handed back, so new data there can steer or crash it.',at:'senior/se2'},
