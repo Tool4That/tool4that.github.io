@@ -2,7 +2,7 @@
 <html lang="en">
 <head><meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-1g3KWZQK6XQYd2DnNmP+NaGTi8DcdUYO67Sn0dqSN6A='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-PI88n/u63pWTWz64N3FABDAschdN2yWfUEDqnsZMggY='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/lockdown-range/linux/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%96%A5%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -492,7 +492,7 @@ const FS = {
     for (let i = 0; i < parts.length; i++) {
       const next = FS.join(cur, parts[i]);
       let node = S.fs[next];
-      if (!node) { if (next.startsWith('/proc/sys/')) { cur = next; continue; } return i === parts.length - 1 ? next : null; }
+      if (!node) { if (next === '/proc/sys' || next.startsWith('/proc/sys/')) { cur = next; continue; } return i === parts.length - 1 ? next : null; }
       if (node.t === 'l' && !(nofollow && i === parts.length - 1)) {
         let hops = 0, target = next;
         while (node && node.t === 'l' && hops++ < 8) { target = FS.norm(node.ln, FS.parent(target)); node = S.fs[target]; }
@@ -671,12 +671,16 @@ function iniValue(text, key, section) {
   }
   return val;
 }
-/* sysctl.conf style key = value (last active wins) */
+/* sysctl.d folders in precedence order; one file per name, the earlier folder wins */
+function sysctlDropins() { const seen = {}; for (const d of ['/etc/sysctl.d', '/run/sysctl.d', '/usr/local/lib/sysctl.d', '/usr/lib/sysctl.d']) for (const f of FS.list(d)) if (f.endsWith('.conf') && !seen[f]) seen[f] = d + '/' + f; return Object.keys(seen).sort(cmpStr).map(k => seen[k]); }
+/* sysctl --system (procps 4.0.4): every drop-in by name, then /etc/sysctl.conf last when it exists */
+function sysctlSystemFiles() { return sysctlDropins().concat(FS.get('/etc/sysctl.conf') ? ['/etc/sysctl.conf'] : []); }
+/* a sysctl file's text through its link target (/etc/sysctl.d/99-sysctl.conf links to ../sysctl.conf) */
+function sysctlText(f) { return FS.text(FS.real(f) || f); }
+/* value at boot (systemd-sysctl): drop-ins by name; /etc/sysctl.conf takes part through the 99-sysctl.conf link */
 function sysctlFileValue(key) {
   let val = null;
-  const files = ['/etc/sysctl.conf'];
-  for (const f of FS.list('/etc/sysctl.d')) if (f.endsWith('.conf')) files.unshift('/etc/sysctl.d/' + f);
-  for (const f of files) for (const l of activeLines(FS.text(f))) { const m = /^([\w.]+)\s*=\s*(\S+)/.exec(l); if (m && m[1] === key) val = m[2]; }
+  for (const f of sysctlDropins()) for (const l of activeLines(sysctlText(f))) { const m = /^([\w.]+)\s*=\s*(\S+)/.exec(l); if (m && m[1] === key) val = m[2]; }
   return val;
 }
 /* apt.conf style  APT::Periodic::Unattended-Upgrade "1"; */
@@ -776,7 +780,18 @@ const U = {
       const hit = sp.who.some(w => w === 'ALL' || w === name || (w[0] === '%' && mygroups.includes(w.slice(1))) || (w[0] === '%' && w[1] === '#' && String(u.gid) === w.slice(2)) || (w[0] === '#' && String(u.uid) === w.slice(1)));
       if (hit) { rights = rights || { specs: [], nopasswd: false }; rights.specs.push(sp); if (sp.nopasswd) rights.nopasswd = true; }
     }
+    if (rights && U.sudoNoAuth(name)) { rights.nopasswd = true; rights.noauth = true; }
     return rights;
+  },
+  /* Defaults lines that apply to NAME (global, Defaults:user, Defaults:%group), in sudoers order; true when the last authenticate setting is !authenticate */
+  sudoNoAuth(name) {
+    const u = U.user(name); if (!u) return false; const mine = U.groupsOf(name); let noauth = false;
+    for (const f of U.sudoersFiles()) for (const l of activeLines(FS.text(f))) {
+      const m = /^Defaults(?::(\S+))?\s+(.*)$/.exec(l.trim()); if (!m) continue;
+      if (m[1] && !m[1].split(',').some(w => w === 'ALL' || w === name || (w[0] === '%' && mine.includes(w.slice(1))))) continue;
+      for (const p of m[2].split(',').map(s => s.trim())) { if (p === '!authenticate') noauth = true; else if (p === 'authenticate') noauth = false; }
+    }
+    return noauth;
   },
   sudoersCheck(text) {
     const lines = text.split('\n');
@@ -800,8 +815,12 @@ const U = {
     const field = sh ? sh.hash : (u.pw === 'x' ? '!' : u.pw);
     if (field[0] === '!' || field[0] === '*') return { ok: false, why: 'locked' };
     if (sh && sh.expire && /^\d+$/.test(sh.expire) && parseInt(sh.expire, 10) < daysNow()) return { ok: false, why: 'expired' };
+    // pam_unix accepts an empty password only with nullok (noble also honors nullok_secure) on its common-auth line
+    if (field === '' && !pamLines('/etc/pam.d/common-auth').some(l => l.module === 'pam_unix.so' && l.args.some(a => a === 'nullok' || a === 'nullok_secure'))) return { ok: false, why: 'badpw' };
     return checkHash(pw, field) ? { ok: true, user: u } : { ok: false, why: 'badpw' };
   },
+  /* pam_faillock records (only while a pam_faillock line is in common-auth); faillock --user NAME reads them */
+  noteFail(name, type, source) { if (!lockoutPolicy() || !U.user(name)) return; S.faillock = S.faillock || {}; (S.faillock[name] = S.faillock[name] || []).push({ t: nowSec(), type, source }); },
   hasShell(u) { return u && !/\/(nologin|false)$/.test(u.shell) && u.shell !== ''; },
   setPassword(name, pw) {
     const list = U.shadow(); let s = list.find(x => x.name === name);
@@ -872,24 +891,26 @@ function pwPolicy() {
   const unix = lines.find(l => l.module === 'pam_unix.so' && l.type === 'password');
   const pol = { pwquality: !!pq, moduleMissing: !!pq && !S.pkgs['libpam-pwquality'], minlen: 6, remember: 0, dcredit: 0, ucredit: 0, lcredit: 0, ocredit: 0 };
   if (pq) {
-    const conf = k => confValue('/etc/security/pwquality.conf', k);
+    // pwquality.conf.d/*.conf (name order) are read before pwquality.conf; the PAM line's own arguments win over both
+    const confFiles = FS.list('/etc/security/pwquality.conf.d').filter(f => f.endsWith('.conf')).map(f => '/etc/security/pwquality.conf.d/' + f).concat(['/etc/security/pwquality.conf']);
+    const conf = k => { let v = null; for (const f of confFiles) { const x = confValue(f, k); if (x != null) v = x; } return v; };
     const g = k => { const v = pamArg(pq, k); return v != null ? parseInt(v, 10) : (conf(k) != null ? parseInt(conf(k), 10) : null); };
     pol.minlen = g('minlen') != null ? g('minlen') : 8;
     for (const k of ['dcredit', 'ucredit', 'lcredit', 'ocredit']) { const v = g(k); if (v != null) pol[k] = v; }
+    pol.enforceRoot = pamArg(pq, 'enforce_for_root') != null || confFiles.some(f => activeLines(FS.text(f)).some(l => l.trim() === 'enforce_for_root'));
   }
-  if (unix) { const r = pamArg(unix, 'remember'); if (r) pol.remember = parseInt(r, 10) || 0; }
+  pol.unixMinlen = 6;
+  if (unix) { const ml = pamArg(unix, 'minlen'); if (ml) pol.unixMinlen = parseInt(ml, 10) || 6; const r = pamArg(unix, 'remember'); if (r) pol.remember = parseInt(r, 10) || 0; }
   const hist = lines.find(l => l.module === 'pam_pwhistory.so'); if (hist) { const r = pamArg(hist, 'remember'); if (r) pol.remember = Math.max(pol.remember, parseInt(r, 10) || 0); }
   return pol;
 }
-/* returns null if ok, else the BAD PASSWORD message (pwquality) / pam_unix message */
-function pwCheck(pw, pol) {
-  if (!pol.pwquality) {
-    if (pw.length < 6) return 'You must choose a longer password';
-    return null;
-  }
+/* returns null if ok, else the BAD PASSWORD message (pwquality) / pam_unix message; pam_unix skips its own length check for root */
+function pwCheck(pw, pol, isRoot) {
+  const unixShort = !isRoot && pw.length < (pol.unixMinlen || 6) ? 'You must choose a longer password' : null;
+  if (!pol.pwquality) return unixShort;
   if (pw.length < pol.minlen) return 'BAD PASSWORD: The password is shorter than ' + pol.minlen + ' characters';
   const need = (re, n, what) => (n < 0 && (pw.match(re) || []).length < -n) ? 'BAD PASSWORD: The password contains less than ' + (-n) + ' ' + what : null;
-  return need(/[0-9]/g, pol.dcredit, 'digits') || need(/[A-Z]/g, pol.ucredit, 'uppercase letters') || need(/[a-z]/g, pol.lcredit, 'lowercase letters') || need(/[^A-Za-z0-9]/g, pol.ocredit, 'non-alphanumeric characters');
+  return need(/[0-9]/g, pol.dcredit, 'digits') || need(/[A-Z]/g, pol.ucredit, 'uppercase letters') || need(/[a-z]/g, pol.lcredit, 'lowercase letters') || need(/[^A-Za-z0-9]/g, pol.ocredit, 'non-alphanumeric characters') || unixShort;
 }
 /* account lockout policy as configured (pam_faillock). pam_tally2 is not counted: Linux-PAM 1.5 removed it
    and current Ubuntu and Mint releases do not ship it, so a pam_tally2 line locks nobody out. */
@@ -1882,6 +1903,54 @@ def('stat', c => {
 });
 function tzOffset() { const o = -new Date().getTimezoneOffset(); const s = o < 0 ? '-' : '+'; const a = Math.abs(o); return s + two(Math.floor(a / 60)) + two(a % 60); }
 def('file', c => { const o = opts(c, 'bi', ''); if (o.err) { c.err(o.err); return 1; } let code = 0; for (const f of o._) { const abs = FS.norm(f, c.cwd); const st = FS.stat(abs, c.ctx); if (!st.ok) { c.out(f + ': cannot open `' + f + "' (" + st.err + ')\n'); code = 1; continue; } const n = FS.get(abs, true) || st.node; const ext = (f.split('.').pop() || '').toLowerCase(); let d; if (n.t === 'd') d = 'directory'; else if (n.t === 'l') d = 'symbolic link to ' + n.ln; else if (n.bin) d = 'ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, stripped'; else d = ({ mp3: 'Audio file with ID3 version 2.4.0', mp4: 'ISO Media, MP4 Base Media v1 [ISO 14496-12:2003]', jpg: 'JPEG image data, JFIF standard 1.01', png: 'PNG image data, 1920 x 1080, 8-bit/color RGBA, non-interlaced', deb: 'Debian binary package (format 2.0)', html: 'HTML document, ASCII text' })[ext] || ((n.c || '').startsWith('#!') ? 'Bourne-Again shell script, ASCII text executable' : n.c === '' ? 'empty' : 'ASCII text'); c.out((o.b ? '' : f + ': ') + d + '\n'); } return code; });
+/* ---- md5sum / sha256sum: digests over the UTF-8 bytes of the file text ---- */
+function utf8Bytes(s) { return Array.from(new TextEncoder().encode(s)); }
+function sha256Hex(s) {
+  const K = [0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2];
+  const b = utf8Bytes(s); const bitLen = b.length * 8; b.push(0x80); while (b.length % 64 !== 56) b.push(0);
+  for (let i = 7; i >= 0; i--) b.push(i >= 4 ? Math.floor(bitLen / 2 ** (i * 8)) & 0xff : (bitLen >>> (i * 8)) & 0xff);
+  const H = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19]; const W = new Array(64);
+  const rotr = (x, n) => (x >>> n) | (x << (32 - n));
+  for (let o = 0; o < b.length; o += 64) {
+    for (let t = 0; t < 16; t++) W[t] = (b[o + t * 4] << 24) | (b[o + t * 4 + 1] << 16) | (b[o + t * 4 + 2] << 8) | b[o + t * 4 + 3];
+    for (let t = 16; t < 64; t++) { const s0 = rotr(W[t - 15], 7) ^ rotr(W[t - 15], 18) ^ (W[t - 15] >>> 3), s1 = rotr(W[t - 2], 17) ^ rotr(W[t - 2], 19) ^ (W[t - 2] >>> 10); W[t] = (W[t - 16] + s0 + W[t - 7] + s1) | 0; }
+    let [a, bb, cc, d, e, f, g, h] = H;
+    for (let t = 0; t < 64; t++) { const S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25), ch = (e & f) ^ (~e & g), t1 = (h + S1 + ch + K[t] + W[t]) | 0, S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22), mj = (a & bb) ^ (a & cc) ^ (bb & cc), t2 = (S0 + mj) | 0; h = g; g = f; f = e; e = (d + t1) | 0; d = cc; cc = bb; bb = a; a = (t1 + t2) | 0; }
+    H[0] = (H[0] + a) | 0; H[1] = (H[1] + bb) | 0; H[2] = (H[2] + cc) | 0; H[3] = (H[3] + d) | 0; H[4] = (H[4] + e) | 0; H[5] = (H[5] + f) | 0; H[6] = (H[6] + g) | 0; H[7] = (H[7] + h) | 0;
+  }
+  return H.map(x => (x >>> 0).toString(16).padStart(8, '0')).join('');
+}
+function md5Hex(s) {
+  const S4 = [7, 12, 17, 22, 5, 9, 14, 20, 4, 11, 16, 23, 6, 10, 15, 21]; const K = []; for (let i = 0; i < 64; i++) K[i] = Math.floor(Math.abs(Math.sin(i + 1)) * 2 ** 32) | 0;
+  const b = utf8Bytes(s); const bitLen = b.length * 8; b.push(0x80); while (b.length % 64 !== 56) b.push(0);
+  for (let i = 0; i < 8; i++) b.push(i < 4 ? (bitLen >>> (i * 8)) & 0xff : Math.floor(bitLen / 2 ** (i * 8)) & 0xff);
+  let a0 = 0x67452301, b0 = 0xefcdab89 | 0, c0 = 0x98badcfe | 0, d0 = 0x10325476; const M = new Array(16);
+  for (let o = 0; o < b.length; o += 64) {
+    for (let t = 0; t < 16; t++) M[t] = b[o + t * 4] | (b[o + t * 4 + 1] << 8) | (b[o + t * 4 + 2] << 16) | (b[o + t * 4 + 3] << 24);
+    let A = a0, B = b0, C = c0, D = d0;
+    for (let i = 0; i < 64; i++) {
+      let F, g; const r = i >> 4;
+      if (r === 0) { F = (B & C) | (~B & D); g = i; } else if (r === 1) { F = (D & B) | (~D & C); g = (5 * i + 1) % 16; } else if (r === 2) { F = B ^ C ^ D; g = (3 * i + 5) % 16; } else { F = C ^ (B | ~D); g = (7 * i) % 16; }
+      const tmp = D; D = C; C = B; const x = (A + F + K[i] + M[g]) | 0, sh = S4[r * 4 + (i % 4)]; B = (B + ((x << sh) | (x >>> (32 - sh)))) | 0; A = tmp;
+    }
+    a0 = (a0 + A) | 0; b0 = (b0 + B) | 0; c0 = (c0 + C) | 0; d0 = (d0 + D) | 0;
+  }
+  return [a0, b0, c0, d0].map(x => [0, 8, 16, 24].map(k => ((x >>> k) & 0xff).toString(16).padStart(2, '0')).join('')).join('');
+}
+/* md5sum / sha256sum (coreutils 9.4): '<hex>  <name>'; -c reads '<hex>  <name>' lines from files or stdin. Text files hash their real content; a simulated
+   binary has no bytes, so it hashes the stable stand-in 'range-bin:' + path + ':' + size */
+def(['md5sum', 'sha256sum'], c => {
+  const o = opts(c, 'cbtw', ''); if (o.err) { c.err(o.err); return 1; }
+  const H = c.argv[0] === 'md5sum' ? md5Hex : sha256Hex; const files = o._.length ? o._ : ['-'];
+  const digestOf = f => { if (f === '-') return { hex: H(c.stdin || '') }; const abs = FS.norm(f, c.cwd); const st = FS.stat(abs, c.ctx); if (!st.ok) return { err: st.err }; if (st.node.t === 'd') return { err: 'Is a directory' }; const r = FS.readText(abs, c.ctx); if (!r.ok) return { err: r.err }; return { hex: H(st.node.bin ? 'range-bin:' + abs + ':' + FS.size(st.node) : r.text) }; };
+  let code = 0;
+  if (!o.c) { for (const f of files) { const d = digestOf(f); if (d.err) { c.err(c.argv[0] + ': ' + f + ': ' + d.err + '\n'); code = 1; continue; } c.out(d.hex + '  ' + f + '\n'); } return code; }
+  let bad = 0, unread = 0;
+  for (const f of files) { const text = f === '-' ? (c.stdin || '') : FS.text(FS.norm(f, c.cwd)); for (const l of splitLines(text)) { const m = /^([0-9a-fA-F]+) [ *](.+)$/.exec(l); if (!m) continue; const d = digestOf(m[2]); if (d.err) { c.err(c.argv[0] + ': ' + m[2] + ': ' + d.err + '\n'); c.out(m[2] + ': FAILED open or read\n'); unread++; continue; } if (d.hex === m[1].toLowerCase()) c.out(m[2] + ': OK\n'); else { c.out(m[2] + ': FAILED\n'); bad++; } } }
+  if (unread) c.err(c.argv[0] + ': WARNING: ' + unread + ' listed file' + (unread > 1 ? 's' : '') + ' could not be read\n');
+  if (bad) c.err(c.argv[0] + ': WARNING: ' + bad + ' computed checksum' + (bad > 1 ? 's' : '') + ' did NOT match\n');
+  return bad || unread ? 1 : 0;
+});
 /* ---- find ---- */
 function parsePerm(spec) {
   let mode = spec[0] === '-' || spec[0] === '/' ? spec.slice(1) : spec; const how = spec[0] === '-' ? 'all' : spec[0] === '/' ? 'any' : 'exact';
@@ -1889,12 +1958,17 @@ function parsePerm(spec) {
   if (bits == null) { bits = parseSymbolicMode(mode, 0, false); if (bits == null) return null; }
   return { how, bits };
 }
+/* -xdev: on Ubuntu 24.04 and Mint 22, /proc, /sys, /dev, /run, /boot/efi, and each snap are separate mounts; -xdev tests the mount point itself and stays out of it */
+const XDEV_MOUNT = /^\/(proc|sys|dev|run|boot\/efi)$|^\/snap\/[^/]+\/[^/]+$/;
+/* find -ls: inode, 1K blocks, mode, links, owner, group, size, date, path (ls -dils layout); an owner or group without an account prints as its number */
+function findLs(x) { const n = x.node, sz = FS.size(n), uu = U.byUid(n.u), gg = U.byGid(n.g); return padL(hash32(x.path) % 900000 + 100000, 9) + ' ' + padL(n.t === 'd' ? 4 : Math.ceil(sz / 4096) * 4, 6) + ' ' + modeStr(n.m, n.t) + ' ' + padL(n.t === 'd' ? 2 : 1, 3) + ' ' + padR(uu ? uu.name : String(n.u), 8) + ' ' + padR(gg ? gg.name : String(n.g), 8) + ' ' + padL(sz, 8) + ' ' + fmtLs(n.mt) + ' ' + x.disp + (n.t === 'l' ? ' -> ' + n.ln : ''); }
 def('find', async c => {
   const a = c.args.slice(); const paths = [];
   while (a.length && a[0][0] !== '-' && a[0] !== '!' && a[0] !== '(') paths.push(a.shift());
   if (!paths.length) paths.push('.');
   let maxdepth = Infinity, mindepth = 0; const tokens = [];
-  for (let i = 0; i < a.length; i++) { if (a[i] === '-maxdepth') { maxdepth = parseInt(a[++i], 10); continue; } if (a[i] === '-mindepth') { mindepth = parseInt(a[++i], 10); continue; } tokens.push(a[i]); }
+  let xdev = false;
+  for (let i = 0; i < a.length; i++) { if (a[i] === '-maxdepth') { maxdepth = parseInt(a[++i], 10); continue; } if (a[i] === '-mindepth') { mindepth = parseInt(a[++i], 10); continue; } if (a[i] === '-xdev' || a[i] === '-mount') { xdev = true; continue; } tokens.push(a[i]); }
   // expression parser -> function(node, path, name, depth) ; actions collected
   let pos = 0; const actions = [];
   const unary = ['-name', '-iname', '-type', '-perm', '-user', '-group', '-path', '-mtime', '-print', '-delete', '-print0'];
@@ -1913,6 +1987,11 @@ def('find', async c => {
       case '-user': { const u = need(); const uu = U.user(u); if (!uu && !/^\d+$/.test(u)) { c.err("find: '" + u + "' is not the name of a known user\n"); throw new Error('find'); } const uid = uu ? uu.uid : +u; return x => x.node.u === uid; }
       case '-group': { const g = need(); const gg = U.group(g); if (!gg && !/^\d+$/.test(g)) { c.err("find: '" + g + "' is not the name of an existing group\n"); throw new Error('find'); } const gid = gg ? gg.gid : +g; return x => x.node.g === gid; }
       case '-mtime': { const s = need(); const n = parseInt(s, 10); return x => { const days = Math.floor((nowSec() - x.node.mt) / 86400); return s[0] === '-' ? days < Math.abs(n) : s[0] === '+' ? days > n : days === n; }; }
+      case '-nouser': { const ids = new Set(U.passwd().map(u => u.uid)); return x => !ids.has(x.node.u); }
+      case '-nogroup': { const ids = new Set(U.groups().map(g => g.gid)); return x => !ids.has(x.node.g); }
+      case '-uid': case '-gid': { const s = need(); if (!/^[+-]?\d+$/.test(s)) { c.err('find: invalid argument ‘' + s + '’ to ‘' + t + '’\n'); throw new Error('find'); } const n = parseInt(s.replace(/^[+-]/, ''), 10), k = t === '-uid' ? 'u' : 'g'; return x => s[0] === '+' ? x.node[k] > n : s[0] === '-' ? x.node[k] < n : x.node[k] === n; }
+      case '-newermt': { const s = need(); const ms = Date.parse(/^\d{4}-\d{2}-\d{2}$/.test(s) ? s + 'T00:00:00' : s); if (isNaN(ms)) { c.err('find: I cannot figure out how to interpret ‘' + s + '’ as a date or time\n'); throw new Error('find'); } return x => x.node.mt > ms / 1000; }
+      case '-ls': actions.push('print'); return x => { x.printed = true; c.out(findLs(x) + '\n'); return true; };
       case '-print': case '-print0': actions.push('print'); return x => { x.printed = true; c.out(x.disp + '\n'); return true; };
       case '-delete': actions.push('delete'); return x => { x.printed = true; const r = FS.remove(x.path, c.ctx, { recursive: false }); if (!r.ok) { c.err("find: cannot delete \u2018" + x.disp + "\u2019: " + r.err + '\n'); return false; } return true; };
       case '-exec': case '-ok': case '-execdir': {
@@ -1939,7 +2018,7 @@ def('find', async c => {
     const n = FS.get(abs, true); if (!n) { c.err('find: \u2018' + disp + '\u2019: No such file or directory\n'); code = 1; return; }
     const x = { node: n, path: abs, disp, name: FS.base(abs) === '/' ? '/' : FS.base(abs), printed: false, execs };
     if (depth >= mindepth) { const hit = test(x); if (hit && !hasAction) c.out(disp + '\n'); }
-    if (n.t === 'd' && depth < maxdepth) {
+    if (n.t === 'd' && depth < maxdepth && !(xdev && depth > 0 && XDEV_MOUNT.test(abs))) {
       if (!FS.canRead(n, c.ctx) || !FS.canExec(n, c.ctx)) { c.err('find: \u2018' + disp + '\u2019: Permission denied\n'); code = 1; return; }
       for (const k of FS.list(abs)) visit(FS.join(abs, k), (disp === '/' ? '/' : disp.replace(/\/$/, '') + '/') + k, depth + 1);
     }
@@ -2170,7 +2249,10 @@ def('ps', c => {
   if (/aux|ax|-e|-A/.test(a)) { c.out(padR('USER', 8) + ' ' + padL('PID', 7) + ' %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND\n'); for (const p of list) { const h = hash32('p' + p.pid + p.cmd), kt = p.cmd[0] === '[', vsz = kt ? 0 : p.vsz || (10000 + h % 200000), rss = kt ? 0 : p.rss || Math.max(1000, Math.floor(vsz * (5 + (h >>> 8) % 40) / 100)), un = p.user.length > 8 ? p.user.slice(0, 7) + '+' : p.user; c.out(padR(un, 8) + ' ' + padL(p.pid, 7) + padL((h % 10 / 10).toFixed(1), 5) + padL((rss / 40141.12).toFixed(1), 5) + padL(vsz, 7) + padL(rss, 6) + ' ' + padR(p.tty || '?', 8) + ' ' + padR(p.stat || (p.pid === 1 ? 'Ss' : p.tty ? 'Ss+' : 'S'), 4) + ' ' + padR(fmtClock(p.start), 5) + padL('0:' + two(h % 59), 7) + ' ' + p.cmd + '\n'); } return 0; }
   c.out(padL('PID', 7) + ' TTY          TIME CMD\n'); for (const p of mine) c.out(padL(p.pid, 7) + ' ' + padR(p.tty, 8) + ' 00:00:00 ' + p.name + '\n'); c.out(padL(c.sh.pid, 7) + ' pts/0    00:00:00 bash\n' + padL(c.sh.pid + 17, 7) + ' pts/0    00:00:00 ps\n'); return 0;
 });
-def(['pgrep', 'pidof'], c => { const o = opts(c, 'lfaux', 'u'); const pat = o._[0]; if (!pat) { c.err(c.argv[0] + ': no matching criteria specified\n'); return 2; } const rx = new RegExp(pat); const hits = S.procs.filter(p => o.f ? rx.test(p.cmd) : rx.test(p.name)); if (c.argv[0] === 'pidof') { if (!hits.length) return 1; c.out(hits.map(p => p.pid).join(' ') + '\n'); return 0; } for (const p of hits) c.out(p.pid + (o.l ? ' ' + p.name : '') + (o.a ? ' ' + p.cmd : '') + '\n'); return hits.length ? 0 : 1; });
+/* -u USER[,USER...]: names or numbers become UIDs, and a process matches by its owner's UID (so a UID 0 name matches every root process, as on a real system) */
+function procUidSet(c, spec) { const ids = new Set(); for (const w of spec.split(',').filter(Boolean)) { const u = U.user(w); if (u) ids.add(u.uid); else if (/^\d+$/.test(w)) ids.add(+w); else { c.err(c.argv[0] + ": invalid user name: " + w + '\n'); return null; } } return ids; }
+function procUid(p) { const u = U.user(p.user); return u ? u.uid : -1; }
+def(['pgrep', 'pidof'], c => { const o = opts(c, 'lfax', c.argv[0] === 'pgrep' ? 'u' : ''); const uids = o.u != null ? procUidSet(c, o.u) : null; if (o.u != null && !uids) return 2; const pat = o._[0]; if (!pat && !uids) { c.err(c.argv[0] + ': no matching criteria specified\n'); return 2; } const rx = pat ? new RegExp(pat) : null; const hits = S.procs.filter(p => (!rx || (o.f ? rx.test(p.cmd) : rx.test(p.name))) && (!uids || uids.has(procUid(p)))); if (c.argv[0] === 'pidof') { if (!hits.length) return 1; c.out(hits.map(p => p.pid).join(' ') + '\n'); return 0; } for (const p of hits) c.out(p.pid + (o.l ? ' ' + p.name : '') + (o.a ? ' ' + p.cmd : '') + '\n'); return hits.length ? 0 : 1; });
 function killProc(c, p, sig) {
   if (c.uid !== 0 && p.user !== c.user) return 'Operation not permitted';
   if (p.pid === 1) return c.uid === 0 ? 'sandbox' : 'Operation not permitted';
@@ -2188,7 +2270,9 @@ def('kill', c => {
   for (const ps of pids) { const pid = parseInt(ps, 10); if (isNaN(pid)) { c.err('bash: kill: ' + ps + ': arguments must be process or job IDs\n'); code = 1; continue; } const p = S.procs.find(x => x.pid === pid); if (!p) { if (pid === c.sh.pid) { c.sh.exitRequested = true; continue; } c.err('bash: kill: (' + pid + ') - No such process\n'); code = 1; continue; } const e = killProc(c, p, sig); if (e === 'sandbox') { c.out('[Range] Killing PID 1 would crash the machine; not simulated.\n'); } else if (e) { c.err('bash: kill: (' + pid + ') - ' + e + '\n'); code = 1; } }
   return code;
 });
-def(['pkill', 'killall'], c => { let sig = 'TERM'; const names = []; let full = false; for (const a of c.args) { if (/^-\d+$/.test(a)) sig = a.slice(1) === '9' ? 'KILL' : 'TERM'; else if (/^-(SIG)?[A-Z]+$/.test(a)) sig = a.replace(/^-(SIG)?/, ''); else if (a === '-f') full = true; else if (a[0] !== '-') names.push(a); } if (!names.length) { c.err(c.argv[0] === 'pkill' ? 'pkill: no matching criteria specified\nTry `pkill --help\' for more information.\n' : 'Usage: killall [OPTION]... [--] NAME...\n'); return 2; } let code = 0; for (const n of names) { const rx = c.argv[0] === 'pkill' ? new RegExp(n) : null; const hits = S.procs.filter(p => rx ? (full ? rx.test(p.cmd) : rx.test(p.name)) : p.name === n); if (!hits.length) { if (c.argv[0] === 'killall') c.err(n + ': no process found\n'); code = 1; continue; } for (const p of hits) { const e = killProc(c, p, sig); if (e && e !== 'sandbox') { c.err(c.argv[0] + ': killing pid ' + p.pid + ' failed: ' + e + '\n'); code = 1; } } } return code; });
+def(['pkill', 'killall'], c => { let sig = 'TERM'; const names = []; let full = false, uspec = null; const args = c.args; for (let i = 0; i < args.length; i++) { const a = args[i]; if (/^-\d+$/.test(a)) sig = a.slice(1) === '9' ? 'KILL' : 'TERM'; else if (/^-(SIG)?[A-Z]+$/.test(a)) sig = a.replace(/^-(SIG)?/, ''); else if (a === '-f') full = true; else if (a === '-u' && c.argv[0] === 'pkill') uspec = args[++i] || ''; else if (/^-u.+/.test(a) && c.argv[0] === 'pkill') uspec = a.slice(2); else if (a[0] !== '-') names.push(a); }
+  if (uspec != null) { const uids = procUidSet(c, uspec); if (!uids) return 2; const rx = names.length ? new RegExp(names[0]) : null; const hits = S.procs.filter(p => uids.has(procUid(p)) && (!rx || (full ? rx.test(p.cmd) : rx.test(p.name)))); let code = hits.length ? 0 : 1; for (const p of hits.slice()) { const e = killProc(c, p, sig); if (e && e !== 'sandbox') { c.err('pkill: killing pid ' + p.pid + ' failed: ' + e + '\n'); code = 1; } } return code; }
+  if (!names.length) { c.err(c.argv[0] === 'pkill' ? 'pkill: no matching criteria specified\nTry `pkill --help\' for more information.\n' : 'Usage: killall [OPTION]... [--] NAME...\n'); return 2; } let code = 0; for (const n of names) { const rx = c.argv[0] === 'pkill' ? new RegExp(n) : null; const hits = S.procs.filter(p => rx ? (full ? rx.test(p.cmd) : rx.test(p.name)) : p.name === n); if (!hits.length) { if (c.argv[0] === 'killall') c.err(n + ': no process found\n'); code = 1; continue; } for (const p of hits) { const e = killProc(c, p, sig); if (e && e !== 'sandbox') { c.err(c.argv[0] + ': killing pid ' + p.pid + ' failed: ' + e + '\n'); code = 1; } } } return code; });
 def('top', async c => {
   const procs = S.procs.slice().sort((a, b) => hash32('c' + b.pid) % 50 - hash32('c' + a.pid) % 50).slice(0, 18);
   const up = nowSec() - S.boot; const d = new Date();
@@ -2199,7 +2283,7 @@ def('top', async c => {
 });
 def(['wget', 'curl', 'ssh', 'scp', 'sftp', 'telnet', 'nc', 'ncat', 'netcat', 'ftp', 'rsync', 'git', 'nmap', 'tcpdump', 'traceroute', 'dig', 'nslookup', 'host', 'ping', 'ping6'], c => { c.out('[Range] This trainer does not simulate network connections (' + c.argv[0] + '). The lab network is isolated.\n'); return 0; });
 def(['python3', 'python', 'perl', 'gcc', 'make', 'vim.tiny', 'emacs', 'gedit', 'gnome-text-editor', 'xed', 'nautilus', 'nemo', 'firefox', 'xdg-open', 'gnome-terminal', 'snap'], c => {
-  if (c.argv[0] === 'snap') { if (S.flavor !== 'ubuntu') { c.err(cnfMessage('snap')); return 127; } if (c.args[0] === 'list') { c.out('Name       Version   Rev    Tracking         Publisher   Notes\nbare       1.0       5      latest/stable    canonical\u2713  base\ncore22     20240111  1122   latest/stable    canonical\u2713  base\nfirefox    122.0-2   3836   latest/stable/\u2026  mozilla\u2713    -\nsnapd      2.61.2    20671  latest/stable    canonical\u2713  snapd\n'); return 0; } c.out('[Range] snap ' + (c.args[0] || '') + ' is not simulated beyond "snap list".\n'); return 0; }
+  if (c.argv[0] === 'snap') { if (S.flavor !== 'ubuntu') { c.err(cnfMessage('snap')); return 127; } if (c.args[0] === 'list') { c.out('Name       Version   Rev    Tracking         Publisher   Notes\nbare       1.0       5      latest/stable    canonical\u2713  base\ncore22     20240111  1122   latest/stable    canonical\u2713  base\nfirefox    122.0-2   3836   latest/stable/\u2026  mozilla\u2713    -\nsnapd      2.61.2    20671  latest/stable    canonical\u2713  snapd\n'); return 0; } if (c.args[0] === 'refresh') { if (c.args.includes('--list')) { c.out('All snaps up to date.\n'); return 0; } if (c.uid !== 0) { c.err('error: access denied (try with sudo)\n'); return 1; } c.out('All snaps up to date.\n'); return 0; } c.out('[Range] snap ' + (c.args[0] || '') + ' is not simulated beyond "snap list" and "snap refresh".\n'); return 0; }
   if (c.argv[0] === 'gedit' || c.argv[0] === 'gnome-text-editor' || c.argv[0] === 'xed') { if (!S.gui) { c.err('Unable to init server: Could not connect: Connection refused\n\n(' + c.argv[0] + ':' + (c.sh.pid + 40) + '): Gtk-WARNING **: cannot open display: \n'); return 1; } if (c.args[0]) openTextEditor(FS.norm(c.args[0], c.cwd)); else openTextEditor(null); return 0; }
   if (c.argv[0] === 'nautilus' || c.argv[0] === 'nemo' || c.argv[0] === 'xdg-open') { if (!S.gui) { c.err('Unable to init server: Could not connect: Connection refused\n'); return 1; } openFiles(c.args[0] ? FS.norm(c.args[0], c.cwd) : c.cwd); return 0; }
   c.out('[Range] ' + c.argv[0] + ' is installed but this trainer does not run it.\n'); return 0;
@@ -2225,6 +2309,7 @@ async function sudoAuth(c, user, viaStdin, nonInteractive) {
     else if (nonInteractive) { c.err('sudo: a password is required\n'); return false; }
     else { pw = await c.prompt('[sudo] password for ' + user + ': ', { secret: true }); if (pw == null) { c.err('\nsudo: a password is required\n'); return false; } }
     if (U.auth(user, pw).ok) return true;
+    U.noteFail(user, 'TTY', '/dev/pts/0');
     c.flush(); c.term.write('Sorry, try again.\n');
     authLog('sudo: pam_unix(sudo:auth): authentication failure; logname=' + user + ' uid=' + c.uid + ' euid=0 tty=/dev/pts/0 ruser=' + user + ' rhost=  user=' + user);
     if (viaStdin) { c.err('sudo: 1 incorrect password attempt\n'); return false; }
@@ -2233,11 +2318,21 @@ async function sudoAuth(c, user, viaStdin, nonInteractive) {
   authLog('sudo: ' + user + ' : 3 incorrect password attempts ; TTY=pts/0 ; PWD=' + c.cwd + ' ; USER=root ; COMMAND=' + (c.args.join(' ')));
   return false;
 }
+/* sudo -l [-U NAME]: the Defaults that apply to NAME, then its rules */
+function sudoList(c, name) {
+  if (!U.user(name)) { c.err('sudo: unknown user ' + name + '\n'); return 1; }
+  if (name === 'root') { c.out('User root may run the following commands on ' + S.hostname + ':\n    (ALL : ALL) ALL\n'); return 0; }
+  const r = U.sudoRights(name);
+  if (!r) { c.out('User ' + name + ' is not allowed to run sudo on ' + S.hostname + '.\n'); return 0; }
+  c.out('Matching Defaults entries for ' + name + ' on ' + S.hostname + ':\n    env_reset, mail_badpass, use_pty' + (r.noauth ? ', !authenticate' : '') + '\n\nUser ' + name + ' may run the following commands on ' + S.hostname + ':\n' + r.specs.map(s => '    ' + s.rest.replace(/^\((ALL(:ALL)?)\)\s*/, '(ALL : ALL) ')).join('\n') + '\n');
+  return 0;
+}
 def('sudo', async c => {
-  const a = c.args.slice(); let target = 'root', login = false, shell = false, list = false, validate = false, reset = false, viaStdin = false, nonInt = false, editFile = false;
+  const a = c.args.slice(); let target = 'root', login = false, shell = false, list = false, validate = false, reset = false, viaStdin = false, nonInt = false, editFile = false, listUser = null;
   while (a.length && a[0][0] === '-' && a[0] !== '--') {
     const f = a.shift();
     if (f === '-u') target = a.shift() || 'root';
+    else if (f === '-U') listUser = a.shift() || null;
     else if (f === '-i') login = true; else if (f === '-s') shell = true; else if (f === '-l' || f === '-ll') list = true; else if (f === '-v') validate = true; else if (f === '-k' || f === '-K') reset = true;
     else if (f === '-S') viaStdin = true; else if (f === '-n') nonInt = true; else if (f === '-e') editFile = true;
     else if (f === '-E' || f === '-H' || f === '-b' || f === '-P' || f === '--') { /* accepted */ }
@@ -2255,8 +2350,8 @@ def('sudo', async c => {
     if (!rights) { if (list) { c.err('Sorry, user ' + c.user + ' may not run sudo on ' + S.hostname + '.\n'); return 1; } authLog('sudo: ' + c.user + ' : user NOT in sudoers ; TTY=pts/0 ; PWD=' + c.cwd + ' ; USER=' + target + ' ; COMMAND=' + a.join(' ')); c.err(c.user + ' is not in the sudoers file.  This incident will be reported.\n'); return 1; }
     const needPw = !rights.nopasswd && (nowSec() - (c.sh.sudoAuth || 0) > 900);
     if (needPw) { const ok = await sudoAuth(c, c.user, viaStdin, nonInt); if (!ok) return 1; c.sh.sudoAuth = nowSec(); }
-    if (list) { c.out('Matching Defaults entries for ' + c.user + ' on ' + S.hostname + ':\n    env_reset, mail_badpass, use_pty\n\nUser ' + c.user + ' may run the following commands on ' + S.hostname + ':\n' + rights.specs.map(s => '    ' + s.rest.replace(/^\((ALL(:ALL)?)\)\s*/, '(ALL : ALL) ')).join('\n') + '\n'); return 0; }
-  } else if (list) { c.out('User root may run the following commands on ' + S.hostname + ':\n    (ALL : ALL) ALL\n'); return 0; }
+    if (list) return sudoList(c, listUser || c.user);
+  } else if (list) return sudoList(c, listUser || 'root');
   if (validate) return 0;
   authLog('sudo: ' + padR(c.user, 8) + ': TTY=pts/0 ; PWD=' + c.cwd + ' ; USER=' + target + ' ; COMMAND=' + (login ? '/bin/bash' : (findBin(a[0]) || a[0]) + (a.length > 1 ? ' ' + a.slice(1).join(' ') : '')));
   if (login || shell || (!a.length)) {
@@ -2275,7 +2370,7 @@ def('su', async c => {
   if (c.uid !== 0) {
     const pw = await c.prompt('Password: ', { secret: true });
     const r = U.auth(target, pw || '');
-    if (!r.ok) { authLog('su: FAILED SU (to ' + target + ') ' + c.user + ' on pts/0'); authLog('su: pam_unix(su:auth): authentication failure; logname=' + c.user + ' uid=' + c.uid + ' euid=0 tty=pts/0 ruser=' + c.user + ' rhost=  user=' + target); c.err('su: Authentication failure\n'); return 1; }
+    if (!r.ok) { U.noteFail(target, 'TTY', '/dev/pts/0'); authLog('su: FAILED SU (to ' + target + ') ' + c.user + ' on pts/0'); authLog('su: pam_unix(su:auth): authentication failure; logname=' + c.user + ' uid=' + c.uid + ' euid=0 tty=pts/0 ruser=' + c.user + ' rhost=  user=' + target); c.err('su: Authentication failure\n'); return 1; }
   }
   if (!U.hasShell(tu) && !shell) { c.out('This account is currently not available.\n'); return 1; }
   authLog('su: (to ' + target + ') ' + c.user + ' on pts/0');
@@ -2296,12 +2391,13 @@ async function newPasswordDialog(c, target, isRoot) {
   for (let attempt = 0; attempt < 3; attempt++) {
     const p1 = await c.prompt('New password: ', { secret: true });
     if (p1 == null) { c.err('\npasswd: Authentication token manipulation error\npasswd: password unchanged\n'); return null; }
-    let bad = pwCheck(p1, pol);
-    if (!bad && cur && cur.hash && checkHash(p1, cur.hash.replace(/^!/, ''))) bad = pol.pwquality ? 'BAD PASSWORD: The password is the same as the old one' : 'Password has been already used. Choose another.';
+    let bad = pwCheck(p1, pol, isRoot);
+    // the same-as-old and history checks compare with the caller's old password; root changing a password skips them
+    if (!bad && !isRoot && cur && cur.hash && checkHash(p1, cur.hash.replace(/^!/, ''))) bad = pol.pwquality ? 'BAD PASSWORD: The password is the same as the old one' : 'Password has been already used. Choose another.';
     if (bad) {
       c.flush(); c.term.write(bad + '\n');
-      if (!isRoot || !pol.pwquality) { if (attempt === 2) { c.err('passwd: Have exhausted maximum number of retries for service\npasswd: password unchanged\n'); return null; } continue; }
-      // root is warned but not stopped by pam_pwquality (enforce_for_root not set)
+      if (!isRoot || pol.enforceRoot) { if (attempt === 2) { c.err('passwd: Have exhausted maximum number of retries for service\npasswd: password unchanged\n'); return null; } continue; }
+      // root is warned but not stopped by pam_pwquality unless enforce_for_root is set
     }
     const p2 = await c.prompt('Retype new password: ', { secret: true });
     if (p2 !== p1) { c.flush(); c.term.write('Sorry, passwords do not match.\n'); if (attempt === 2) { c.err('passwd: Authentication token manipulation error\npasswd: password unchanged\n'); return null; } continue; }
@@ -2309,12 +2405,20 @@ async function newPasswordDialog(c, target, isRoot) {
   }
   return null;
 }
+/* shadow 4.13 src/passwd.c usage() (Ubuntu 24.04) */
+const PASSWD_USAGE = 'Usage: passwd [options] [LOGIN]\n\nOptions:\n  -a, --all                     report password status on all accounts\n  -d, --delete                  delete the password for the named account\n  -e, --expire                  force expire the password for the named account\n  -h, --help                    display this help message and exit\n  -k, --keep-tokens             change password only if expired\n  -i, --inactive INACTIVE       set password inactive after expiration\n                                to INACTIVE\n  -l, --lock                    lock the password of the named account\n  -n, --mindays MIN_DAYS        set minimum number of days before password\n                                change to MIN_DAYS\n  -q, --quiet                   quiet mode\n  -r, --repository REPOSITORY   change password in REPOSITORY repository\n  -R, --root CHROOT_DIR         directory to chroot into\n  -S, --status                  report password status on the named account\n  -u, --unlock                  unlock the password of the named account\n  -w, --warndays WARN_DAYS      set expiration warning days to WARN_DAYS\n  -x, --maxdays MAX_DAYS        set maximum number of days before password\n                                change to MAX_DAYS\n\n';
+const PASSWD_LONG = { all: 'a', delete: 'd', expire: 'e', help: 'h', 'keep-tokens': 'k', inactive: 'i', lock: 'l', mindays: 'n', quiet: 'q', repository: 'r', root: 'R', status: 'S', unlock: 'u', warndays: 'w', maxdays: 'x' };
 def('passwd', async c => {
-  const o = opts(c, 'luedSaqkh', 'xnwi'); if (o.err) { c.err(o.err.replace(/Try 'passwd --help' for more information.\n/, "Usage: passwd [options] [LOGIN]\n")); return 2; }
+  // long options become their short letters (--expire NAME is -e NAME); an unknown one prints usage like real passwd
+  for (let i = 0; i < c.args.length; i++) { const s = c.args[i]; if (s === '--') break; if (!s.startsWith('--')) continue; const eq = s.indexOf('='), k = eq > 0 ? s.slice(2, eq) : s.slice(2); if (!PASSWD_LONG[k]) { c.err("passwd: unrecognized option '" + s + "'\n" + PASSWD_USAGE); return 2; } c.args[i] = '-' + PASSWD_LONG[k]; if (eq > 0) c.args.splice(i + 1, 0, s.slice(eq + 1)); }
+  const o = opts(c, 'luedSaqkh', 'xnwirR'); if (o.err) { c.err(o.err.replace(/Try 'passwd --help' for more information.\n/, PASSWD_USAGE)); return 2; }
+  if (o.h) { c.out(PASSWD_USAGE); return 0; }
+  if (o._.length > 1 || (o.a && !o.S)) { c.err(PASSWD_USAGE); return 2; }
   const target = o._[0] || c.user; const tu = U.user(target);
-  if (!tu) { c.err('passwd: user \'' + target + '\' does not exist\n'); return 1; }
+  if (!tu && !(o.S && o.a)) { c.err('passwd: user \'' + target + '\' does not exist\n'); return 1; }
   const flagOp = o.l || o.u || o.e || o.d || o.x || o.n || o.w || o.i;
   if (o.S) {
+    if (o.a) { if (c.uid !== 0) { c.err('passwd: Permission denied.\n'); return 1; } for (const u of U.passwd()) { const s = pwStatus(u.name); if (s) c.out(s + '\n'); } return 0; }
     if (c.uid !== 0 && target !== c.user) { c.err('passwd: You may not view or modify password information for ' + target + '.\n'); return 1; }
     const s = pwStatus(target); if (!s) { c.err('passwd: Permission denied.\n'); return 1; } c.out(s + '\n'); return 0;
   }
@@ -2402,6 +2506,8 @@ def('adduser', async c => {
   const a = c.args.slice(); const flags = {}; const pos = [];
   while (a.length) { const f = a.shift(); if (f.startsWith('--')) { const k = f.slice(2); if (['home', 'shell', 'uid', 'gid', 'gecos', 'ingroup', 'comment'].includes(k)) flags[k] = a.shift(); else flags[k] = true; } else if (f[0] === '-' && f.length > 1) { c.err('adduser: Unknown option: ' + f.slice(1) + '\n'); return 1; } else pos.push(f); }
   if (c.uid !== 0) { c.err('adduser: Only root may add a user or group to the system.\n'); return 1; }
+  if (flags.group && !flags.system && pos.length === 1) return CMDS.addgroup.run(Object.assign({}, c, { argv: ['addgroup', pos[0]], args: [pos[0]] }));
+  const gecos = flags.comment != null ? flags.comment : flags.gecos; // noble: --comment fills the full-name field (--gecos is its deprecated name)
   if (!pos.length) { c.err('adduser [--home DIR] [--shell SHELL] [--no-create-home] [--uid ID]\n[--firstuid ID] [--lastuid ID] [--gecos GECOS] [--ingroup GROUP | --gid ID]\n[--disabled-password] [--disabled-login] [--add_extra_groups]\n[--encrypt-home] USER\n   Add a normal user\n'); return 1; }
   if (pos.length === 2) {
     const [user, grp] = pos; if (!U.user(user)) { c.err("adduser: The user `" + user + "' does not exist.\n"); return 1; } if (!U.group(grp)) { c.err("adduser: The group `" + grp + "' does not exist.\n"); return 1; }
@@ -2415,14 +2521,14 @@ def('adduser', async c => {
   c.flush(); c.term.write("Adding user `" + name + "' ...\n");
   const gid = U.nextId('gid'); const uid = U.nextId('uid');
   c.term.write("Adding new group `" + name + "' (" + gid + ") ...\nAdding new user `" + name + "' (" + uid + ") with group `" + name + "' ...\nCreating home directory `" + home + "' ...\nCopying files from `/etc/skel' ...\n");
-  U.addUser({ name, uid, gecos: flags.gecos != null ? flags.gecos : '', home, shell, createHome: true });
-  if (flags['disabled-password'] || flags['disabled-login']) { if (flags.gecos == null) { /* still asks chfn */ } }
+  U.addUser({ name, uid, gecos: gecos != null ? gecos : '', home, shell, createHome: true });
+  if (flags['disabled-password'] || flags['disabled-login']) { if (gecos == null) { /* still asks chfn */ } }
   else {
     const pw = await newPasswordDialog(c, name, true);
     if (pw == null) { c.err('passwd: password unchanged\n[Range] Account created with a locked password. Use passwd ' + name + ' to set one.\n'); return 1; }
     U.setPassword(name, pw); c.flush(); c.term.write('passwd: password updated successfully\n');
   }
-  if (flags.gecos == null) {
+  if (gecos == null) {
     for (;;) {
       c.flush(); c.term.write('Changing the user information for ' + name + '\nEnter the new value, or press ENTER for the default\n');
       const full = await c.prompt('        Full Name []: '); const room = await c.prompt('        Room Number []: '); const wp = await c.prompt('        Work Phone []: '); const hp = await c.prompt('        Home Phone []: '); const other = await c.prompt('        Other []: ');
@@ -2450,17 +2556,29 @@ def('userdel', c => {
   if (name === S.login.user) S.login.deleted = true;
   return 0;
 });
+/* deluser (adduser 3.137ubuntu1, noble): the Getopt::Long options it accepts; =s takes a value */
+const DELUSER_OPTS = { quiet: 0, q: 0, debug: 0, verbose: 0, stdoutmsglevel: 1, stderrmsglevel: 1, logmsglevel: 1, version: 0, v: 0, help: 0, h: 0, group: 0, conf: 1, c: 1, system: 0, 'only-if-empty': 0, 'remove-home': 0, 'remove-all-files': 0, backup: 0, 'backup-to': 1, 'backup-suffix': 1, 'no-preserve-root': 0 };
+const DELUSER_USAGE = 'deluser USER\n  remove a normal user from the system\n  example: deluser mike\n\n  --remove-home             remove the users home directory and mail spool\n  --remove-all-files        remove all files owned by user\n\ndelgroup GROUP\ndeluser --group GROUP\n  remove a group from the system\n\ndeluser USER GROUP\n  remove the user from a group\n  example: deluser mike students\n';
 def('deluser', c => {
   const a = c.args.slice(); const flags = {}; const pos = [];
-  while (a.length) { const f = a.shift(); if (f.startsWith('--')) flags[f.slice(2)] = true; else pos.push(f); }
+  while (a.length) {
+    const f = a.shift();
+    if (f[0] === '-' && f.length > 1) { const raw = f.replace(/^--?/, ''); const eq = raw.indexOf('='); const k = eq > 0 ? raw.slice(0, eq) : raw; if (!(k in DELUSER_OPTS)) { c.err('Unknown option: ' + k + '\n' + DELUSER_USAGE); return 1; } flags[k] = DELUSER_OPTS[k] ? (eq > 0 ? raw.slice(eq + 1) : a.shift()) : true; }
+    else pos.push(f);
+  }
   if (c.uid !== 0) { c.err('/usr/sbin/deluser: Only root may remove a user or group from the system.\n'); return 2; }
+  if (flags.group && pos.length === 1) return CMDS.delgroup.run(Object.assign({}, c, { argv: ['delgroup'].concat(flags['only-if-empty'] ? ['--only-if-empty'] : [], pos), args: (flags['only-if-empty'] ? ['--only-if-empty'] : []).concat(pos) }));
   if (!pos.length) { c.err('deluser USER\n  remove a normal user from the system\n  example: deluser mike\n\n  --remove-home             remove the users home directory and mail spool\n  --remove-all-files        remove all files owned by user\n\ndelgroup GROUP\ndeluser --group GROUP\n  remove a group from the system\n\ndeluser USER GROUP\n  remove the user from a group\n  example: deluser mike students\n'); return 1; }
   if (pos.length === 2) { const [user, grp] = pos; if (!U.user(user)) { c.err("/usr/sbin/deluser: The user `" + user + "' does not exist.\n"); return 2; } if (!U.group(grp)) { c.err("/usr/sbin/deluser: The group `" + grp + "' does not exist.\n"); return 3; } if (!U.inGroup(user, grp) || !U.group(grp).members.includes(user)) { c.err("/usr/sbin/deluser: The user `" + user + "' is not a member of group `" + grp + "'.\n"); return 6; } c.out("Removing user `" + user + "' from group `" + grp + "' ...\nDone.\n"); U.removeFromGroup(user, grp); return 0; }
   const name = pos[0];
   const u = U.user(name); if (!u) { c.err("/usr/sbin/deluser: The user `" + name + "' does not exist.\n"); return 2; }
+  // noble deluser refuses UID 0 (RET_DONT_REMOVE_ROOT) unless --no-preserve-root; there is no --force
+  if (u.uid === 0 && !flags['no-preserve-root']) { c.err('fatal: WARNING: You are just about to delete the root account (uid 0). Usually this is never required as it may render the whole system unusable. If you really want this, call deluser with parameter --no-preserve-root. Stopping now without having performed any action\n'); return 55; }
   const busy = userBusy(c, name);
-  if (busy && !flags.force) { c.err('userdel: user ' + name + ' is currently used by process ' + busy + "\n/usr/sbin/deluser: `/usr/sbin/userdel " + name + "' returned error code 8. Exiting.\n"); return 1; }
-  if (flags['remove-home'] || flags['remove-all-files']) c.out('Looking for files to backup/remove ...\nRemoving files ...\n');
+  const files = flags['remove-home'] || flags['remove-all-files'];
+  if (files) c.out('Looking for files to backup/remove ...\nRemoving files ...\n');
+  // noble deluser removes the files first, then userdel checks for running processes
+  if (busy) { if (files) { FS.rmTree(u.home); delete S.fs['/var/mail/' + name]; } c.err('userdel: user ' + name + ' is currently used by process ' + busy + "\n/usr/sbin/deluser: `/usr/sbin/userdel " + name + "' returned error code 8. Exiting.\n"); return 1; }
   c.out("Removing user `" + name + "' ...\nRemoving crontab ...\n");
   U.delUser(name, !!(flags['remove-home'] || flags['remove-all-files']));
   c.out('Done.\n'); authLog('userdel[' + (c.sh.pid + 60) + ']: delete user \'' + name + '\'');
@@ -2490,7 +2608,8 @@ def('usermod', c => {
   return 0;
 });
 def('groupadd', c => { const o = opts(c, 'rfo', 'gK'); if (o.err) { c.err(o.err); return 2; } const name = o._[0]; if (!name) { c.err('Usage: groupadd [options] GROUP\n'); return 2; } if (c.uid !== 0) { c.err('groupadd: Permission denied.\ngroupadd: cannot lock /etc/group; try again later.\n'); return 10; } if (U.group(name)) { if (o.f) return 0; c.err("groupadd: group '" + name + "' already exists\n"); return 9; } if (!NAME_RE.test(name)) { c.err("groupadd: '" + name + "' is not a valid group name\n"); return 3; } let gid = o.g != null ? parseInt(o.g, 10) : undefined; if (gid != null && U.byGid(gid) && !o.o) { c.err('groupadd: GID \'' + gid + '\' already exists\n'); return 4; } if (o.r && gid == null) { gid = 999; while (U.byGid(gid)) gid--; } U.addGroup(name, gid); authLog('groupadd[' + (c.sh.pid + 80) + ']: new group: name=' + name + ', GID=' + U.group(name).gid); return 0; });
-def(['groupdel', 'delgroup'], c => { const name = c.args.filter(x => x[0] !== '-')[0]; if (!name) { c.err('Usage: groupdel [options] GROUP\n'); return 2; } if (c.uid !== 0) { c.err(c.argv[0] === 'delgroup' ? '/usr/sbin/delgroup: Only root may remove a user or group from the system.\n' : 'groupdel: Permission denied.\ngroupdel: cannot lock /etc/group; try again later.\n'); return 10; } const g = U.group(name); if (!g) { c.err(c.argv[0] === 'delgroup' ? "/usr/sbin/delgroup: The group `" + name + "' does not exist.\n" : "groupdel: group '" + name + "' does not exist\n"); return 6; } const prim = U.passwd().find(u => u.gid === g.gid); if (prim) { c.err(c.argv[0] === 'delgroup' ? "/usr/sbin/delgroup: `" + name + "' still has `" + prim.name + "' as their primary group!\n" : "groupdel: cannot remove the primary group of user '" + prim.name + "'\n"); return 8; } if (c.argv[0] === 'delgroup') c.out("Removing group `" + name + "' ...\nDone.\n"); U.delGroup(name); return 0; });
+def(['groupdel', 'delgroup'], c => { const name = c.args.filter(x => x[0] !== '-')[0]; if (!name) { c.err('Usage: groupdel [options] GROUP\n'); return 2; } if (c.uid !== 0) { c.err(c.argv[0] === 'delgroup' ? '/usr/sbin/delgroup: Only root may remove a user or group from the system.\n' : 'groupdel: Permission denied.\ngroupdel: cannot lock /etc/group; try again later.\n'); return 10; } const g = U.group(name); if (!g) { c.err(c.argv[0] === 'delgroup' ? "/usr/sbin/delgroup: The group `" + name + "' does not exist.\n" : "groupdel: group '" + name + "' does not exist\n"); return 6; } const prim = U.passwd().find(u => u.gid === g.gid); if (prim) { c.err(c.argv[0] === 'delgroup' ? "/usr/sbin/delgroup: `" + name + "' still has `" + prim.name + "' as their primary group!\n" : "groupdel: cannot remove the primary group of user '" + prim.name + "'\n"); return 8; } if (c.argv[0] === 'delgroup' && c.args.includes('--only-if-empty') && g.members.length) { c.err("fatal: The group `" + name + "' is not empty!\n"); return 41; } if (c.argv[0] === 'delgroup') c.out("Removing group `" + name + "' ...\nDone.\n"); U.delGroup(name); return 0; });
+def('addgroup', c => { const name = c.args.filter(x => x[0] !== '-')[0]; if (c.uid !== 0) { c.err('addgroup: Only root may add a user or group to the system.\n'); return 1; } if (!name) { c.err('addgroup [--gid ID] GROUP\n   Add a user group\n'); return 1; } if (U.group(name)) { c.err("addgroup: The group `" + name + "' already exists.\n"); return 1; } const gid = U.nextId('gid'); U.addGroup(name, gid); c.out("Adding group `" + name + "' (GID " + gid + ") ...\nDone.\n"); authLog('groupadd[' + (c.sh.pid + 80) + ']: new group: name=' + name + ', GID=' + gid); return 0; });
 def('gpasswd', c => {
   const o = opts(c, 'rR', 'adAM'); if (o.err) { c.err(o.err.replace(/Try 'gpasswd --help'.*\n/, 'Usage: gpasswd [option] GROUP\n')); return 2; }
   const grp = o._[0]; if (!grp) { c.err('Usage: gpasswd [option] GROUP\n\nOptions:\n  -a, --add USER                add USER to GROUP\n  -d, --delete USER             remove USER from GROUP\n  -M, --members USER,...        set the list of members of GROUP\n'); return 2; }
@@ -2527,6 +2646,84 @@ def('visudo', async c => {
     }
   }
 });
+/* ---- vipw / vigr (shadow 4.13): edit a locked copy, then remind about the paired file ---- */
+def(['vipw', 'vigr'], async c => {
+  const o = opts(c, 'gpsqh', ''); if (o.err) { c.err(o.err); return 2; }
+  const gr = c.argv[0] === 'vigr' || o.g; const file = gr ? (o.s ? '/etc/gshadow' : '/etc/group') : (o.s ? '/etc/shadow' : '/etc/passwd');
+  // vipwexit(): the error goes to stderr and "is unchanged" to stdout (hidden by -q); a lock failure exits 5
+  const unchanged = () => { if (!o.q) c.out(c.argv[0] + ': ' + file + ' is unchanged\n'); };
+  if (c.uid !== 0) { c.err(c.argv[0] + ": Couldn't lock file: Permission denied\n"); unchanged(); return 5; }
+  const before = FS.text(file);
+  await CMDS.nano.run(Object.assign({}, c, { argv: ['nano', file], args: [file] }));
+  if (FS.text(file) === before) { unchanged(); return 0; }
+  const pair = { '/etc/passwd': ['/etc/shadow', 'vipw -s'], '/etc/shadow': ['/etc/passwd', 'vipw'], '/etc/group': ['/etc/gshadow', 'vigr -s'], '/etc/gshadow': ['/etc/group', 'vigr'] }[file];
+  c.out('You have modified ' + file + '.\nYou may need to modify ' + pair[0] + ' for consistency.\nPlease use the command \'' + pair[1] + '\' to do so.\n');
+  return 0;
+});
+/* ---- faillock (Linux-PAM 1.5.3 modules/pam_faillock/main.c): per-user failure records; --reset clears them ---- */
+def('faillock', c => {
+  const a = c.args.slice(); let user = null, reset = false;
+  for (let i = 0; i < a.length; i++) { if (a[i] === '--user') user = a[++i]; else if (a[i] === '--reset') reset = true; else if (a[i] === '--dir') i++; else if (a[i] === '--legacy-output') { /* same layout here */ } else { c.err('Usage: faillock [--dir /path/to/tally-directory] [--user username] [--reset] [--legacy-output]\n'); return 1; } }
+  const names = user ? [user] : Object.keys(S.faillock || {}).sort(cmpStr);
+  if (c.uid !== 0) { const other = names.find(n => n !== c.user && (S.faillock || {})[n]); if (other) { c.err('faillock: Error opening the tally file for ' + other + ':Permission denied\n'); return 3; } }
+  if (reset) { if (c.uid !== 0 && user !== c.user) { c.err('faillock: Error opening the tally file for ' + (user || c.user) + ':Permission denied\n'); return 3; } for (const n of names) if (S.faillock && S.faillock[n]) S.faillock[n] = []; return 0; }
+  for (const n of names) {
+    const recs = (S.faillock || {})[n]; if (!recs) continue; // no tally file yet: nothing to print
+    c.out(n + ':\n' + padR('When', 19) + ' ' + padR('Type', 5) + ' ' + padR('Source', 48) + ' Valid\n');
+    for (const r of recs) { const d = new Date(r.t * 1000); c.out(fmtIso(r.t) + ' ' + two(d.getHours()) + ':' + two(d.getMinutes()) + ':' + two(d.getSeconds()) + ' ' + padR(r.type, 5) + ' ' + padR(r.source, 52) + ' V\n'); }
+  }
+  return 0;
+});
+/* ---- Linux audit (auditd 3.1.2): rules live in /etc/audit/rules.d/*.rules; augenrules --load puts them in the kernel ---- */
+const AUDIT_RULES_STOCK = '## First rule - delete all\n-D\n\n## Increase the buffers to survive stress events.\n## Make this bigger for busy systems\n-b 8192\n\n## This determine how long to wait in burst of events\n--backlog_wait_time 60000\n\n## Set failure mode to syslog\n-f 1\n\n';
+function auditSetup() {
+  for (const d of ['/etc/audit', '/etc/audit/rules.d']) if (!S.fs[d]) FS.mk(d, { t: 'd', m: 0o750, u: 0, g: 0, mt: nowSec() });
+  if (!S.fs['/etc/audit/rules.d/audit.rules']) FS.mk('/etc/audit/rules.d/audit.rules', { t: 'f', m: 0o640, u: 0, g: 0, c: AUDIT_RULES_STOCK, mt: nowSec() });
+  if (!S.fs['/var/log/audit']) FS.mk('/var/log/audit', { t: 'd', m: 0o700, u: 0, g: 0, mt: nowSec() });
+  if (!S.fs['/var/log/audit/audit.log']) FS.mk('/var/log/audit/audit.log', { t: 'f', m: 0o600, u: 0, g: 0, c: '', mt: nowSec() });
+  // auditd.service runs augenrules --load when it starts, which writes /etc/audit/audit.rules
+  if (!S.fs['/etc/audit/audit.rules']) FS.mk('/etc/audit/audit.rules', { t: 'f', m: 0o640, u: 0, g: 0, c: auditGen(), mt: nowSec() });
+  S.audit = S.audit || [];
+}
+/* the file augenrules builds: every rules.d/*.rules file in name order */
+function auditGen() { return '## This file is automatically generated from /etc/audit/rules.d\n' + FS.list('/etc/audit/rules.d').filter(f => f.endsWith('.rules')).map(f => FS.text('/etc/audit/rules.d/' + f)).join(''); }
+/* one audit rule line -> kernel rule text, or null for a control line (-D, -b, -f, --backlog_wait_time, -e) */
+function auditRule(words) {
+  const w = words.slice(); if (!w.length) return null;
+  if (w[0] === '-w') { let path = w[1], perm = 'rwxa', key = null; for (let i = 2; i < w.length; i++) { if (w[i] === '-p') perm = w[++i]; else if (w[i] === '-k' || w[i] === '-F' && /^key=/.test(w[i + 1] || '')) key = w[i] === '-k' ? w[++i] : w[++i].slice(4); } return '-w ' + path + ' -p ' + perm + (key ? ' -k ' + key : ''); }
+  if (w[0] === '-a') return w.join(' ');
+  return null;
+}
+function auditLoadRules() {
+  S.audit = [];
+  for (const f of FS.list('/etc/audit/rules.d').filter(f => f.endsWith('.rules'))) for (const l of activeLines(FS.text('/etc/audit/rules.d/' + f))) { if (l === '-D') { S.audit = []; continue; } const r = auditRule(l.split(/\s+/)); if (r && !S.audit.includes(r)) S.audit.push(r); }
+}
+function auditStatus(c) { const st = S.svc.auditd; c.out('enabled 1\nfailure 1\npid ' + (st && st.active ? st.pid : 0) + '\nrate_limit 0\nbacklog_limit 8192\nlost 0\nbacklog 0\nbacklog_wait_time 60000\nbacklog_wait_time_actual 0\nloginuid_immutable 0 unlocked\n'); }
+def('auditctl', c => {
+  if (c.uid !== 0) { c.err('You must be root to run this program.\n'); return 4; }
+  S.audit = S.audit || [];
+  const a = c.args.slice();
+  if (!a.length) { c.out('usage: auditctl [options]\n    -l                            List rules\n    -s                            Report status\n    -w <path>                     Insert watch at <path>\n    -p [r|w|x|a]                  Set permissions filter on watch\n    -k <key>                      Set filter key on audit rule\n    -D                            Delete all rules and watches\n'); return 0; }
+  if (a[0] === '-l') { if (!S.audit.length) c.out('No rules\n'); else for (const r of S.audit) c.out(r + '\n'); return 0; }
+  if (a[0] === '-s') { auditStatus(c); return 0; }
+  if (a[0] === '-D') { S.audit = []; c.out('No rules\n'); return 0; }
+  if (a[0] === '-w') { if (!a[1]) { c.err('Option requires an argument -- w\n'); return 1; } const r = auditRule(a); if (S.audit.includes(r)) { c.err('Error sending add rule data request (Rule exists)\n'); return 1; } S.audit.push(r); return 0; }
+  if (a[0] === '-a') { S.audit.push(a.join(' ')); return 0; }
+  c.out('[Range] auditctl ' + a[0] + ' is not simulated; use -l, -s, -w PATH -p PERMS -k KEY, or -D.\n'); return 0;
+});
+def('augenrules', c => {
+  if (c.uid !== 0) { c.err('You must be root to run this program.\n'); return 4; }
+  if (!c.args.includes('--load') && !c.args.includes('--check')) { c.err('Usage: augenrules [--check|--load]\n'); return 1; }
+  const gen = auditGen();
+  if (c.args.includes('--check')) { c.out('/usr/sbin/augenrules: ' + (FS.text('/etc/audit/audit.rules') === gen ? 'No change' : 'Rules have changed and should be updated') + '\n'); return 0; }
+  auditLoadRules();
+  FS.setText('/etc/audit/audit.rules', gen);
+  auditStatus(c); return 0;
+});
+def('ausearch', c => {
+  if (c.uid !== 0) { c.err('Error opening /var/log/audit/audit.log (Permission denied)\n'); return 1; }
+  c.err('<no matches>\n'); return 1; // the simulator records no audit events
+});
 /* ---- power ---- */
 async function powerCmd(c, action, delayed) {
   const console = S.login.user === c.user || c.uid === 0;
@@ -2553,13 +2750,13 @@ function manp(names, sec, name, syn, desc, ex) { for (const n of [].concat(names
 manp('ls', 1, 'list directory contents', ['ls [OPTION]... [FILE]...'], ['-a  do not ignore entries starting with .', '-l  use a long listing format', '-h  with -l, print sizes like 1K 234M 2G', '-R  list subdirectories recursively']);
 manp(['cat', 'less', 'more'], 1, 'concatenate files and print on the standard output', ['cat [OPTION]... [FILE]...'], ['-n  number all output lines']);
 manp(['grep', 'egrep'], 1, 'print lines that match patterns', ['grep [OPTION...] PATTERNS [FILE...]'], ['-i ignore case, -v invert match, -r recurse into directories, -n line numbers, -E extended regexp'], ['grep -i root /etc/passwd', 'grep -v nologin /etc/passwd', 'grep -rn PermitRootLogin /etc/ssh/']);
-manp('find', 1, 'search for files in a directory hierarchy', ['find [starting-point...] [expression]'], ['-name pattern   base of file name matches shell pattern (quote it!)', '-type f|d       regular file / directory', '-perm -4000     all of the given permission bits are set (setuid)', '-user NAME      file is owned by NAME', '-delete         delete matching files (use with care)'], ['find /home -name "*.mp3"', 'find / -perm -4000 -type f 2>/dev/null', 'find /home -type f \\( -name "*.mp3" -o -name "*.mp4" \\)']);
+manp('find', 1, 'search for files in a directory hierarchy', ['find [starting-point...] [expression]'], ['-name pattern   base of file name matches shell pattern (quote it!)', '-type f|d       regular file / directory', '-perm -4000     all of the given permission bits are set (setuid)', '-user NAME      file is owned by NAME', '-nouser, -nogroup  owner or group has no account (left behind by a deleted user)', '-uid N, -gid N  numeric owner or group', '-newermt DATE   modified after DATE (2026-10-01)', '-xdev           stay on this file system (skips /proc, /sys, /dev, /run)', '-ls             list each match with inode, mode, owner, size, and date', '-delete         delete matching files (use with care)'], ['find /home -name "*.mp3"', 'find / -perm -4000 -type f 2>/dev/null', 'sudo find / -xdev \\( -nouser -o -nogroup \\) -ls 2>/dev/null', 'find /home -type f \\( -name "*.mp3" -o -name "*.mp4" \\)']);
 manp(['locate', 'plocate'], 1, 'find files by name, quickly', ['plocate [OPTION]... PATTERN...'], ['Searches the index updatedb(8) last built (/var/lib/plocate/plocate.db), not the disk itself: a file', 'made since then is missing until the next updatedb, and a deleted one still shows (-e hides it).', 'Every PATTERN must match. Without * ? [ a pattern matches anywhere in the path; with them it must match the whole path.', 'Results in folders you cannot read and enter stay hidden.', '-i ignore case, -b match only the file name, -c count matches, -e only files that still exist,', '-l N stop after N matches, -r basic regexp, --regex extended regexp'], ['locate sshd_config', 'locate -i "*.mp3"', 'sudo updatedb && locate -b notes.txt']);
 manp(['updatedb', 'updatedb.plocate'], 8, 'update the database for plocate', ['updatedb [OPTION]...'], ['Walks the file system (skipping PRUNEPATHS and PRUNEFS in /etc/updatedb.conf) and rewrites', '/var/lib/plocate/plocate.db. Needs root. The plocate-updatedb.timer runs it daily.'], ['sudo updatedb']);
 manp('chmod', 1, 'change file mode bits', ['chmod [OPTION]... MODE[,MODE]... FILE...', 'chmod [OPTION]... OCTAL-MODE FILE...'], ['MODE is [ugoa]*([-+=]([rwxXst]*|[ugo]))+ or an octal number.', 'u-s removes the setuid bit; 640 gives rw to owner, r to group, nothing to others.'], ['chmod 640 /etc/shadow', 'chmod u-s /usr/local/bin/suspicious']);
 manp(['chown', 'chgrp'], 1, 'change file owner and group', ['chown [OPTION]... [OWNER][:[GROUP]] FILE...'], ['Change the owner and/or group of each FILE.'], ['chown root:shadow /etc/shadow']);
 manp('sudo', 8, 'execute a command as another user', ['sudo [-u user] command', 'sudo -i', 'sudo -l'], ['sudo allows a permitted user to execute a command as the superuser, as specified by /etc/sudoers.', '-i  run a login shell as root', '-l  list what the invoking user may run', '-k  forget the cached password']);
-manp('passwd', 1, 'change user password', ['passwd [options] [LOGIN]'], ['-l lock, -u unlock, -e expire the password of the named account', '-S  report password status (P usable, L locked, NP no password)', '-x MAX_DAYS, -n MIN_DAYS, -w WARN_DAYS  set aging'], ['sudo passwd tiko', 'sudo passwd -l guest', 'passwd -S labuser']);
+manp('passwd', 1, 'change user password', ['passwd [options] [LOGIN]'], ['-l lock, -u unlock, -e expire the password of the named account', '-S  report password status (P usable, L locked, NP no password)', '-x MAX_DAYS, -n MIN_DAYS, -w WARN_DAYS  set aging'], ['sudo passwd tiko', 'sudo passwd -l root', 'passwd -S labuser']);
 manp('chage', 1, 'change user password expiry information', ['chage [options] LOGIN'], ['-l  show account aging information', '-M MAX_DAYS, -m MIN_DAYS, -W WARN_DAYS  set aging', '-E EXPIRE_DATE  set account expiration date (YYYY-MM-DD)'], ['sudo chage -l labuser', 'sudo chage -M 90 -m 7 -W 14 labuser']);
 manp('useradd', 8, 'create a new user', ['useradd [options] LOGIN'], ['-m  create the home directory', '-s SHELL  login shell (default here is /bin/sh!)', '-G GROUPS  supplementary groups', 'Prefer adduser on Debian/Ubuntu: it asks for a password and sets sensible defaults.']);
 manp('userdel', 8, 'delete a user account and related files', ['userdel [options] LOGIN'], ['-r  remove home directory and mail spool', '-f  force removal even if the user is still logged in'], ['sudo userdel -r rufus']);
@@ -2574,7 +2771,7 @@ manp('systemctl', 1, 'Control the systemd system and service manager', ['systemc
 manp('ufw', 8, 'program for managing a netfilter firewall', ['ufw enable|disable|reload', 'ufw default allow|deny [incoming|outgoing]', 'ufw allow|deny|delete PORT[/PROTOCOL]|APP', 'ufw status [verbose|numbered]'], ['ufw is a front end for iptables. Allow the services you need BEFORE enabling if you are connected remotely.'], ['sudo ufw allow ssh', 'sudo ufw enable', 'sudo ufw status verbose']);
 manp('crontab', 1, 'maintain crontab files for individual users', ['crontab [-u user] [-l | -r | -e]'], ['-l list, -r remove, -e edit the current crontab', 'System-wide jobs live in /etc/crontab, /etc/cron.d/ and /etc/cron.{hourly,daily,weekly,monthly}/.'], ['sudo crontab -l', 'sudo crontab -r']);
 manp('sshd_config', 5, 'OpenSSH daemon configuration file', ['/etc/ssh/sshd_config'], ['PermitRootLogin yes|prohibit-password|no', 'PermitEmptyPasswords yes|no', 'PasswordAuthentication yes|no', 'MaxAuthTries N  (default 6)', 'Port N  (default 22)', 'Run  sudo sshd -t  to test the file, then  sudo systemctl restart ssh.']);
-manp('sysctl', 8, 'configure kernel parameters at runtime', ['sysctl [options] [variable[=value]]', 'sysctl -p [file]'], ['-w  write a value (runtime only)', '-p  load settings from /etc/sysctl.conf', '-a  display all values'], ['sysctl net.ipv4.ip_forward', 'sudo sysctl -w net.ipv4.ip_forward=0', 'sudo sysctl -p']);
+manp('sysctl', 8, 'configure kernel parameters at runtime', ['sysctl [options] [variable[=value]]', 'sysctl -p [file]'], ['-w  write a value (runtime only)', '-p  load settings from /etc/sysctl.conf', '--system  load every /etc/sysctl.d/*.conf file in name order, then /etc/sysctl.conf', '-a  display all values'], ['sysctl net.ipv4.ip_forward', 'sudo sysctl -w net.ipv4.ip_forward=0', 'sudo sysctl -p', 'sudo sysctl --system']);
 manp('pam_pwquality', 8, 'PAM module to perform password quality checking', ['password requisite pam_pwquality.so retry=3 minlen=12 difok=3 ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1'], ['Put the line in /etc/pam.d/common-password before pam_unix.so.', 'Install the module first: sudo apt install libpam-pwquality.', 'Defaults also live in /etc/security/pwquality.conf (minlen = 8 unless changed).']);
 manp('pam_faillock', 8, 'count authentication failures and lock accounts', ['auth required pam_faillock.so preauth silent deny=5 unlock_time=900'], ['Add to /etc/pam.d/common-auth before pam_unix.so (and an authfail line after it).', 'Defaults can also be set in /etc/security/faillock.conf (deny = 5).']);
 
@@ -2629,7 +2826,7 @@ const PKG = {
   plocate: { v: '1.1.19-2ubuntu2', d: 'much faster locate', bins: ['plocate', 'locate', 'updatedb'], sbins: ['plocate-build', 'updatedb.plocate'], comp: 'universe', conf: ['/etc/updatedb.conf'], hook: 'plocate' },
   login: { v: '1:4.8.1-2ubuntu2.2', d: 'system login tools', ess: 1, bins: ['login', 'newgrp', 'sg', 'lastlog'] },
   passwd: { v: '1:4.8.1-2ubuntu2.2', d: 'change and administer password and group data', bins: ['passwd', 'chage', 'chsh', 'chfn', 'gpasswd', 'expiry'], sbins: ['useradd', 'userdel', 'usermod', 'groupadd', 'groupdel', 'groupmod', 'chpasswd', 'newusers', 'pwck', 'grpck', 'vipw', 'vigr'] },
-  adduser: { v: '3.118ubuntu5', d: 'add and remove users and groups', sbins: ['adduser', 'deluser', 'addgroup', 'delgroup'] },
+  adduser: { v: '3.137ubuntu1', d: 'add and remove users and groups', sbins: ['adduser', 'deluser', 'addgroup', 'delgroup'] },
   sudo: { v: '1.9.15p5-3ubuntu5.24.04.3', d: 'Provide limited super user privileges to specific users', bins: ['sudo', 'sudoedit', 'sudoreplay'], sbins: ['visudo'], conf: ['/etc/sudoers', '/etc/sudoers.d'] },
   systemd: { v: '255.4-1ubuntu8.17', d: 'system and service manager', bins: ['systemctl', 'journalctl', 'hostnamectl', 'timedatectl', 'loginctl', 'systemd-analyze', 'busctl'] },
   'systemd-sysv': { v: '255.4-1ubuntu8.17', d: 'system and service manager - SysV links', sbins: ['reboot', 'shutdown', 'poweroff', 'halt', 'init', 'telinit', 'runlevel'] },
@@ -2665,9 +2862,10 @@ const PKG = {
   tree: { v: '2.0.2-1', d: 'displays an indented directory tree, in color', bins: ['tree'] },
   htop: { v: '3.0.5-7build2', d: 'interactive processes viewer', bins: ['htop'] },
   tzdata: { v: '2025b-0ubuntu0.24.04.1', d: 'time zone and daylight-saving time data', bins: [] },
-  'libpam-modules': { v: '1.4.0-11ubuntu2.4', d: 'Pluggable Authentication Modules for PAM', ess: 1, bins: [] },
+  'libpam-modules': { v: '1.5.3-5ubuntu5.7', d: 'Pluggable Authentication Modules for PAM', ess: 1, bins: [] },
+  'libpam-modules-bin': { v: '1.5.3-5ubuntu5.7', d: 'Pluggable Authentication Modules for PAM - helper binaries', ess: 1, sbins: ['faillock', 'unix_chkpwd'] },
   'libpam-pwquality': { v: '1.4.4-1build2', d: 'PAM module to check password strength', bins: [], conf: ['/etc/security/pwquality.conf'], hook: 'pwquality' },
-  auditd: { v: '1:3.0.7-1build1', d: 'User space tools for security auditing', sbins: ['auditd', 'auditctl', 'ausearch', 'aureport'], svc: 'auditd' },
+  auditd: { v: '1:3.0.7-1build1', d: 'User space tools for security auditing', sbins: ['auditd', 'auditctl', 'augenrules', 'ausearch', 'aureport'], svc: 'auditd', hook: 'auditd', conf: ['/etc/audit'] },
   fail2ban: { v: '0.11.2-6', d: 'ban hosts that cause multiple authentication errors', bins: ['fail2ban-client', 'fail2ban-server'], svc: 'fail2ban', conf: ['/etc/fail2ban'] },
   apparmor: { v: '3.0.4-2ubuntu2.3', d: 'user-space parser utility for AppArmor', sbins: ['apparmor_parser', 'aa-status', 'apparmor_status'], svc: 'apparmor' },
   snapd: { v: '2.76.3+ubuntu24.04', d: 'Daemon and tooling that enable snap packages', bins: ['snap'], svc: 'snapd' },
@@ -2690,7 +2888,7 @@ const PKG = {
   nemo: { v: '6.6.3+zena', d: 'File manager and graphical shell for Cinnamon', bins: ['nemo'] },
   xed: { v: '3.8.9+zena', d: 'Text editor for the Cinnamon desktop', bins: ['xed'] },
   mintupdate: { v: '7.1.4', d: 'Update Manager for Linux Mint', bins: ['mintupdate', 'mintupdate-cli', 'mintupdate-automation'] },
-  apache2: { v: '2.4.52-1ubuntu4.7', d: 'Apache HTTP Server', sbins: ['apache2', 'apache2ctl', 'a2enmod', 'a2dismod', 'a2ensite', 'a2dissite'], svc: 'apache2', conf: ['/etc/apache2', '/var/www/html'] },
+  apache2: { v: '2.4.58-1ubuntu8.17', d: 'Apache HTTP Server', sbins: ['apache2', 'apache2ctl', 'a2enmod', 'a2dismod', 'a2ensite', 'a2dissite', 'a2enconf', 'a2disconf', 'a2query'], svc: 'apache2', conf: ['/etc/apache2', '/var/www/html'] },
   nginx: { v: '1.18.0-6ubuntu14.4', d: 'small, powerful, scalable web/proxy server', sbins: ['nginx'], svc: 'nginx', conf: ['/etc/nginx'] },
   vsftpd: { v: '3.0.5-0ubuntu1', d: 'lightweight, efficient FTP server written for security', sbins: ['vsftpd'], svc: 'vsftpd', conf: ['/etc/vsftpd.conf'] },
   samba: { v: '2:4.15.13+dfsg-0ubuntu1.5', d: 'SMB/CIFS file, print, and login server for Unix', bins: ['smbstatus', 'smbpasswd', 'testparm'], sbins: ['smbd', 'nmbd'], svc: 'smbd', svc2: 'nmbd', conf: ['/etc/samba'] },
@@ -2887,6 +3085,7 @@ function pkgInstall(name, opts) {
   }
   if (d.hook === 'cracklib' && !opts.quiet) { const f = '/etc/pam.d/common-password'; const t = FS.text(f); if (!/pam_cracklib\.so/.test(t)) FS.setText(f, t.replace(/^(password\s+\[success=1 default=ignore\]\s+pam_unix\.so.*)$/m, 'password        requisite                       pam_cracklib.so retry=3 minlen=8 difok=3\n$1')); }
   if (d.hook === 'plocate' && !opts.quiet) plocateSetup(false);
+  if (d.hook === 'auditd') auditSetup();
   if (d.hook === 'autoupgrades' && !opts.quiet) FS.setText('/etc/apt/apt.conf.d/20auto-upgrades', 'APT::Periodic::Update-Package-Lists "1";\nAPT::Periodic::Unattended-Upgrade "1";\n');
   /* inetutils-telnetd's postinst (noble) runs update-inetd --add "#<off># telnet ... root /usr/sbin/tcpd /usr/sbin/telnetd":
      a fresh install adds the line switched off. The scenario's planted server was switched on by whoever installed it. */
@@ -3097,7 +3296,15 @@ def('dpkg-reconfigure', async c => {
   if (n === 'tzdata') { const u = new Date(); c.out('\nCurrent default time zone: \'' + (FS.text('/etc/timezone') || 'Etc/UTC\n').trim() + '\'\nLocal time is now:      ' + fmtDate(nowSec()) + '.\nUniversal Time is now:  ' + DAYS[u.getUTCDay()] + ' ' + MONTHS[u.getUTCMonth()] + ' ' + padL(u.getUTCDate(), 2) + ' ' + two(u.getUTCHours()) + ':' + two(u.getUTCMinutes()) + ':' + two(u.getUTCSeconds()) + ' UTC ' + u.getUTCFullYear() + '.\n'); return 0; }
   c.out('[Range] ' + n + ' has no interactive configuration in this trainer.\n'); return 0;
 });
-def(['unattended-upgrade', 'unattended-upgrades'], c => { if (c.uid !== 0) { c.err('You need to be root to run this application\n'); return 1; } c.out('Starting unattended upgrades script\nAllowed origins are: o=Ubuntu,a=' + aptSuite() + ', o=Ubuntu,a=' + aptSuite() + '-security\n' + (upgradable().length ? 'Packages that will be upgraded: ' + upgradable().map(p => p.name).join(' ') + '\n' : 'No packages found that can be upgraded unattended and no pending auto-removals\n')); return 0; });
+/* unattended-upgrade expands ${distro_id} and ${distro_codename} from lsb_release: on Mint that is Linuxmint and the Mint codename */
+def(['unattended-upgrade', 'unattended-upgrades'], c => {
+  if (c.uid !== 0) { c.err('You need to be root to run this application\n'); return 1; }
+  const F = FLAVORS[S.flavor]; const ao = []; let inAO = false;
+  for (const l of activeLines(FS.text('/etc/apt/apt.conf.d/50unattended-upgrades'))) { if (/^Unattended-Upgrade::Allowed-Origins\s*\{/.test(l)) { inAO = true; continue; } if (inAO && /^\}/.test(l.trim())) { inAO = false; continue; } const m = inAO && /^"([^":]+):([^"]+)";/.exec(l.trim()); if (m) ao.push('o=' + m[1].replace('${distro_id}', F.distrib) + ',a=' + m[2].replace('${distro_codename}', F.codename)); }
+  const reaches = S.flavor !== 'mint' || uuUbuntuOrigin();
+  c.out('Starting unattended upgrades script\nAllowed origins are: ' + ao.join(', ') + '\n' + (upgradable().length && reaches ? 'Packages that will be upgraded: ' + upgradable().map(p => p.name).join(' ') + '\n' : 'No packages found that can be upgraded unattended and no pending auto-removals\n'));
+  return 0;
+});
 def('pam-auth-update', c => { if (c.uid !== 0) { c.err('pam-auth-update: You must be root to run this program\n'); return 1; } c.out('[Range] The pam-auth-update dialog is not simulated; edit /etc/pam.d/common-password and common-auth directly.\n'); return 0; });
 const PWQUALITY_CONF = '# Configuration for systemwide password quality limits\n# Defaults:\n#\n# Number of characters in the new password that must not be present in the\n# old password.\n# difok = 1\n#\n# Minimum acceptable size for the new password (plus one if\n# credits are not disabled which is the default). (See pam_cracklib manual.)\n# Cannot be set to lower value than 6.\n# minlen = 8\n#\n# The maximum credit for having digits in the new password. If less than 0\n# it is the minimum number of digits in the new password.\n# dcredit = 0\n#\n# The maximum credit for having uppercase characters in the new password.\n# ucredit = 0\n#\n# The maximum credit for having lowercase characters in the new password.\n# lcredit = 0\n#\n# The maximum credit for having other characters in the new password.\n# ocredit = 0\n#\n# Prompt user at most N times before returning with error. The default is 1.\n# retry = 3\n#\n# Enforces pwquality checks on the root user password.\n# enforce_for_root\n';
 /* Linux Mint Update Manager automation: "Apply updates automatically" = a flag file plus the
@@ -3121,6 +3328,47 @@ def('mintupdate-automation', c => {
   if (act === 'enable' && !was) c.out('Created symlink ' + MINT_AUTO_TIMER + ' → /lib/systemd/system/mintupdate-automation-upgrade.timer.\n');
   if (act === 'disable' && was) c.out('Removed ' + MINT_AUTO_TIMER + '.\n');
   return 0;
+});
+/* mintupdate-cli (mintupdate, Mint 22, usr/lib/linuxmint/mintUpdate/mintupdate-cli.py): list prints pending updates as '%-15s %-45s %s'
+   (type, source package, new version); upgrade runs apt-get install on them as the CALLER (the script has no root check of its own, so a
+   non-root run fails with apt's lock error); -r/--refresh-cache runs 'sudo /usr/bin/mint-refresh-cache' first; -y/--yes adds --assume-yes;
+   -d/--dry-run adds --simulate; --keep-configuration uses --force-confold in place of the default --force-confnew; -s/--only-security and
+   -k/--only-kernel filter; -i/--ignore skips source packages */
+/* argparse (Python 3.12) wraps the usage at 78 columns */
+const MINTUPDATE_CLI_USAGE = 'usage: mintupdate-cli [-h] [-k | -s] [-i IGNORE] [-r] [-d] [-y]\n                      [--install-recommends] [--keep-configuration] [-v]\n                      command\n';
+const MINTUPDATE_CLI_HELP = '\npositional arguments:\n  command               command to run (possible commands are: list, upgrade)\n\noptions:\n  -h, --help            show this help message and exit\n  -k, --only-kernel     only include kernel updates\n  -s, --only-security   only include security updates\n  -i IGNORE, --ignore IGNORE\n                        list of updates to ignore (comma-separated list of\n                        source package names). Note: You can also blacklist\n                        updates by adding them to /etc/mintupdate.blacklist,\n                        one source package per line. To ignore a specific\n                        version, use the format package=version.\n  -r, --refresh-cache   refresh the APT cache\n  -d, --dry-run         simulation mode, don\'t upgrade anything\n  -y, --yes             automatically answer yes to all questions and always\n                        install new configuration files (unless you also use "\n                        --keep-configuration" option)\n  --install-recommends  install recommended packages\n  --keep-configuration  always keep local changes in configuration files (use\n                        with caution)\n  -v, --version         Display the current version\n';
+def('mintupdate-cli', async c => {
+  const a = c.args.slice(); const f = {}; const pos = [];
+  const LONG = { '--only-kernel': 'k', '--only-security': 's', '--ignore': 'i', '--refresh-cache': 'r', '--dry-run': 'd', '--yes': 'y', '--help': 'h', '--version': 'v', '--install-recommends': 'R', '--keep-configuration': 'K' };
+  for (let i = 0; i < a.length; i++) {
+    const s = a[i];
+    if (s.startsWith('--')) { const eq = s.indexOf('='), k = eq > 0 ? s.slice(0, eq) : s; if (!LONG[k]) { c.err(MINTUPDATE_CLI_USAGE + 'mintupdate-cli: error: unrecognized arguments: ' + s + '\n'); return 2; } f[LONG[k]] = LONG[k] === 'i' ? (eq > 0 ? s.slice(eq + 1) : a[++i]) : true; continue; }
+    if (s[0] === '-' && s.length > 1) { for (let j = 1; j < s.length; j++) { const ch = s[j]; if (!'ksirdyhv'.includes(ch)) { c.err(MINTUPDATE_CLI_USAGE + 'mintupdate-cli: error: unrecognized arguments: ' + s + '\n'); return 2; } if (ch === 'i') { f.i = s.slice(j + 1) || a[++i]; break; } f[ch] = true; } continue; }
+    pos.push(s);
+  }
+  if (f.h) { c.out(MINTUPDATE_CLI_USAGE + MINTUPDATE_CLI_HELP); return 0; }
+  if (f.v) { c.out(PKG.mintupdate.v + '\n'); return 0; }
+  if (f.k && f.s) { c.err(MINTUPDATE_CLI_USAGE + 'mintupdate-cli: error: argument -s/--only-security: not allowed with argument -k/--only-kernel\n'); return 2; }
+  if (!pos.length) { c.err(MINTUPDATE_CLI_USAGE + 'mintupdate-cli: error: the following arguments are required: command\n'); return 2; }
+  if (pos.length > 1) { c.err(MINTUPDATE_CLI_USAGE + 'mintupdate-cli: error: unrecognized arguments: ' + pos.slice(1).join(' ') + '\n'); return 2; }
+  const verb = pos[0]; if (verb !== 'list' && verb !== 'upgrade') return 0; // the script has no branch for any other command
+  if (f.r) await dispatch(Object.assign({}, c, { argv: ['sudo', 'apt-get', 'update'], args: ['apt-get', 'update'] })); // sudo /usr/bin/mint-refresh-cache
+  const skip = (f.i || '').split(',').filter(Boolean);
+  const ups = upgradable().filter(p => (!f.s || p.type === 'security') && (!f.k || /^linux-/.test(p.name)) && !skip.includes(p.name));
+  if (verb === 'list') { for (const p of ups) c.out(padR(p.type, 15) + ' ' + padR(p.name, 45) + ' ' + p.to + '\n'); return 0; }
+  if (f.d) { // apt-get install --simulate
+    let out = c.uid !== 0 ? "NOTE: This is only a simulation!\n      apt-get needs root privileges for real execution.\n      Keep also in mind that locking is deactivated,\n      so don't depend on the relevance to the real current situation!\n" : '';
+    out += APT_HEAD + (ups.length ? 'The following packages will be upgraded:\n' + columns(ups.map(p => p.name), 76).split('\n').map(l => '  ' + l).join('\n') + '\n' : '') + aptSummary(ups.length, 0, 0, upgradable().length - ups.length);
+    for (const p of ups) out += 'Inst ' + p.name + (p.from ? ' [' + p.from + ']' : '') + ' (' + p.to + ' Ubuntu:' + FLAVORS.ubuntu.release + '/' + aptSuite() + '-security [amd64])\n';
+    for (const p of ups) out += 'Conf ' + p.name + ' (' + p.to + ' Ubuntu:' + FLAVORS.ubuntu.release + '/' + aptSuite() + '-security [amd64])\n';
+    c.out(out); return 0;
+  }
+  if (c.uid !== 0) return aptLockErr(c);
+  if (!ups.length) { c.out(APT_HEAD + aptSummary(0, 0, 0, upgradable().length)); return 0; }
+  const rest = S.updates.pending.filter(p => !ups.includes(p)); S.updates.pending = ups;
+  const code = await aptUpgrade(c, !!f.y, false);
+  if (code === 0) { S.updates.pending = rest; S.updates.upgraded = !rest.length; } else S.updates.pending = ups.concat(rest);
+  return code;
 });
 
 /* ---------------- systemctl / service / ufw / cron / sshd / sysctl / journalctl ---------------- */
@@ -3221,6 +3469,26 @@ def('systemctl', async c => {
   if (verb === 'daemon-reload' || verb === 'daemon-reexec') { if (c.uid !== 0) { c.err('Failed to reload daemon: Interactive authentication required.\n'); return 1; } if (S.sshSock) S.sshSock.gen = sshGenPorts(); for (const f of FS.list('/etc/systemd/system')) { const m = /^(.+)\.service$/.exec(f); if (m && SVC[m[1]] && !S.svc[m[1]]) S.svc[m[1]] = { active: false, enabled: !!S.fs['/etc/systemd/system/multi-user.target.wants/' + f], masked: false, since: nowSec(), pid: 0 }; } for (const n of Object.keys(S.svc)) { if (!svcUnitPath(n) && !(SVC[n] && SVC[n].fixed) && !S.svc[n].masked) { if (!S.svc[n].active) delete S.svc[n]; else S.svc[n].gone = true; } } return 0; }
   if (verb === 'reboot' || verb === 'poweroff' || verb === 'halt') return powerCmd(c, verb === 'reboot' ? 'reboot' : 'off');
   if (verb === 'cat') { let code = 0; for (const u of units) { const n = svcName(u); const p = n === 'ssh.socket' ? (S.sshSock ? SSH_SOCK_PATH : null) : svcUnitPath(n); if (!p) { c.err('No files found for ' + u + (u.endsWith('.service') ? '' : '.service') + '.\n'); code = 1; continue; } c.out('# ' + p + '\n' + FS.text(p) + (units.length > 1 ? '\n' : '')); } return code; }
+  if (verb === 'list-timers') {
+    // stock timers on Ubuntu 24.04 and Mint 22.3 (confirm the list on fresh images); Mint adds its automation timer while the upgrade switch is on
+    const T = [['apt-daily.timer', 'apt-daily.service', 43200], ['apt-daily-upgrade.timer', 'apt-daily-upgrade.service', 86400], ['dpkg-db-backup.timer', 'dpkg-db-backup.service', 86400], ['e2scrub_all.timer', 'e2scrub_all.service', 604800], ['fstrim.timer', 'fstrim.service', 604800], ['fwupd-refresh.timer', 'fwupd-refresh.service', 43200], ['logrotate.timer', 'logrotate.service', 86400], ['man-db.timer', 'man-db.service', 86400], ['systemd-tmpfiles-clean.timer', 'systemd-tmpfiles-clean.service', 86400]];
+    if (S.flavor === 'ubuntu') T.push(['motd-news.timer', 'motd-news.service', 43200]);
+    if (S.pkgs.plocate) T.push(['plocate-updatedb.timer', 'plocate-updatedb.service', 86400]);
+    if (S.fs[MINT_AUTO_TIMER]) T.push(['mintupdate-automation-upgrade.timer', 'mintupdate-automation-upgrade.service', 86400]);
+    const tnow = nowSec();
+    // systemd 255 format_timestamp_relative_full(): "6 days", "1 day 3h", "17h", "5h 54min", "27min", "2min 5s", "40s" (LEFT omits "left", PASSED adds " ago")
+    const span = s => { s = Math.max(1, Math.floor(s)); const d = Math.floor(s / 86400), h = Math.floor(s / 3600), m = Math.floor(s / 60); return s >= 2 * 86400 ? d + ' days' : s >= 25 * 3600 ? '1 day ' + (h - 24) + 'h' : s >= 6 * 3600 ? h + 'h' : s >= 3600 ? h + 'h ' + (m % 60) + 'min' : s >= 300 ? m + 'min' : s >= 60 ? m + 'min ' + (s % 60) + 's' : s + 's'; };
+    let rows = T.map(([u, s, per]) => { const last = tnow - 300 - (hash32(u + S.id) % (per - 600)); return { u, s, next: last + per, last }; });
+    if (units.length) rows = rows.filter(r => units.some(x => globRe(x.endsWith('.timer') ? x : x + '*').test(r.u)));
+    rows.sort((a, b) => a.next - b.next);
+    // systemd's table: each column as wide as its widest cell, LEFT and PASSED right-aligned, the last column unpadded
+    const cells = rows.map(r => [fmtSystemd(r.next), span(r.next - tnow), fmtSystemd(r.last), span(tnow - r.last) + ' ago', r.u, r.s]);
+    const head = ['NEXT', 'LEFT', 'LAST', 'PASSED', 'UNIT', 'ACTIVATES']; const wd = head.map((h, k) => Math.max(h.length, ...cells.map(x => x[k].length)));
+    const line = x => x.map((v, k) => k === 5 ? v : k === 1 || k === 3 ? padL(v, wd[k]) : padR(v, wd[k])).join(' ') + '\n';
+    c.out(line(head)); for (const x of cells) c.out(line(x));
+    c.out('\n' + rows.length + ' timers listed.\n' + (all ? '' : 'Pass --all to see loaded but inactive timers, too.\n'));
+    return 0;
+  }
   const known = ['status', 'start', 'stop', 'restart', 'reload', 'reload-or-restart', 'try-restart', 'enable', 'disable', 'is-active', 'is-enabled', 'is-failed', 'mask', 'unmask', 'edit'];
   if (!known.includes(verb)) { c.err('Unknown command verb ' + verb + '.\n'); return 1; }
   if (verb === 'edit') { c.out('[Range] systemctl edit is not simulated; edit the unit file under /etc/systemd/system/ with nano and run systemctl daemon-reload.\n'); return 0; }
@@ -3265,6 +3533,80 @@ def('service', async c => {
   if (!['status', 'start', 'stop', 'restart', 'reload', 'force-reload', 'try-restart'].includes(verb)) { c.err('Usage: /etc/init.d/' + n + ' {start|stop|reload|force-reload|restart|try-restart|status}\n'); return 1; }
   c.argv = ['systemctl', verb === 'force-reload' ? 'reload-or-restart' : verb, n + '.service']; c.args = c.argv.slice(1);
   return CMDS.systemctl.run(c);
+});
+/* ---- loginctl (systemd 255): the signed-in session, terminate-user, linger ---- */
+def('loginctl', c => {
+  const a = c.args.filter(x => x[0] !== '-'); const verb = a[0] || 'list-sessions'; const names = a.slice(1);
+  const sess = S.login.user && S.power === 'on' ? [{ id: String(2 + (S.sessions || 1)), user: S.login.user, uid: (U.user(S.login.user) || { uid: 0 }).uid, seat: 'seat0', tty: S.gui ? 'tty2' : 'tty1', since: S.loginAt || S.boot }] : [];
+  if (verb === 'list-sessions') {
+    c.out('SESSION  UID USER     SEAT  TTY  STATE  IDLE SINCE\n');
+    for (const s of sess) c.out(padL(s.id, 7) + ' ' + padL(s.uid, 4) + ' ' + padR(s.user, 8) + ' ' + padR(s.seat, 5) + ' ' + padR(s.tty, 4) + ' ' + padR('active', 6) + ' no   -\n');
+    c.out('\n' + sess.length + ' sessions listed.\n'); return 0;
+  }
+  if (verb === 'list-users') { c.out(' UID USER     LINGER STATE\n'); for (const s of sess) c.out(padL(s.uid, 4) + ' ' + padR(s.user, 8) + ' no     active\n'); c.out('\n' + sess.length + ' users listed.\n'); return 0; }
+  if (['terminate-user', 'kill-user', 'enable-linger', 'disable-linger'].includes(verb)) {
+    if (!names.length && verb.endsWith('-user')) { c.err('Too few arguments.\n'); return 1; }
+    if (c.uid !== 0) { c.err('Could not ' + verb.replace('-user', ' user').replace('-linger', ' linger') + ': Interactive authentication required.\n'); return 1; }
+    let code = 0;
+    for (const n of names) {
+      const u = U.user(n) || (/^\d+$/.test(n) ? U.byUid(+n) : null); if (!u) { c.err('Failed to look up user ' + n + ': No such process\n'); code = 1; continue; }
+      if (verb.endsWith('linger')) continue; // linger is off for every account here
+      const hits = S.procs.filter(p => procUid(p) === u.uid && (p.tty || p.shell));
+      const signedIn = sess.some(s => s.uid === u.uid);
+      if (!hits.length && !signedIn) { c.err('Could not terminate user: User ID ' + u.uid + ' is not logged in or lingering\n'); code = 1; continue; }
+      for (const p of hits) killProc(c, p, 'KILL');
+      if (signedIn && typeof M !== 'undefined' && M.logout) setTimeout(() => M.logout(), 300);
+    }
+    return code;
+  }
+  c.err('Unknown command verb \'' + verb + '\'.\n'); return 1;
+});
+/* ---- Apache (apache2 2.4.58, Debian layout): configtest reads the enabled conf files; a2enconf/a2disconf manage conf-enabled links ---- */
+function apacheConfErrors() {
+  for (const f of FS.list('/etc/apache2/conf-enabled').filter(f => f.endsWith('.conf'))) {
+    const p = '/etc/apache2/conf-enabled/' + f; const lines = FS.text(FS.real(p) || p).split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const m = /^\s*(ServerTokens|ServerSignature)\s+(\S+)\s*$/i.exec(lines[i]); if (!m) continue;
+      if (/^servertokens$/i.test(m[1]) && !/^(full|os|min|minimal|minor|major|prod|productonly)$/i.test(m[2])) return { file: p, line: i + 1, msg: "ServerTokens takes 1 argument: 'Prod(uctOnly)', 'Major', 'Minor', 'Min(imal)', 'OS', or 'Full'" };
+      if (/^serversignature$/i.test(m[1]) && !/^(on|off|email)$/i.test(m[2])) return { file: p, line: i + 1, msg: 'ServerSignature: use one of: off | on | email' };
+    }
+  }
+  return null;
+}
+def(['apache2ctl', 'apachectl'], c => {
+  const v = c.args[0];
+  if (v === 'configtest' || v === '-t') {
+    if (c.uid !== 0) { c.out('[Range] Run it with sudo here: apache2ctl configtest reads files only root may open.\n'); return 1; }
+    const e = apacheConfErrors();
+    if (e) { c.err('AH00526: Syntax error on line ' + e.line + ' of ' + e.file + ':\n' + e.msg + "\nAction 'configtest' failed.\nThe Apache error log may have more information.\n"); return 1; }
+    c.err("AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1. Set the 'ServerName' directive globally to suppress this message\nSyntax OK\n"); return 0;
+  }
+  if (['start', 'stop', 'restart', 'graceful', 'graceful-stop', 'status'].includes(v)) { c.argv = ['systemctl', v === 'graceful' ? 'reload' : v === 'graceful-stop' ? 'stop' : v, 'apache2']; c.args = c.argv.slice(1); return CMDS.systemctl.run(c); }
+  c.err('Usage: /usr/sbin/apache2ctl start|stop|restart|graceful|graceful-stop|configtest|status|fullstatus|help\n'); return 1;
+});
+def(['a2enconf', 'a2disconf'], c => {
+  const en = c.argv[0] === 'a2enconf'; const names = c.args.filter(x => x[0] !== '-').map(n => n.replace(/\.conf$/, ''));
+  if (!names.length) { c.err('Your choices are: ' + FS.list('/etc/apache2/conf-available').map(f => f.replace(/\.conf$/, '')).join(' ') + '\n'); return 1; }
+  let code = 0, changed = false;
+  for (const n of names) {
+    const src = '/etc/apache2/conf-available/' + n + '.conf', link = '/etc/apache2/conf-enabled/' + n + '.conf';
+    if (!S.fs[src]) { c.err('ERROR: Conf ' + n + ' does not exist!\n'); code = 1; continue; }
+    const on = !!S.fs[link];
+    if (en && on) { c.out('Conf ' + n + ' already enabled\n'); continue; }
+    if (!en && !on) { c.out('Conf ' + n + ' already disabled\n'); continue; }
+    if (c.uid !== 0) { c.err('ERROR: Could not ' + (en ? 'create ' : 'remove ') + link + ': Permission denied\n'); code = 1; continue; }
+    if (en) { if (!S.fs['/etc/apache2/conf-enabled']) FS.mk('/etc/apache2/conf-enabled', { t: 'd', m: 0o755, u: 0, g: 0, mt: nowSec() }); S.fs[link] = { t: 'l', m: 0o777, u: 0, g: 0, ln: '../conf-available/' + n + '.conf', mt: nowSec(), admin: true }; c.out('Enabling conf ' + n + '.\n'); }
+    else { delete S.fs[link]; c.out('Conf ' + n + ' disabled.\n'); }
+    changed = true;
+  }
+  if (changed) c.out('To activate the new configuration, you need to run:\n  systemctl reload apache2\n');
+  return code;
+});
+def('a2query', c => {
+  const i = c.args.indexOf('-c'); const n = i >= 0 ? (c.args[i + 1] || '').replace(/\.conf$/, '') : null;
+  if (n == null) { c.out('[Range] a2query is simulated for -c NAME (is a conf enabled).\n'); return 0; }
+  if (S.fs['/etc/apache2/conf-enabled/' + n + '.conf']) { c.out(n + (S.fs['/etc/apache2/conf-enabled/' + n + '.conf'].admin ? ' (enabled by site administrator)' : ' (enabled by maintainer script)') + '\n'); return 0; }
+  c.out('No conf matches ' + n + '\n'); return 1;
 });
 /* ---- ufw ---- */
 const UFW_APPS = { OpenSSH: ['22/tcp'], Apache: ['80/tcp'], 'Apache Full': ['80,443/tcp'], 'Apache Secure': ['443/tcp'], CUPS: ['631'], Samba: ['137,138/udp', '139,445/tcp'], 'Nginx HTTP': ['80/tcp'], 'Nginx HTTPS': ['443/tcp'], 'Nginx Full': ['80,443/tcp'] };
@@ -3418,9 +3760,10 @@ def('sysctl', c => {
   if (o.a) { for (const k of Object.keys(S.sysctl).sort(cmpStr)) c.out(k + ' = ' + S.sysctl[k] + '\n'); return 0; }
   if (o.p || o.long.system) {
     if (c.uid !== 0) { c.err('sysctl: permission denied on key "net.ipv4.ip_forward"\n'); return 1; }
-    const files = o._.length ? o._.map(f => FS.norm(f, c.cwd)) : ['/etc/sysctl.conf'];
+    const sys = !!o.long.system;
+    const files = sys ? sysctlSystemFiles() : o._.length ? o._.map(f => FS.norm(f, c.cwd)) : ['/etc/sysctl.conf'];
     let code = 0;
-    for (const f of files) { const t = FS.text(f); if (!S.fs[f]) { c.err('sysctl: cannot open "' + f + '": No such file or directory\n'); code = 1; continue; } for (const l of activeLines(t)) { const m = /^([\w.]+)\s*=\s*(.*)$/.exec(l); if (!m) continue; if (!(m[1] in S.sysctl)) { c.err('sysctl: cannot stat /proc/sys/' + m[1].replace(/\./g, '/') + ': No such file or directory\n'); code = 1; continue; } S.sysctl[m[1]] = m[2].trim(); c.out(m[1] + ' = ' + m[2].trim() + '\n'); } }
+    for (const f of files) { const t = sysctlText(f); if (!FS.get(f)) { c.err('sysctl: cannot open "' + f + '": No such file or directory\n'); code = 1; continue; } if (sys) c.out('* Applying ' + f + ' ...\n'); for (const l of activeLines(t)) { const m = /^([\w.]+)\s*=\s*(.*)$/.exec(l); if (!m) continue; if (!(m[1] in S.sysctl)) { c.err('sysctl: cannot stat /proc/sys/' + m[1].replace(/\./g, '/') + ': No such file or directory\n'); code = 1; continue; } S.sysctl[m[1]] = m[2].trim(); c.out(m[1] + ' = ' + m[2].trim() + '\n'); } }
     return code;
   }
   if (!o._.length) { c.err('Usage:\n sysctl [options] [variable[=value] ...]\n\nOptions:\n  -a, --all            display all variables\n  -p, --load[=<file>]  read values from file\n  -w, --write          enable writing a value to variable\n'); return 1; }
@@ -3748,6 +4091,7 @@ const M = {
     const u = U.user(name);
     if (r.ok && !U.hasShell(u)) return { ok: false, why: 'noshell' };
     if (r.ok && !FS.get(u.home) && S.gui) { /* GNOME still logs in, home created at login */ }
+    if (!r.ok) U.noteFail(name, 'TTY', S.gui ? ':0' : '/dev/tty1');
     if (!r.ok) authLog((S.gui ? (S.flavor === 'mint' ? 'lightdm' : 'gdm-password]') : 'login[' + (900 + hash32(name) % 90) + ']') + ': pam_unix(' + (S.gui ? (S.flavor === 'mint' ? 'lightdm' : 'gdm-password') : 'login') + ':auth): authentication failure; logname= uid=0 euid=0 tty=' + (S.gui ? ':0' : '/dev/tty1') + ' ruser= rhost=  user=' + name);
     return r;
   },
@@ -4319,6 +4663,8 @@ const B = {
   dirs(list, mode) { for (const p of list) B.d(p, mode); },
 };
 function daysAgo(n) { return nowSec() - n * 86400; }
+/* kernel defaults before any sysctl file applies (a reboot returns every key here, then systemd-sysctl loads the drop-ins) */
+const SYSCTL_STOCK = { 'net.ipv4.ip_forward': '0', 'net.ipv4.conf.all.accept_redirects': '1', 'net.ipv4.conf.default.accept_redirects': '1', 'net.ipv4.conf.all.send_redirects': '1', 'net.ipv4.conf.all.accept_source_route': '0', 'net.ipv4.conf.all.log_martians': '0', 'net.ipv4.conf.all.rp_filter': '2', 'net.ipv4.conf.default.rp_filter': '2', 'net.ipv4.tcp_syncookies': '1', 'net.ipv4.icmp_echo_ignore_broadcasts': '1', 'net.ipv4.icmp_echo_ignore_all': '0', 'net.ipv4.icmp_ignore_bogus_error_responses': '1', 'net.ipv6.conf.all.forwarding': '0', 'net.ipv6.conf.all.accept_redirects': '1', 'net.ipv6.conf.all.disable_ipv6': '0', 'kernel.randomize_va_space': '2', 'kernel.sysrq': '176', 'kernel.dmesg_restrict': '1', 'kernel.kptr_restrict': '1', 'kernel.yama.ptrace_scope': '1', 'fs.protected_hardlinks': '1', 'fs.protected_symlinks': '1', 'fs.suid_dumpable': '2', 'vm.swappiness': '60' };
 function buildBase(sc) {
   const F = FLAVORS[sc.flavor]; const gui = sc.gui !== false; const mint = sc.flavor === 'mint';
   B.now = daysAgo(40);
@@ -4338,6 +4684,8 @@ function buildBase(sc) {
   B.f('/usr/lib/os-release', F.osrelease); B.f('/etc/lsb-release', 'DISTRIB_ID=' + F.distrib + '\nDISTRIB_RELEASE=' + F.release + '\nDISTRIB_CODENAME=' + F.codename + '\nDISTRIB_DESCRIPTION="' + F.pretty + '"\n');
   B.f('/etc/issue', F.pretty + ' \\n \\l\n\n'); B.f('/etc/issue.net', F.pretty + '\n'); B.f('/etc/hostname', sc.hostname + '\n');
   B.f('/etc/hosts', '127.0.0.1 localhost\n127.0.1.1 ' + sc.hostname + '\n\n# The following lines are desirable for IPv6 capable hosts\n::1     ip6-localhost ip6-loopback\nfe00::0 ip6-localnet\nff00::0 ip6-mcastprefix\nff02::1 ip6-allnodes\nff02::2 ip6-allrouters\n');
+  /* libc-bin's template as edited by libnss-systemd and, on the desktops, libnss-mdns (hosts lookup order for the /etc/hosts lesson) */
+  B.f('/etc/nsswitch.conf', '# /etc/nsswitch.conf\n#\n# Example configuration of GNU Name Service Switch functionality.\n# If you have the `glibc-doc-reference\' and `info\' packages installed, try:\n# `info libc "Name Service Switch"\' for information about this file.\n\npasswd:         files systemd\ngroup:          files systemd\nshadow:         files systemd\ngshadow:        files systemd\n\nhosts:          files ' + (gui ? 'mdns4_minimal [NOTFOUND=return] dns' : 'dns') + '\nnetworks:       files\n\nprotocols:      db files\nservices:       db files\nethers:         db files\nrpc:            db files\n\nnetgroup:       nis\n');
   B.f('/etc/machine-id', hash32('mid' + sc.id).toString(16).padStart(8, '0') + 'a6c84c7e9f3b4d2e8a1f0c5d7e9b\n'); B.f('/etc/timezone', tz + '\n');
   B.f('/etc/fstab', '# /etc/fstab: static file system information.\n#\n# <file system> <mount point>   <type>  <options>       <dump>  <pass>\n# / was on /dev/sda2 during installation\nUUID=3f2a1b7c-0d4e-4f1a-9b2c-8d7e6f5a4b3c /               ext4    errors=remount-ro 0       1\n# /boot/efi was on /dev/sda1 during installation\nUUID=7A1C-3E9B  /boot/efi       vfat    umask=0077      0       1\n/swapfile                                 none            swap    sw              0       0\n');
   B.f('/etc/shells', '# /etc/shells: valid login shells\n/bin/sh\n/bin/bash\n/usr/bin/bash\n/bin/rbash\n/usr/bin/rbash\n/usr/bin/sh\n/bin/dash\n/usr/bin/dash\n' + (gui ? '/usr/bin/tmux\n/usr/bin/screen\n' : ''));
@@ -4414,7 +4762,7 @@ function buildBase(sc) {
   if (!gui) B.f('/etc/netplan/00-installer-config.yaml', '# This is the network config written by \'subiquity\'\nnetwork:\n  ethernets:\n    ' + S.net.iface + ':\n      dhcp4: true\n  version: 2\n');
   /* ---- packages ---- */
   S.pkgs = {}; S.svc = {}; S.journal = []; S.procs = []; S.nextPid = 300; S.boot = nowSec();
-  const basePkgs = ['base-files', 'lsb-release', 'bash', 'coreutils', 'util-linux', 'mount', 'fdisk', 'hostname', 'ncal', 'procps', 'psmisc', 'iproute2', 'grep', 'sed', 'mawk', 'findutils', 'libc-bin', 'debianutils', 'ncurses-bin', 'login', 'passwd', 'adduser', 'sudo', 'systemd', 'systemd-sysv', 'systemd-resolved', 'systemd-timesyncd', 'udev', 'init-system-helpers', 'dbus', 'cron', 'rsyslog', 'openssh-client', 'nano', 'vim-tiny', 'less', 'man-db', 'tar', 'gzip', 'python3', 'perl', 'dpkg', 'apt', 'unattended-upgrades', 'ufw', 'iptables', 'curl', 'wget', 'libpam-modules', 'apparmor', 'tzdata'];
+  const basePkgs = ['base-files', 'lsb-release', 'bash', 'coreutils', 'util-linux', 'mount', 'fdisk', 'hostname', 'ncal', 'procps', 'psmisc', 'iproute2', 'grep', 'sed', 'mawk', 'findutils', 'libc-bin', 'debianutils', 'ncurses-bin', 'login', 'passwd', 'adduser', 'sudo', 'systemd', 'systemd-sysv', 'systemd-resolved', 'systemd-timesyncd', 'udev', 'init-system-helpers', 'dbus', 'cron', 'rsyslog', 'openssh-client', 'nano', 'vim-tiny', 'less', 'man-db', 'tar', 'gzip', 'python3', 'perl', 'dpkg', 'apt', 'unattended-upgrades', 'ufw', 'iptables', 'curl', 'wget', 'libpam-modules', 'libpam-modules-bin', 'apparmor', 'tzdata'];
   const guiPkgs = mint ? ['lightdm', 'slick-greeter', 'cinnamon', 'nemo', 'xed', 'mintupdate', 'network-manager', 'cups', 'avahi-daemon', 'bluez', 'firefox', 'net-tools', 'vim', 'htop', 'plocate'] : ['gdm3', 'gnome-shell', 'gnome-terminal', 'nautilus', 'gnome-text-editor', 'update-manager', 'software-properties-gtk', 'network-manager', 'cups', 'avahi-daemon', 'bluez', 'snapd', 'firefox'];
   const srvPkgs = ['vim', 'openssh-server', 'htop'];
   for (const p of basePkgs.concat(gui ? guiPkgs : srvPkgs, sc.packages || [])) pkgInstall(p, { mt: B.now, quiet: true, active: false, enabled: true });
@@ -4494,19 +4842,20 @@ function buildBase(sc) {
   const kabi = /^(\d+\.\d+\.\d+)-(\d+)-generic$/.exec(F.kernel) || [null, '6.8.0', '0']; const kNext = kabi[1] + '-' + (+kabi[2] + 1);
   S.updates = { lists: 'stale', pending: (sc.updates || [{ name: 'libssl3t64', from: '3.0.13-0ubuntu3.15', to: '3.0.13-0ubuntu3.16', kb: 1940 }, { name: 'openssl', from: '3.0.13-0ubuntu3.15', to: '3.0.13-0ubuntu3.16', kb: 1003 }, { name: 'sudo', from: PKG.sudo.v, to: '1.9.15p5-3ubuntu5.24.04.4', kb: 947 }, { name: 'linux-image-generic', from: kabi[1] + '-' + kabi[2] + '.' + kabi[2], to: kNext + '.' + kNext.split('-')[1], kb: 11 }, { name: 'linux-image-' + kNext + '-generic', from: '', to: kNext + '.' + kNext.split('-')[1], kb: 14900 }, { name: 'curl', from: PKG.curl.v, to: '8.5.0-2ubuntu10.16', kb: 227 }]).map(p => Object.assign({ type: 'security' }, p)), upgraded: false };
   /* sysctl runtime defaults, then the planted files */
-  S.sysctl = { 'net.ipv4.ip_forward': '0', 'net.ipv4.conf.all.accept_redirects': '1', 'net.ipv4.conf.default.accept_redirects': '1', 'net.ipv4.conf.all.send_redirects': '1', 'net.ipv4.conf.all.accept_source_route': '0', 'net.ipv4.conf.all.log_martians': '0', 'net.ipv4.conf.all.rp_filter': '2', 'net.ipv4.conf.default.rp_filter': '2', 'net.ipv4.tcp_syncookies': '1', 'net.ipv4.icmp_echo_ignore_broadcasts': '1', 'net.ipv4.icmp_echo_ignore_all': '0', 'net.ipv4.icmp_ignore_bogus_error_responses': '1', 'net.ipv6.conf.all.forwarding': '0', 'net.ipv6.conf.all.accept_redirects': '1', 'net.ipv6.conf.all.disable_ipv6': '0', 'kernel.randomize_va_space': '2', 'kernel.sysrq': '176', 'kernel.dmesg_restrict': '1', 'kernel.kptr_restrict': '1', 'kernel.yama.ptrace_scope': '1', 'fs.protected_hardlinks': '1', 'fs.protected_symlinks': '1', 'fs.suid_dumpable': '2', 'vm.swappiness': '60', 'kernel.hostname': sc.hostname };
+  S.sysctl = Object.assign({}, SYSCTL_STOCK, { 'kernel.hostname': sc.hostname });
   S.hostname = sc.hostname;
   S.login = { user: null }; S.power = 'off'; S.sh = null; S.hist = {};
 }
 /* run at every boot: reload runtime from the files, respawn processes */
 function bootRuntime() {
   S.boot = nowSec(); S.procs = []; S.nextPid = 300; S.journal = S.journal || [];
+  S.faillock = {}; // pam_faillock keeps its records in /var/run/faillock, which a reboot empties
   const gui = S.gui;
   const hn = FS.text('/etc/hostname').trim(); if (hn) S.hostname = hn;
   // sysctl: defaults then files
-  for (const k of Object.keys(S.sysctl)) if (k.startsWith('net.ipv4.ip_forward') || k === 'net.ipv6.conf.all.forwarding') S.sysctl[k] = '0';
-  const files = FS.list('/etc/sysctl.d').filter(f => f.endsWith('.conf')).map(f => '/etc/sysctl.d/' + f).concat(['/etc/sysctl.conf']);
-  for (const f of files) for (const l of activeLines(FS.text(f))) { const m = /^([\w.]+)\s*=\s*(.*)$/.exec(l); if (m && m[1] in S.sysctl) S.sysctl[m[1]] = m[2].trim(); }
+  for (const k of Object.keys(SYSCTL_STOCK)) S.sysctl[k] = SYSCTL_STOCK[k];
+  const files = sysctlDropins();
+  for (const f of files) for (const l of activeLines(sysctlText(f))) { const m = /^([\w.]+)\s*=\s*(.*)$/.exec(l); if (m && m[1] in S.sysctl) S.sysctl[m[1]] = m[2].trim(); }
   S.sysctl['kernel.hostname'] = S.hostname;
   spawn('systemd', '/sbin/init' + (gui ? ' splash' : ''), 'root', { pid: 1 }); S.procs[0].pid = 1;
   for (const [n, c] of [['kthreadd', '[kthreadd]'], ['rcu_gp', '[rcu_gp]'], ['kworker/0:1', '[kworker/0:1-events]'], ['ksoftirqd/0', '[ksoftirqd/0]'], ['migration/0', '[migration/0]'], ['kswapd0', '[kswapd0]'], ['jbd2/sda2-8', '[jbd2/sda2-8]']]) spawn(n, c, 'root', { ppid: 2 });
@@ -4520,6 +4869,8 @@ function bootRuntime() {
     st.active = false; st.failed = false; st.pid = 0; st.since = S.boot;
     if (st.enabled && !st.masked) { const r = svcStart(n); if (!r.ok) st.failed = true; }
   }
+  // auditd's unit runs augenrules --load at start, so enabled audit rules come back after a reboot
+  if (S.pkgs.auditd) { if (S.svc.auditd && S.svc.auditd.active) auditLoadRules(); else S.audit = []; }
   // the kernel ufw rules follow ENABLED in /etc/ufw/ufw.conf
   const ufwConf = FS.text('/etc/ufw/ufw.conf'); if (ufwConf) S.ufw.on = /^ENABLED=yes/m.test(ufwConf);
   if (gui) { spawn('Xorg', '/usr/lib/xorg/Xorg vt2 -displayfd 3 -auth /run/user/127/gdm/Xauthority -nolisten tcp -background none -noreset -keeptty -verbose 3', S.flavor === 'mint' ? 'root' : 'gdm'); }
@@ -4537,6 +4888,8 @@ function bootRuntime() {
 
 /* ---------------- scenarios: Recruit (Ubuntu desktop), Operator (Mint shared PC), Captain (Ubuntu server) ---------------- */
 SVC.libupdater = { desc: 'Library Update Helper', exec: '/opt/.libupd/libupd -p 5555', proc: 'libupd', ports: ['5555/tcp'], restart: 'always', planted: true };
+/* stock /etc/apache2/conf-available/security.conf (apache2 2.4.58, Debian layout): active lines ServerTokens OS, ServerSignature On, TraceEnable Off */
+const APACHE_SECURITY_CONF = '#\n# Disable access to the entire file system except for the directories that\n# are explicitly allowed later.\n#\n# This currently breaks the configurations that come with some web application\n# Debian packages.\n#\n#<Directory />\n#   AllowOverride None\n#   Require all denied\n#</Directory>\n\n\n# Changing the following options will not really affect the security of the\n# server, but might make attacks slightly more difficult in some cases.\n\n#\n# ServerTokens\n# This directive configures what you return as the Server HTTP response\n# Header. The default is \'Full\' which sends information about the OS-Type\n# and compiled in modules.\n# Set to one of:  Full | OS | Minimal | Minor | Major | Prod\n# where Full conveys the most information, and Prod the least.\n#ServerTokens Minimal\nServerTokens OS\n#ServerTokens Full\n\n#\n# Optionally add a line containing the server version and virtual host\n# name to server-generated pages (internal error documents, FTP directory\n# listings, mod_status and mod_info output etc., but not CGI generated\n# documents or custom error documents).\n# Set to "EMail" to also include a mailto: link to the ServerAdmin.\n# Set to one of:  On | Off | EMail\n#ServerSignature Off\nServerSignature On\n\n#\n# Allow TRACE method\n#\n# Set to "extended" to also reflect the request body (only for testing and\n# diagnostic purposes).\n#\n# Set to one of:  On | Off | extended\nTraceEnable Off\n#TraceEnable On\n\n#\n# Forbid access to version control directories\n#\n# If you use version control systems in your document root, you should\n# probably deny access to their directories.\n#\n# Examples:\n#\n#RedirectMatch 404 /\\.git\n#RedirectMatch 404 /\\.svn\n\n#\n# Setting this header will prevent MSIE from interpreting files as something\n# else than declared by the content type in the HTTP headers.\n# Requires mod_headers to be enabled.\n#\n#Header set X-Content-Type-Options: "nosniff"\n\n#\n# Setting this header will prevent other sites from embedding pages from this\n# site as frames. This defends against clickjacking attacks.\n# Requires mod_headers to be enabled.\n#\n#Header set Content-Security-Policy "frame-ancestors \'self\';"\n\n# vim: syntax=apache ts=4 sw=4 sts=4 sr noet\n';
 const MEDIA_RE = /\.(mp3|mp4|mkv|flac|wav|ogg|m4a|avi|mov|wmv|webm|m4v|aac|wma)$/i;
 function mediaFiles() {
   const out = [];
@@ -4602,6 +4955,9 @@ const AREA = {
 };
 /* Linux Mint Update Manager automation (mintupdate-automation upgrade enable) */
 function mintAutoUpgradesOn() { return S.flavor === 'mint' && !!S.fs['/var/lib/linuxmint/mintupdate-automatic-upgrades-enabled'] && !!S.fs['/etc/systemd/system/timers.target.wants/mintupdate-automation-upgrade.timer']; }
+/* unattended-upgrades reads lsb_release -i -s and -c -s: on Mint they print Linuxmint and the Mint codename, so the stock
+   "${distro_id}:${distro_codename}-security" entry becomes Linuxmint:zena-security and patches only when an entry names Ubuntu's own pocket */
+function uuUbuntuOrigin() { const s = aptSuite() + '-security'; return FS.list('/etc/apt/apt.conf.d').some(f => activeLines(FS.text('/etc/apt/apt.conf.d/' + f)).some(l => l.trim() === '"Ubuntu:' + s + '";' || l.trim() === '"origin=Ubuntu,archive=' + s + '";' || l.trim() === '"o=Ubuntu,a=' + s + '";')); }
 /* password aging: login.defs sets the defaults for new accounts, and each existing human account (UID 1000-59999)
    keeps its own values in /etc/shadow until chage changes them, so the aging checks read both */
 function humanAging() { return U.passwd().filter(u => u.uid >= 1000 && u.uid < 60000).map(u => U.shadowOf(u.name)).filter(Boolean).map(s => ({ name: s.name, min: parseInt(s.min, 10), max: s.max === '' ? 99999 : parseInt(s.max, 10) })); }
@@ -4619,7 +4975,7 @@ const DL_UNIT = {
 function learnUnits(c) {
   if (c.learn) return c.learn;
   if (/^svc-|^telnet$/.test(c.id)) return ['s4'];
-  if (/^(minlen|remember|lockout)$/.test(c.id)) return ['s3pam'];
+  if (/^(minlen|remember|lockout|nullok)$/.test(c.id)) return ['s3pam'];
   if (/^(bogus|rclocal|cron|ipfwd|shadow-perms|badrepo)$/.test(c.id)) return ['j3'];
   if (c.investigation) return ['s6'];
   return ['s3'];
@@ -4628,8 +4984,8 @@ function learnUnits(c) {
 const CK = {
   userGone: (name, pts) => ({ id: 'user-' + name, title: 'Unauthorized user ' + name + ' removed', pts, cat: AREA.acct, test: () => !U.user(name), hint: 'Compare /etc/passwd (UID 1000+) with the scenario brief; sudo userdel -r ' + name, fix: 'sudo userdel -r ' + name, why: 'An account nobody authorized is a door into the machine.' }),
   demote: (name, pts) => ({ id: 'admin-' + name, title: name + ' removed from the sudo group (not an authorized administrator)', pts, cat: AREA.access, test: () => !U.user(name) || !U.isSudoer(name), hint: 'getent group sudo shows members; sudo gpasswd -d ' + name + ' sudo removes one.', fix: 'sudo gpasswd -d ' + name + ' sudo   (or: sudo deluser ' + name + ' sudo)', why: 'sudo group members are root in all but name; only the administrators named in the scenario brief belong there.' }),
-  blankPw: (name, pts) => ({ id: 'pw-' + name, title: 'Blank password on account ' + name + ' fixed', pts, cat: AREA.acct, test: () => { const s = U.shadowOf(name); return !U.user(name) || (s && s.hash !== ''); }, hint: 'sudo cat /etc/shadow: an empty second field means no password. sudo passwd ' + name, fix: 'sudo passwd ' + name + '   then type a strong password twice', why: 'An empty password field lets anyone log in as that user.' }),
-  uid0: (name, pts) => ({ id: 'uid0', title: 'Hidden root account ' + name + ' removed (only root has UID 0)', pts, cat: AREA.acct, test: () => { const zeros = U.passwd().filter(u => u.uid === 0); return zeros.length === 1 && zeros[0].name === 'root'; }, hint: "awk -F: '$3 == 0 {print $1}' /etc/passwd lists UID 0 accounts. A plain userdel refuses (\"currently used by process 1\"): every root process runs as UID 0, so the extra account looks busy. Use sudo userdel -r -f " + name + '.', fix: 'sudo userdel -r -f ' + name + '   (or: sudo nano /etc/passwd, change its UID from 0 to an unused number, then sudo userdel -r ' + name + ')', why: 'Any account with UID 0 IS root, whatever it is called.' }),
+  blankPw: (name, pts) => ({ id: 'pw-' + name, title: 'Blank password on account ' + name + ' fixed', pts, cat: AREA.acct, test: () => { const s = U.shadowOf(name); return !U.user(name) || (s && s.hash !== ''); }, hint: 'sudo cat /etc/shadow: an empty second field means no password. sudo passwd ' + name, fix: 'sudo passwd ' + name + '   (answer both prompts with the same strong password)', why: 'An empty password field lets anyone log in as that user.' }),
+  uid0: (name, pts) => ({ id: 'uid0', title: 'Hidden root account ' + name + ' removed (only root has UID 0)', pts, cat: AREA.acct, test: () => { const zeros = U.passwd().filter(u => u.uid === 0); return zeros.length === 1 && zeros[0].name === 'root'; }, hint: "awk -F: '$3 == 0 {print $1}' /etc/passwd lists UID 0 accounts. A plain userdel refuses (\"currently used by process 1\"): every root process runs as UID 0, so the extra account looks busy. Read its home first (getent passwd " + name + ", field 6), then run sudo userdel -f " + name + "; add -r only when that home belongs to " + name + " alone, because -f with -r also removes a home that root shares.", fix: 'sudo userdel -r -f ' + name + '   (if field 6 of getent passwd ' + name + ' shows /root or /, run sudo userdel -f ' + name + ' instead; or: sudo vipw, change its UID from 0 to an unused number, then sudo userdel ' + name + ' and remove /home/' + name + ' with sudo rm -r once you have read it)', why: 'Any account with UID 0 IS root, whatever it is called.' }),
   sshRoot: pts => ({ id: 'ssh-root', title: 'SSH root login disabled (PermitRootLogin no)', pts, cat: AREA.access, test: () => S.pkgs['openssh-server'] && /^no$/i.test(sshdValue('PermitRootLogin') || ''), hint: 'sudo nano /etc/ssh/sshd_config: PermitRootLogin no, then sudo systemctl restart ssh.', fix: "sudo sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config && sudo systemctl restart ssh", why: 'Root over SSH means one guessed password gives total control.' }),
   sshEmpty: pts => ({ id: 'ssh-empty', title: 'SSH empty passwords disabled (PermitEmptyPasswords no)', pts, cat: AREA.access, test: () => S.pkgs['openssh-server'] && /^no$/i.test(sshdValue('PermitEmptyPasswords') || ''), hint: 'grep -n Empty /etc/ssh/sshd_config, set it to no, restart ssh.', fix: "sudo sed -i 's/^#\\?PermitEmptyPasswords.*/PermitEmptyPasswords no/' /etc/ssh/sshd_config && sudo systemctl restart ssh", why: 'With a blank-password account this is a remote login with no credentials at all.' }),
   sshTries: pts => ({ id: 'ssh-maxauth', title: 'SSH MaxAuthTries limited to 4 or fewer', pts, cat: AREA.access, test: () => { const v = parseInt(sshdValue('MaxAuthTries') || '', 10); return S.pkgs['openssh-server'] && v >= 1 && v <= 4; }, hint: 'Uncomment MaxAuthTries in /etc/ssh/sshd_config and set it to 3 or 4.', fix: "sudo sed -i 's/^#\\?MaxAuthTries.*/MaxAuthTries 4/' /etc/ssh/sshd_config && sudo systemctl restart ssh", why: 'Fewer guesses per connection slows password-guessing bots.' }),
@@ -4639,7 +4995,7 @@ const CK = {
   remember: pts => ({ id: 'remember', title: 'Password history enforced (remember=5 or more)', pts, cat: AREA.acct, test: () => pwPolicy().remember >= 5, hint: 'Add remember=5 to the pam_unix.so line in /etc/pam.d/common-password (a pam_pwhistory.so remember=5 line also counts).', fix: 'sudo nano /etc/pam.d/common-password  ->  password [success=1 default=ignore] pam_unix.so obscure yescrypt remember=5', why: 'Stops users from toggling between two passwords forever.' }),
   lockout: pts => ({ id: 'lockout', title: 'Account lockout policy configured (pam_faillock, deny 10 or fewer)', pts, cat: AREA.acct, test: () => { const l = lockoutPolicy(); return !!l && l.deny >= 1 && l.deny <= 10; }, hint: 'Add pam_faillock lines (deny=5 unlock_time=900) to /etc/pam.d/common-auth: preauth before pam_unix.so, then authfail and authsucc right after it. The authsucc line matters: pam_unix [success=1] skips exactly one line, so without it a correct password lands on pam_deny. (pam_tally2 was removed in Linux-PAM 1.5.0 and current Ubuntu and Mint releases do not ship it, so a pam_tally2 line locks nobody out.)', fix: 'sudo nano /etc/pam.d/common-auth  ->  before the pam_unix.so line add:\nauth required pam_faillock.so preauth silent deny=5 unlock_time=900\nand directly after it add these two lines:\nauth [default=die] pam_faillock.so authfail deny=5 unlock_time=900\nauth sufficient pam_faillock.so authsucc', why: 'Lockout turns a million guesses into five.' }),
   ufw: (pts, allows) => ({ id: 'ufw', title: 'Firewall (ufw) enabled', pts, cat: AREA.config, test: () => S.ufw.on, hint: 'Allow every service the scenario brief calls critical first (sudo ufw allow ssh, sudo ufw allow 80/tcp for a web server), then sudo ufw enable. Blocking a critical service fails an availability check.', fix: (allows || []).map(a => 'sudo ufw allow ' + a).concat(['sudo ufw enable']).join('\n'), why: 'Firewall off means every listening program is reachable from the whole network.' }),
-  autoupd: (pts, mint) => ({ id: 'autoupd', title: 'Automatic security updates enabled', pts, cat: AREA.patch, test: () => mintAutoUpgradesOn() || (aptConfValue('APT::Periodic::Unattended-Upgrade') === '1' && (aptConfValue('APT::Periodic::Update-Package-Lists') || '0') !== '0'), hint: mint ? 'Update Manager > Edit > Preferences > Automation > Apply updates automatically (or sudo mintupdate-automation upgrade enable). unattended-upgrades via /etc/apt/apt.conf.d/20auto-upgrades also counts.' : 'Software Updater > Settings > Updates > security updates: Download and install automatically. File: /etc/apt/apt.conf.d/20auto-upgrades.', fix: mint ? 'GUI: Update Manager > Edit > Preferences > Automation > Apply updates automatically\nCLI: sudo mintupdate-automation upgrade enable' : 'GUI: Software Updater > Settings... > Updates > Download and install automatically\nCLI: sudo dpkg-reconfigure -plow unattended-upgrades  (answer yes)', why: 'Automatic security updates close old bugs while nobody is watching.' }),
+  autoupd: (pts, mint) => ({ id: 'autoupd', title: 'Automatic security updates enabled', pts, cat: AREA.patch, test: () => mintAutoUpgradesOn() || (aptConfValue('APT::Periodic::Unattended-Upgrade') === '1' && (aptConfValue('APT::Periodic::Update-Package-Lists') || '0') !== '0' && (!mint || uuUbuntuOrigin())), hint: mint ? 'Update Manager > Edit > Preferences > Automation > Apply updates automatically (or sudo mintupdate-automation upgrade enable). unattended-upgrades counts only when /etc/apt/apt.conf.d/50unattended-upgrades also lists "Ubuntu:noble-security": on Mint its ${distro_id} entries expand to Linuxmint:zena-security, an origin that misses every Ubuntu security update (sudo unattended-upgrade --dry-run -d prints the Allowed origins line).' : 'Software Updater > Settings > Updates > security updates: Download and install automatically. File: /etc/apt/apt.conf.d/20auto-upgrades.', fix: mint ? 'GUI: Update Manager > Edit > Preferences > Automation > Apply updates automatically\nCLI: sudo mintupdate-automation upgrade enable' : 'GUI: Software Updater > Settings... > Updates > Download and install automatically\nCLI: sudo dpkg-reconfigure -plow unattended-upgrades  (answer yes)', why: 'Automatic security updates close old bugs while nobody is watching.' }),
   updates: pts => ({ id: 'updates', title: 'System updates installed (apt upgrade)', pts, cat: AREA.patch, test: () => S.updates.upgraded && S.updates.pending.length === 0, hint: 'sudo apt update && sudo apt upgrade -y (or Software Updater > Install Now).', fix: 'sudo apt update && sudo apt upgrade -y', why: 'The pending updates include security fixes for sudo and OpenSSL.' }),
   media: pts => ({ id: 'media', title: 'Prohibited media files removed from user home directories', pts, cat: AREA.data, test: () => mediaFiles().length === 0, hint: 'sudo find /home -type f \\( -iname "*.mp3" -o -iname "*.mp4" -o -iname "*.m4a" -o -iname "*.mkv" -o -iname "*.flac" -o -iname "*.wav" -o -iname "*.avi" \\) lists them (check every audio/video extension, not just mp3), then rm each one.', fix: 'sudo find /home -type f \\( -iname "*.mp3" -o -iname "*.mp4" -o -iname "*.m4a" -o -iname "*.mkv" -o -iname "*.flac" -o -iname "*.wav" -o -iname "*.ogg" -o -iname "*.avi" -o -iname "*.mov" -o -iname "*.webm" \\) -delete', why: 'Policy bans media files; they are also where pirated or malicious content hides.' }),
   pkgGone: (name, pts, label, cat) => ({ id: 'pkg-' + name, title: 'Unauthorized software ' + name + ' removed' + (label ? ' (' + label + ')' : ''), pts, cat: cat || AREA.config, test: () => !S.pkgs[name], hint: 'dpkg -l | grep -i ' + name.split('-')[0] + '  then  sudo apt purge ' + name, fix: 'sudo apt purge -y ' + name, why: label ? label + ' has no business on this machine.' : 'Software nobody authorized is attack surface.' }),
@@ -4707,10 +5063,12 @@ const SCENARIOS = [
     authLog: [{ dt: 1200, msg: 'lightdm: pam_unix(lightdm-autologin:session): session opened for user labuser(uid=1000) by (uid=0)' }, { dt: 5000, msg: 'sudo:    keanu : TTY=pts/0 ; PWD=/home/keanu ; USER=root ; COMMAND=/usr/bin/apt install minerd-x' }, { dt: 5300, msg: 'su: (to sysadm) jace on pts/1' }, { dt: 5301, msg: 'su: pam_unix(su:session): session opened for user sysadm(uid=0) by jace(uid=1004)' }],
     lastLog: [{ u: 'sysadm', tty: 'pts/1', from: '', ago: 70000, dur: '(00:09)' }, { u: 'dax', tty: 'tty7', from: ':0', ago: 260000, dur: '(02:30)' }],
     questions: [{ text: 'Which user account other than root has a UID of 0?', hint: "Hint: awk -F: '$3 == 0' /etc/passwd", answers: ['sysadm'] }, { text: 'A patron hid a folder of unauthorized tools inside their home directory. What is the full path of that hidden directory?', hint: 'Hint: ls -la shows hidden entries; try sudo ls -la /home/*', answers: ['/home/jace/.hidden_tools', '/home/jace/.hidden_tools/'] }],
-    checks: [CK.userGone('dax', 7), CK.demote('keanu', 6), CK.uid0('sysadm', 8), CK.blankPw('aria', 6),
-      { id: 'guest', title: 'Guest session disabled in LightDM (allow-guest=false)', pts: 7, cat: AREA.access, test: () => !guestAllowed(), hint: 'sudo nano /etc/lightdm/lightdm.conf and set allow-guest=false under [Seat:*].', fix: "sudo sed -i 's/^allow-guest=.*/allow-guest=false/' /etc/lightdm/lightdm.conf", why: 'A guest session is an anonymous login: no password, no accountability.' },
+    checks: [CK.userGone('dax', 6), CK.demote('keanu', 6), CK.uid0('sysadm', 7), CK.blankPw('aria', 6),
+      { id: 'guest', title: 'Guest session disabled in LightDM (allow-guest=false)', pts: 6, cat: AREA.access, test: () => !guestAllowed(), hint: 'sudo nano /etc/lightdm/lightdm.conf and set allow-guest=false under [Seat:*].', fix: "sudo sed -i 's/^allow-guest=.*/allow-guest=false/' /etc/lightdm/lightdm.conf", why: 'A guest session is an anonymous login: no password, no accountability.' },
       { id: 'autologin', title: 'Automatic login disabled in LightDM', pts: 6, cat: AREA.access, test: () => !autoLoginUser(), hint: 'Remove or blank the autologin-user= line in /etc/lightdm/lightdm.conf.', fix: "sudo sed -i '/^autologin-user/d' /etc/lightdm/lightdm.conf", why: 'Automatic login hands an administrator session to the next person who sits down.' },
-      CK.minlen(6), CK.remember(5), CK.lockout(5), CK.ufw(7, []), CK.autoupd(5, true), CK.media(5), CK.pkgGone('minerd-x', 6, 'cryptocurrency miner', AREA.malware),
+      CK.minlen(6), CK.remember(5), CK.lockout(5),
+      { id: 'nullok', title: 'Empty passwords rejected at sign-in (nullok removed from common-auth)', pts: 4, cat: AREA.acct, test: () => !pamLines('/etc/pam.d/common-auth').some(l => l.module === 'pam_unix.so' && l.args.some(a => a === 'nullok' || a === 'nullok_secure')), hint: 'grep -n nullok /etc/pam.d/common-auth: nullok on the pam_unix line lets an account with an empty password sign in. Remove that word alone (the success=N number differs between machines), and keep a root terminal open while you test with su - labuser.', fix: "sudo sed -i -E 's/[[:space:]]+nullok(_secure)?([[:space:]]|$)/\\2/' /etc/pam.d/common-auth", why: 'nullok is the PAM switch that turns a blank /etc/shadow field into a working login.' },
+      CK.ufw(6, []), CK.autoupd(5, true), CK.media(5), CK.pkgGone('minerd-x', 6, 'cryptocurrency miner', AREA.malware),
       { id: 'telnet', title: 'Telnet server removed (nothing listening on port 23)', pts: 5, cat: AREA.config, test: () => !listeners().some(l => l.port === 23), hint: 'sudo ss -tulpn shows port 23 (inetd). Check which package really provides the server (dpkg -l | grep -i telnet): on Ubuntu 24.04 / Mint 22 telnetd is only a transitional package and the server is inetutils-telnetd, so purging telnetd alone leaves port 23 open.', fix: 'sudo apt purge -y telnetd inetutils-telnetd   (or: sudo systemctl disable --now inetd)', why: 'Telnet sends passwords in clear text; nothing on a shared PC should offer a remote shell.' },
       { id: 'bogus', title: 'Rogue service libupdater disabled or removed', pts: 6, cat: AREA.malware, test: () => { const st = S.svc.libupdater; return !st || st.masked || (!st.active && !st.enabled); }, hint: 'systemctl status libupdater: Restart=always, so kill is not enough. sudo systemctl disable --now libupdater, then remove the unit file and /opt/.libupd.', fix: 'sudo systemctl disable --now libupdater\nsudo rm /etc/systemd/system/libupdater.service && sudo rm -r /opt/.libupd && sudo systemctl daemon-reload', why: 'A homemade unit that restarts itself and listens on a port is a backdoor.' },
       CK.question(1, '/home/labuser/Desktop/Investigation 1.txt', ['sysadm'], 5), CK.question(2, '/home/labuser/Desktop/Investigation 2.txt', ['/home/jace/.hidden_tools'], 5)],
@@ -4719,10 +5077,10 @@ const SCENARIOS = [
   {
     id: 'captain', level: 3, name: 'Captain', title: 'Mauka Trail Outfitters — web server', flavor: 'ubuntu', gui: false, hostname: 'ubuntu-srv', flavorLabel: 'Ubuntu Server ' + FLAVORS.ubuntu.release, sshSocket: true, deb822: true,
     student: { user: 'labuser', pw: 'Hard!2026' }, admins: ['labuser', 'moana'], authorizedUsers: ['bkup', 'kai', 'lehua'], studentHome: '/home/labuser',
-    brief: { company: 'Mauka Trail Outfitters, an outdoor-gear store that sells online', blurb: 'This Ubuntu Server hosts the company website (Apache + MySQL). Administrators manage it over SSH from the office network (10.20.4.0/24). The hosting intern left abruptly last month and the owner wants the server audited before the holiday season.', services: ['SSH (openssh-server) is critical: administrators work remotely. Keep it running and allowed through the firewall.', 'The company website runs on Apache (apache2) and must stay up and reachable on port 80.', 'MySQL (mysql-server) stores the shop database and must stay running.', 'FTP, Samba, and Telnet are NOT authorized on this server.'], policy: ['Only the Authorized Administrators may have sudo rights. bkup is a backup operator, not an administrator.', 'Root may not log in over SSH and empty passwords are forbidden.', 'The server is not a router: IP forwarding must be off.', 'No unauthorized software, repositories, setuid binaries, or scheduled jobs.', 'Install all pending updates and keep the firewall on.'] },
+    brief: { company: 'Mauka Trail Outfitters, an outdoor-gear store that sells online', blurb: 'This Ubuntu Server hosts the company website (Apache + MySQL). Administrators manage it over SSH from the office network (10.20.4.0/24). The hosting intern left abruptly last month and the owner wants the server audited before the holiday season.', services: ['SSH (openssh-server) is critical: administrators work remotely. Keep it running and allowed through the firewall.', 'The company website runs on Apache (apache2) and must stay up and reachable on port 80.', 'MySQL (mysql-server) stores the shop database and must stay running.', 'FTP, Samba, and Telnet are NOT authorized on this server.'], policy: ['Only the Authorized Administrators may have sudo rights. bkup is a backup operator, not an administrator.', 'Every sudo command must ask for the user’s own password.', 'Root may not log in over SSH and empty passwords are forbidden.', 'The server is not a router: IP forwarding must be off.', 'No unauthorized software, repositories, setuid binaries, or scheduled jobs.', 'Install all pending updates and keep the firewall on.'] },
     loginDefs: { PASS_MAX_DAYS: 90, PASS_MIN_DAYS: 7, PASS_WARN_AGE: 14 }, pwqualityLine: 'pam_pwquality.so retry=3 minlen=12', remember: 5, autoUpgrades: { lists: '1', unattended: '1' }, shadowMode: 0o644, ipForward: true,
     sshd: { PermitRootLogin: 'PermitRootLogin yes', PermitEmptyPasswords: 'PermitEmptyPasswords yes', PasswordAuthentication: 'PasswordAuthentication yes' },
-    sudoersExtra: '',
+    sudoersExtra: '\nDefaults\t!authenticate\n',
     packages: ['openssh-server', 'apache2', 'mysql-server', 'vsftpd', 'samba', 'netprobe-ng', 'net-tools'],
     net: { iface: 'ens3', ip: '10.20.4.15', prefix: 24, mask: '255.255.255.0', bcast: '10.20.4.255', gw: '10.20.4.1', subnet: '10.20.4.0/24', mac: '52:54:00:9c:3e:a1', ll: 'fe80::5054:ff:fe9c:3ea1' },
     users: [
@@ -4734,7 +5092,7 @@ const SCENARIOS = [
       { name: 'ops', pw: 'ops', uid: 0, gid: 0, gecos: 'operations,,,', home: '/home/ops', history: ['cp /bin/bash /usr/local/bin/lsmon', 'chmod 4755 /usr/local/bin/lsmon', 'exit'] },
       { name: 'vex', pw: 'vex', full: 'vex', history: ['wget -O /tmp/.sysupd ...', 'chmod +x /tmp/.sysupd', 'crontab -e', 'nano /etc/rc.local', 'netprobe-ng 10.20.4.0/24', 'exit'] },
     ],
-    rootHistory: ['apt install vsftpd samba', 'systemctl enable --now vsftpd smbd', 'chmod 644 /etc/shadow', 'cp /bin/bash /usr/local/bin/lsmon && chmod 4755 /usr/local/bin/lsmon', 'echo "bkup ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/90-backup', 'exit'],
+    rootHistory: ['apt install vsftpd samba', 'systemctl enable --now vsftpd smbd', 'chmod 644 /etc/shadow', 'cp /bin/bash /usr/local/bin/lsmon && chmod 4755 /usr/local/bin/lsmon', 'echo "bkup ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/90-backup', 'visudo', 'exit'],
     plant: () => {
       FS.mk('/etc/sudoers.d/90-backup', { t: 'f', m: 0o440, u: 0, g: 0, mt: daysAgo(31), c: 'bkup ALL=(ALL) NOPASSWD: ALL\n' });
       FS.mk('/etc/rc.local', { t: 'f', m: 0o755, u: 0, g: 0, mt: daysAgo(30), c: '#!/bin/sh -e\n#\n# rc.local\n#\n# This script is executed at the end of each multiuser runlevel.\n# Make sure that the script will "exit 0" on success or any other\n# value on error.\n#\n# In order to enable or disable this script just change the execution\n# bits.\n#\n# By default this script does nothing.\n\n/tmp/.sysupd -l 4444 -e /bin/sh &\n\nexit 0\n' });
@@ -4745,6 +5103,8 @@ const SCENARIOS = [
       FS.mk('/etc/vsftpd.conf', { t: 'f', m: 0o644, u: 0, g: 0, mt: daysAgo(31), c: '# Example config file /etc/vsftpd.conf\n#\n# Run standalone?  vsftpd can run either from an inetd or as a standalone\n# daemon started from an initscript.\nlisten=NO\nlisten_ipv6=YES\n#\n# Allow anonymous FTP? (Disabled by default).\nanonymous_enable=YES\n#\n# Uncomment this to allow local users to log in.\nlocal_enable=YES\n#\n# Uncomment this to enable any form of FTP write command.\nwrite_enable=YES\n#\n# Uncomment this to allow the anonymous FTP user to upload files.\nanon_upload_enable=YES\n#\n# Activate logging of uploads/downloads.\nxferlog_enable=YES\nconnect_from_port_20=YES\nftpd_banner=Welcome to Mauka Trail FTP service.\nsecure_chroot_dir=/var/run/vsftpd/empty\npam_service_name=vsftpd\nssl_enable=NO\n' });
       FS.mk('/etc/samba', { t: 'd', m: 0o755, u: 0, g: 0, mt: daysAgo(31) }); FS.mk('/etc/samba/smb.conf', { t: 'f', m: 0o644, u: 0, g: 0, mt: daysAgo(31), c: '#\n# Sample configuration file for the Samba suite for Debian GNU/Linux.\n#\n[global]\n   workgroup = WORKGROUP\n   server string = %h server (Samba, Ubuntu)\n   log file = /var/log/samba/log.%m\n   max log size = 1000\n   server role = standalone server\n   map to guest = bad user\n   usershare allow guests = yes\n\n[www]\n   comment = Website files\n   path = /var/www/html\n   browseable = yes\n   read only = no\n   guest ok = yes\n' });
       FS.mk('/etc/apache2', { t: 'd', m: 0o755, u: 0, g: 0, mt: daysAgo(38) }); FS.mk('/etc/apache2/apache2.conf', { t: 'f', m: 0o644, u: 0, g: 0, mt: daysAgo(38), c: '# This is the main Apache server configuration file.  It contains the\n# configuration directives that give the server its instructions.\n\nDefaultRuntimeDir ${APACHE_RUN_DIR}\nPidFile ${APACHE_PID_FILE}\nTimeout 300\nKeepAlive On\nUser ${APACHE_RUN_USER}\nGroup ${APACHE_RUN_GROUP}\nHostnameLookups Off\nErrorLog ${APACHE_LOG_DIR}/error.log\nLogLevel warn\nIncludeOptional mods-enabled/*.load\nIncludeOptional mods-enabled/*.conf\nInclude ports.conf\n\n<Directory /var/www/>\n        Options Indexes FollowSymLinks\n        AllowOverride None\n        Require all granted\n</Directory>\n\nIncludeOptional conf-enabled/*.conf\nIncludeOptional sites-enabled/*.conf\n' }); FS.mk('/etc/apache2/ports.conf', { t: 'f', m: 0o644, u: 0, g: 0, mt: daysAgo(38), c: '# If you just change the port or add more ports here, you will likely also\n# have to change the VirtualHost statement in\n# /etc/apache2/sites-enabled/000-default.conf\n\nListen 80\n\n<IfModule ssl_module>\n        Listen 443\n</IfModule>\n' });
+      FS.mk('/etc/apache2/conf-available', { t: 'd', m: 0o755, u: 0, g: 0, mt: daysAgo(38) }); FS.mk('/etc/apache2/conf-enabled', { t: 'd', m: 0o755, u: 0, g: 0, mt: daysAgo(38) });
+      FS.mk('/etc/apache2/conf-available/security.conf', { t: 'f', m: 0o644, u: 0, g: 0, mt: daysAgo(38), c: APACHE_SECURITY_CONF }); FS.mk('/etc/apache2/conf-enabled/security.conf', { t: 'l', m: 0o777, u: 0, g: 0, ln: '../conf-available/security.conf', mt: daysAgo(38) });
       FS.mk('/var/www/html', { t: 'd', m: 0o755, u: 0, g: 0, mt: daysAgo(38) }); FS.mk('/var/www/html/index.html', { t: 'f', m: 0o644, u: 0, g: 0, mt: daysAgo(20), c: '<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8"><title>Mauka Trail Outfitters</title></head>\n<body><h1>Mauka Trail Outfitters</h1><p>Gear for every trail. Holiday sale starts soon.</p></body></html>\n' }); FS.mk('/var/www/html/shop.php', { t: 'f', m: 0o644, u: 33, g: 33, mt: daysAgo(20), c: '<?php\n// shop front page\n$db = new mysqli("localhost", "shop", getenv("SHOP_DB_PW"), "maukashop");\n?>\n' });
       FS.mk('/etc/mysql', { t: 'd', m: 0o755, u: 0, g: 0, mt: daysAgo(38) }); FS.mk('/etc/mysql/mysql.conf.d', { t: 'd', m: 0o755, u: 0, g: 0, mt: daysAgo(38) }); FS.mk('/etc/mysql/mysql.conf.d/mysqld.cnf', { t: 'f', m: 0o644, u: 0, g: 0, mt: daysAgo(38), c: '#\n# The MySQL database server configuration file.\n#\n[mysqld]\nuser            = mysql\npid-file        = /var/run/mysqld/mysqld.pid\nsocket          = /var/run/mysqld/mysqld.sock\nport            = 3306\ndatadir         = /var/lib/mysql\nbind-address            = 127.0.0.1\nlog_error = /var/log/mysql/error.log\n' });
       FS.mk('/srv/ftp', { t: 'd', m: 0o755, u: 0, g: 0, mt: daysAgo(31) });
@@ -4752,12 +5112,13 @@ const SCENARIOS = [
     authLog: [{ dt: 2000, msg: 'sshd[1522]: Accepted password for vex from 10.20.4.88 port 49210 ssh2' }, { dt: 2001, msg: 'sshd[1522]: pam_unix(sshd:session): session opened for user vex(uid=1006) by (uid=0)' }, { dt: 2100, msg: 'sudo:      vex : user NOT in sudoers ; TTY=pts/1 ; PWD=/home/vex ; USER=root ; COMMAND=/usr/bin/crontab -e' }, { dt: 2200, msg: 'su: (to ops) vex on pts/1' }, { dt: 2201, msg: 'su: pam_unix(su:session): session opened for user ops(uid=0) by vex(uid=1006)' }, { dt: 6000, msg: 'sshd[1809]: Failed password for root from 198.51.100.23 port 55012 ssh2' }, { dt: 6003, msg: 'sshd[1809]: Failed password for root from 198.51.100.23 port 55012 ssh2' }, { dt: 6007, msg: 'sshd[1809]: Accepted password for root from 198.51.100.23 port 55012 ssh2' }],
     lastLog: [{ u: 'vex', tty: 'pts/1', from: '10.20.4.88', ago: 95000, dur: '(00:41)' }, { u: 'root', tty: 'pts/2', from: '198.51.100.23', ago: 80000, dur: '(00:03)' }, { u: 'moana', tty: 'pts/0', from: '10.20.4.9', ago: 200000, dur: '(00:55)' }],
     questions: [{ text: 'Which TCP port is held by a program outside every installed package? Answer with the port number only.', hint: 'Hint: sudo ss -tulpn names the program on each port, and ps aux shows the full path it started from. Ubuntu packages install programs in /usr/bin, /usr/sbin, and /usr/lib, which /lib points to. dpkg lists each file by its /usr path, so check /usr/sbin/init, not /sbin/init. Files in /usr/local and /tmp were put there by hand. dpkg -S PATH names the package that owns a file, or says “no path found.”', answers: ['4444'] }, { text: 'Someone planted a setuid-root program outside the normal system directories. What is its full path?', hint: 'Hint: find / -perm -4000 -type f 2>/dev/null', answers: ['/usr/local/bin/lsmon'] }],
-    checks: [CK.userGone('vex', 6),
+    checks: [CK.userGone('vex', 5),
       { id: 'sudoers-bkup', title: 'Unauthorized sudo rule for bkup removed (/etc/sudoers.d)', pts: 6, cat: AREA.access, test: () => !U.user('bkup') || !U.isSudoer('bkup'), hint: 'sudo ls -la /etc/sudoers.d, read the files, sudo rm /etc/sudoers.d/90-backup.', fix: 'sudo rm /etc/sudoers.d/90-backup', why: 'NOPASSWD: ALL in a drop-in file is silent root.' },
-      CK.uid0('ops', 6), CK.sshRoot(6), CK.sshEmpty(6), CK.sshTries(4), CK.svcOff('vsftpd', 'vsftpd', 6, 'FTP server (vsftpd)'),
+      { id: 'sudo-noauth', title: 'Sudo asks for a password again (Defaults !authenticate removed)', pts: 4, cat: AREA.access, test: () => !U.sudoersFiles().some(f => activeLines(FS.text(f)).some(l => /^Defaults\b.*!authenticate\b/.test(l.trim()))), hint: "sudo grep -rnE 'NOPASSWD|!authenticate' /etc/sudoers /etc/sudoers.d/ lists every line that skips the password prompt (single quotes keep bash history expansion away from the !). Delete the Defaults !authenticate line with sudo visudo, then sudo -k; sudo -v asks for your password again.", fix: "sudo sed -i '/^Defaults[[:space:]]*!authenticate/d' /etc/sudoers   (or: sudo visudo, delete the line, and check the result with sudo visudo -c)", why: 'Defaults !authenticate is a quieter NOPASSWD: every sudoer runs root commands without a password, so a stolen session is a root session.' },
+      CK.uid0('ops', 5), CK.sshRoot(6), CK.sshEmpty(5), CK.sshTries(4), CK.svcOff('vsftpd', 'vsftpd', 5, 'FTP server (vsftpd)'),
       { id: 'svc-smbd', title: 'Samba file sharing removed or disabled (smbd/nmbd)', pts: 5, cat: AREA.config, test: () => !S.pkgs.samba || (['smbd', 'nmbd'].every(u => !S.svc[u] || S.svc[u].masked || (!S.svc[u].active && !S.svc[u].enabled))), hint: 'systemctl status smbd nmbd; sudo apt purge samba (or disable --now both units).', fix: 'sudo apt purge -y samba   (or: sudo systemctl disable --now smbd nmbd)', why: 'A guest-writable share of the website lets anyone on the LAN change it.' },
       CK.ufw(6, ['ssh', '80/tcp']),
-      { id: 'ipfwd', title: 'IPv4 forwarding disabled in /etc/sysctl.conf', pts: 5, cat: AREA.config, test: () => (sysctlFileValue('net.ipv4.ip_forward') || '0') === '0', hint: 'grep ip_forward /etc/sysctl.conf; set net.ipv4.ip_forward=0 and run sudo sysctl -p.', fix: "sudo sed -i 's/^net.ipv4.ip_forward=1/net.ipv4.ip_forward=0/' /etc/sysctl.conf && sudo sysctl -p", why: 'A forwarding server is a pivot into the rest of the network.' },
+      { id: 'ipfwd', title: 'IPv4 forwarding disabled at boot (sysctl files)', pts: 5, cat: AREA.config, test: () => (sysctlFileValue('net.ipv4.ip_forward') || '0') === '0', hint: 'grep -rn ip_forward /etc/sysctl.conf /etc/sysctl.d/ shows every file that sets it. Set net.ipv4.ip_forward=0 in /etc/sysctl.conf, which applies last on Ubuntu 24.04, or move the setting to a /etc/sysctl.d/ drop-in and delete the sysctl.conf line; then run sudo sysctl --system.', fix: "sudo sed -i 's/^net.ipv4.ip_forward=1/net.ipv4.ip_forward=0/' /etc/sysctl.conf && sudo sysctl -p", why: 'A forwarding server is a pivot into the rest of the network.' },
       { id: 'suid', title: 'Setuid bit removed from /usr/local/bin/lsmon', pts: 6, cat: AREA.access, test: () => { const n = S.fs['/usr/local/bin/lsmon']; return !n || !(n.m & 0o4000); }, hint: 'find / -perm -4000 -type f 2>/dev/null; sudo chmod u-s /usr/local/bin/lsmon (or delete it).', fix: 'sudo rm /usr/local/bin/lsmon   (or: sudo chmod u-s /usr/local/bin/lsmon)', why: 'A setuid copy of a shell gives any local user an instant root shell.' },
       { id: 'rclocal', title: 'Persistence line removed from /etc/rc.local', pts: 6, cat: AREA.malware, test: () => !activeLines(FS.text('/etc/rc.local')).some(l => /sysupd/.test(l)), hint: 'cat /etc/rc.local; delete the /tmp/.sysupd line with sudo nano (then remove /tmp/.sysupd and kill the process).', fix: "sudo sed -i '/sysupd/d' /etc/rc.local && sudo rm -f /tmp/.sysupd && sudo pkill sysupd", why: 'rc.local runs as root at boot: the listener on 4444 returns after every reboot until this line is gone.' },
       { id: 'cron', title: 'Planted root cron job removed', pts: 5, cat: AREA.malware, test: () => { const sp = activeLines(FS.text('/var/spool/cron/crontabs/root')); const ct = activeLines(FS.text('/etc/crontab')); const cd = FS.list('/etc/cron.d').flatMap(f => activeLines(FS.text('/etc/cron.d/' + f))); return ![].concat(sp, ct, cd).some(l => /sysupd/.test(l)); }, hint: 'sudo crontab -l shows the job; sudo crontab -r removes root\'s crontab (or -e to edit the line out).', fix: 'sudo crontab -r', why: 'Cron restarts the backdoor every 10 minutes even after you kill it.' },
@@ -4768,10 +5129,12 @@ const SCENARIOS = [
     availability: [AVAIL.authUser(['moana', 'bkup', 'kai', 'lehua'], -6), AVAIL.authAdmin(['moana'], -5), AVAIL.svc('apache2', 'apache2', 'Apache (apache2)', -8), AVAIL.ssh(-8, 'The scenario brief calls SSH critical. On Ubuntu Server 24.04 ssh.socket (not ssh.service) holds port 22 and starts sshd on demand: stopping or disabling the socket, or leaving sshd_config broken, cuts the administrators off.'), AVAIL.svc('mysql', 'mysql-server', 'MySQL', -5), AVAIL.ufwBlocks(22, 'SSH', -5), AVAIL.ufwBlocks(80, 'web (Apache)', -4), AVAIL.self('labuser', -10)],
   },
 ];
+/* bump when a scenario's planted state changes: a saved lab from an older revision is rebuilt on load (its best score is kept) */
+const SCENARIO_REV = 2;
 function scenario() { return SCENARIOS.find(s => s.id === S.id) || SCENARIOS[0]; }
 function initialState(id) {
   const sc = SCENARIOS.find(s => s.id === id) || SCENARIOS[0];
-  S = { id: sc.id, flavor: sc.flavor, gui: sc.gui !== false, sockMode: !!sc.sshSocket, sshSock: null, hostname: sc.hostname, fs: {}, pkgs: {}, svc: {}, ufw: {}, sysctl: {}, procs: [], nextPid: 300, journal: [], updates: {}, power: 'off', login: { user: null }, sh: null, hist: {}, elapsed: 0, started: nowSec() };
+  S = { id: sc.id, rev: SCENARIO_REV, flavor: sc.flavor, gui: sc.gui !== false, sockMode: !!sc.sshSocket, sshSock: null, hostname: sc.hostname, fs: {}, pkgs: {}, svc: {}, ufw: {}, sysctl: {}, procs: [], nextPid: 300, journal: [], updates: {}, power: 'off', login: { user: null }, sh: null, hist: {}, elapsed: 0, started: nowSec() };
   buildBase(sc);
   // desktop files for the person working the lab
   const home = sc.studentHome; const u = U.user(sc.student.user);
@@ -4909,6 +5272,8 @@ function resetLab() {
   STORE.scenarios[id] = { S, best: (STORE.scenarios[id] || {}).best || 0 };
   persistNow(); M.boot(); evaluate(); updateToolbar();
 }
+/* a saved lab reloads only when it was built from the current scenario revision (older ones are rebuilt) */
+function savedFits(rec, id) { return !!(rec && rec.S && rec.S.fs && rec.S.id === id && rec.S.rev === SCENARIO_REV); }
 function switchScenario(id) {
   if (S && S.id === id) return;
   if (S) persistNow();
@@ -4916,11 +5281,12 @@ function switchScenario(id) {
   if (M.term) M.term.dead = true;
   hintOpen = {};
   const rec = STORE.scenarios[id];
-  if (rec && rec.S && rec.S.fs && rec.S.id === id) { S = rec.S; if (S.power === 'boot') S.power = 'login'; if (!S.journal) S.journal = []; }
-  else { initialState(id); STORE.scenarios[id] = { S, best: 0 }; }
+  const fits = savedFits(rec, id);
+  if (fits) { S = rec.S; if (S.power === 'boot') S.power = 'login'; if (!S.journal) S.journal = []; }
+  else { initialState(id); STORE.scenarios[id] = { S, best: (rec && rec.best) || 0 }; }
   STORE.current = id; persistNow();
   renderLevels(); updateToolbar(); evaluate();
-  if (S.power === 'off' && !(rec && rec.S)) M.boot(); else M.render();
+  if (S.power === 'off' && !fits) M.boot(); else M.render();
 }
 function renderLevels() {
   const box = $('.levels'); box.textContent = '';
@@ -4947,8 +5313,8 @@ function init() {
   const id = STORE.current && SCENARIOS.some(s => s.id === STORE.current) ? STORE.current : 'recruit';
   const rec = STORE.scenarios[id];
   let fresh = false;
-  if (rec && rec.S && rec.S.fs && rec.S.id === id) { S = rec.S; if (S.power === 'boot') S.power = 'login'; if (!S.journal) S.journal = []; if (!S.hist) S.hist = {}; }
-  else { initialState(id); STORE.scenarios[id] = { S, best: 0 }; fresh = true; }
+  if (savedFits(rec, id)) { S = rec.S; if (S.power === 'boot') S.power = 'login'; if (!S.journal) S.journal = []; if (!S.hist) S.hist = {}; }
+  else { initialState(id); STORE.scenarios[id] = { S, best: (rec && rec.best) || 0 }; fresh = true; }
   renderLevels(); updateToolbar(); evaluate();
   if (fresh || S.power === 'off') M.boot(); else M.render();
   setInterval(() => { if (!S) return; if (S.power !== 'off' && !document.hidden) { S.elapsed = (S.elapsed || 0) + 1; const t = $('.report .timer'); if (t) t.textContent = 'Elapsed ' + fmtElapsed(S.elapsed); if (S.elapsed % 15 === 0) persist(); } }, 1000);

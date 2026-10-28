@@ -44,52 +44,83 @@
   AREA: Account management (CIS Control 5)
   PS> Get-LocalUser | Select-Object Name,Enabled,PasswordRequired,LastLogon
   CMD> net user
+  PS> Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' | Select-Object EditionID,CurrentBuild
   GUI: Win+R, lusrmgr.msc (not available on Home)
   WHY: Unauthorized accounts are backdoors. Compare the list to the authorized
        users in the scenario brief.
-  NOTE: PasswordRequired False means the account is allowed a blank password:
-        set one and require it (net user <name> /passwordreq:yes). Windows 11
-        Home leaves out lusrmgr.msc and secpol.msc: use Settings, Accounts,
-        Other users, or netplwiz.
+  NOTE: PasswordRequired False only allows a blank password: accounts made by
+        Windows Setup often show False with a password in place, so set a
+        password and require it on each enabled account the brief keeps (net
+        user <name> * /passwordreq:yes). Control Panel, User Accounts, Manage
+        another account labels each account that has a password Password
+        protected. EditionID Core means Home (ProductName can still say Windows
+        10), and Home leaves out lusrmgr.msc and secpol.msc: use Settings,
+        Accounts, Other users, or netplwiz.
 
 [B-02] Remove an unauthorized user
   AREA: Account management (CIS Control 5)
+  PS> Get-ScheduledTask | Where-Object { $_.Principal.UserId -like '*baduser' } | Select-Object TaskPath,TaskName
+  PS> Get-CimInstance Win32_Service | Where-Object StartName -like '*baduser' | Select-Object Name,StartName,PathName
   PS> Remove-LocalUser -Name "baduser"
   CMD> net user baduser /delete
   CMD> net user baduser /active:no
   WHY: Deleting removes the login path and the profile's persistence hooks.
-  NOTE: Only accounts not in the brief. If the brief is unclear, disable first
-        (/active:no), ask the system owner, decide once.
+  NOTE: Remove only accounts missing from the brief. When the brief is unclear,
+        disable first (/active:no), ask the system owner, and decide once.
+        Answer every investigation question that names the account first, and
+        handle each task or service the first two lines show running as it.
+        Deleting the account keeps C:\Users\baduser: search it for evidence and
+        prohibited files before you remove the folder.
 
 [B-03] Audit the Administrators group
   AREA: Account management (CIS Control 5)
   PS> Get-LocalGroupMember -Group Administrators
   CMD> net localgroup Administrators
+  CMD> net localgroup "Backup Operators"
   CMD> net localgroup Administrators baduser /delete
   CMD> net localgroup Administrators alice /add
   WHY: An admin can switch off every other control. Least privilege is the
        single highest-value idea in system hardening.
   NOTE: Demote users the brief calls standard; promote only the listed admins.
+        Backup Operators, Remote Desktop Users, and Remote Management Users also
+        grant power where they exist, so compare each with the brief
+        (Get-LocalGroup lists every group). A demoted user who is signed in
+        keeps admin rights until signing out: Task Manager, Users, Sign out.
 
 [B-04] Disable Guest and the built-in Administrator
   AREA: Account management (CIS Control 5)
+  PS> Get-LocalUser | Where-Object { $_.SID -like '*-50[01]' } | Select-Object Name,Enabled,SID
+  CMD> whoami /user
   CMD> net user Guest /active:no
   CMD> net user Administrator /active:no
   WHY: Well-known accounts are well-known targets; attackers brute-force them by
-       name. Guest allows anonymous-style access.
+       name. Guest allows anonymous-style access. The built-in Administrator's
+       SID ends in -500 and Guest's in -501, so the first line finds both even
+       after a rename.
   NOTE: If the brief says you log in as Administrator, keep it enabled and give
-        it a strong password instead.
+        it a strong password instead. whoami /user shows your own SID: one
+        ending in -500 means you are signed in as the built-in Administrator.
+        Rename both accounts as a last step, and only when the brief or policy
+        asks (Rename-LocalUser -Name Administrator -NewName <new name>); the SID
+        stays, so disabling and a strong password carry the protection.
 
 [B-05] Strong passwords for every user
   AREA: Account management (CIS Control 5)
-  CMD> net user alice "Correct-Horse-Battery-2026!"
+  PS> Get-LocalUser | Select-Object Name,Enabled,PasswordLastSet,PasswordExpires
+  CMD> net user alice *
+  PS> Get-LocalUser | Where-Object { $_.Enabled -and $_.Name -ne $env:USERNAME } | Set-LocalUser -PasswordNeverExpires $false
   CMD> net user alice /logonpasswordchg:yes
-  PS> Get-LocalUser | ForEach-Object { Set-LocalUser -Name $_.Name -PasswordNeverExpires $false }
   WHY: Weak, shared, or blank passwords are the number one way in. Password
-       never expires defeats the aging policy you set next.
-  NOTE: Record every changed password somewhere safe (on paper, in a lab). Do
-        not change the password of the account you sign in with unless the brief
-        says so.
+       never expires defeats the aging policy, so clear it first and then ask
+       for a change at next logon. The * makes net user prompt for the password,
+       which keeps it out of the screen and the command history.
+  NOTE: Set the password policy first (B-06, B-07), so each new password must
+        meet it. Clearing Password never expires on an old password expires it
+        at once, so give the account a fresh password first; a service or task
+        that signs in with it needs the new one too. Change your own sign-in
+        account's password only when the brief says so. An administrator reset
+        locks the user out of files the user encrypted and of saved passwords.
+        Record every changed password somewhere safe (on paper, in a lab).
 
 [B-06] Password policy
   AREA: Account management (CIS Control 5)
@@ -100,13 +131,16 @@
        encryption' off.
   WHY: Length beats everything. Minimum age plus history stops the trick of
        cycling through 24 new passwords to reuse an old one. Reversible
-       encryption is plaintext in disguise.
+       encryption is plaintext in disguise. Turning reversible encryption off
+       protects new passwords only, so reset the passwords set while it was on.
   NOTE: The scenario brief sets the numbers; these commands show one sample
         brief. The CIS Benchmark asks for 14 or more characters, a history of
         24, a maximum age of 365 days or fewer (and above 0), and a minimum age
-        of 1 day. Complexity sits outside net accounts, so use secpol.msc (or
-        secedit at Hunter level). On Home edition, net accounts is all you have
-        for policy.
+        of 1 day. net accounts stops at 14 characters: a brief that asks for 15
+        or more needs Password Policy, Relax minimum password length limits =
+        Enabled, then the length in secpol.msc or secedit. Complexity sits
+        outside net accounts: use secpol.msc, or on any edition, Home included,
+        a secedit template with PasswordComplexity = 1 (Hunter A-01).
 
 [B-07] Account lockout policy
   AREA: Account management (CIS Control 5)
@@ -116,32 +150,49 @@
   NOTE: The scenario brief sets the numbers; these commands show one sample
         brief. The CIS Benchmark asks for a threshold of 5 or fewer (and above
         0), and a lockout duration and reset window of 15 minutes or more. A
-        threshold of 0 means never lock, which is a finding.
+        threshold of 0 means never lock, which is a finding. Lockout covers the
+        built-in Administrator only when Allow Administrator account lockout is
+        Enabled (AllowAdministratorLockout = 1 in a secedit template, Hunter
+        A-01); it then locks that account for network sign-ins such as Remote
+        Desktop, and console sign-in stays available.
 
 [B-08] Firewall on for all profiles
   AREA: Secure configuration (CIS Control 4)
   PS> Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled True
-  PS> Get-NetFirewallProfile | Select-Object Name,Enabled,DefaultInboundAction
+  PS> Get-NetFirewallProfile -PolicyStore ActiveStore | Select-Object Name,Enabled,DefaultInboundAction
   CMD> netsh advfirewall set allprofiles state on
   GUI: Settings, Privacy and security, Windows Security, Firewall and network
        protection.
   WHY: Default-deny inbound covers the service you have not found yet.
        Misconfigured machines often have exactly one profile off, usually
        Public.
-  NOTE: DefaultInboundAction should be Block. Allow-rule review is a Watchman
-        item.
+  NOTE: DefaultInboundAction should be Block. ActiveStore shows the values in
+        force, Group Policy included; the plain view shows NotConfigured for a
+        value left at its Windows default (Block for inbound). Allow-rule review
+        is a Watchman item.
 
 [B-09] Windows Update: run it and automate it
   AREA: Patching (CIS Control 7)
   GUI: Settings, Windows Update: Resume updates if paused, then Check for updates; Advanced options: receive updates for other Microsoft products
+  PS> Get-Service wuauserv,BITS,UsoSvc | Select-Object Name,Status,StartType
   PS> Set-Service -Name wuauserv -StartupType Automatic; Start-Service wuauserv
-  PS> Get-Service wuauserv | Select-Object Status,StartType
+  CMD> reg query HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate /s
   PS> Get-HotFix | Sort-Object InstalledOn -Descending | Select-Object -First 5
+  PS> winget upgrade
+  PS> winget upgrade --all --silent --accept-package-agreements --accept-source-agreements
   WHY: Patching closes the vulnerabilities scanners actually find. Two separate
        checks: updates applied now (Get-HotFix shows the newest install date),
-       and automatic updates left enabled.
-  NOTE: Start it first and let it run in the background. Save your work before
-        any reboot.
+       and automatic updates left enabled. Policy can stop updates while the
+       service runs: NoAutoUpdate 1 turns them off, and UseWUServer 1 sends
+       every check to the WUServer address instead of Microsoft. Windows Update
+       patches Windows and Microsoft apps; browsers and other apps update
+       through winget or their own updater.
+  NOTE: Start it first and let it run in the background; after each restart,
+        check again until Windows Update reports this device is up to date.
+        Manual is the shipped start type for wuauserv (it starts on demand), and
+        Disabled is the finding. Remove prohibited apps (B-11) before winget
+        upgrade --all, so it updates only what stays. Save your work before any
+        reboot.
 
 [B-10] Defender: real-time on, definitions current, scan
   AREA: Malware defenses (CIS Control 10)
@@ -149,17 +200,23 @@
   PS> Set-MpPreference -DisableRealtimeMonitoring $false
   PS> Update-MpSignature
   PS> Start-MpScan -ScanType QuickScan
+  PS> Start-MpScan -ScanType CustomScan -ScanPath C:\Users
+  PS> Get-MpThreatDetection | Select-Object InitialDetectionTime,ProcessName,Resources
   GUI: Windows Security, Virus and threat protection, Manage settings.
   WHY: Real-time protection is the baseline malware control. Neglected or
        compromised machines have it off, or carry exclusions that hide malware.
-  NOTE: If Tamper Protection blocks the cmdlet, flip it in the GUI.
+  NOTE: If Tamper Protection blocks the cmdlet, flip it in the GUI. Answer the
+        investigation questions before any scan, because a scan can quarantine
+        the very file a question asks about. Resources names each detected file:
+        record it, then remove the program that dropped it when the brief leaves
+        that program out.
 
 [B-11] Remove unapproved software
   AREA: Secure configuration: software (CIS Controls 2 and 4)
-  PS> Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*, HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | Select-Object DisplayName,DisplayVersion,Publisher | Sort-Object DisplayName
+  PS> Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*, HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*, Registry::HKEY_USERS\*\Software\Microsoft\Windows\CurrentVersion\Uninstall\* -ErrorAction SilentlyContinue | Select-Object DisplayName,DisplayVersion,Publisher,UninstallString | Sort-Object DisplayName
   GUI: Settings, Apps, Installed apps (or appwiz.cpl)
   PS> winget list
-  PS> winget uninstall --name "Wireshark"
+  PS> winget uninstall --id WiresharkFoundation.Wireshark --exact
   PS> Get-AppxPackage -AllUsers | Select-Object Name | Sort-Object Name
   PS> Get-AppxPackage -AllUsers *xbox* | Remove-AppxPackage -AllUsers
   WHY: Hacking tools, games, torrent clients, and remote-access tools are
@@ -167,26 +224,101 @@
   NOTE: Software the brief requires stays. The registry listing is instant;
         Win32_Product is slow and can trigger repairs. Store apps do not appear
         in the Uninstall registry key: list them with Get-AppxPackage.
+        HKEY_USERS adds apps installed for one signed-in user only. Capture
+        tools install Npcap as a program of its own: remove it too when the
+        brief leaves out packet capture. After removing a remote-access tool,
+        look for its leftover service (I-04) and firewall rule (I-12). Portable
+        tools appear only in a file search (B-12, A-06).
 
 [B-12] Find unapproved media and loose executables
   AREA: Data protection (CIS Control 3)
-  PS> Get-ChildItem -Path C:\Users -Recurse -Include *.mp3,*.mp4,*.wav,*.avi,*.mkv,*.flac,*.mov,*.m4a -ErrorAction SilentlyContinue | Select-Object FullName
-  PS> Get-ChildItem -Path C:\Users -Recurse -Include *.exe,*.bat,*.ps1,*.vbs -ErrorAction SilentlyContinue | Select-Object FullName
+  PS> Get-ChildItem -Path C:\Users -Recurse -Force -File -Include *.mp3,*.mp4,*.wav,*.avi,*.mkv,*.flac,*.mov,*.m4a,*.mpg,*.mpeg,*.ogg,*.flv,*.wma,*.aac -ErrorAction SilentlyContinue | Where-Object FullName -notmatch '\\AppData\\|^C:\\Users\\(All Users|Default User)\\' | Select-Object FullName
+  PS> Get-ChildItem -Path C:\Users -Recurse -Force -File -Include *.exe,*.bat,*.cmd,*.ps1,*.vbs,*.hta,*.py,*.jar,*.zip,*.7z,*.rar -ErrorAction SilentlyContinue | Where-Object FullName -notmatch '\\AppData\\Local\\(Microsoft|Packages)\\|^C:\\Users\\(All Users|Default User)\\' | Select-Object FullName,LastWriteTime
+  CMD> tar -tf "C:\Users\<user>\Downloads\<archive>.zip"
   WHY: Many acceptable-use policies ban personal media on work machines, and
        scripts sitting in user folders are often the planted backdoor.
-  NOTE: Confirm against the brief before deleting, and search C:\ too, not just
-        C:\Users.
+  NOTE: Confirm against the brief before deleting, and search C:\ too, beyond
+        C:\Users. -Force shows hidden files, and the filters skip app caches
+        under AppData and the All Users and Default User links. Answer every
+        investigation question that names a file first and record its hash
+        (B-14); then delete it and note the path in your change log. tar -tf
+        lists what a .zip holds before you delete it. Python and other runtimes
+        stay when the brief needs them.
 
 [B-13] Stop obviously unsafe services
   AREA: Secure configuration (CIS Control 4)
   PS> Get-Service -Name ftpsvc,TermService,RemoteRegistry,SNMP -ErrorAction SilentlyContinue | Select-Object Name,Status,StartType
   PS> Stop-Service -Name RemoteRegistry; Set-Service -Name RemoteRegistry -StartupType Disabled
   PS> Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server' -Name fDenyTSConnections -Value 1
+  PS> Get-NetFirewallRule -Group '@FirewallAPI.dll,-28752' -ErrorAction SilentlyContinue | Disable-NetFirewallRule
+  CMD> reg query "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services" /v fDenyTSConnections
+  PS> Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Remote Assistance' -Name fAllowToGetHelp -Value 0
+  PS> Get-NetFirewallRule -Group '@FirewallAPI.dll,-33002' -ErrorAction SilentlyContinue | Disable-NetFirewallRule
+  PS> Get-NetTCPConnection -State Listen -LocalPort 21,3389 -ErrorAction SilentlyContinue
   GUI: Settings, System, Remote Desktop: Off unless the brief requires it.
        services.msc for the rest: set Startup type to Disabled.
   WHY: Telnet and FTP leak credentials in cleartext. Remote Registry lets a
-       remote attacker edit the registry. RDP is a brute-force magnet.
-  NOTE: If the brief requires RDP, FTP, or SSH, harden it instead of killing it.
+       remote attacker edit the registry. RDP is a brute-force magnet. Remote
+       Assistance starts out allowed on Windows 11 and lets an invited helper
+       take over the desktop.
+  NOTE: If the brief requires RDP, FTP, or SSH, harden it instead of killing it
+        (I-11). Turning Remote Desktop off takes the setting plus its firewall
+        group; the @FirewallAPI names work in any display language, and Home
+        lacks the Remote Desktop group, so that line returns quietly there. A
+        fDenyTSConnections value under the Terminal Services policy key is Group
+        Policy and beats the Settings switch: 0 there forces Remote Desktop back
+        on, and an error that the value is missing is the good result. The last
+        line returns empty once FTP and Remote Desktop stop listening.
+
+[B-14] Hash a file for an investigation question
+  AREA: Investigation (forensics basics)
+  PS> Get-FileHash -LiteralPath 'C:\Users\<user>\Desktop\<file>' -Algorithm SHA256 | Format-List
+  CMD> certutil -hashfile "C:\Users\<user>\Desktop\<file>" SHA256
+  PS> Get-MpThreatDetection | Select-Object InitialDetectionTime,Resources
+  WHY: An investigation answer is the exact hex string for the exact algorithm
+       the question names. Hash the untouched file before any Defender scan,
+       cleanup, or move, because a changed or quarantined file gives a different
+       answer or vanishes.
+  NOTE: Hash lengths: MD5 32 hex characters, SHA1 40, SHA256 64, and the value
+        repeats on every run. -LiteralPath reads names with [ ] that -Path
+        skips, and quotes keep paths with spaces whole. certutil defaults to
+        SHA1, so name the algorithm. When opening the file reports a virus,
+        Defender has already quarantined it: Get-MpThreatDetection and Windows
+        Security, Protection history show the path and time to record.
+
+[B-15] Create the users and groups the brief lists
+  AREA: Account management (CIS Control 5)
+  PS> New-LocalUser -Name 'kekoa' -Password (Read-Host -AsSecureString 'Password')
+  CMD> net user kekoa * /add
+  CMD> net localgroup Accounting /add
+  CMD> net localgroup Accounting kekoa /add
+  PS> Get-LocalGroupMember -Group Accounting
+  WHY: A user or group the brief lists and the machine lacks leaves a person
+       unable to sign in or reach the files the job needs. Creating exactly what
+       the brief lists keeps the account list matching the source of truth.
+  NOTE: Create only the accounts and groups the brief lists, then add the
+        members it names, and read the result back. The * prompts for the
+        password, so it stays out of the command history; net user /add places
+        the account in Users. Security event 4720 records each new account.
+
+[B-16] Find files that store passwords
+  AREA: Data protection (CIS Control 3)
+  PS> Get-ChildItem -Path C:\Users -Recurse -Force -File -Include *.txt,*.csv,*.ini,*.xml,*.log,*.ps1,*.bat -ErrorAction SilentlyContinue | Where-Object FullName -notmatch '\\AppData\\Local\\|^C:\\Users\\(All Users|Default User)\\' | Select-String -Pattern 'passw(or)?d|pwd|credential' -List | Select-Object Path,LineNumber,Line
+  CMD> findstr /s /i /m /c:"password" C:\Users\*.txt C:\Users\*.csv C:\Users\*.ini
+  PS> Get-ChildItem -Path C:\Users\*\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt -Force -ErrorAction SilentlyContinue | Select-String -Pattern 'net user|ConvertTo-SecureString|passw' | Select-Object Path,Line
+  PS> Get-ChildItem -Path C:\Windows\Panther\Unattend.xml,C:\Windows\Panther\Unattend\Unattend.xml,C:\Windows\System32\Sysprep\unattend.xml -Force -ErrorAction SilentlyContinue | Select-String -Pattern '<Password>|AdministratorPassword' | Select-Object Path,LineNumber
+  CMD> cmdkey /list
+  WHY: A password saved in a note, a script, the PowerShell history, or a
+       leftover Windows Setup answer file hands an account to anyone who reads
+       it. Searching by content finds them under any file name.
+  NOTE: Answer any investigation question that names the file first and record
+        its hash (B-14); then remove the file or move it where the brief says,
+        and note the path in your change log. Review each hit, since license and
+        app files match too. An answer file's hidden password is only encoded,
+        so treat it as plain text. cmdkey /list shows the passwords Windows
+        saved for the signed-in user, such as TERMSRV/<host> for a Remote
+        Desktop sign-in; cmdkey /delete:<target> removes one the brief leaves
+        out, and each user reads only their own list.
 
 ------------------------------ WATCHMAN ----------------------------------------
  Check the windows. Policy, services, shares, scheduled tasks, startup items,
@@ -195,19 +327,27 @@
 --------------------------------------------------------------------------------
 [I-01] Audit policy: turn the lights on
   AREA: Audit logging (CIS Control 8)
+  CMD> wevtutil sl Security /ms:201326592
+  CMD> auditpol /backup /file:C:\Windows\Temp\audit-before.csv
   CMD> auditpol /set /category:* /success:enable /failure:enable
   CMD> auditpol /get /category:*
-  GUI: secpol.msc, Local Policies, Audit Policy, each set to Success and Failure
   WHY: Without auditing, Event Viewer has nothing to tell you or an
        investigator. Logon, account management, and policy change are the key
        ones.
-  NOTE: Fine-grained subcategories are a Hunter item.
+  NOTE: Use one route: auditpol here, or Advanced Audit Policy Configuration in
+        Group Policy, and leave secpol's basic Audit Policy node unset, because
+        Microsoft warns that mixing the two gives unexpected results; trust
+        auditpol /get. The wevtutil line raises the Security log to 192 MB
+        first, so the extra events keep older evidence, and auditpol /restore
+        /file:C:\Windows\Temp\audit-before.csv undoes the change. Fine-grained
+        subcategories, and trimming the noisiest ones, are a Hunter item (A-08).
 
 [I-02] Security Options in secpol.msc
   AREA: Secure configuration (CIS Control 4)
   GUI: secpol.msc, Local Policies, Security Options
       Accounts: Limit local account use of blank passwords to console logon only = Enabled
-      Interactive logon: Do not display last user name = Enabled
+      Devices: Prevent users from installing printer drivers = Enabled
+      Interactive logon: Don't display last signed-in = Enabled (older label: Do not display last user name)
       Interactive logon: Do not require CTRL+ALT+DEL = Disabled
       Network access: Do not allow anonymous enumeration of SAM accounts and shares = Enabled
       Network security: LAN Manager authentication level = Send NTLMv2 response only. Refuse LM & NTLM
@@ -220,7 +360,9 @@
        Check the level on older releases and mixed domains; Windows 11 24H2 and
        Windows Server 2025 remove NTLMv1.
   NOTE: Command-line equivalents live in the registry (Hunter A-02) or secedit
-        (Hunter A-01).
+        (Hunter A-01). With Do not require CTRL+ALT+DEL Disabled, a VM takes the
+        sequence from its window menu or shortcut (Ctrl+Alt+End in Hyper-V and
+        Remote Desktop).
 
 [I-03] UAC to Always notify
   AREA: Secure configuration (CIS Control 4)
@@ -228,6 +370,7 @@
   PS> Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name ConsentPromptBehaviorAdmin -Value 2 -Type DWord
   PS> Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name PromptOnSecureDesktop -Value 1 -Type DWord
   PS> Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name FilterAdministratorToken -Value 1 -Type DWord
+  PS> Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name ConsentPromptBehaviorUser -Value 0 -Type DWord
   GUI: Control Panel, User Accounts, Change User Account Control settings,
        slider to the top.
   WHY: UAC off means every process an admin runs gets full admin rights
@@ -237,17 +380,32 @@
        FilterAdministratorToken 1 puts the built-in Administrator account under
        UAC too.
   NOTE: Changing EnableLUA needs a reboot to fully apply.
+        ConsentPromptBehaviorUser 0 refuses elevation from a standard session,
+        so admins elevate from their own session; keep 3 (ask for credentials)
+        when the brief says helpdesk staff type an admin password at a user's
+        desk. A Security Options policy for these values replaces the slider at
+        the next refresh (gpresult /scope computer /v shows it). When
+        Administrator protection is on (TypeOfAdminApprovalMode 2, Version
+        notes), ConsentPromptBehaviorEnhancedAdmin decides the prompt.
 
 [I-04] Service audit: what runs, from where
   AREA: Secure configuration (CIS Control 4)
   PS> Get-CimInstance Win32_Service | Select-Object Name,State,StartMode,PathName | Sort-Object Name
   PS> Get-Service | Where-Object Status -eq Running | Sort-Object DisplayName
+  PS> Get-Service -Name EventLog,mpssvc,WinDefend | Select-Object Name,Status,StartType
+  PS> Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\SNMP\Parameters\ValidCommunities' -ErrorAction SilentlyContinue
   PS> Stop-Service -Name <name>; Set-Service -Name <name> -StartupType Disabled
   WHY: Look for Telnet, FTP, SNMP, SSDP and UPnP, Remote Registry, Xbox
        services, odd names, and any service whose PathName is under C:\Users or
-       C:\Temp. Those are planted.
+       C:\Temp. Those are planted. SNMP answers on 161/udp to anyone who knows a
+       community name, and public or private is a guess away.
   NOTE: Required services (IIS, DNS, DHCP, OpenSSH, MySQL, Apache) stay running;
-        harden their configs instead.
+        harden their configs instead. The event log, firewall (mpssvc), and
+        Defender (WinDefend) services read Running and Automatic; Stopped or
+        Disabled on any of them is a finding (WinDefend can sit stopped when the
+        brief names another antivirus). When the brief leaves SNMP out, remove
+        the feature: Remove-WindowsCapability -Online -Name
+        SNMP.Client~~~~0.0.1.0.
 
 [I-05] Optional features: SMBv1, Telnet client, TFTP, IIS
   AREA: Secure configuration (CIS Control 4)
@@ -255,29 +413,50 @@
   PS> Disable-WindowsOptionalFeature -Online -FeatureName SMB1Protocol -NoRestart
   PS> Set-SmbServerConfiguration -EnableSMB1Protocol $false -Force
   PS> Disable-WindowsOptionalFeature -Online -FeatureName TelnetClient -NoRestart
+  PS> Disable-WindowsOptionalFeature -Online -FeatureName SimpleTCP,Printing-Foundation-LPDPrintService -NoRestart
+  PS> Disable-WindowsOptionalFeature -Online -FeatureName IIS-FTPServer -NoRestart
   WHY: SMBv1 is EternalBlue and WannaCry. Telnet and TFTP clients are cleartext
-       tools that should not exist on a workstation.
-  NOTE: Remove IIS only if the brief does not require a web server.
+       tools that should not exist on a workstation. Simple TCP/IP services
+       (echo, daytime, chargen) answer anyone and can reflect traffic, and the
+       LPD service takes print jobs on 515.
+  NOTE: Remove IIS and its FTP server only when the brief leaves out a web or
+        FTP server. -NoRestart lets you batch the restart with the others.
 
 [I-06] Shares
   AREA: Access control (CIS Control 6)
   PS> Get-SmbShare
   CMD> net share
+  PS> Get-SmbShare | Where-Object { $_.Name -notmatch '^(ADMIN|IPC|PRINT|FAX)\$$' -and -not ($_.Name -match '^[A-Z]\$$' -and $_.Path -eq ($_.Name.Substring(0,1) + ':\')) } | Select-Object Name,Path,Description
   PS> Remove-SmbShare -Name "badshare" -Force
+  CMD> auditpol /set /subcategory:"File Share" /success:enable /failure:enable
   WHY: An unexpected share is a data exfiltration path. Check the ACLs on the
-       shares you must keep.
-  NOTE: ADMIN$, C$, and IPC$ are system defaults; leave them alone.
+       shares you must keep. Event 5142 names who added a share once File Share
+       auditing is on.
+  NOTE: ADMIN$, C$, and IPC$ are system defaults; leave them in place. The
+        filter line lists only added shares. A $ at the end of a name hides a
+        share from browsing and keeps it working: judge every $ share beyond
+        ADMIN$, IPC$, PRINT$, FAX$, and a drive letter that points at its own
+        drive root. A share on C:\Users or a profile folder exposes that user's
+        files.
 
 [I-07] Scheduled tasks
   AREA: Malware defenses (CIS Control 10)
-  PS> Get-ScheduledTask | Where-Object State -ne Disabled | Select-Object TaskName,TaskPath,State
+  PS> Get-ScheduledTask | Where-Object State -ne Disabled | Select-Object TaskPath,TaskName,State,Author,@{n='Run';e={($_.Actions | ForEach-Object { "$($_.Execute) $($_.Arguments)" }) -join '; '}},@{n='RunAs';e={$_.Principal.UserId}} | Format-Table -AutoSize -Wrap
   PS> (Get-ScheduledTask -TaskName "<name>").Actions | Select-Object Execute,Arguments
+  PS> Export-ScheduledTask -TaskPath '\' -TaskName '<name>' | Out-File -FilePath "$env:USERPROFILE\Desktop\<name>.xml"
   PS> Disable-ScheduledTask -TaskName "<name>" -TaskPath "\"
   PS> Unregister-ScheduledTask -TaskName "<name>" -Confirm:$false
   CMD> schtasks /query /fo LIST /v
+  CMD> auditpol /set /subcategory:"Other Object Access Events" /success:enable /failure:enable
+  PS> Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4698} | Format-List TimeCreated,Message
   WHY: Favorite persistence: a task that re-adds a user, re-opens a port, or
-       runs a script from a user folder every five minutes.
-  NOTE: Tasks under \Microsoft\Windows are mostly legit; focus on the root path.
+       runs a script from a user folder every five minutes. Event 4698 records
+       each new task with its full XML and the account that created it, once
+       Other Object Access Events auditing is on.
+  NOTE: Tasks under \Microsoft\Windows are mostly legit; focus on the root path,
+        and judge each task by the program it runs, since vendor updaters live
+        in the root folder too. Export a task before you remove it: the XML
+        keeps its action, account, and author for the investigation.
 
 [I-08] Startup items and Run keys
   AREA: Malware defenses (CIS Control 10)
@@ -300,32 +479,58 @@
 [I-10] Listening ports to process
   AREA: Secure configuration (CIS Control 4)
   CMD> netstat -abno
-  PS> Get-NetTCPConnection -State Listen | Select-Object LocalAddress,LocalPort,OwningProcess | Sort-Object LocalPort
+  PS> Get-NetTCPConnection -State Listen | Select-Object LocalAddress,LocalPort,OwningProcess,@{n='Path';e={(Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue).Path}} | Sort-Object LocalPort
+  PS> Get-NetUDPEndpoint | Select-Object LocalAddress,LocalPort,OwningProcess | Sort-Object LocalPort
   PS> Get-Process -Id <pid> | Select-Object Name,Path
   CMD> tasklist /svc
   WHY: A port you cannot explain is a backdoor; nc.exe listeners are the
        classic. Map port to PID to binary path to the service or task that
        starts it.
+  NOTE: PID 4 is System: file sharing (445) and web ports served by HTTP.sys
+        show it, and netsh http show servicestate names the program behind an
+        HTTP.sys port. Find what starts a listener (service, task, or Run key)
+        before you end it, or it returns at the next trigger.
 
 [I-11] Remote Desktop hardening when RDP is required
   AREA: Access control (CIS Control 6)
   PS> Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name UserAuthentication -Value 1
+  PS> Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name SecurityLayer -Value 2
+  PS> $ts='HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services'; if (-not (Test-Path $ts)) { New-Item -Path $ts -Force | Out-Null }
+  PS> foreach ($n in 'fDisableCdm','fDisablePNPRedir','fPromptForPassword','fEncryptRPCTraffic') { Set-ItemProperty -Path $ts -Name $n -Value 1 -Type DWord }
+  PS> Get-CimInstance -Namespace root\cimv2\TerminalServices -ClassName Win32_TSGeneralSetting | Select-Object TerminalName,UserAuthenticationRequired,PolicySourceUserAuthenticationRequired
   CMD> net localgroup "Remote Desktop Users"
-  PS> Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Remote Assistance' -Name fAllowToGetHelp -Value 0
+  PS> Get-LocalGroupMember -SID S-1-5-32-555
   PS> Set-NetFirewallRule -DisplayGroup "Remote Desktop" -RemoteAddress <admin subnet>
   WHY: Network Level Authentication forces a login before a session exists,
-       which kills pre-auth exploits. The Remote Desktop Users group is a
-       privilege list; audit it. Remote Assistance should be off. Scope the
+       which kills pre-auth exploits, and the TLS security layer (SecurityLayer
+       2) proves the server is the real one before anyone types a password.
+       Blocking drive and device redirection keeps a session from reading or
+       dropping files on the connecting PC, and prompting at every connection
+       defeats a password saved in an .rdp file. Administrators connect whenever
+       RDP is on, so the Remote Desktop Users group is the list of non-admins
+       the brief names; audit it. Remote Assistance stays off (B-13). Scope the
        Remote Desktop firewall rule to the admin subnet that the brief names, so
        only those addresses reach the port.
+  NOTE: The redirector service (UmRdpService) stays at Manual while RDP is in
+        use; the policy values do the blocking. PolicySource 1 in the read-back
+        means Group Policy decides NLA. SecurityLayer 2 uses a self-signed
+        certificate unless the brief supplies one, so the first connection shows
+        a certificate prompt. -SID S-1-5-32-555 names Remote Desktop Users in
+        any display language.
 
 [I-12] Firewall allow-rule review
   AREA: Secure configuration (CIS Control 4)
-  PS> Get-NetFirewallRule | Where-Object {$_.Enabled -eq 'True' -and $_.Direction -eq 'Inbound' -and $_.Action -eq 'Allow'} | Select-Object DisplayName,Profile | Sort-Object DisplayName
+  PS> Get-NetFirewallRule -PolicyStore ActiveStore | Where-Object {$_.Enabled -eq 'True' -and $_.Direction -eq 'Inbound' -and $_.Action -eq 'Allow'} | Select-Object DisplayName,Profile | Sort-Object DisplayName
+  PS> Get-NetFirewallRule -PolicyStore ActiveStore -Direction Outbound -Action Block -Enabled True | Select-Object DisplayName,Profile
   PS> Remove-NetFirewallRule -DisplayName "<suspicious rule>"
+  PS> New-NetFirewallRule -Name 'Allow-HTTP-In' -DisplayName 'Allow HTTP (TCP 80) in' -Direction Inbound -Protocol TCP -LocalPort 80 -Action Allow -RemoteAddress <brief subnet>
   PS> Set-NetFirewallProfile -All -DefaultInboundAction Block -NotifyOnListen True -LogBlocked True
   WHY: Firewall on means nothing if a rule allows the whole internet into
-       4444/tcp.
+       4444/tcp. An outbound block rule aimed at Defender or Windows Update
+       stops protection quietly. A rule for a required port names its port and
+       the subnet the brief gives, so only those addresses reach it.
+  NOTE: ActiveStore lists the rules in force, Group Policy rules included. -Name
+        gives a new rule a stable handle for Remove-NetFirewallRule -Name later.
 
 [I-13] Local Group Policy quick wins
   AREA: Secure configuration (CIS Control 4)
@@ -333,42 +538,84 @@
       Windows Components, Windows Update, Manage end user experience: Configure Automatic Updates = Enabled (4)
       Windows Components, AutoPlay Policies: Turn off AutoPlay = Enabled, All drives
       Windows Components, Microsoft Defender Antivirus: Turn off Microsoft Defender Antivirus = Disabled
+  CMD> reg query HKLM\SOFTWARE\Policies /s
   CMD> gpupdate /force
   WHY: Policy beats settings. A policy that turns Defender off re-disables it
        after you click it on in the GUI. When a setting will not stick, check
        policy.
+  NOTE: reg query HKLM\SOFTWARE\Policies /s lists every machine policy value at
+        once; a value that is absent means Not Configured. DisableAntiSpyware 1
+        under Windows Defender is the Turn off Microsoft Defender Antivirus
+        policy.
 
 [I-14] Event Viewer for investigations
   AREA: Investigation (forensics basics)
   GUI: eventvwr.msc, Windows Logs, Security
   PS> Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4720} | Format-List TimeCreated,Message
-      4624 logon OK, 4625 logon failed, 4720 user created, 4726 user deleted, 4732 added to local group, 4672 admin logon, 1102 log cleared, 7045 new service (System log)
+      4624 logon OK, 4625 logon failed, 4720 user created, 4726 user deleted, 4732 added to local group, 4672 admin logon, 1102 log cleared, 7045 new service (System log), 4697 service installed (Security log, names the installer once A-08 turns it on)
   WHY: Questions like who created the account on 3 October take one filter if
        you know a handful of event IDs.
 
 [I-15] Screen lock and sign-in requirements
   AREA: Secure configuration (CIS Control 4)
   GUI: Settings, Accounts, Sign-in options: If you've been away, when should Windows require you to sign in again = When PC wakes up from sleep
-  PS> Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name ScreenSaveActive -Value 1
-  PS> Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name ScreenSaverIsSecure -Value 1
-  PS> Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name ScreenSaveTimeOut -Value 600
+  CMD> powercfg /setacvalueindex SCHEME_CURRENT SUB_NONE CONSOLELOCK 1
+  CMD> powercfg /setdcvalueindex SCHEME_CURRENT SUB_NONE CONSOLELOCK 1
+  CMD> powercfg /setactive SCHEME_CURRENT
+  PS> New-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name SCRNSAVE.EXE -PropertyType String -Value 'C:\Windows\System32\scrnsave.scr' -Force
+  PS> New-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name ScreenSaveActive -PropertyType String -Value '1' -Force
+  PS> New-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name ScreenSaverIsSecure -PropertyType String -Value '1' -Force
+  PS> New-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name ScreenSaveTimeOut -PropertyType String -Value '600' -Force
+  PS> Get-CimInstance Win32_Desktop | Select-Object Name,ScreenSaverActive,ScreenSaverSecure,ScreenSaverTimeout
+  PS> Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name InactivityTimeoutSecs -Value 600 -Type DWord
   GUI: gpedit.msc, User Configuration, Administrative Templates, Control Panel, Personalization: Enable screen saver, Password protect the screen saver, Screen saver timeout 600
   WHY: An unlocked, unattended desktop is physical access, and physical access
        is everything. Ten minutes with a password is the usual policy number.
-  NOTE: The registry values are per user (HKCU); the policy applies to everyone.
+  NOTE: The Desktop values are text (REG_SZ) and per user (HKCU):
+        Set-ItemProperty on a missing value writes a number (DWORD) instead, so
+        New-ItemProperty -PropertyType String sets each one, and the lock needs
+        a screen saver chosen (SCRNSAVE.EXE). Win32_Desktop reads back each
+        profile. CONSOLELOCK is the command-line form of the sign-in-on-wake
+        setting and works on Home. InactivityTimeoutSecs takes effect after a
+        restart and locks every idle session, whoever signed in.
 
 [I-16] SmartScreen, reputation-based protection, memory integrity
   AREA: Malware defenses (CIS Control 10)
-  PS> New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' -Force | Out-Null
+  PS> if (-not (Test-Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System')) { New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' -Force | Out-Null }
   PS> Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' -Name EnableSmartScreen -Value 1 -Type DWord
+  PS> Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' -Name ShellSmartScreenLevel -Value Block -Type String
   GUI: Windows Security, App and browser control, Reputation-based protection: everything On
   GUI: Windows Security, Device security, Core isolation: Memory integrity On
   PS> Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity' -Name Enabled -Value 1 -Type DWord
   WHY: SmartScreen blocks known-bad downloads and installers before Defender
-       ever scans them. Memory integrity (HVCI) stops unsigned kernel drivers,
-       which is the rootkit class.
-  NOTE: Memory integrity may be unavailable inside a VM without nested
-        virtualization; the toggle just will not appear.
+       ever scans them; ShellSmartScreenLevel Block stops the click-through that
+       Warn allows. Memory integrity (HVCI) stops unsigned kernel drivers, which
+       is the rootkit class.
+  NOTE: The Test-Path guard keeps the other policies in the System key, which
+        New-Item -Force would erase. Memory integrity may be unavailable inside
+        a VM without nested virtualization; the toggle just will not appear.
+
+[I-17] Browsers: updated and protected by policy
+  AREA: Malware defenses (CIS Control 10)
+  CMD> reg query HKLM\SOFTWARE\Policies\Mozilla\Firefox /s
+  CMD> reg query HKCU\SOFTWARE\Policies\Mozilla\Firefox /s
+  CMD> reg query HKLM\SOFTWARE\Policies\Microsoft\Edge /s
+  CMD> reg query HKLM\SOFTWARE\Policies\Google\Chrome /s
+  CMD> reg add HKLM\SOFTWARE\Policies\Google\Chrome /v SafeBrowsingProtectionLevel /t REG_DWORD /d 1 /f
+  CMD> reg add HKLM\SOFTWARE\Policies\Google\Chrome /v HttpsOnlyMode /t REG_SZ /d force_enabled /f
+  GUI: Firefox, Settings, Privacy & Security: Block dangerous and deceptive content On (with dangerous downloads and unwanted software), HTTPS-Only Mode in all windows, Block pop-up windows On, Warn you when websites try to install add-ons On
+  GUI: about:policies (Firefox), chrome://policy (Chrome), and edge://policy (Edge) show every policy in force; about:addons, chrome://extensions, and edge://extensions list extensions to compare with the brief
+  WHY: Most attacks reach a workstation through the browser. A planted policy
+       value can switch Safe Browsing off or force an extension, and policy wins
+       over the settings page, so read the policy keys first. Safe Browsing
+       blocks known-bad sites and downloads, and HTTPS-Only keeps sign-ins off
+       plain HTTP.
+  NOTE: Update each browser first (B-09). Firefox can also take policy from a
+        policies.json file in the distribution folder of its install folder;
+        about:policies shows which source applies. A site the brief requires on
+        plain HTTP needs an exception before HTTPS-Only: HttpAllowlist in
+        Chrome, Manage Exceptions in Firefox. Current Firefox replaced Do Not
+        Track with Global Privacy Control.
 
 ------------------------------ HUNTER ------------------------------------------
  Hunt and harden. Baselines from the command line, registry hardening against
@@ -379,12 +626,16 @@
 [A-01] Security policy as a file: secedit
   AREA: Secure configuration (CIS Control 4)
   CMD> secedit /export /cfg C:\Temp\secpol.cfg
-      [System Access] MinimumPasswordAge = 1, MaximumPasswordAge = 60, MinimumPasswordLength = 12, PasswordComplexity = 1, PasswordHistorySize = 24, LockoutBadCount = 5, ResetLockoutCount = 30, LockoutDuration = 30, ClearTextPassword = 0, EnableGuestAccount = 0
+      [System Access] MinimumPasswordAge = 1, MaximumPasswordAge = 60, MinimumPasswordLength = 12, PasswordComplexity = 1, PasswordHistorySize = 24, LockoutBadCount = 5, ResetLockoutCount = 30, LockoutDuration = 30, AllowAdministratorLockout = 1, ClearTextPassword = 0, EnableGuestAccount = 0
   CMD> secedit /configure /db C:\Windows\security\local.sdb /cfg C:\Temp\secpol.cfg /areas SECURITYPOLICY
   CMD> secedit /analyze /db C:\Windows\security\local.sdb /cfg C:\Temp\secpol.cfg
   WHY: One file, every account policy, repeatable and auditable, and the only
        command-line path to complexity and reversible encryption.
-  NOTE: A typo in the .cfg is silently ignored. Verify with net accounts.
+  NOTE: A typo in the .cfg is silently ignored. Verify with net accounts. Before
+        /configure, keep only the [Unicode], [Version], and [System Access]
+        sections, so the run changes the password and lockout lines and leaves
+        audit policy and registry values as they are. secedit ships on Home too,
+        so this is the command-line route to complexity on every edition.
 
 [A-02] LSA and anonymous-access registry hardening
   AREA: Secure configuration (CIS Control 4)
@@ -395,28 +646,54 @@
   PS> Set-ItemProperty -Path $lsa -Name NoLMHash -Value 1 -Type DWord
   PS> Set-ItemProperty -Path $lsa -Name LmCompatibilityLevel -Value 5 -Type DWord
   PS> Set-ItemProperty -Path $lsa -Name EveryoneIncludesAnonymous -Value 0 -Type DWord
+  PS> Set-ItemProperty -Path $lsa -Name ForceGuest -Value 0 -Type DWord
+  PS> Set-ItemProperty -Path $lsa -Name RestrictRemoteSAM -Value 'O:BAG:BAD:(A;;RC;;;BA)' -Type String
+  PS> Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0' -Name allownullsessionfallback -Value 0 -Type DWord
+  PS> Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0' -Name NTLMMinClientSec -Value 537395200 -Type DWord
+  PS> Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0' -Name NTLMMinServerSec -Value 537395200 -Type DWord
+  PS> Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name LocalAccountTokenFilterPolicy -ErrorAction SilentlyContinue
+  PS> Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name LocalAccountTokenFilterPolicy
   WHY: Null-session enumeration (RestrictAnonymous), LM hash storage that cracks
        in seconds (NoLMHash), and NTLMv1 downgrade (LmCompatibilityLevel 5).
        Check the level on older releases and mixed domains; Windows 11 24H2 and
-       Windows Server 2025 remove NTLMv1.
-  NOTE: This is the registry form of the Watchman Security Options.
+       Windows Server 2025 remove NTLMv1. ForceGuest 0 (Classic) keeps local
+       users signing in over the network as themselves, and RestrictRemoteSAM
+       limits remote SAM queries to Administrators. NULL session fallback 0 and
+       NTLM minimum session security 537395200 (NTLMv2 session security plus
+       128-bit encryption) close the last NTLM downgrades.
+       LocalAccountTokenFilterPolicy 1 gives every local administrator a full
+       token over C$ and ADMIN$ from the network, the pass-the-hash road;
+       removing it keeps remote local admins filtered.
+  NOTE: This is the registry form of the Watchman Security Options. A missing
+        LocalAccountTokenFilterPolicy is the good result. MSV1_0 and the System
+        key exist on every install, so Set-ItemProperty writes into them
+        directly.
 
 [A-03] Credential-theft hardening: LLMNR, NetBIOS, WDigest
   AREA: Secure configuration (CIS Control 4)
-  PS> New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient' -Force | Out-Null
+  PS> if (-not (Test-Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient')) { New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient' -Force | Out-Null }
   PS> Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient' -Name EnableMulticast -Value 0 -Type DWord
   PS> Get-CimInstance Win32_NetworkAdapterConfiguration -Filter "IPEnabled=TRUE" | Invoke-CimMethod -MethodName SetTcpipNetbios -Arguments @{TcpipNetbiosOptions=2}
   PS> Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest' -Name UseLogonCredential -Value 0 -Type DWord
   WHY: LLMNR and NBT-NS are what Responder poisons to collect NTLMv2 hashes for
        cracking or relay. WDigest set to 1 keeps plaintext passwords in LSASS
        memory for mimikatz.
+  NOTE: The Test-Path guard creates the key only when it is missing, so DNS
+        client policies already in it stay (A-04 explains why).
 
 [A-04] AutoRun and AutoPlay off everywhere
   AREA: Malware defenses (CIS Control 10)
-  PS> New-Item -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' -Force | Out-Null
+  PS> if (-not (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer')) { New-Item -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' -Force | Out-Null }
   PS> Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' -Name NoDriveTypeAutoRun -Value 255 -Type DWord
   PS> Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' -Name NoAutorun -Value 1 -Type DWord
+  CMD> reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer /v NoAutoplayfornonVolume /t REG_DWORD /d 1 /f
   WHY: USB-drop attacks. Conficker-era, still a CIS and STIG requirement.
+       NoAutoplayfornonVolume covers phones and cameras, which the drive-type
+       value leaves out.
+  NOTE: This Explorer key already holds other policies on a stock install. The
+        Test-Path guard creates the key only when it is missing; New-Item -Force
+        on an existing key deletes every value in it. reg add also keeps the
+        values already there.
 
 [A-05] User Rights Assignment
   AREA: Access control (CIS Control 6)
@@ -426,10 +703,27 @@
       Deny access to this computer from the network = Guest
       Debug programs = empty, or Administrators only
       Act as part of the operating system = empty
+      Back up files and directories, Restore files and directories, Take ownership of files or other objects = Administrators
+      Manage auditing and security log = Administrators
+      Change the system time = Administrators, LOCAL SERVICE
       Allow log on locally = Administrators, Users
+  CMD> secedit /export /cfg C:\Windows\Temp\ura.inf /areas USER_RIGHTS
+  PS> Select-String -Path C:\Windows\Temp\ura.inf -Pattern 'SeDebugPrivilege|SeTcbPrivilege|SeNetworkLogonRight|SeBackupPrivilege|SeSecurityPrivilege'
   CMD> whoami /priv
-  WHY: Debug programs means read LSASS means dump every password. Rights are
-       privileges that bypass ACLs, and attackers plant extra principals here.
+  WHY: Debug programs means read LSASS means dump every password. Back up files
+       and directories reads the SAM hive, Restore and Take ownership rewrite
+       any file, and Manage auditing and security log can clear the Security log
+       (event 1102). Rights are privileges that bypass ACLs, and attackers plant
+       extra principals here.
+  NOTE: The export lists holders as SIDs: *S-1-5-32-544 is Administrators,
+        *S-1-5-32-545 Users, and *S-1-5-11 Authenticated Users; a SID that
+        resolves to an unknown account belongs to a deleted or planted one. To
+        set a right from the command line, put the line in a [Privilege Rights]
+        template, such as SeDebugPrivilege = *S-1-5-32-544 (an empty value
+        empties the right), and apply it as in A-01 with /areas USER_RIGHTS; it
+        takes effect at the holder's next sign-in. LOCAL SERVICE, NETWORK
+        SERVICE, and SERVICE keep the rights they hold by default: remove only
+        user and group accounts. Rights changes write events 4704 and 4705.
 
 [A-06] Deep persistence and backdoor hunt
   AREA: Malware defenses (CIS Control 10)
@@ -439,15 +733,25 @@
   PS> Get-CimInstance -Namespace root\subscription -ClassName __EventConsumer
   PS> Get-CimInstance -Namespace root\subscription -ClassName __FilterToConsumerBinding
   PS> $PROFILE | Select-Object *; Get-Content $PROFILE.AllUsersAllHosts -ErrorAction SilentlyContinue
+  PS> Get-ChildItem -Path C:\Users,C:\ProgramData,C:\Windows\Temp -Recurse -Force -File -Include *.exe,*.dll,*.scr -ErrorAction SilentlyContinue | Where-Object FullName -notmatch '^C:\\Users\\(All Users|Default User)\\' | Get-AuthenticodeSignature | Where-Object Status -ne 'Valid' | Select-Object Path,Status
+  PS> Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree' -Recurse | Where-Object { -not $_.GetValue('SD') -and $_.GetValue('Id') } | Select-Object Name
+  CMD> wevtutil sl Microsoft-Windows-TaskScheduler/Operational /e:true
   CMD> autorunsc.exe -accepteula -a * -c -nobanner   (Sysinternals, public)
   WHY: WMI event subscriptions and PowerShell profiles are the persistence spots
-       checklists miss. Autoruns shows every auto-start location at once.
+       checklists miss. Autoruns shows every auto-start location at once. A
+       renamed hacking tool keeps its missing or broken signature, and a task
+       whose SD value was deleted vanishes from Get-ScheduledTask and schtasks
+       while it still runs.
   NOTE: Download Sysinternals tools only from Microsoft
         (learn.microsoft.com/sysinternals), and only where policy allows
-        third-party tools on the machine.
+        third-party tools on the machine. An unsigned program in Users,
+        ProgramData, or Temp is a lead to check against the brief and the
+        publisher, since plenty of legitimate tools ship unsigned. The wevtutil
+        line turns on Task Scheduler history, which starts off.
 
 [A-07] NTFS permissions
   AREA: Access control (CIS Control 6)
+  CMD> icacls "C:\CompanyData" /save C:\Windows\Temp\acl.txt /t /c
   CMD> icacls "C:\CompanyData"
   CMD> icacls "C:\CompanyData" /inheritance:r /grant:r "Administrators:(OI)(CI)F" "Users:(OI)(CI)RX" /t
   CMD> icacls "C:\CompanyData" /remove:g Everyone /t
@@ -456,25 +760,58 @@
        anyone can replace a binary that a service runs as SYSTEM. (OI) object
        inherit, (CI) container inherit, /t recurse, /inheritance:r stop
        inheriting.
+  NOTE: Save first: icacls C:\ /restore C:\Windows\Temp\acl.txt puts the saved
+        ACLs back (restore runs from the parent folder). *S-1-1-0 (Everyone) and
+        *S-1-5-11 (Authenticated Users) work in place of the names in any
+        display language, as in /remove:g *S-1-1-0. A folder made at the root of
+        C: inherits Authenticated Users Modify, so read it before you trust it.
 
 [A-08] Fine-grained auditing and PowerShell logging
   AREA: Audit logging (CIS Control 8)
+  CMD> auditpol /set /subcategory:"Credential Validation" /success:enable /failure:enable
   CMD> auditpol /set /subcategory:"Logon" /success:enable /failure:enable
-  CMD> auditpol /set /subcategory:"Account Lockout" /success:enable /failure:enable
+  CMD> auditpol /set /subcategory:"Account Lockout" /failure:enable
   CMD> auditpol /set /subcategory:"User Account Management" /success:enable /failure:enable
-  CMD> auditpol /set /subcategory:"Security Group Management" /success:enable /failure:enable
+  CMD> auditpol /set /subcategory:"Security Group Management" /success:enable
   CMD> auditpol /set /subcategory:"Process Creation" /success:enable
+  CMD> reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit" /v ProcessCreationIncludeCmdLine_Enabled /t REG_DWORD /d 1 /f
+  CMD> auditpol /set /subcategory:"Security System Extension" /success:enable
   CMD> auditpol /set /subcategory:"Audit Policy Change" /success:enable /failure:enable
-  PS> New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging' -Force | Out-Null
+  CMD> auditpol /set /subcategory:"Filtering Platform Connection" /success:disable /failure:disable
+  CMD> reg add HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v SCENoApplyLegacyAuditPolicy /t REG_DWORD /d 1 /f
+  PS> if (-not (Test-Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging')) { New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging' -Force | Out-Null }
   PS> Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging' -Name EnableScriptBlockLogging -Value 1 -Type DWord
-  WHY: Subcategory auditing overrides the legacy nine categories. Script Block
-       Logging (event 4104) records what every PowerShell script actually did,
-       including the attacker's.
+  PS> Get-WinEvent -FilterHashtable @{LogName='Microsoft-Windows-PowerShell/Operational'; Id=4104} -MaxEvents 3 | Format-List TimeCreated,Message
+  CMD> auditpol /get /category:*
+  WHY: Subcategory settings take precedence over the nine legacy categories once
+       Audit: Force audit policy subcategory settings is Enabled
+       (SCENoApplyLegacyAuditPolicy 1). Credential Validation writes 4776 for
+       every local-account password check, so a guessing run shows beside 4625.
+       The command-line value fills the Process Command Line field of every
+       4688. Security System Extension writes 4697, which names who installed a
+       service. Script Block Logging (event 4104) records what every PowerShell
+       script actually did, including the attacker's.
+  NOTE: Run it after I-01: a category-wide command rewrites every subcategory in
+        its category. Account Lockout has Failure events only (the lockout
+        itself, 4740, comes from User Account Management), and Security Group
+        Management has Success events only. Filtering Platform Connection floods
+        the log after a category-wide run; turn it back on when the brief asks
+        for connection auditing. auditpol names drop the Audit prefix that
+        secpol shows, and each subcategory also takes a GUID that works in any
+        display language, such as {0CCE923F-69AE-11D9-BED3-505054503030} for
+        Credential Validation. On a domain, a GPO that defines advanced auditing
+        re-applies its list at each refresh, so set the values there. PowerShell
+        7 reads its own key,
+        HKLM:\SOFTWARE\Policies\Microsoft\PowerShellCore\ScriptBlockLogging, and
+        logs to PowerShellCore/Operational.
 
 [A-09] Defender beyond on: exclusions, PUA, cloud, ASR
   AREA: Malware defenses (CIS Control 10)
   PS> Get-MpPreference | Select-Object ExclusionPath,ExclusionProcess,ExclusionExtension
   PS> Remove-MpPreference -ExclusionPath "C:\evil"
+  CMD> reg query "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Exclusions" /s
+  PS> Get-MpPreference | Select-Object ThreatIDDefaultAction_Ids,ThreatIDDefaultAction_Actions
+  PS> Remove-MpPreference -ThreatIDDefaultAction_Ids <id>
   PS> Set-MpPreference -PUAProtection Enabled -MAPSReporting Advanced -SubmitSamplesConsent SendAllSamples
   PS> Add-MpPreference -AttackSurfaceReductionRules_Ids 9e6c4e1f-7d60-472f-ba1a-a39ef669e4b2 -AttackSurfaceReductionRules_Actions Enabled
   PS> Get-MpThreatDetection | Select-Object DomainUser,ProcessName,InitialDetectionTime
@@ -482,7 +819,12 @@
   WHY: Attackers rarely turn Defender off, too obvious. They exclude their
        folder. PUA protection catches junkware; the LSASS rule blocks the
        mimikatz class of attacks. Controlled folder access stops ransomware from
-       rewriting Documents; network protection blocks known-bad domains.
+       rewriting Documents; network protection blocks known-bad domains. A
+       ThreatIDDefaultAction of 6 means Allow: Defender lets that one threat
+       run, a hiding place beside exclusions.
+  NOTE: An exclusion set by policy returns after Remove-MpPreference: set the
+        policy to Not Configured in gpedit.msc (or delete the value under the
+        policy key) first, then remove the local one.
 
 [A-10] Optional capabilities: OpenSSH Server and friends
   AREA: Secure configuration (CIS Control 4)
@@ -501,6 +843,7 @@
   AREA: Secure configuration (CIS Control 4)
   PS> Set-SmbServerConfiguration -RequireSecuritySignature $true -EncryptData $true -Force
   PS> Set-SmbClientConfiguration -RequireSecuritySignature $true -Force
+  PS> Set-SmbClientConfiguration -EnableInsecureGuestLogons $false -Force
   PS> Get-SmbServerConfiguration | Select-Object EnableSMB1Protocol,RequireSecuritySignature,EncryptData
   PS> Get-SmbClientConfiguration | Select-Object RequireSecuritySignature,EnableInsecureGuestLogons
   WHY: Required signing kills NTLM relay, the attack that turns one weak host
@@ -508,7 +851,9 @@
   NOTE: Read the current values before assuming: defaults differ by release and
         edition (see Version notes). RequireSecuritySignature False or
         EnableInsecureGuestLogons True on a Pro or Enterprise machine is a
-        finding to explain.
+        finding to explain. Home edition accepts insecure guest logons by
+        default, so a fake file server can hand this PC files without any
+        sign-in; set it to False unless the brief names a guest-only NAS.
 
 [A-12] Verify, document, re-check
   CMD> gpresult /r
@@ -523,13 +868,31 @@
 
 [A-13] Version notes: Windows 11 26H2
       This page targets Windows 11 26H2 (the 24H2 core). Several defaults changed in recent releases: read the current value instead of assuming.
-      Account lockout: installs since 22H2 apply a lockout policy at setup (KB5020282; Microsoft recommends 10 attempts and 10 minutes), so Lockout threshold Never means someone turned it off
+      Account lockout: new installs of 22H2 and later can start with a lockout policy and Allow Administrator account lockout already set (KB5020282 recommends 10 attempts, 10 minutes, and 10 minutes); upgraded machines and machines patched after setup can start at Never, so read net accounts and set the brief's values either way
       SMB: since 24H2, Pro, Enterprise, and Education require SMB signing in both directions, and Pro blocks insecure guest logons; Home edition leaves signing optional
+      Administrator protection (Windows 11 only): TypeOfAdminApprovalMode 2 gives each elevation a separate, temporary admin token; it starts off, needs a restart, and while it is on, ConsentPromptBehaviorEnhancedAdmin decides the prompt (I-03)
       Removed since 24H2: Microsoft Defender Application Guard (and its WDAGUtilityAccount), WMIC (use Get-CimInstance), Windows PowerShell 2.0, NTLMv1
       Home edition: leaves out lusrmgr.msc, secpol.msc, and gpedit.msc; use Settings, net user, or net accounts
   WHY: Every other item on this page is written to hold across releases; what
        changed lives here, so a normal default is not mistaken for a finding and
        a changed default is not mistaken for a fix.
+
+[A-14] Windows Installer: AlwaysInstallElevated off
+  AREA: Access control (CIS Control 6)
+  CMD> reg query HKLM\SOFTWARE\Policies\Microsoft\Windows\Installer
+  CMD> reg query HKCU\SOFTWARE\Policies\Microsoft\Windows\Installer
+  CMD> reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\Installer /v AlwaysInstallElevated /t REG_DWORD /d 0 /f
+  CMD> reg add HKCU\SOFTWARE\Policies\Microsoft\Windows\Installer /v AlwaysInstallElevated /t REG_DWORD /d 0 /f
+  CMD> reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\Installer /v EnableUserControl /t REG_DWORD /d 0 /f
+  GUI: gpedit.msc, Computer Configuration and User Configuration, Administrative Templates, Windows Components, Windows Installer: Always install with elevated privileges = Disabled
+  WHY: When AlwaysInstallElevated is 1 in both HKLM and HKCU, Windows Installer
+       runs any user's .msi as SYSTEM, a one-step privilege escalation that
+       Microsoft strongly discourages. EnableUserControl 0 keeps install options
+       in administrators' hands.
+  NOTE: HKCU covers only the signed-in user: check each profile the brief keeps
+        by signing in as that user, or read
+        HKEY_USERS\<SID>\SOFTWARE\Policies\Microsoft\Windows\Installer. reg add
+        creates a missing key and keeps the values already in it.
 
 ------------------------------ FIX OR BREAK? (practice cards) ------------------
   Brief: Authorized administrators: alice. Authorized users: bob, carol.
@@ -613,6 +976,14 @@
                      confirm its support first (a firmware update often adds
                      it), then require signing.
 
+  Brief: Staff clock in at http://timeclock.honua.example, a required site that
+         has only plain HTTP.
+  Action: Force HTTPS-Only in every browser for every site, the time clock
+          included.
+  Call: CHECK FIRST. HTTPS-Only would block the required time clock. Add the
+                     host as an exception first (HttpAllowlist in Chrome, Manage
+                     Exceptions in Firefox), then force it for everything else.
+
 ------------------------------ SPOT THE FINDING (output snippets) --------------
   Output of net accounts. Tap the line that is the finding.
      Minimum password length:                 12
@@ -692,6 +1063,45 @@
   WHY: LmCompatibilityLevel 0 sends LM and NTLMv1 responses, which crack in
        minutes. Set it to 5. Check the level on older releases and mixed
        domains; Windows 11 24H2 and Windows Server 2025 remove NTLMv1.
+
+  reg query of the Windows Update policy keys. The brief says this PC updates straight from Microsoft. Tap the finding.
+     NoAutoUpdate          REG_DWORD    0x0
+     AUOptions             REG_DWORD    0x4
+  >> UseWUServer           REG_DWORD    0x1
+     ScheduledInstallDay   REG_DWORD    0x0
+  WHY: UseWUServer 1 sends every update check to the WUServer address instead of
+       Microsoft, while the brief says updates come straight from Microsoft, so
+       updates stop while the service runs. Delete UseWUServer and WUServer from
+       the policy keys, then check for updates.
+
+  net share output. Tap the finding.
+     C$        C:\            Default share
+     IPC$                      Remote IPC
+     ADMIN$    C:\Windows     Remote Admin
+  >> tools$    C:\Users\Public\tools
+  WHY: A $ hides a share from browsing and keeps it reachable. tools$ is an
+       added share on a folder every user can write to: record it, then
+       Remove-SmbShare -Name tools$ -Force when the brief leaves it out. The
+       other three are the defaults.
+
+  reg query HKLM\SOFTWARE\Policies /s, a few lines. Tap the finding.
+     ...\Windows\WindowsUpdate\AU    AUOptions            REG_DWORD    0x4
+  >> ...\Windows Defender            DisableAntiSpyware   REG_DWORD    0x1
+     ...\Windows\WindowsUpdate\AU    NoAutoUpdate         REG_DWORD    0x0
+     ...\Windows\System             EnableSmartScreen    REG_DWORD    0x1
+  WHY: DisableAntiSpyware 1 is the Turn off Microsoft Defender Antivirus policy,
+       and it re-applies at every refresh. Set that policy to Disabled or Not
+       Configured in gpedit.msc, run gpupdate /force, and confirm with
+       Get-MpComputerStatus.
+
+  Get-MpPreference output. Tap the finding.
+     PUAProtection                  : 1
+     ThreatIDDefaultAction_Ids      : {2147519003}
+  >> ThreatIDDefaultAction_Actions  : {6}
+     DisableRealtimeMonitoring      : False
+  WHY: Action 6 is Allow: Defender lets that threat ID run untouched.
+       Remove-MpPreference -ThreatIDDefaultAction_Ids 2147519003, check the
+       policy key for the same override, then scan.
 
 ------------------------------ OFFICIAL SOURCES --------------------------------
   Microsoft security baselines

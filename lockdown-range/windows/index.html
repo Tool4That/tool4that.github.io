@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/kne4ZO8GycyhmSHmDn5kpwpqzILyG927GNiHigt4Mk='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-J9xYRQay9b/OqsUogWjAVJDBAlmdHWkAP21Sr0dXlcU='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/lockdown-range/windows/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%96%A5%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -950,6 +950,10 @@ function baseFeatures(edition) {
   else f.push(feat('Containers-DisposableClientVM', 'Windows Sandbox', false), feat('Microsoft-Windows-Subsystem-Linux', 'Windows Subsystem for Linux', false), feat('VirtualMachinePlatform', 'Virtual Machine Platform', false));
   return f;
 }
+/* ---------- file shares (net share, Get-SmbShare, Computer Management > Shared Folders) ---------- */
+function defaultShares(edition) { const s = [{ name: 'C$', path: 'C:\\', remark: 'Default share', special: true }, { name: 'IPC$', path: '', remark: 'Remote IPC', special: true }, { name: 'ADMIN$', path: 'C:\\Windows', remark: 'Remote Admin', special: true }]; if (edition === 'server') s.push({ name: 'HR', path: 'C:\\Shares\\HR', remark: '' }, { name: 'Ops', path: 'C:\\Shares\\Ops', remark: '' }); return s; }
+// older saves gain the default list on first use
+function shareList() { if (!S.shares) S.shares = defaultShares(S.edition); return S.shares; }
 function featFind(id, list) {
   list = list || S.features;
   for (const f of list) { if (f.id === id) return f; const k = featFind(id, f.kids); if (k) return k; }
@@ -1190,6 +1194,8 @@ function syncFeatureServices() {
 function setFeature(id, on) {
   const f = featFind(id); if (!f) return;
   const setAll = (n, v) => { n.on = v; n.kids.forEach(k => setAll(k, v)); };
+  // turning a feature back on restores its payload (Uninstall-WindowsFeature -Remove marked it removed)
+  if (on) { const keep = n => { delete n.removed; n.kids.forEach(keep); }; keep(f); }
   if (on) { f.on = true; if (f.kids.length && !f.kids.some(k => k.on)) f.kids.forEach(k => { if (!k.optional) k.on = true; }); }
   else setAll(f, false);
   // parents: on if any kid on
@@ -1735,6 +1741,8 @@ function setPhase(phase) {
 function bootMachine(o) {
   o = o || {};
   UI.uacGranted = false;
+  // Windows recreates ADMIN$, C$, and IPC$ at start-up
+  if (S && S.shares) defaultShares(S.edition).filter(d => d.special).forEach(d => { if (!S.shares.some(x => sameName(x.name, d.name))) S.shares.push(d); });
   setPhase('boot');
   setTimeout(() => { if (UI.phase === 'boot') setPhase('lock'); }, o.fast ? 400 : 1600);
 }
@@ -2414,6 +2422,7 @@ function gpeditTree() {
       { id: 'gp-adm', label: 'Administrative Templates', icon: 'folder', kids: [
         { id: 'gp-adm-cp', label: 'Control Panel', icon: 'folder' }, { id: 'gp-adm-net', label: 'Network', icon: 'folder' }, { id: 'gp-adm-prn', label: 'Printers', icon: 'folder' }, { id: 'gp-adm-start', label: 'Start Menu and Taskbar', icon: 'folder' }, { id: 'gp-adm-sys', label: 'System', icon: 'folder' },
         { id: 'gp-adm-wc', label: 'Windows Components', icon: 'folder', open: false, kids: [
+          { id: 'gp-adm-autoplay', label: 'AutoPlay Policies', icon: 'folder' },
           { id: 'gp-adm-defender', label: 'Microsoft Defender Antivirus', icon: 'folder', kids: [{ id: 'gp-adm-rtp', label: 'Real-time Protection', icon: 'folder' }] },
           { id: 'gp-adm-rds', label: 'Remote Desktop Services', icon: 'folder', kids: [{ id: 'gp-adm-rdsh', label: 'Remote Desktop Session Host', icon: 'folder', kids: [{ id: 'gp-adm-conn', label: 'Connections', icon: 'folder' }, { id: 'gp-adm-rdsec', label: 'Security', icon: 'folder' }] }] },
           { id: 'gp-adm-wu', label: 'Windows Update', icon: 'folder', kids: [{ id: 'gp-adm-wu-legacy', label: 'Legacy Policies', icon: 'folder' }, { id: 'gp-adm-wu-eue', label: 'Manage end user experience', icon: 'folder' }, { id: 'gp-adm-wu-off', label: 'Manage updates offered from Windows Update', icon: 'folder' }] }
@@ -2446,6 +2455,7 @@ function lockoutRows() {
   ].map(r => Object.assign(r, { icon: 'policy' }));
 }
 function auditRows() { return AUDIT_CATS.map(([k, label]) => ({ id: k, cells: [label, auditText(S.audit[k])], icon: 'policy' })); }
+const UAC_STD = ['Automatically deny elevation requests', 'Prompt for credentials on the secure desktop', 'Prompt for credentials'];
 function secoptRows() {
   const o = S.secopt;
   const ed = v => v ? 'Enabled' : 'Disabled';
@@ -2456,8 +2466,8 @@ function secoptRows() {
     { id: 'blankPw', cells: ['Accounts: Limit local account use of blank passwords to console logon only', ed(o.blankPwConsoleOnly)] },
     { id: 'renameAdmin', cells: ['Accounts: Rename administrator account', Object.values(S.users).find(u => u.builtin === 'Administrator') ? Object.values(S.users).find(u => u.builtin === 'Administrator').name : 'Administrator'] },
     { id: 'renameGuest', cells: ['Accounts: Rename guest account', Object.values(S.users).find(u => u.builtin === 'Guest') ? Object.values(S.users).find(u => u.builtin === 'Guest').name : 'Guest'] },
-    { id: 'dontDisplayLastUser', cells: ['Interactive logon: Do not display last user name', ed(o.dontDisplayLastUser)] },
     { id: 'noCAD', cells: ['Interactive logon: Do not require CTRL+ALT+DEL', ed(o.noCAD)] },
+    { id: 'dontDisplayLastUser', cells: ["Interactive logon: Don't display last signed-in", ed(o.dontDisplayLastUser)] },
     { id: 'inactivity', cells: ['Interactive logon: Machine inactivity limit', o.inactivityLimit ? o.inactivityLimit + ' seconds' : 'Not Defined'] },
     { id: 'logonMsg', cells: ['Interactive logon: Message text for users attempting to log on', o.logonMessage || ''] },
     { id: 'logonTitle', cells: ['Interactive logon: Message title for users attempting to log on', o.logonTitle || ''] },
@@ -2468,7 +2478,7 @@ function secoptRows() {
     { id: 'shutdownNoLogon', cells: ['Shutdown: Allow system to be shut down without having to log on', ed(o.shutdownNoLogon !== false)] },
     { id: 'adminApproval', cells: ['User Account Control: Admin Approval Mode for the Built-in Administrator account', ed(o.adminApprovalBuiltin)] },
     { id: 'uacAdminPrompt', cells: ['User Account Control: Behavior of the elevation prompt for administrators in Admin Approval Mode', UAC_ADMIN_PROMPTS[uacAdminPromptIndex()]] },
-    { id: 'uacStdPrompt', cells: ['User Account Control: Behavior of the elevation prompt for standard users', o.uacStdPrompt === 0 ? 'Automatically deny elevation requests' : 'Prompt for credentials on the secure desktop'] },
+    { id: 'uacStdPrompt', cells: ['User Account Control: Behavior of the elevation prompt for standard users', UAC_STD[o.uacStdPrompt == null ? 2 : o.uacStdPrompt]] },
     { id: 'enableLua', cells: ['User Account Control: Run all administrators in Admin Approval Mode', ed(o.enableLua !== false)] }
   ].map(r => Object.assign(r, { icon: 'policy' }));
 }
@@ -2541,7 +2551,7 @@ function openPolicy(node, id) {
       blockMsa: () => choicePolicy('Accounts: Block Microsoft accounts', ['This policy is disabled', 'Users can\'t add Microsoft accounts', 'Users can\'t add or log on with Microsoft accounts'], o.blockMsa == null ? null : ['This policy is disabled', 'Users can\'t add Microsoft accounts', 'Users can\'t add or log on with Microsoft accounts'].indexOf(o.blockMsa), v => mutate(() => { o.blockMsa = v < 0 ? null : ['This policy is disabled', 'Users can\'t add Microsoft accounts', 'Users can\'t add or log on with Microsoft accounts'][v]; })),
       renameAdmin: () => textPolicy('Accounts: Rename administrator account', (Object.values(S.users).find(x => x.builtin === 'Administrator') || {}).name || '', v => { const u = Object.values(S.users).find(x => x.builtin === 'Administrator'); v = v.trim(); if (!u || !v || sameName(u.name, v)) return; if (userByName(v)) { msgBox('The account already exists.', { title: 'Local Security Policy', icon: 'error' }); return; } mutate(() => renameUser(u.name, v)); }),
       renameGuest: () => textPolicy('Accounts: Rename guest account', (Object.values(S.users).find(x => x.builtin === 'Guest') || {}).name || '', v => { const u = Object.values(S.users).find(x => x.builtin === 'Guest'); v = v.trim(); if (!u || !v || sameName(u.name, v)) return; if (userByName(v)) { msgBox('The account already exists.', { title: 'Local Security Policy', icon: 'error' }); return; } mutate(() => renameUser(u.name, v)); }),
-      dontDisplayLastUser: () => enabledPolicy('Interactive logon: Do not display last user name', o.dontDisplayLastUser, v => mutate(() => { o.dontDisplayLastUser = v; }), { explain: 'This security setting determines whether the name of the last user to log on to the computer is displayed in the Windows logon screen.\n\nIf this policy is enabled, the name of the last user to successfully log on is not displayed.\n\nDefault: Disabled.' }),
+      dontDisplayLastUser: () => enabledPolicy("Interactive logon: Don't display last signed-in", o.dontDisplayLastUser, v => mutate(() => { o.dontDisplayLastUser = v; }), { explain: 'This security setting determines whether the name of the last user to log on to the computer is displayed in the Windows logon screen.\n\nIf this policy is enabled, the name of the last user to successfully log on is not displayed.\n\nDefault: Disabled.' }),
       noCAD: () => enabledPolicy('Interactive logon: Do not require CTRL+ALT+DEL', o.noCAD, v => mutate(() => { o.noCAD = v; }), { explain: 'This security setting determines whether pressing CTRL+ALT+DEL is required before a user can log on.\n\nIf this policy is enabled on a computer, a user is not required to press CTRL+ALT+DEL to log on. Not having to press CTRL+ALT+DEL leaves users susceptible to attacks that attempt to intercept the users\' passwords. Requiring CTRL+ALT+DEL before users log on ensures that users are communicating by means of a trusted path when entering their passwords.\n\nDefault on stand-alone computers: Enabled.' }),
       inactivity: () => numberPolicy('Interactive logon: Machine inactivity limit', o.inactivityLimit || 0, 0, 599940, v => 'seconds', v => mutate(() => { o.inactivityLimit = v; }), { lead: 'Machine will be locked after:', note: v => v === 0 ? 'Not Defined: the machine will not lock automatically.' : Math.round(v / 60) + ' minute(s) of inactivity.', explain: 'Windows notices inactivity of a logon session, and if the amount of inactive time exceeds the inactivity limit, then the screen saver will run, locking the session.\n\nDefault: not enforced.' }),
       logonMsg: () => textPolicy('Interactive logon: Message text for users attempting to log on', o.logonMessage || '', v => mutate(() => { o.logonMessage = v; }), { multi: true }),
@@ -2553,7 +2563,7 @@ function openPolicy(node, id) {
       shutdownNoLogon: () => enabledPolicy('Shutdown: Allow system to be shut down without having to log on', o.shutdownNoLogon !== false, v => mutate(() => { o.shutdownNoLogon = v; })),
       adminApproval: () => enabledPolicy('User Account Control: Admin Approval Mode for the Built-in Administrator account', o.adminApprovalBuiltin, v => mutate(() => { o.adminApprovalBuiltin = v; }), { explain: 'This policy setting controls the behavior of Admin Approval Mode for the built-in Administrator account.\n\nEnabled: The built-in Administrator account uses Admin Approval Mode. By default, any operation that requires elevation of privilege will prompt the user to approve the operation.\n\nDefault: Disabled.' }),
       uacAdminPrompt: () => choicePolicy('User Account Control: Behavior of the elevation prompt for administrators in Admin Approval Mode', UAC_ADMIN_PROMPTS, uacAdminPromptIndex(), v => mutate(() => { if (v === 0) S.uac = 0; else if (v === 1 || v === 2) S.uac = 3; else if (v >= 3) S.uac = 2; }), { explain: 'This policy setting controls the behavior of the elevation prompt for administrators.\n\nElevate without prompting: Allows privileged accounts to perform an operation that requires elevation without requiring consent or credentials. Use this option only in the most constrained environments.\n\nDefault: Prompt for consent for non-Windows binaries.' }),
-      uacStdPrompt: () => choicePolicy('User Account Control: Behavior of the elevation prompt for standard users', ['Automatically deny elevation requests', 'Prompt for credentials on the secure desktop', 'Prompt for credentials'], o.uacStdPrompt == null ? 1 : o.uacStdPrompt, v => mutate(() => { o.uacStdPrompt = v; })),
+      uacStdPrompt: () => choicePolicy('User Account Control: Behavior of the elevation prompt for standard users', UAC_STD, o.uacStdPrompt == null ? 2 : o.uacStdPrompt, v => mutate(() => { o.uacStdPrompt = v; })),
       enableLua: () => enabledPolicy('User Account Control: Run all administrators in Admin Approval Mode', o.enableLua !== false, v => mutate(() => { o.enableLua = v; }), { explain: 'This policy setting controls the behavior of all User Account Control (UAC) policy settings for the computer. If you change this policy setting, you must restart your computer.\n\nDisabled: Admin Approval Mode and all related UAC policy settings are disabled. Note: The Security Center will notify you that the overall security of the operating system has been reduced.\n\nDefault: Enabled.' })
     };
     if (map[id]) map[id]();
@@ -2569,6 +2579,7 @@ function admRows(node) {
   if (node === 'gp-adm-conn') return [{ id: 'rdp', cells: ['Allow users to connect remotely by using Remote Desktop Services', S.rdp.policy === 'Not Configured' ? 'Not configured' : S.rdp.policy, 'No'] }, { id: 'rdplimit', cells: ['Limit number of connections', 'Not configured', 'No'] }, { id: 'rdptimeout', cells: ['Set time limit for active but idle Remote Desktop Services sessions', 'Not configured', 'No'] }].map(r => Object.assign(r, { icon: 'policy' }));
   if (node === 'gp-adm-rdsec') return [{ id: 'nla', cells: ['Require user authentication for remote connections by using Network Level Authentication', 'Not configured', 'No'] }, { id: 'rdpenc', cells: ['Set client connection encryption level', 'Not configured', 'No'] }].map(r => Object.assign(r, { icon: 'policy' }));
   if (node === 'gp-adm-defender') return [{ id: 'defoff', cells: ['Turn off Microsoft Defender Antivirus', S.defender.policyOff ? 'Enabled' : 'Not configured', 'No'] }].map(r => Object.assign(r, { icon: 'policy' }));
+  if (node === 'gp-adm-autoplay') return [{ id: 'apnonvol', cells: ['Disallow Autoplay for non-volume devices', 'Not configured', 'No'] }, { id: 'apremember', cells: ['Prevent AutoPlay from remembering user choices.', 'Not configured', 'No'] }, { id: 'autorundef', cells: ['Set the default behavior for AutoRun', S.autorun && S.autorun.noAutorun ? 'Enabled' : 'Not configured', 'No'] }, { id: 'autoplayoff', cells: ['Turn off Autoplay', S.autorun && (S.autorun.noDriveType === 181 || S.autorun.noDriveType === 255) ? 'Enabled' : 'Not configured', 'No'] }].map(r => Object.assign(r, { icon: 'policy' }));
   if (node === 'gp-adm-rtp') return [{ id: 'rtpoff', cells: ['Turn off real-time protection', S.defender.rtpPolicyOff ? 'Enabled' : 'Not configured', 'No'] }].map(r => Object.assign(r, { icon: 'policy' }));
   return [];
 }
@@ -2593,6 +2604,14 @@ function openAdm(node, id) {
     admDialog('Turn off Microsoft Defender Antivirus', S.defender.policyOff ? 'en' : 'nc', 'This policy setting turns off Microsoft Defender Antivirus.\n\nIf you enable this policy setting, Microsoft Defender Antivirus does not run, and will not scan computers for malware or other potentially unwanted software.\n\nIf you disable or do not configure this policy setting, by default Microsoft Defender Antivirus runs and computers are scanned for malware and other potentially unwanted software.', null, v => mutate(() => { S.defender.policyOff = v === 'en'; }));
   } else if (id === 'rtpoff') {
     admDialog('Turn off real-time protection', S.defender.rtpPolicyOff ? 'en' : 'nc', 'This policy setting turns off real-time protection prompts for known malware detection.\n\nIf you enable this policy setting, Microsoft Defender Antivirus will not prompt users to take actions on malware detections.\n\nIf you disable or do not configure this policy setting, Microsoft Defender Antivirus will prompt users to take actions on malware detections.', null, v => mutate(() => { S.defender.rtpPolicyOff = v === 'en'; if (v === 'en') S.defender.realtime = false; }));
+  } else if (id === 'autoplayoff') {
+    const ar = autorunState(); const on = ar.noDriveType === 181 || ar.noDriveType === 255;
+    const sel = selectInput([{ value: 181, label: 'CD-ROM and removable media drives' }, { value: 255, label: 'All drives' }], ar.noDriveType === 255 ? 255 : 181, { label: 'Turn off Autoplay on:' });
+    admDialog('Turn off Autoplay', on ? 'en' : 'nc', 'This policy setting allows you to turn off the Autoplay feature.\n\nIf you enable this policy setting, Autoplay is disabled on CD-ROM and removable media drives, or disabled on all drives.\n\nIf you disable or do not configure this policy setting, AutoPlay is enabled.', h('div', {}, h('div', { text: 'Turn off Autoplay on:' }), sel), v => mutate(() => { autorunState().noDriveType = v === 'en' ? +sel.value : null; }));
+  } else if (id === 'autorundef') {
+    const ar = autorunState();
+    const sel = selectInput([{ value: 1, label: 'Do not execute any autorun commands' }, { value: 2, label: 'Automatically execute autorun commands' }], ar.noAutorun === 2 ? 2 : 1, { label: 'Default AutoRun Behavior' });
+    admDialog('Set the default behavior for AutoRun', ar.noAutorun ? 'en' : 'nc', 'This policy setting sets the default behavior for Autorun commands.\n\nAutorun commands are generally stored in autorun.inf files. They often launch the installation program or other routines.\n\nIf you enable this policy setting, an Administrator can change the default Windows behavior for autorun.\n\nIf you disable or do not configure this policy setting, Windows will prompt the user whether autorun command is to be run.', h('div', {}, h('div', { text: 'Default AutoRun Behavior' }), sel), v => mutate(() => { autorunState().noAutorun = v === 'en' ? +sel.value : null; }));
   } else {
     admDialog(admRows(node).find(r => r.id === id).cells[0], 'nc', '[Range] This policy is shown for orientation only; this lab does not check it.', null, () => { });
   }
@@ -2733,7 +2752,7 @@ function firewallProperties(startTab) {
   const body = tabs([{ label: 'Domain Profile', content: mk('Domain') }, { label: 'Private Profile', content: mk('Private') }, { label: 'Public Profile', content: mk('Public') }, { label: 'IPsec Settings', content: () => h('div', { class: 'desc', style: 'padding:8px', text: 'IPsec defaults: Default (recommended). IPsec exemptions: Exempt ICMP from IPsec: No.' }) }], { selected: startTab || 0 });
   body.style.height = '440px';
   body.addEventListener('change', e => { const s = e.target; if (s.dataset.p) { pending[s.dataset.p] = pending[s.dataset.p] || {}; pending[s.dataset.p][s.dataset.k] = s.value; } });
-  const apply = () => mutate(() => { Object.keys(pending).forEach(pn => { const p = P[pn]; const ch = pending[pn]; if (ch.on != null) p.on = ch.on === 'on'; if (ch.inbound) p.inbound = ch.inbound === 'BlockAll' ? 'Block all' : ch.inbound; if (ch.outbound) p.outbound = ch.outbound; }); });
+  const apply = () => mutate(() => { Object.keys(pending).forEach(pn => { const p = P[pn]; const ch = pending[pn]; if (ch.on != null) p.on = ch.on === 'on'; if (ch.inbound) { p.inbound = ch.inbound === 'BlockAll' ? 'Block all' : ch.inbound; p.inSet = true; } if (ch.outbound) { p.outbound = ch.outbound; p.outSet = true; } }); });
   dialog({ title: 'Windows Defender Firewall with Advanced Security on Local Computer Properties', body, width: 480, buttons: [{ label: 'OK', value: 'ok', primary: true }, { label: 'Cancel', value: 'cancel', cancel: true }, { label: 'Apply', value: 'apply' }], onButton: v => { if (v === 'apply') { apply(); return false; } if (v === 'ok') apply(); return true; } });
 }
 function wfOverview(pane) {
@@ -2804,7 +2823,7 @@ function renderNode(id, pane, win, status) {
   if (id === 'wf-in') { title('Inbound Rules'); pane.appendChild(stdList(win, id, ruleCols, ruleRows(), { onOpen: rid => { const r = S.firewall.rules.find(x => x.id === rid); if (r) ruleProperties(r); }, onContext: ctxFor(ruleMenu), onDelete: rid => { const m = ruleMenu(rid).find(x => x.label === 'Delete'); if (m) m.action(); }, onContextEmpty: (x, y) => ctxMenu(x, y, [{ label: 'New Rule...', action: () => rangeNote('The New Inbound Rule Wizard is not simulated. Use "netsh advfirewall firewall add rule" in an elevated Command Prompt instead.') }, { sep: true }, { label: 'Refresh', action: () => win.refresh() }]) })); status.textContent = S.firewall.rules.length + ' rule(s)'; return; }
   if (id === 'wf-out') { title('Outbound Rules'); pane.appendChild(stdList(win, id, ruleCols, outRuleRows(), { onOpen: () => rangeNote('Outbound rules are shown for orientation only in this trainer.') })); return; }
   if (id === 'wf-mon-fw') { title('Firewall'); pane.appendChild(stdList(win, id, ruleCols, ruleRows().filter(r => !r.dim), { onOpen: rid => { const r = S.firewall.rules.find(x => x.id === rid); if (r) ruleProperties(r); } })); return; }
-  if (id === 'cm-shares-list') { title('Shares'); const rows = [['ADMIN$', 'C:\\Windows', 'Windows', 'Remote Admin'], ['C$', 'C:\\', 'Windows', 'Default share'], ['IPC$', '', 'Windows', 'Remote IPC']]; if (S.edition === 'server') rows.push(['HR', 'C:\\Shares\\HR', 'Windows', ''], ['Ops', 'C:\\Shares\\Ops', 'Windows', '']); pane.appendChild(stdList(win, id, [{ label: 'Share Name', w: 120 }, { label: 'Folder Path', w: 200 }, { label: 'Type', w: 90 }, { label: 'Description' }], rows.map((r, i) => ({ id: 's' + i, cells: r, icon: 'folder' })))); return; }
+  if (id === 'cm-shares-list') { title('Shares'); const rows = shareList().slice().sort((x, y) => x.name.localeCompare(y.name, 'en', { sensitivity: 'base' })); pane.appendChild(stdList(win, id, [{ label: 'Share Name', w: 120 }, { label: 'Folder Path', w: 200 }, { label: 'Type', w: 90 }, { label: 'Description' }], rows.map(x => ({ id: x.name, cells: [x.name, x.path, 'Windows', x.remark], icon: 'folder' })), { onContext: ctxFor(rid => [{ label: 'Stop Sharing', action: () => stopSharing(rid) }]) })); status.textContent = rows.length + ' share(s)'; return; }
   pane.appendChild(h('div', { class: 'empty', text: 'There are no items to show in this view.' }));
 }
 function findTreeNode(id, win) {
@@ -2823,7 +2842,12 @@ function nodeActions(id, win) {
   if (id === 'wf-root' || id === 'sp-wf') return [{ label: 'Properties', action: () => firewallProperties(0) }];
   if (['sp-pwpol', 'sp-lockout', 'sp-audit', 'sp-secopt', 'sp-ura'].includes(id)) return sel ? [{ label: 'Properties', action: () => openPolicy(id, sel) }] : [];
   if (id.startsWith('gp-adm-') && sel) return [{ label: 'Edit', action: () => openAdm(id, sel) }];
+  if (id === 'cm-shares-list') return sel ? [{ label: 'Stop Sharing', action: () => stopSharing(sel) }] : [];
   return [];
+}
+/* Computer Management > Shared Folders > Shares > Stop Sharing */
+function stopSharing(name) {
+  return msgBox('Are you sure you wish to stop sharing ' + name + '?', { title: 'Shared Folders', icon: 'warn', buttons: ['Yes', 'No'] }).then(v => { if (v === 'Yes') mutate(s => { s.shares = shareList().filter(x => !sameName(x.name, name)); }); });
 }
 
 /* ===== 65-settings: Settings app, Windows Security, Control Panel, UAC, Programs and Features, Windows Features, Explorer, Notepad, Server Manager ===== */
@@ -3134,7 +3158,7 @@ function renderWsecPage(page, go) {
   if (page === 'virus') {
     const wrap = h('div', {}, h('h1', { text: 'Virus & threat protection' }), h('div', { class: 'desc', text: 'Protection for your device against threats.' }), h('h2', { text: 'Current threats' }));
     wrap.appendChild(h('div', { class: 'stat' }, h('span', { class: 'ico', html: ICONS.check }), h('div', {}, h('div', { text: 'No current threats.' }), h('div', { class: 'desc', text: 'Last scan: ' + winDate(daysAgo(1)) + ' 3:12 AM (quick scan)\n0 threats found.\nScan lasted 1 minute 42 seconds\n30412 files scanned.' }))));
-    const qs = h('button', { type: 'button', class: 'btn', text: 'Quick scan' }); qs.addEventListener('click', () => progressDialog('Windows Security', 'Quick scan running...', 1500).then(() => msgBox('No current threats.\n0 threats found.', { title: 'Windows Security', icon: 'info' })));
+    const qs = h('button', { type: 'button', class: 'btn', text: 'Quick scan' }); qs.addEventListener('click', () => progressDialog('Windows Security', 'Quick scan running...', 1500).then(() => { mutate(() => { S.defender.lastScan = { type: 'quickscan', at: Date.now() }; }); return msgBox('No current threats.\n0 threats found.', { title: 'Windows Security', icon: 'info' }); }));
     wrap.appendChild(h('div', { style: 'margin:8px 0 16px' }, qs));
     wrap.appendChild(h('h2', { text: 'Virus & threat protection settings' }));
     wrap.appendChild(h('div', { class: 'stat' }, h('span', { class: 'ico', html: ICONS[d.realtime ? 'check' : 'shieldBad'] }), h('div', {}, h('div', { class: d.realtime ? '' : 'bad', text: d.realtime ? 'No action needed.' : 'Real-time protection is off, leaving your device vulnerable.' }))));
@@ -3152,6 +3176,21 @@ function renderWsecPage(page, go) {
     row('Cloud-delivered protection', 'Provides increased and faster protection with access to the latest protection data in the cloud. Works best with Automatic sample submission turned on.', d.cloud, v => { d.cloud = v; });
     row('Automatic sample submission', 'Send sample files to Microsoft to help protect you and others from potential threats. We\'ll prompt you if the file we need is likely to contain personal information.', d.sample, v => { d.sample = v; });
     row('Tamper Protection', 'Prevents others from tampering with important security features.', d.tamper, v => { d.tamper = v; });
+    wrap.appendChild(h('h2', { text: 'Exclusions' }));
+    wrap.appendChild(h('div', { class: 'desc', text: "Microsoft Defender Antivirus won't scan items that have been excluded. Excluded items could contain threats that make your device vulnerable." }));
+    const ex = h('button', { type: 'button', class: 'lnk exp-link', text: 'Add or remove exclusions' }); ex.addEventListener('click', () => wsecGuard(() => go('virus-exclusions'))); wrap.appendChild(ex);
+    return wrap;
+  }
+  if (page === 'virus-exclusions') {
+    const wrap = h('div', {}, h('div', { class: 'crumb' }, (() => { const b = h('button', { type: 'button', text: 'Virus & threat protection settings' }); b.addEventListener('click', () => go('virus-settings')); return b; })(), document.createTextNode('  ›  Exclusions')), h('h1', { text: 'Exclusions' }), h('div', { class: 'desc', text: 'Add or remove items that you want to exclude from Microsoft Defender Antivirus scans.' }));
+    const ex = mpExcl(); const items = [];
+    [['path', 'Folder'], ['process', 'Process'], ['extension', 'File type']].forEach(([k, kind]) => ex[k].forEach(v => items.push({ k, kind, v })));
+    if (!items.length) wrap.appendChild(h('div', { class: 'desc', style: 'margin-top:12px', text: 'No exclusions.' }));
+    items.forEach(it => {
+      const rm = h('button', { type: 'button', class: 'btn', text: 'Remove' });
+      rm.addEventListener('click', () => wsecGuard(() => { mutate(() => { const l = mpExcl()[it.k]; const i = l.indexOf(it.v); if (i >= 0) l.splice(i, 1); }); go('virus-exclusions'); }));
+      wrap.appendChild(h('div', { class: 'tog-row' }, h('div', {}, h('div', { class: 't', text: it.v }), h('div', { class: 's', text: it.kind })), rm));
+    });
     return wrap;
   }
   if (page === 'firewall' || page.startsWith('firewall-')) {
@@ -3159,7 +3198,7 @@ function renderWsecPage(page, go) {
       const wrap = h('div', {}, h('h1', { text: 'Firewall & network protection' }), h('div', { class: 'desc', style: 'margin-bottom:12px', text: 'Who and what can access your networks.' }));
       ['Domain', 'Private', 'Public'].forEach(pn => { const p = S.firewall.profiles[pn]; const b = h('button', { type: 'button', class: 'wtile', style: 'width:100%;margin-bottom:8px' }, h('span', { class: 'ico', html: ICONS[p.on ? 'shield' : 'shieldBad'] }), h('div', {}, h('div', { class: 't', text: pn + ' network' + (p.active ? ' (active)' : '') }), h('div', { class: 's ' + (p.on ? 'ok' : 'bad'), text: 'Firewall is ' + (p.on ? 'on.' : 'off.') }))); b.addEventListener('click', () => go('firewall-' + pn)); wrap.appendChild(b); });
       const adv = h('button', { type: 'button', class: 'lnk exp-link', text: 'Advanced settings' }); adv.addEventListener('click', () => launch('wf')); wrap.appendChild(adv);
-      const rs = h('button', { type: 'button', class: 'lnk exp-link', text: 'Restore firewalls to default' }); rs.addEventListener('click', () => msgBox('Restoring default settings will remove all Windows Defender Firewall settings that you have configured for all network locations. This might cause some apps to stop working.', { title: 'Restore Defaults', icon: 'warn', buttons: ['Restore defaults', 'Cancel'] }).then(v => { if (v === 'Restore defaults') wsecGuard(() => mutate(s => { Object.values(s.firewall.profiles).forEach(p => { p.on = true; p.inbound = 'Block'; p.outbound = 'Allow'; }); s.firewall.rules = s.firewall.rules.filter(r => !r.planted); })); })); wrap.appendChild(rs);
+      const rs = h('button', { type: 'button', class: 'lnk exp-link', text: 'Restore firewalls to default' }); rs.addEventListener('click', () => msgBox('Restoring default settings will remove all Windows Defender Firewall settings that you have configured for all network locations. This might cause some apps to stop working.', { title: 'Restore Defaults', icon: 'warn', buttons: ['Restore defaults', 'Cancel'] }).then(v => { if (v === 'Restore defaults') wsecGuard(() => mutate(s => { Object.values(s.firewall.profiles).forEach(p => { p.on = true; p.inbound = 'Block'; p.outbound = 'Allow'; delete p.inSet; delete p.outSet; }); s.firewall.rules = s.firewall.rules.filter(r => !r.planted); })); })); wrap.appendChild(rs);
       return wrap;
     }
     const pn = page.slice(9); const p = S.firewall.profiles[pn];
@@ -3167,7 +3206,7 @@ function renderWsecPage(page, go) {
     wrap.appendChild(h('div', { style: 'margin:12px 0' }, toggleSwitch(p.on, v => wsecGuard(() => mutate(() => { p.on = v; })))));
     if (!p.on) wrap.appendChild(h('div', { class: 'managed' }, h('span', { html: ICONS.shieldBad }), h('span', { text: 'Microsoft Defender Firewall is off. Your device may be vulnerable.' })));
     wrap.appendChild(h('h2', { text: 'Incoming connections' }));
-    wrap.appendChild(checkbox('Blocks all incoming connections, including those in the list of allowed apps.', p.inbound === 'Block all', v => wsecGuard(() => mutate(() => { p.inbound = v ? 'Block all' : 'Block'; }))));
+    wrap.appendChild(checkbox('Blocks all incoming connections, including those in the list of allowed apps.', p.inbound === 'Block all', v => wsecGuard(() => mutate(() => { p.inbound = v ? 'Block all' : 'Block'; p.inSet = true; }))));
     return wrap;
   }
   return h('div', {}, h('h1', { text: WSEC_NAV.find(n => n[0] === page) ? WSEC_NAV.find(n => n[0] === page)[1] : 'Windows Security' }), h('div', { class: 'stat' }, h('span', { class: 'ico', html: ICONS.check }), h('div', { text: 'No action needed.' })), h('div', { class: 'desc', text: 'This page is not simulated in this lab.' }));
@@ -3388,7 +3427,7 @@ function openServerManager() {
           bd.appendChild(h('h2', { style: 'margin-top:18px', text: 'ROLES AND FEATURES' }));
           const rf = h('div', { class: 'sm-tiles' });
           const tile = (name, rows) => { const t = h('div', { class: 'sm-tile' }, h('b', { text: name })); rows.forEach(([k, v, ok]) => t.appendChild(h('div', { class: 'row' }, h('span', { text: k }), h('span', { class: ok === true ? 'ok' : ok === false ? 'bad' : '', text: v })))); return t; };
-          rf.append(tile('Web Server (IIS)', [['W3SVC', S.services.W3SVC ? S.services.W3SVC.status : 'Not installed', S.services.W3SVC && S.services.W3SVC.status === 'Running'], ['FTP Server', featOn('IIS-FTPServer') ? 'Installed' : 'Not installed', featOn('IIS-FTPServer') ? false : true]]), tile('File and Storage Services', [['Server (LanmanServer)', S.services.LanmanServer.status, S.services.LanmanServer.status === 'Running'], ['Shares', '5']]), tile('Remote Desktop', [['TermService', S.services.TermService.status, S.services.TermService.status === 'Running'], ['Remote Desktop Users', String(S.groups['Remote Desktop Users'].members.length)]]));
+          rf.append(tile('Web Server (IIS)', [['W3SVC', S.services.W3SVC ? S.services.W3SVC.status : 'Not installed', S.services.W3SVC && S.services.W3SVC.status === 'Running'], ['FTP Server', featOn('IIS-FTPServer') ? 'Installed' : 'Not installed', featOn('IIS-FTPServer') ? false : true]]), tile('File and Storage Services', [['Server (LanmanServer)', S.services.LanmanServer.status, S.services.LanmanServer.status === 'Running'], ['Shares', String(shareList().length)]]), tile('Remote Desktop', [['TermService', S.services.TermService.status, S.services.TermService.status === 'Running'], ['Remote Desktop Users', String(S.groups['Remote Desktop Users'].members.length)]]));
           bd.appendChild(rf);
         } else if (win.data.page === 'dash') {
           bd.appendChild(h('h2', { text: 'WELCOME TO SERVER MANAGER' }));
@@ -3637,7 +3676,7 @@ function termKey(t, e) {
   else if (e.ctrlKey && (e.key === 'l' || e.key === 'L')) { e.preventDefault(); t.out.textContent = ''; }
 }
 const CMD_NAMES = ['auditpol', 'cd', 'chdir', 'cls', 'cmd', 'control', 'date', 'del', 'dir', 'echo', 'erase', 'exit', 'gpupdate', 'help', 'hostname', 'ipconfig', 'net', 'netsh', 'netstat', 'notepad', 'powershell', 'reg', 'sc', 'schtasks', 'secedit', 'shutdown', 'systeminfo', 'tasklist', 'taskkill', 'time', 'type', 'ver', 'whoami', 'wt'];
-const PS_NAMES = ['Add-LocalGroupMember', 'Clear-Host', 'Disable-LocalUser', 'Disable-NetFirewallRule', 'Disable-ScheduledTask', 'Disable-WindowsOptionalFeature', 'Enable-LocalUser', 'Enable-NetFirewallRule', 'Enable-ScheduledTask', 'Enable-WindowsOptionalFeature', 'Format-List', 'Format-Table', 'Get-ChildItem', 'Get-Content', 'Get-ExecutionPolicy', 'Get-HotFix', 'Get-LocalGroup', 'Get-LocalGroupMember', 'Get-LocalUser', 'Get-MpComputerStatus', 'Get-MpPreference', 'Get-NetFirewallProfile', 'Get-NetFirewallRule', 'Get-NetTCPConnection', 'Get-Process', 'Get-ScheduledTask', 'Get-Service', 'Get-WindowsOptionalFeature', 'New-LocalUser', 'Remove-Item', 'Remove-LocalGroupMember', 'Remove-LocalUser', 'Remove-NetFirewallRule', 'Restart-Computer', 'Restart-Service', 'Select-Object', 'Set-LocalUser', 'Set-MpPreference', 'Set-NetFirewallProfile', 'Set-Service', 'Start-Service', 'Stop-Computer', 'Stop-Service', 'Unregister-ScheduledTask', 'Where-Object'];
+const PS_NAMES = ['Add-LocalGroupMember', 'Add-MpPreference', 'Clear-Host', 'Disable-LocalUser', 'Disable-NetFirewallRule', 'Disable-ScheduledTask', 'Disable-WindowsOptionalFeature', 'Enable-LocalUser', 'Enable-NetFirewallRule', 'Enable-ScheduledTask', 'Enable-WindowsOptionalFeature', 'Format-List', 'Format-Table', 'Get-ChildItem', 'Get-Content', 'Get-ExecutionPolicy', 'Get-HotFix', 'Get-LocalGroup', 'Get-LocalGroupMember', 'Get-LocalUser', 'Get-MpComputerStatus', 'Get-MpPreference', 'Get-MpThreat', 'Get-MpThreatDetection', 'Get-NetFirewallProfile', 'Get-NetFirewallRule', 'Get-NetTCPConnection', 'Get-Process', 'Get-ScheduledTask', 'Get-Service', 'Get-SmbShare', 'Get-WindowsFeature', 'Get-WindowsOptionalFeature', 'New-LocalUser', 'Remove-Item', 'Remove-LocalGroupMember', 'Remove-LocalUser', 'Remove-MpPreference', 'Remove-NetFirewallRule', 'Remove-SmbShare', 'Restart-Computer', 'Restart-Service', 'Select-Object', 'Set-LocalUser', 'Set-MpPreference', 'Set-NetFirewallProfile', 'Set-Service', 'Start-MpScan', 'Start-Service', 'Stop-Computer', 'Stop-Process', 'Stop-Service', 'Uninstall-WindowsFeature', 'Unregister-ScheduledTask', 'Update-MpSignature', 'Where-Object'];
 function termComplete(t) {
   const inp = t.input; const v = inp.value; const i = v.lastIndexOf(' ');
   const head = i < 0 ? '' : v.slice(0, i + 1), word = i < 0 ? v : v.slice(i + 1);
@@ -3748,6 +3787,8 @@ function pipeStage(ctx, name, rest, seg, input) {
   }
   if (name === 'more') return { text };
   if (ctx.kind === 'ps') {
+    // a cmdlet that returns both its printed table and objects (Get-Process): object stages work on the objects
+    if (input.objs && input.text != null && /^(select-object|select|sort-object|sort|where-object|where|\?|format-list|fl|format-table|ft)$/.test(name)) input = Object.assign({}, input, { text: null });
     if ((name === 'select-object' || name === 'select') && input.objs) {
       const pp = psParams(rest); let objs = input.objs;
       const keysOf = () => Object.keys(input.objs[0] || {});
@@ -3846,7 +3887,7 @@ function listeningPorts() {
   const L = [{ port: 135, pid: 924, proc: 'svchost.exe' }, { port: 445, pid: 4, proc: 'System' }, { port: 139, pid: 4, proc: 'System' }, { port: 5040, pid: 1044, proc: 'svchost.exe' }];
   const on = n => S.services[n] && S.services[n].status === 'Running';
   if (on('TermService') && rdpEffective()) L.push({ port: 3389, pid: 1316, proc: 'svchost.exe' });
-  if (on('WinRM')) L.push({ port: 5985, pid: 1420, proc: 'svchost.exe' });
+  if (on('WinRM')) L.push({ port: 5985, pid: 4, proc: 'System' }); // WinRM listens through HTTP.sys
   if (on('W3SVC')) L.push({ port: 80, pid: 4, proc: 'System' });
   if (on('FTPSVC')) L.push({ port: 21, pid: 2208, proc: 'svchost.exe' });
   if (on('RemoteRegistry')) L.push({ port: 49664, pid: 1120, proc: 'svchost.exe' });
@@ -3858,16 +3899,52 @@ function processList() {
   const rows = BASE_PROCS.map(p => ({ name: p[0], pid: p[1], mem: p[2] }));
   Object.values(S.services).filter(s => s.status === 'Running' && s.path && s.path.indexOf('svchost') < 0).forEach((s, i) => rows.push({ name: s.path.replace(/^"?.*\\/, '').replace(/"?( .*)?$/, ''), pid: 1500 + i * 44, mem: '12,' + (100 + i * 7) + ' K' }));
   (S.procs || []).forEach(p => rows.push({ name: p.name, pid: p.pid, mem: p.mem || '3,412 K' }));
+  // every PID netstat prints also appears in tasklist and Get-Process
+  listeningPorts().forEach(l => { if (!rows.some(r => r.pid === l.pid)) rows.push({ name: l.proc, pid: l.pid, mem: fmtNum(6000 + (l.pid % 900) * 7) + ' K' }); });
   return rows;
+}
+/* PID -> services it hosts (tasklist /svc); a service with its own program shows its own name */
+const SVC_BY_PID = { 784: 'KeyIso, SamSs, VaultSvc', 924: 'RpcEptMapper, RpcSs', 1044: 'CDPSvc', 1316: 'TermService', 2208: 'ftpsvc', 1120: 'RemoteRegistry', 2880: 'WinDefend' };
+const SOCK_SVC = { 924: 'RpcSs', 1044: 'CDPSvc', 1316: 'TermService', 2208: 'ftpsvc', 1120: 'RemoteRegistry' };
+function ownSvc(p) { return Object.values(S.services).find(x => x.status === 'Running' && x.path && x.path.indexOf('svchost') < 0 && sameName(x.path.replace(/^"?.*\\/, '').replace(/"?( .*)?$/, ''), p.name)); }
+// session 0 (Services) holds the system processes and every service host; the signed-in user's programs run in session 1 (Console)
+function svcSession(p) { return p.pid < 1000 || /^(svchost|MsMpEng)\.exe$/i.test(p.name) || !!ownSvc(p); }
+function procServices(p) { if (SVC_BY_PID[p.pid]) return SVC_BY_PID[p.pid]; const s = ownSvc(p); return s ? s.name : 'N/A'; }
+function procPath(p) {
+  if (p.pid === 4 || /^(System|MsMpEng\.exe|WindowsTerminal\.exe)$/i.test(p.name)) return '';
+  if (sameName(p.name, 'explorer.exe')) return 'C:\\Windows\\explorer.exe';
+  const s = ownSvc(p); if (s) return s.path.replace(/^"|"?( .*)?$/g, '');
+  const f = Object.values(S.fs).find(e => e.t === 'f' && sameName(e.n, p.name) && /^c:\\users\\/i.test(e.p));
+  return f ? f.p : 'C:\\Windows\\System32\\' + p.name;
+}
+/* Get-Process / Stop-Process: pick rows by -Id (comma list) or by -Name / the first positional (wildcards, .exe optional) */
+function psProcRows(cmdlet, p, seg) {
+  const rows = processList();
+  if (p.id != null && p.id !== true) {
+    const out = [];
+    for (const id of String(p.id).split(',').map(s => s.trim()).filter(Boolean)) { const hit = rows.filter(r => String(r.pid) === id); if (!hit.length) return { err: psError(cmdlet, 'Cannot find a process with the process identifier ' + id + '.', seg, 'ObjectNotFound', id, 'NoProcessFoundForGivenId') }; out.push(...hit); }
+    return { rows: out };
+  }
+  const nm = p.name != null && p.name !== true ? String(p.name) : p._[0];
+  if (nm == null) return { rows };
+  const out = [];
+  for (const n of String(nm).split(',').map(s => s.trim()).filter(Boolean)) { const re = globRe(n.replace(/\.exe$/i, '')); const hit = rows.filter(r => re.test(r.name.replace(/\.exe$/i, ''))); if (!hit.length) return { err: psError(cmdlet, 'Cannot find a process with the name "' + n + '". Verify the process name and call the cmdlet again.', seg, 'ObjectNotFound', n, 'NoProcessFoundForGivenName') }; hit.forEach(r => { if (!out.includes(r)) out.push(r); }); }
+  return { rows: out };
 }
 function auditKeyFor(name) {
   const m = { 'system': 'SystemEvents', 'logon/logoff': 'LogonEvents', 'object access': 'ObjectAccess', 'privilege use': 'PrivilegeUse', 'detailed tracking': 'ProcessTracking', 'policy change': 'PolicyChange', 'account management': 'AccountManagement', 'ds access': 'DSAccess', 'account logon': 'AccountLogon' };
   return m[String(name || '').toLowerCase().replace(/^"|"$/g, '')] || null;
 }
-const AUDIT_SUBS = { SystemEvents: ['System', ['Security System Extension', 'System Integrity', 'IPsec Driver', 'Other System Events', 'Security State Change']], LogonEvents: ['Logon/Logoff', ['Logon', 'Logoff', 'Account Lockout', 'IPsec Main Mode', 'Special Logon', 'Other Logon/Logoff Events', 'Network Policy Server', 'Group Membership']], ObjectAccess: ['Object Access', ['File System', 'Registry', 'Kernel Object', 'SAM', 'Removable Storage', 'Other Object Access Events']], PrivilegeUse: ['Privilege Use', ['Non Sensitive Privilege Use', 'Other Privilege Use Events', 'Sensitive Privilege Use']], ProcessTracking: ['Detailed Tracking', ['Process Creation', 'Process Termination', 'DPAPI Activity', 'RPC Events', 'Plug and Play Events']], PolicyChange: ['Policy Change', ['Audit Policy Change', 'Authentication Policy Change', 'Authorization Policy Change', 'MPSSVC Rule-Level Policy Change']], AccountManagement: ['Account Management', ['Computer Account Management', 'Security Group Management', 'Distribution Group Management', 'Application Group Management', 'Other Account Management Events', 'User Account Management']], DSAccess: ['DS Access', ['Directory Service Access', 'Directory Service Changes', 'Directory Service Replication']], AccountLogon: ['Account Logon', ['Kerberos Service Ticket Operations', 'Other Account Logon Events', 'Kerberos Authentication Service', 'Credential Validation']] };
-function auditpolGet() {
+const AUDIT_SUBS = { SystemEvents: ['System', ['Security System Extension', 'System Integrity', 'IPsec Driver', 'Other System Events', 'Security State Change']], LogonEvents: ['Logon/Logoff', ['Logon', 'Logoff', 'Account Lockout', 'IPsec Main Mode', 'IPsec Quick Mode', 'IPsec Extended Mode', 'Special Logon', 'Other Logon/Logoff Events', 'Network Policy Server', 'User / Device Claims', 'Group Membership', 'Access Rights']], ObjectAccess: ['Object Access', ['File System', 'Registry', 'Kernel Object', 'SAM', 'Certification Services', 'Application Generated', 'Handle Manipulation', 'File Share', 'Filtering Platform Packet Drop', 'Filtering Platform Connection', 'Other Object Access Events', 'Detailed File Share', 'Removable Storage', 'Central Policy Staging']], PrivilegeUse: ['Privilege Use', ['Non Sensitive Privilege Use', 'Other Privilege Use Events', 'Sensitive Privilege Use']], ProcessTracking: ['Detailed Tracking', ['Process Creation', 'Process Termination', 'DPAPI Activity', 'RPC Events', 'Plug and Play Events', 'Token Right Adjusted Events']], PolicyChange: ['Policy Change', ['Audit Policy Change', 'Authentication Policy Change', 'Authorization Policy Change', 'MPSSVC Rule-Level Policy Change', 'Filtering Platform Policy Change', 'Other Policy Change Events']], AccountManagement: ['Account Management', ['Computer Account Management', 'Security Group Management', 'Distribution Group Management', 'Application Group Management', 'Other Account Management Events', 'User Account Management']], DSAccess: ['DS Access', ['Directory Service Access', 'Directory Service Changes', 'Directory Service Replication', 'Detailed Directory Service Replication']], AccountLogon: ['Account Logon', ['Kerberos Service Ticket Operations', 'Other Account Logon Events', 'Kerberos Authentication Service', 'Credential Validation']] };
+/* keys: only these categories (auditpol /get /category:NAME); subs: only these subcategory rows (/subcategory:NAME); a category left with no rows is skipped */
+function auditpolGet(keys, subs) {
   const lines = ['System audit policy', 'Category/Subcategory                      Setting'];
-  Object.keys(AUDIT_SUBS).forEach(k => { const [cat, subs] = AUDIT_SUBS[k]; lines.push(cat); subs.forEach(s => lines.push('  ' + padR(s, 40) + auditText(S.audit[k]).replace('No auditing', 'No Auditing').replace('Success, Failure', 'Success and Failure'))); });
+  Object.keys(AUDIT_SUBS).forEach(k => {
+    if (keys && !keys.includes(k)) return;
+    const [cat, all] = AUDIT_SUBS[k]; const rows = subs ? all.filter(s => subs.some(n => sameName(s, n))) : all;
+    if (!rows.length) return;
+    lines.push(cat); rows.forEach(s => lines.push('  ' + padR(s, 40) + auditText(S.audit[k]).replace('No auditing', 'No Auditing').replace('Success, Failure', 'Success and Failure')));
+  });
   return lines.join('\n');
 }
 function netshProfiles() {
@@ -3930,11 +4007,13 @@ const CMDS = {
   type: (ctx, a) => { if (!a.length) return { text: 'The syntax of the command is incorrect.', cls: 'err' }; const e = fsGet(fsResolve(ctx.t.cwd, a.join(' '))); if (!e || e.t === 'd') return { text: 'The system cannot find the file specified.', cls: 'err' }; return { text: e.text == null ? binaryPreview(e) : e.text.replace(/\r\n/g, '\n') }; },
   del: (ctx, a) => {
     const names = a.filter(x => !x.startsWith('/')); const sub = a.some(x => /^\/s$/i.test(x));
+    // /a (or /a:h, /ah) includes hidden files; without it del skips them, as Windows does; /a:-h keeps them out
+    const all = a.some(x => /^\/a(:?[a-z-]*)$/i.test(x) && !/-h/i.test(x));
     if (!names.length) return { text: 'The syntax of the command is incorrect.', cls: 'err' };
     let n = 0; const out = [];
     names.forEach(t => {
       const i = t.lastIndexOf('\\'); const pat = i < 0 ? t : t.slice(i + 1); const dir = i < 0 ? ctx.t.cwd : fsResolve(ctx.t.cwd, t.slice(0, i) || '\\');
-      const pool = sub ? walkFiles(dir, true) : fsChildren(dir, true);
+      const pool = sub ? walkFiles(dir, all) : fsChildren(dir, true).filter(x => all || !x.hidden);
       const hits = pool.filter(x => x.t === 'f' && globRe(pat).test(x.n));
       if (!hits.length) { out.push('Could Not Find ' + fsResolve(ctx.t.cwd, t)); return; }
       mutate(() => hits.forEach(x => { fsDelete(x.p); n++; if (sub) out.push('Deleted file - ' + x.p); }));
@@ -3945,12 +4024,27 @@ const CMDS = {
   systeminfo: () => ({ text: '\n' + sysinfoText() }),
   ipconfig: (ctx, a) => { const all = a.some(x => /^\/all$/i.test(x)); const ip = S.network.ip; return { text: '\nWindows IP Configuration\n\n' + (all ? '   Host Name . . . . . . . . . . . . : ' + (CUR ? CUR.hostname : 'range-pc') + '\n   Primary Dns Suffix  . . . . . . . : \n   Node Type . . . . . . . . . . . . : Hybrid\n   IP Routing Enabled. . . . . . . . : No\n   WINS Proxy Enabled. . . . . . . . : No\n\n' : '') + 'Ethernet adapter Ethernet:\n\n   Connection-specific DNS Suffix  . : \n' + (all ? '   Description . . . . . . . . . . . : Intel(R) Ethernet Connection\n   Physical Address. . . . . . . . . : ' + S.network.mac + '\n   DHCP Enabled. . . . . . . . . . . : Yes\n   Autoconfiguration Enabled . . . . : Yes\n' : '') + '   Link-local IPv6 Address . . . . . : fe80::3c1e:9a0f:77b2:1c4d%12\n   IPv4 Address. . . . . . . . . . . : ' + ip + '\n   Subnet Mask . . . . . . . . . . . : 255.255.255.0\n   Default Gateway . . . . . . . . . : ' + S.network.gw + (all ? '\n   DHCP Server . . . . . . . . . . . : ' + S.network.gw + '\n   DNS Servers . . . . . . . . . . . : ' + S.network.gw + '\n   NetBIOS over Tcpip. . . . . . . . : Enabled' : '') }; },
   netstat: (ctx, a) => {
-    const want = a.join(' ').toLowerCase(); const L = listeningPorts(); const ip = S.network.ip;
-    const rows = L.map(l => '  ' + padR(l.udp ? 'UDP' : 'TCP', 7) + padR('0.0.0.0:' + l.port, 24) + padR(l.udp ? '*:*' : '0.0.0.0:0', 24) + padR(l.udp ? '' : 'LISTENING', 16) + (/n/.test(want) && /o/.test(want) ? l.pid : ''));
-    const est = '  ' + padR('TCP', 7) + padR(ip + ':50122', 24) + padR('20.42.73.29:443', 24) + padR('ESTABLISHED', 16) + (/o/.test(want) ? '3312' : '');
-    return { text: '\nActive Connections\n\n  Proto  Local Address          Foreign Address        State' + (/o/.test(want) ? '           PID' : '') + '\n' + rows.join('\n') + '\n' + est + (/b/.test(want) && !ctx.admin ? '\n\nThe requested operation requires elevation.' : '') };
+    const want = a.join(' ').toLowerCase(); const b = /b/.test(want);
+    if (b && !ctx.admin) return { text: 'The requested operation requires elevation.', cls: 'err' };
+    const L = listeningPorts(); const ip = S.network.ip;
+    // -b: each row is followed by the program that owns it (svchost rows also name the service)
+    const owner = l => !b ? '' : l.pid === 4 ? '\n Can not obtain ownership information' : /^svchost\.exe$/i.test(l.proc) ? (SOCK_SVC[l.pid] ? '\n  ' + SOCK_SVC[l.pid] : '') + '\n [svchost.exe]' : '\n [' + l.proc + ']';
+    const rows = L.map(l => '  ' + padR(l.udp ? 'UDP' : 'TCP', 7) + padR('0.0.0.0:' + l.port, 24) + padR(l.udp ? '*:*' : '0.0.0.0:0', 24) + padR(l.udp ? '' : 'LISTENING', 16) + (/n/.test(want) && /o/.test(want) ? l.pid : '') + owner(l));
+    const est = '  ' + padR('TCP', 7) + padR(ip + ':50122', 24) + padR('203.0.113.40:443', 24) + padR('ESTABLISHED', 16) + (/o/.test(want) ? '3312' : '') + (b ? '\n [explorer.exe]' : '');
+    return { text: '\nActive Connections\n\n  Proto  Local Address          Foreign Address        State' + (/o/.test(want) ? '           PID' : '') + '\n' + rows.join('\n') + '\n' + est };
   },
-  tasklist: () => { const rows = processList(); return { text: '\nImage Name                     PID Session Name        Session#    Mem Usage\n========================= ======== ================ =========== ============\n' + rows.map(p => padR(p.name, 25) + ' ' + padL(p.pid, 8) + ' ' + padR(p.pid < 1000 ? 'Services' : 'Console', 16) + ' ' + padL(p.pid < 1000 ? 0 : 1, 11) + ' ' + padL(p.mem, 12)).join('\n') }; },
+  tasklist: (ctx, a) => {
+    let rows = processList();
+    const fi = (() => { const i = a.findIndex(x => /^\/fi$/i.test(x)); return i >= 0 ? String(a[i + 1] || '') : null; })();
+    if (fi != null) {
+      const m = /^\s*(pid|imagename)\s+(eq|ne)\s+(.+?)\s*$/i.exec(fi); if (!m) return { text: 'ERROR: The search filter cannot be recognized.', cls: 'err' };
+      const hit = r => m[1].toLowerCase() === 'pid' ? String(r.pid) === m[3] : globRe(m[3].toLowerCase()).test(r.name.toLowerCase());
+      rows = rows.filter(r => (m[2].toLowerCase() === 'eq') === hit(r));
+    }
+    if (!rows.length) return { text: 'INFO: No tasks are running which match the specified criteria.' };
+    if (a.some(x => /^\/svc$/i.test(x))) return { text: '\nImage Name                     PID Services\n========================= ======== ============================================\n' + rows.map(p => padR(p.name, 25) + ' ' + padL(p.pid, 8) + ' ' + procServices(p)).join('\n') };
+    return { text: '\nImage Name                     PID Session Name        Session#    Mem Usage\n========================= ======== ================ =========== ============\n' + rows.map(p => padR(p.name, 25) + ' ' + padL(p.pid, 8) + ' ' + padR(svcSession(p) ? 'Services' : 'Console', 16) + ' ' + padL(svcSession(p) ? 0 : 1, 11) + ' ' + padL(p.mem, 12)).join('\n') };
+  },
   taskkill: (ctx, a) => {
     const i = a.findIndex(x => /^\/pid$/i.test(x)); const j = a.findIndex(x => /^\/im$/i.test(x));
     const procs = S.procs || []; let hit = null;
@@ -4059,7 +4153,20 @@ const CMDS = {
       mutate(() => stopServiceModel(s));
       return { text: 'The ' + s.display + ' service is stopping.\nThe ' + s.display + ' service was stopped successfully.\n' };
     }
-    if (sub === 'share') return { text: '\nShare name   Resource                        Remark\n\n-------------------------------------------------------------------------------\nC$           C:\\                             Default share\nIPC$                                         Remote IPC\nADMIN$       C:\\Windows                      Remote Admin\n' + (S.edition === 'server' ? 'HR           C:\\Shares\\HR\nOps          C:\\Shares\\Ops\n' : '') + okMsg };
+    if (sub === 'share') {
+      if (!r.length) return { text: '\nShare name   Resource                        Remark\n\n-------------------------------------------------------------------------------\n' + shareList().map(x => (padR(x.name, 13) + padR(x.path, 32) + x.remark).replace(/\s+$/, '')).join('\n') + '\n' + okMsg };
+      const name = r[0]; const sh = shareList().find(x => sameName(x.name, name));
+      const missing = { text: 'This shared resource does not exist.\n\nMore help is available by typing NET HELPMSG 2310.', cls: 'err' };
+      if (r.slice(1).some(o => /^\/del(ete)?$/i.test(o))) {
+        if (needAdmin(ctx)) return { text: NET_DENIED, cls: 'err' };
+        if (!sh) return missing;
+        mutate(s => { s.shares = shareList().filter(x => x !== sh); });
+        return { text: sh.name + ' was deleted successfully.\n' };
+      }
+      if (!sh) return missing;
+      const info = 'Share name        ' + sh.name + '\nPath              ' + sh.path + '\nRemark            ' + sh.remark + '\nMaximum users     No limit\n';
+      return needAdmin(ctx) ? { text: info + NET_DENIED, cls: 'err' } : { text: info + okMsg };
+    }
     if (sub === 'session') return { text: 'There are no entries in the list.\n' };
     if (sub === 'help' || sub === '') return { text: 'The syntax of this command is:\n\nNET\n    [ ACCOUNTS | COMPUTER | CONFIG | CONTINUE | FILE | GROUP | HELP |\n      HELPMSG | LOCALGROUP | PAUSE | SESSION | SHARE | START |\n      STATISTICS | STOP | TIME | USE | USER | VIEW ]' };
     return { text: 'The syntax of this command is:\n\nNET\n    [ ACCOUNTS | COMPUTER | CONFIG | CONTINUE | FILE | GROUP | HELP |\n      HELPMSG | LOCALGROUP | PAUSE | SESSION | SHARE | START |\n      STATISTICS | STOP | TIME | USE | USER | VIEW ]\n[Range] "net ' + sub + '" is not simulated.' };
@@ -4116,7 +4223,7 @@ const CMDS = {
       mutate(s => { Object.keys(s.firewall.profiles).forEach(n => { if (which === 'allprofiles' || which === n.toLowerCase() + 'profile' || (which === 'currentprofile' && s.firewall.profiles[n].active)) s.firewall.profiles[n].on = on; }); });
       return { text: 'Ok.' };
     }
-    if ((m = /^advfirewall set (allprofiles|domainprofile|privateprofile|publicprofile) firewallpolicy (\w+),(\w+)/i.exec(t))) { if (needAdmin(ctx)) return { text: 'The requested operation requires elevation (Run as administrator).', cls: 'err' }; mutate(s => { Object.keys(s.firewall.profiles).forEach(n => { if (m[1].toLowerCase() === 'allprofiles' || m[1].toLowerCase() === n.toLowerCase() + 'profile') { s.firewall.profiles[n].inbound = /block/i.test(m[2]) ? 'Block' : 'Allow'; s.firewall.profiles[n].outbound = /block/i.test(m[3]) ? 'Block' : 'Allow'; } }); }); return { text: 'Ok.' }; }
+    if ((m = /^advfirewall set (allprofiles|domainprofile|privateprofile|publicprofile) firewallpolicy (\w+),(\w+)/i.exec(t))) { if (needAdmin(ctx)) return { text: 'The requested operation requires elevation (Run as administrator).', cls: 'err' }; mutate(s => { Object.keys(s.firewall.profiles).forEach(n => { if (m[1].toLowerCase() === 'allprofiles' || m[1].toLowerCase() === n.toLowerCase() + 'profile') { s.firewall.profiles[n].inbound = /block/i.test(m[2]) ? 'Block' : 'Allow'; s.firewall.profiles[n].outbound = /block/i.test(m[3]) ? 'Block' : 'Allow'; s.firewall.profiles[n].inSet = true; s.firewall.profiles[n].outSet = true; } }); }); return { text: 'Ok.' }; }
     const nameTok = (a.find(x => /^name=/i.test(x)) || '').replace(/^name=/i, '').replace(/^"|"$/g, '');
     if ((m = /^advfirewall firewall show rule name=/i.exec(t))) {
       const dirTok = (a.find(x => /^dir=/i.test(x)) || '').replace(/^dir=/i, ''); m[2] = dirTok || null;
@@ -4132,7 +4239,19 @@ const CMDS = {
   /* ----- auditpol ----- */
   auditpol: (ctx, a) => {
     const t = a.join(' ');
-    if (/^\/get/i.test(t)) return { text: auditpolGet() };
+    if (/^\/get$/i.test(a[0] || '')) {
+      const bad = { text: 'Error 0x00000057 occurred:\nThe parameter is incorrect.', cls: 'err' };
+      const tok = a.find(x => /^\/(sub)?category:/i.test(x));
+      if (!tok) return bad;
+      const isSub = /^\/subcategory:/i.test(tok);
+      const names = tok.replace(/^\/(sub)?category:/i, '').replace(/^"|"$/g, '').split(',').map(s => s.trim()).filter(Boolean);
+      const all = names.includes('*');
+      if (isSub && !all && !names.every(n => Object.values(AUDIT_SUBS).some(([, subs]) => subs.some(s => sameName(s, n))))) return bad;
+      const keys = all || isSub ? null : names.map(auditKeyFor);
+      if (keys && keys.some(k => !k)) return bad;
+      if (needAdmin(ctx)) return { text: 'Error 0x00000522 occurred:\nA required privilege is not held by the client.', cls: 'err' };
+      return { text: all ? auditpolGet() : isSub ? auditpolGet(null, names) : auditpolGet(keys) };
+    }
     if (!/^\/set$/i.test(a[0] || '')) return { text: 'Usage: AuditPol command [<sub-command><options>]\n\nCommands (only one command permitted per execution)\n  /?               Help (context-sensitive)\n  /get             Displays the current audit policy.\n  /set             Sets the audit policy.\n\nUse AuditPol <command> /? for details on each command', cls: 'err' };
     const catTok = a.find(x => /^\/(sub)?category:/i.test(x));
     const flags = a.filter(x => /^\/(success|failure):(enable|disable)$/i.test(x));
@@ -4150,11 +4269,11 @@ const CMDS = {
   secedit: (ctx, a) => {
     const t = a.join(' ');
     if (/\/configure/i.test(t)) return seceditConfigure(ctx, a);
+    if (needAdmin(ctx)) return { text: SECEDIT_ELEVATE, cls: 'err' };
     const m = /\/export\s+\/cfg\s+("[^"]+"|\S+)/i.exec(t);
     if (!m) return { text: 'The syntax of this command is:\n\nsecedit [/configure | /analyze | /import | /export | /validate | /generaterollback]\n\n[Range] Only "secedit /export /cfg <file>" is simulated.', cls: 'err' };
-    if (needAdmin(ctx)) return { text: 'The task has completed with an error.\nSee log %windir%\\security\\logs\\scesrv.log for detail info.\nAccess is denied.', cls: 'err' };
     const p = S.policy; const path = fsResolve(ctx.t.cwd, m[1].replace(/^"|"$/g, ''));
-    const text = '[Unicode]\r\nUnicode=yes\r\n[System Access]\r\nMinimumPasswordAge = ' + p.minPwAge + '\r\nMaximumPasswordAge = ' + (p.maxPwAge === 0 ? -1 : p.maxPwAge) + '\r\nMinimumPasswordLength = ' + p.minPwLen + '\r\nPasswordComplexity = ' + (p.complexity ? 1 : 0) + '\r\nPasswordHistorySize = ' + p.pwHistory + '\r\nLockoutBadCount = ' + p.lockoutThreshold + '\r\n' + (p.lockoutThreshold ? 'ResetLockoutCount = ' + p.lockoutReset + '\r\nLockoutDuration = ' + p.lockoutDuration + '\r\n' : '') + 'AllowAdministratorLockout = ' + (p.adminLockout ? 1 : 0) + '\r\nRequireLogonToChangePassword = 0\r\nForceLogoffWhenHourExpire = 0\r\nNewAdministratorName = "' + (Object.values(S.users).find(u => u.builtin === 'Administrator') || { name: 'Administrator' }).name + '"\r\nNewGuestName = "' + (Object.values(S.users).find(u => u.builtin === 'Guest') || { name: 'Guest' }).name + '"\r\nClearTextPassword = ' + (p.reversible ? 1 : 0) + '\r\nLSAAnonymousNameLookup = 0\r\nEnableAdminAccount = ' + (S.users.Administrator && S.users.Administrator.enabled ? 1 : 0) + '\r\nEnableGuestAccount = ' + (S.users.Guest && S.users.Guest.enabled ? 1 : 0) + '\r\n[Event Audit]\r\nAuditSystemEvents = ' + auditNum(S.audit.SystemEvents) + '\r\nAuditLogonEvents = ' + auditNum(S.audit.LogonEvents) + '\r\nAuditObjectAccess = ' + auditNum(S.audit.ObjectAccess) + '\r\nAuditPrivilegeUse = ' + auditNum(S.audit.PrivilegeUse) + '\r\nAuditPolicyChange = ' + auditNum(S.audit.PolicyChange) + '\r\nAuditAccountManage = ' + auditNum(S.audit.AccountManagement) + '\r\nAuditProcessTracking = ' + auditNum(S.audit.ProcessTracking) + '\r\nAuditDSAccess = ' + auditNum(S.audit.DSAccess) + '\r\nAuditAccountLogon = ' + auditNum(S.audit.AccountLogon) + '\r\n[Registry Values]\r\nMACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System\\DontDisplayLastUserName=4,' + (S.secopt.dontDisplayLastUser ? 1 : 0) + '\r\nMACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System\\DisableCAD=4,' + (S.secopt.noCAD ? 1 : 0) + '\r\nMACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System\\EnableLUA=4,' + (S.secopt.enableLua === false ? 0 : 1) + '\r\nMACHINE\\System\\CurrentControlSet\\Control\\Lsa\\LmCompatibilityLevel=4,' + (S.secopt.lmAuth == null ? 3 : S.secopt.lmAuth) + '\r\nMACHINE\\System\\CurrentControlSet\\Control\\Lsa\\NoLMHash=4,' + (S.secopt.noLmHash === false ? 0 : 1) + '\r\nMACHINE\\System\\CurrentControlSet\\Control\\Lsa\\RestrictAnonymousSAM=4,' + (S.secopt.anonSam === false ? 0 : 1) + '\r\nMACHINE\\System\\CurrentControlSet\\Control\\Lsa\\LimitBlankPasswordUse=4,' + (S.secopt.blankPwConsoleOnly === false ? 0 : 1) + '\r\n[Version]\r\nsignature="$CHICAGO$"\r\nRevision=1\r\n';
+    const text = '[Unicode]\r\nUnicode=yes\r\n[System Access]\r\nMinimumPasswordAge = ' + p.minPwAge + '\r\nMaximumPasswordAge = ' + (p.maxPwAge === 0 ? -1 : p.maxPwAge) + '\r\nMinimumPasswordLength = ' + p.minPwLen + '\r\nPasswordComplexity = ' + (p.complexity ? 1 : 0) + '\r\nPasswordHistorySize = ' + p.pwHistory + '\r\nLockoutBadCount = ' + p.lockoutThreshold + '\r\n' + (p.lockoutThreshold ? 'ResetLockoutCount = ' + p.lockoutReset + '\r\nLockoutDuration = ' + p.lockoutDuration + '\r\n' : '') + 'AllowAdministratorLockout = ' + (p.adminLockout ? 1 : 0) + '\r\nRequireLogonToChangePassword = 0\r\nForceLogoffWhenHourExpire = 0\r\nNewAdministratorName = "' + (Object.values(S.users).find(u => u.builtin === 'Administrator') || { name: 'Administrator' }).name + '"\r\nNewGuestName = "' + (Object.values(S.users).find(u => u.builtin === 'Guest') || { name: 'Guest' }).name + '"\r\nClearTextPassword = ' + (p.reversible ? 1 : 0) + '\r\nLSAAnonymousNameLookup = 0\r\nEnableAdminAccount = ' + (S.users.Administrator && S.users.Administrator.enabled ? 1 : 0) + '\r\nEnableGuestAccount = ' + (S.users.Guest && S.users.Guest.enabled ? 1 : 0) + '\r\n[Event Audit]\r\nAuditSystemEvents = ' + auditNum(S.audit.SystemEvents) + '\r\nAuditLogonEvents = ' + auditNum(S.audit.LogonEvents) + '\r\nAuditObjectAccess = ' + auditNum(S.audit.ObjectAccess) + '\r\nAuditPrivilegeUse = ' + auditNum(S.audit.PrivilegeUse) + '\r\nAuditPolicyChange = ' + auditNum(S.audit.PolicyChange) + '\r\nAuditAccountManage = ' + auditNum(S.audit.AccountManagement) + '\r\nAuditProcessTracking = ' + auditNum(S.audit.ProcessTracking) + '\r\nAuditDSAccess = ' + auditNum(S.audit.DSAccess) + '\r\nAuditAccountLogon = ' + auditNum(S.audit.AccountLogon) + '\r\n[Registry Values]\r\nMACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System\\DontDisplayLastUserName=4,' + (S.secopt.dontDisplayLastUser ? 1 : 0) + '\r\nMACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System\\DisableCAD=4,' + (S.secopt.noCAD ? 1 : 0) + '\r\nMACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System\\EnableLUA=4,' + (S.secopt.enableLua === false ? 0 : 1) + '\r\nMACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System\\ConsentPromptBehaviorUser=4,' + [0, 1, 3][S.secopt.uacStdPrompt == null ? 2 : S.secopt.uacStdPrompt] + '\r\nMACHINE\\System\\CurrentControlSet\\Control\\Lsa\\LmCompatibilityLevel=4,' + (S.secopt.lmAuth == null ? 3 : S.secopt.lmAuth) + '\r\nMACHINE\\System\\CurrentControlSet\\Control\\Lsa\\NoLMHash=4,' + (S.secopt.noLmHash === false ? 0 : 1) + '\r\nMACHINE\\System\\CurrentControlSet\\Control\\Lsa\\RestrictAnonymousSAM=4,' + (S.secopt.anonSam === false ? 0 : 1) + '\r\nMACHINE\\System\\CurrentControlSet\\Control\\Lsa\\LimitBlankPasswordUse=4,' + (S.secopt.blankPwConsoleOnly === false ? 0 : 1) + '\r\n[Version]\r\nsignature="$CHICAGO$"\r\nRevision=1\r\n';
     mutate(() => fsWrite(path, text));
     return { text: 'The task has completed successfully.\nSee log %windir%\\security\\logs\\scesrv.log for detail info.' };
   }
@@ -4163,7 +4282,7 @@ function auditNum(a) { return (a.s ? 1 : 0) + (a.f ? 2 : 0); }
 /* PowerShell-only versions of a few DOS names (dir/ls/cat behave PowerShell-style there) */
 const CMDS_PS_ONLY = {};
 /* ---------- PowerShell cmdlets ---------- */
-const PS_ALIAS = { ls: 'get-childitem', gci: 'get-childitem', dir: 'get-childitem', cat: 'get-content', gc: 'get-content', type: 'get-content', rm: 'remove-item', ri: 'remove-item', del: 'remove-item', erase: 'remove-item', rmdir: 'remove-item', cls: 'clear-host', clear: 'clear-host', gsv: 'get-service', sasv: 'start-service', spsv: 'stop-service', ps: 'get-process', gps: 'get-process', pwd: 'get-location', cd: 'set-location', sl: 'set-location', chdir: 'set-location', echo: 'write-output', write: 'write-output', select: 'select-object', where: 'where-object', fl: 'format-list', ft: 'format-table', history: 'get-history', h: 'get-history', man: 'get-help', help: 'get-help', exit: 'exit-ps' };
+const PS_ALIAS = { ls: 'get-childitem', gci: 'get-childitem', dir: 'get-childitem', cat: 'get-content', gc: 'get-content', type: 'get-content', rm: 'remove-item', ri: 'remove-item', del: 'remove-item', erase: 'remove-item', rmdir: 'remove-item', cls: 'clear-host', clear: 'clear-host', gsv: 'get-service', sasv: 'start-service', spsv: 'stop-service', ps: 'get-process', gps: 'get-process', kill: 'stop-process', spps: 'stop-process', 'remove-windowsfeature': 'uninstall-windowsfeature', pwd: 'get-location', cd: 'set-location', sl: 'set-location', chdir: 'set-location', echo: 'write-output', write: 'write-output', select: 'select-object', where: 'where-object', fl: 'format-list', ft: 'format-table', history: 'get-history', h: 'get-history', man: 'get-help', help: 'get-help', exit: 'exit-ps' };
 function psParams(a) {
   const p = { _: [] }; let last = null;
   a.forEach(x => {
@@ -4175,6 +4294,24 @@ function psParams(a) {
 }
 function psBool(v) { return v === true || /^\$?true$/i.test(String(v)) || String(v) === '1'; }
 function psAccess(cmdlet, seg) { return psError(cmdlet, 'Access denied.', seg, 'PermissionDenied', 'Root', 'AccessDeniedException'); }
+/* Server Manager names for the modeled optional features (Get-/Uninstall-WindowsFeature exist on Windows Server only): [optional-feature id, name, display name, depth] */
+const SRV_FEATURES = [['Microsoft-Hyper-V-All', 'Hyper-V', 'Hyper-V', 0], ['IIS-WebServerRole', 'Web-Server', 'Web Server (IIS)', 0], ['IIS-WebServer', 'Web-WebServer', 'Web Server', 1], ['IIS-FTPServer', 'Web-Ftp-Server', 'FTP Server', 1], ['IIS-FTPSvc', 'Web-Ftp-Service', 'FTP Service', 2], ['IIS-FTPExtensibility', 'Web-Ftp-Ext', 'FTP Extensibility', 2], ['IIS-WebServerManagementTools', 'Web-Mgmt-Tools', 'Management Tools', 1], ['IIS-ManagementConsole', 'Web-Mgmt-Console', 'IIS Management Console', 2], ['SMB1Protocol', 'FS-SMB1', 'SMB 1.0/CIFS File Sharing Support', 0], ['TelnetClient', 'Telnet-Client', 'Telnet Client', 0], ['TFTP', 'TFTP-Client', 'TFTP Client', 0]];
+function srvFeatState(id) { const f = featFind(id); return !f ? null : f.on ? 'Installed' : f.removed ? 'Removed' : 'Available'; }
+/* Microsoft Defender exclusions (older saves gain the field on first use) */
+function mpExcl() { if (!S.defender.exclusions) S.defender.exclusions = { path: [], process: [], extension: [] }; return S.defender.exclusions; }
+function mpExclEdit(cmdlet, ctx, a, seg, add) {
+  if (!ctx.admin) return psError(cmdlet, 'Operation failed with the following error: 0x800106ba. Operation: ' + cmdlet + '. Target: MSFT_MpPreference. [Range] Open PowerShell as administrator.', seg, 'NotSpecified', 'MSFT_MpPreference', 'HRESULT 0x800106ba');
+  const p = psParams(a); const norm = v => String(v).replace(/^["']|["']$/g, '').replace(/\\+$/, '').toLowerCase();
+  mutate(() => [['exclusionpath', 'path'], ['exclusionprocess', 'process'], ['exclusionextension', 'extension']].forEach(([param, k]) => {
+    if (p[param] == null || p[param] === true) return;
+    const vals = String(p[param]).split(',').map(s => s.trim().replace(/^["']|["']$/g, '')).filter(Boolean); const list = mpExcl()[k];
+    vals.forEach(v => { const i = list.findIndex(x => norm(x) === norm(v)); if (add && i < 0) list.push(v); if (!add && i >= 0) list.splice(i, 1); });
+  }));
+  return null;
+}
+/* AutoRun policy values (null = value absent); older saves gain the field on first use */
+function autorunState() { if (!S.autorun) S.autorun = { noDriveType: null, noAutorun: null }; return S.autorun; }
+function smbNotFound(cmdlet, n, seg) { return psError(cmdlet, "No MSFT_SMBShare objects found with property 'Name' equal to '" + n + "'.  Verify the value of the property and retry.", seg, 'ObjectNotFound', n, 'CmdletizationQuery_NotFound_Name'); }
 function userObj(u) { return { Name: u.name, Enabled: u.enabled ? 'True' : 'False', Description: u.description }; }
 function userFull(u) { return { AccountExpires: '', Description: u.description, Enabled: u.enabled ? 'True' : 'False', FullName: u.fullName, PasswordChangeableDate: winDateTime(u.pwLastSet + S.policy.minPwAge * 86400000, true), PasswordExpires: u.pwNeverExpires || S.policy.maxPwAge === 0 ? '' : winDateTime(u.pwLastSet + S.policy.maxPwAge * 86400000, true), UserMayChangePassword: u.cannotChange ? 'False' : 'True', PasswordRequired: u.pwRequired === false ? 'False' : 'True', PasswordLastSet: winDateTime(u.pwLastSet, true), LastLogon: u.lastLogon ? winDateTime(u.lastLogon, true) : '', Name: u.name, SID: 'S-1-5-21-3214915783-1096320192-1832651921-' + (u.builtin === 'Administrator' ? '500' : u.builtin === 'Guest' ? '501' : 1000 + Object.keys(S.users).indexOf(u.name)), PrincipalSource: 'Local', ObjectClass: 'User' }; }
 const PS_CMDS = {
@@ -4231,14 +4368,40 @@ const PS_CMDS = {
   'disable-scheduledtask': (ctx, a, seg) => { const p = psParams(a); const t = taskByName(String(p.taskname || p._[0] || '')); if (!t) return psError('Disable-ScheduledTask', 'The system cannot find the file specified.', seg, 'ObjectNotFound', p.taskname, 'HRESULT 0x80070002'); if (!ctx.admin) return psError('Disable-ScheduledTask', 'Access is denied.', seg, 'PermissionDenied', t.name, 'HRESULT 0x80070005'); mutate(() => { t.status = 'Disabled'; }); return { objs: [{ TaskPath: t.folder === '\\' ? '\\' : t.folder + '\\', TaskName: t.name, State: 'Disabled' }], cols: ['TaskPath', 'TaskName', 'State'] }; },
   'enable-scheduledtask': (ctx, a, seg) => { const p = psParams(a); const t = taskByName(String(p.taskname || p._[0] || '')); if (!t) return psError('Enable-ScheduledTask', 'The system cannot find the file specified.', seg, 'ObjectNotFound', p.taskname, 'HRESULT 0x80070002'); if (!ctx.admin) return psError('Enable-ScheduledTask', 'Access is denied.', seg, 'PermissionDenied', t.name, 'HRESULT 0x80070005'); mutate(() => { t.status = 'Ready'; }); return { objs: [{ TaskPath: t.folder === '\\' ? '\\' : t.folder + '\\', TaskName: t.name, State: 'Ready' }], cols: ['TaskPath', 'TaskName', 'State'] }; },
   'unregister-scheduledtask': (ctx, a, seg) => { const p = psParams(a); const t = taskByName(String(p.taskname || p._[0] || '')); if (!t) return psError('Unregister-ScheduledTask', 'No MSFT_ScheduledTask objects found with property \'TaskName\' equal to \'' + (p.taskname || p._[0]) + '\'.  Verify the value of the property and retry.', seg, 'ObjectNotFound', p.taskname, 'CmdletizationQuery_NotFound_TaskName'); if (!ctx.admin) return psError('Unregister-ScheduledTask', 'Access is denied.', seg, 'PermissionDenied', t.name, 'HRESULT 0x80070005'); if (!(p.confirm != null && /false/i.test(String(p.confirm)))) return { text: '\nConfirm\nAre you sure you want to perform this action?\nPerforming the operation "Unregister-ScheduledTask" on target "' + t.name + '".\n[Y] Yes  [A] Yes to All  [N] No  [L] No to All  [S] Suspend  [?] Help (default is "Y"):\n[Range] Interactive confirmation is not simulated: add -Confirm:$false.' }; mutate(s => { s.tasks = s.tasks.filter(x => x !== t); }); return null; },
-  'get-process': () => ({ text: '\nHandles  NPM(K)    PM(K)      WS(K)     CPU(s)     Id  SI ProcessName\n-------  ------    -----      -----     ------     --  -- -----------\n' + processList().map(p => padL(Math.floor(200 + p.pid % 700), 7) + padL(Math.floor(10 + p.pid % 40), 8) + padL(fmtNum(parseInt(String(p.mem).replace(/,/g, ''), 10) || 1200), 9) + padL(fmtNum((parseInt(String(p.mem).replace(/,/g, ''), 10) || 1200) + 3000), 11) + padL((p.pid % 50 / 10).toFixed(2), 11) + padL(p.pid, 7) + padL(p.pid < 1000 ? 0 : 1, 4) + ' ' + p.name.replace(/\.exe$/i, '')).join('\n') + '\n' }),
+  // text is the table Windows prints; objs feed Select-Object / Where-Object (Get-Process -Id 7356 | Select-Object Name,Path)
+  'get-process': (ctx, a, seg) => {
+    const p = psParams(a); const sel = psProcRows('Get-Process', p, seg); if (sel.err) return sel.err; const rows = sel.rows;
+    return { text: '\nHandles  NPM(K)    PM(K)      WS(K)     CPU(s)     Id  SI ProcessName\n-------  ------    -----      -----     ------     --  -- -----------\n' + rows.map(p => padL(Math.floor(200 + p.pid % 700), 7) + padL(Math.floor(10 + p.pid % 40), 8) + padL(fmtNum(parseInt(String(p.mem).replace(/,/g, ''), 10) || 1200), 9) + padL(fmtNum((parseInt(String(p.mem).replace(/,/g, ''), 10) || 1200) + 3000), 11) + padL((p.pid % 50 / 10).toFixed(2), 11) + padL(p.pid, 7) + padL(svcSession(p) ? 0 : 1, 4) + ' ' + p.name.replace(/\.exe$/i, '')).join('\n') + '\n',
+      objs: rows.map(r => ({ Name: r.name.replace(/\.exe$/i, ''), Id: r.pid, ProcessName: r.name.replace(/\.exe$/i, ''), Path: procPath(r) })), cols: ['Id', 'ProcessName', 'Path'] };
+  },
+  'stop-process': (ctx, a, seg) => {
+    const p = psParams(a); const sel = psProcRows('Stop-Process', p, seg); if (sel.err) return sel.err;
+    // -Id stops that one process; -Name stops every process with that name, as Windows does
+    const rows = sel.rows;
+    if ((p.id == null || p.id === true) && p.name == null && p._[0] == null) return psError('Stop-Process', 'Cannot process command because of one or more missing mandatory parameters: Id.', seg, 'InvalidArgument', '', 'MissingMandatoryParameter');
+    const label = r => r.name.replace(/\.exe$/i, '') + ' (' + r.pid + ')';
+    const plan = [];
+    for (const row of rows) {
+      const hit = (S.procs || []).find(x => x.pid === row.pid); const svcRow = ownSvc(row);
+      if (svcRow && (PROTECTED_SVC.includes(svcRow.name) || NO_STOP.includes(svcRow.name))) return psError('Stop-Process', 'Cannot stop process "' + label(row) + '" because of the following error: Access is denied', seg, 'CloseError', label(row), 'CouldNotStopProcess');
+      if (!hit && !svcRow) return { text: '[Range] ' + row.name + ' (' + row.pid + ') is part of Windows; ending it would crash or destabilize the machine, so the trainer keeps it running. End the planted program, then remove what starts it.' };
+      if (!ctx.admin) return psError('Stop-Process', 'Cannot stop process "' + label(row) + '" because of the following error: Access is denied', seg, 'CloseError', label(row), 'CouldNotStopProcess');
+      plan.push({ hit, svcRow });
+    }
+    mutate(s => plan.forEach(({ hit, svcRow }) => { if (hit) s.procs = s.procs.filter(x => x !== hit); if (svcRow) stopServiceModel(svcRow); }));
+    return null;
+  },
   'get-nettcpconnection': () => ({ text: '\nLocalAddress                        LocalPort RemoteAddress                       RemotePort State       AppliedSetting OwningProcess\n------------                        --------- -------------                       ---------- -----       -------------- -------------\n' + listeningPorts().filter(l => !l.udp).map(l => padR('0.0.0.0', 36) + padL(l.port, 9) + ' ' + padR('0.0.0.0', 36) + padL(0, 10) + ' ' + padR('Listen', 12) + padR('', 15) + l.pid).join('\n') + '\n' }),
   'get-hotfix': () => ({ text: '\nSource        Description      HotFixID      InstalledBy          InstalledOn\n------        -----------      --------      -----------          -----------\n' + S.hotfixes.concat((S.update.installed || []).map(x => ({ kb: x.kb, desc: 'Update', date: x.date }))).map(x => padR(hostnameUpper(), 14) + padR(x.desc || 'Security Update', 17) + padR(x.kb, 14) + padR('NT AUTHORITY\\SYSTEM', 21) + x.date + ' 12:00:00 AM').join('\n') + '\n' }),
-  'get-mppreference': () => ({ objs: [{ DisableRealtimeMonitoring: S.defender.realtime ? 'False' : 'True', DisableBehaviorMonitoring: 'False', DisableIOAVProtection: 'False', MAPSReporting: S.defender.cloud ? '2' : '0', SubmitSamplesConsent: S.defender.sample ? '1' : '2', PUAProtection: '1', ScanScheduleDay: '0', ScanScheduleTime: '02:00:00', SignatureUpdateInterval: '0', ExclusionPath: '' }], cols: ['DisableRealtimeMonitoring', 'DisableBehaviorMonitoring', 'DisableIOAVProtection', 'MAPSReporting', 'SubmitSamplesConsent', 'PUAProtection', 'ScanScheduleDay', 'ScanScheduleTime', 'SignatureUpdateInterval', 'ExclusionPath'], view: 'list' }),
+  // a standard window sees N/A for the exclusion lists, as Windows shows it
+  'get-mppreference': ctx => { const ex = mpExcl(); const show = list => !ctx.admin ? '{N/A: Must be an administrator to view exclusions}' : list.length ? '{' + list.join(', ') + '}' : ''; return { objs: [{ DisableRealtimeMonitoring: S.defender.realtime ? 'False' : 'True', DisableBehaviorMonitoring: 'False', DisableIOAVProtection: 'False', MAPSReporting: S.defender.cloud ? '2' : '0', SubmitSamplesConsent: S.defender.sample ? '1' : '2', PUAProtection: '1', ScanScheduleDay: '0', ScanScheduleTime: '02:00:00', SignatureUpdateInterval: '0', ExclusionExtension: show(ex.extension), ExclusionPath: show(ex.path), ExclusionProcess: show(ex.process) }], cols: ['DisableRealtimeMonitoring', 'DisableBehaviorMonitoring', 'DisableIOAVProtection', 'MAPSReporting', 'SubmitSamplesConsent', 'PUAProtection', 'ScanScheduleDay', 'ScanScheduleTime', 'SignatureUpdateInterval', 'ExclusionExtension', 'ExclusionPath', 'ExclusionProcess'], view: 'list' }; },
+  'add-mppreference': (ctx, a, seg) => mpExclEdit('Add-MpPreference', ctx, a, seg, true),
+  'remove-mppreference': (ctx, a, seg) => mpExclEdit('Remove-MpPreference', ctx, a, seg, false),
   'set-mppreference': (ctx, a, seg) => { const p = psParams(a); if (!ctx.admin) return psError('Set-MpPreference', 'Operation failed with the following error: 0x800106ba. Operation: Set-MpPreference. Target: MSFT_MpPreference. [Range] Open PowerShell as administrator.', seg, 'NotSpecified', 'MSFT_MpPreference', 'HRESULT 0x800106ba'); if (S.defender.tamper && p.disablerealtimemonitoring != null && psBool(p.disablerealtimemonitoring)) return psError('Set-MpPreference', 'Operation failed with the following error: 0x800106ba. Tamper Protection blocked the change.', seg, 'NotSpecified', 'MSFT_MpPreference', 'HRESULT 0x800106ba'); mutate(() => { if (p.disablerealtimemonitoring != null) S.defender.realtime = !psBool(p.disablerealtimemonitoring); if (p.mapsreporting != null) S.defender.cloud = String(p.mapsreporting) !== '0' && !/disabled/i.test(String(p.mapsreporting)); if (p.submitsamplesconsent != null) S.defender.sample = /^(1|3|always|send)/i.test(String(p.submitsamplesconsent)); }); return null; },
-  'get-mpcomputerstatus': () => ({ objs: [{ AMRunningMode: S.defender.policyOff ? 'Not running' : 'Normal', AMServiceEnabled: S.defender.policyOff ? 'False' : 'True', AntispywareEnabled: 'True', AntivirusEnabled: S.defender.policyOff ? 'False' : 'True', AntivirusSignatureLastUpdated: winDateTime(daysAgo(S.update.installed && S.update.installed.length ? 0 : 23, 6, 30), true), BehaviorMonitorEnabled: S.defender.realtime ? 'True' : 'False', IoavProtectionEnabled: S.defender.realtime ? 'True' : 'False', IsTamperProtected: S.defender.tamper ? 'True' : 'False', NISEnabled: S.defender.realtime ? 'True' : 'False', OnAccessProtectionEnabled: S.defender.realtime ? 'True' : 'False', RealTimeProtectionEnabled: S.defender.realtime ? 'True' : 'False', QuickScanAge: '3', FullScanAge: '4294967295' }], cols: ['AMRunningMode', 'AMServiceEnabled', 'AntispywareEnabled', 'AntivirusEnabled', 'AntivirusSignatureLastUpdated', 'BehaviorMonitorEnabled', 'IoavProtectionEnabled', 'IsTamperProtected', 'NISEnabled', 'OnAccessProtectionEnabled', 'RealTimeProtectionEnabled', 'QuickScanAge', 'FullScanAge'], view: 'list' }),
-  'get-netfirewallprofile': (ctx, a) => { const p = psParams(a); const names = p.name || p.profile ? String(p.name || p.profile).split(',').map(s => s.trim()) : ['Domain', 'Private', 'Public']; return { objs: names.map(n => groupByName(n) || n).map(n => { const prof = S.firewall.profiles[Object.keys(S.firewall.profiles).find(k => sameName(k, n))]; return prof ? { Name: Object.keys(S.firewall.profiles).find(k => sameName(k, n)), Enabled: prof.on ? 'True' : 'False', DefaultInboundAction: prof.inbound, DefaultOutboundAction: prof.outbound, AllowInboundRules: 'NotConfigured', AllowLocalFirewallRules: 'NotConfigured', NotifyOnListen: 'True', LogFileName: '%systemroot%\\system32\\LogFiles\\Firewall\\pfirewall.log', LogMaxSizeKilobytes: '4096' } : { Name: n, Enabled: 'NotConfigured' }; }), cols: ['Name', 'Enabled', 'DefaultInboundAction', 'DefaultOutboundAction', 'AllowInboundRules', 'AllowLocalFirewallRules', 'NotifyOnListen', 'LogFileName', 'LogMaxSizeKilobytes'], view: 'list' }; },
-  'set-netfirewallprofile': (ctx, a, seg) => { const p = psParams(a); if (!ctx.admin) return psError('Set-NetFirewallProfile', 'Access is denied.', seg, 'PermissionDenied', 'MSFT_NetFirewallProfile', 'Windows System Error 5'); const names = p.all != null ? Object.keys(S.firewall.profiles) : String(p.name || p.profile || '').split(',').map(s => s.trim()).map(n => Object.keys(S.firewall.profiles).find(k => sameName(k, n))).filter(Boolean); if (!names.length) return psError('Set-NetFirewallProfile', 'Cannot process command because of one or more missing mandatory parameters: Name.', seg, 'InvalidArgument', '', 'MissingMandatoryParameter'); mutate(s => names.forEach(n => { if (p.enabled != null) s.firewall.profiles[n].on = psBool(p.enabled); if (p.defaultinboundaction != null) s.firewall.profiles[n].inbound = /block/i.test(String(p.defaultinboundaction)) ? 'Block' : 'Allow'; if (p.defaultoutboundaction != null) s.firewall.profiles[n].outbound = /block/i.test(String(p.defaultoutboundaction)) ? 'Block' : 'Allow'; })); return null; },
+  'get-mpcomputerstatus': () => ({ objs: [{ AMRunningMode: S.defender.policyOff ? 'Not running' : 'Normal', AMServiceEnabled: S.defender.policyOff ? 'False' : 'True', AntispywareEnabled: 'True', AntivirusEnabled: S.defender.policyOff ? 'False' : 'True', AntivirusSignatureLastUpdated: S.defender.sigUpdated ? winDateTime(new Date(S.defender.sigUpdated), true) : winDateTime(daysAgo(S.update.installed && S.update.installed.length ? 0 : 23, 6, 30), true), BehaviorMonitorEnabled: S.defender.realtime ? 'True' : 'False', IoavProtectionEnabled: S.defender.realtime ? 'True' : 'False', IsTamperProtected: S.defender.tamper ? 'True' : 'False', NISEnabled: S.defender.realtime ? 'True' : 'False', OnAccessProtectionEnabled: S.defender.realtime ? 'True' : 'False', RealTimeProtectionEnabled: S.defender.realtime ? 'True' : 'False', QuickScanAge: S.defender.lastScan && S.defender.lastScan.type === 'quickscan' ? '0' : '3', FullScanAge: '4294967295' }], cols: ['AMRunningMode', 'AMServiceEnabled', 'AntispywareEnabled', 'AntivirusEnabled', 'AntivirusSignatureLastUpdated', 'BehaviorMonitorEnabled', 'IoavProtectionEnabled', 'IsTamperProtected', 'NISEnabled', 'OnAccessProtectionEnabled', 'RealTimeProtectionEnabled', 'QuickScanAge', 'FullScanAge'], view: 'list' }),
+  // the default store is PersistentStore: an action nobody set reads NotConfigured there; -PolicyStore ActiveStore shows the action in force; RSOP is empty on a standalone machine
+  'get-netfirewallprofile': (ctx, a) => { const p = psParams(a); const store = String(p.policystore && p.policystore !== true ? p.policystore : 'PersistentStore').toLowerCase(); if (store === 'rsop') return null; const names = p.name || p.profile ? String(p.name || p.profile).split(',').map(s => s.trim()) : ['Domain', 'Private', 'Public']; return { objs: names.map(n => groupByName(n) || n).map(n => { const prof = S.firewall.profiles[Object.keys(S.firewall.profiles).find(k => sameName(k, n))]; return prof ? { Name: Object.keys(S.firewall.profiles).find(k => sameName(k, n)), Enabled: prof.on ? 'True' : 'False', DefaultInboundAction: store === 'activestore' || prof.inSet ? prof.inbound : 'NotConfigured', DefaultOutboundAction: store === 'activestore' || prof.outSet ? prof.outbound : 'NotConfigured', AllowInboundRules: 'NotConfigured', AllowLocalFirewallRules: 'NotConfigured', NotifyOnListen: 'True', LogFileName: '%systemroot%\\system32\\LogFiles\\Firewall\\pfirewall.log', LogMaxSizeKilobytes: '4096' } : { Name: n, Enabled: 'NotConfigured' }; }), cols: ['Name', 'Enabled', 'DefaultInboundAction', 'DefaultOutboundAction', 'AllowInboundRules', 'AllowLocalFirewallRules', 'NotifyOnListen', 'LogFileName', 'LogMaxSizeKilobytes'], view: 'list' }; },
+  'set-netfirewallprofile': (ctx, a, seg) => { const p = psParams(a); if (!ctx.admin) return psError('Set-NetFirewallProfile', 'Access is denied.', seg, 'PermissionDenied', 'MSFT_NetFirewallProfile', 'Windows System Error 5'); const names = p.all != null ? Object.keys(S.firewall.profiles) : String(p.name || p.profile || '').split(',').map(s => s.trim()).map(n => Object.keys(S.firewall.profiles).find(k => sameName(k, n))).filter(Boolean); if (!names.length) return psError('Set-NetFirewallProfile', 'Cannot process command because of one or more missing mandatory parameters: Name.', seg, 'InvalidArgument', '', 'MissingMandatoryParameter'); mutate(s => names.forEach(n => { if (p.enabled != null) s.firewall.profiles[n].on = psBool(p.enabled); if (p.defaultinboundaction != null) { s.firewall.profiles[n].inbound = /block/i.test(String(p.defaultinboundaction)) ? 'Block' : 'Allow'; s.firewall.profiles[n].inSet = true; } if (p.defaultoutboundaction != null) { s.firewall.profiles[n].outbound = /block/i.test(String(p.defaultoutboundaction)) ? 'Block' : 'Allow'; s.firewall.profiles[n].outSet = true; } })); return null; },
   'get-netfirewallrule': (ctx, a, seg) => { const p = psParams(a); let list = S.firewall.rules; const dn = p.displayname || p._[0]; if (dn) { list = list.filter(r => globRe(String(dn)).test(r.name)); if (!list.length) return psError('Get-NetFirewallRule', 'No MSFT_NetFirewallRule objects found with property \'DisplayName\' equal to \'' + dn + '\'.  Verify the value of the property and retry.', seg, 'ObjectNotFound', dn, 'CmdletizationQuery_NotFound_DisplayName'); } if (p.enabled != null) list = list.filter(r => r.enabled === psBool(p.enabled)); if (p.direction != null) list = list.filter(r => r.direction.toLowerCase().startsWith(String(p.direction).toLowerCase())); return { objs: list.map(r => ({ Name: r.id, DisplayName: r.name, Enabled: r.enabled ? 'True' : 'False', Direction: r.direction, Profile: r.profile === 'All' ? 'Any' : r.profile, Action: r.action, Group: r.group })), cols: ['DisplayName', 'Enabled', 'Direction', 'Profile', 'Action'] }; },
   'disable-netfirewallrule': (ctx, a, seg) => { const p = psParams(a); if (!ctx.admin) return psError('Disable-NetFirewallRule', 'Access is denied.', seg, 'PermissionDenied', 'MSFT_NetFirewallRule', 'Windows System Error 5'); const hit = S.firewall.rules.filter(r => globRe(String(p.displayname || p._[0] || '')).test(r.name)); if (!hit.length) return psError('Disable-NetFirewallRule', 'No MSFT_NetFirewallRule objects found with property \'DisplayName\' equal to \'' + (p.displayname || p._[0]) + '\'.  Verify the value of the property and retry.', seg, 'ObjectNotFound', p.displayname, 'CmdletizationQuery_NotFound_DisplayName'); mutate(() => hit.forEach(r => { r.enabled = false; })); return null; },
   'enable-netfirewallrule': (ctx, a, seg) => { const p = psParams(a); if (!ctx.admin) return psError('Enable-NetFirewallRule', 'Access is denied.', seg, 'PermissionDenied', 'MSFT_NetFirewallRule', 'Windows System Error 5'); const hit = S.firewall.rules.filter(r => globRe(String(p.displayname || p._[0] || '')).test(r.name)); if (!hit.length) return psError('Enable-NetFirewallRule', 'No MSFT_NetFirewallRule objects found with property \'DisplayName\' equal to \'' + (p.displayname || p._[0]) + '\'.  Verify the value of the property and retry.', seg, 'ObjectNotFound', p.displayname, 'CmdletizationQuery_NotFound_DisplayName'); mutate(() => hit.forEach(r => { r.enabled = true; })); return null; },
@@ -4246,6 +4409,62 @@ const PS_CMDS = {
   'get-windowsoptionalfeature': (ctx, a, seg) => { const p = psParams(a); if (p.online == null) return psError('Get-WindowsOptionalFeature', 'Parameter set cannot be resolved using the specified named parameters. Add -Online.', seg, 'InvalidArgument', '', 'AmbiguousParameterSet'); if (!ctx.admin) return psError('Get-WindowsOptionalFeature', 'The requested operation requires elevation.', seg, 'NotSpecified', '', 'Microsoft.Dism.Commands.GetWindowsOptionalFeatureCommand'); const name = p.featurename; if (name) { const f = featFind(String(name)); if (!f) return psError('Get-WindowsOptionalFeature', 'Feature name ' + name + ' is unknown.', seg, 'NotSpecified', name, 'Microsoft.Dism.Commands.GetWindowsOptionalFeatureCommand'); return { objs: [{ FeatureName: f.id, DisplayName: f.name, Description: f.name, RestartRequired: 'Possible', State: f.on ? 'Enabled' : 'Disabled', CustomProperties: '' }], cols: ['FeatureName', 'DisplayName', 'Description', 'RestartRequired', 'State', 'CustomProperties'], view: 'list' }; } const objs = []; featWalk(f => objs.push({ FeatureName: f.id, State: f.on ? 'Enabled' : 'Disabled' })); return { objs, cols: ['FeatureName', 'State'] }; },
   'disable-windowsoptionalfeature': (ctx, a, seg) => { const p = psParams(a); if (!ctx.admin) return psError('Disable-WindowsOptionalFeature', 'The requested operation requires elevation.', seg, 'NotSpecified', '', 'Microsoft.Dism.Commands.DisableWindowsOptionalFeatureCommand'); const f = featFind(String(p.featurename || '')); if (!f) return psError('Disable-WindowsOptionalFeature', 'Feature name ' + (p.featurename || '') + ' is unknown.', seg, 'NotSpecified', p.featurename, 'Microsoft.Dism.Commands.DisableWindowsOptionalFeatureCommand'); mutate(() => setFeature(f.id, false)); return { text: '\n\nPath          :\nOnline        : True\nRestartNeeded : False\n' }; },
   'enable-windowsoptionalfeature': (ctx, a, seg) => { const p = psParams(a); if (!ctx.admin) return psError('Enable-WindowsOptionalFeature', 'The requested operation requires elevation.', seg, 'NotSpecified', '', 'Microsoft.Dism.Commands.EnableWindowsOptionalFeatureCommand'); const f = featFind(String(p.featurename || '')); if (!f) return psError('Enable-WindowsOptionalFeature', 'Feature name ' + (p.featurename || '') + ' is unknown.', seg, 'NotSpecified', p.featurename, 'Microsoft.Dism.Commands.EnableWindowsOptionalFeatureCommand'); mutate(() => setFeature(f.id, true)); return { text: '\n\nPath          :\nOnline        : True\nRestartNeeded : False\n' }; },
+  'get-windowsfeature': (ctx, a, seg) => {
+    if (S.edition !== 'server') return unknownCommand(ctx, 'Get-WindowsFeature', seg);
+    const p = psParams(a); const pats = String(p.name != null && p.name !== true ? p.name : p._[0] || '*').split(',').map(s => s.trim()).filter(Boolean);
+    const rows = SRV_FEATURES.filter(r => featFind(r[0]) && pats.some(n => globRe(n).test(r[1])));
+    if (!rows.length) return null;
+    return { text: '\nDisplay Name                                            Name                       Install State\n------------                                            ----                       -------------\n' + rows.map(([id, name, disp, d]) => padR(' '.repeat(4 * d) + (featOn(id) ? '[X] ' : '[ ] ') + disp, 56) + padR(name, 27) + padL(srvFeatState(id), 13)).join('\n') + '\n',
+      objs: rows.map(([id, name, disp]) => ({ Name: name, DisplayName: disp, InstallState: srvFeatState(id) })), cols: ['DisplayName', 'Name', 'InstallState'] };
+  },
+  'uninstall-windowsfeature': (ctx, a, seg) => {
+    const cmdlet = 'Uninstall-WindowsFeature';
+    if (S.edition !== 'server') return unknownCommand(ctx, cmdlet, seg);
+    const p = psParams(a);
+    if (!ctx.admin) return psError(cmdlet, 'The requested operation requires elevation.', seg, 'NotSpecified', '', 'Microsoft.Windows.ServerManager.Commands.RemoveWindowsFeatureCommand');
+    const names = String(p.name != null && p.name !== true ? p.name : p._[0] || '').split(',').map(s => s.trim()).filter(Boolean);
+    if (!names.length) return psError(cmdlet, 'Cannot process command because of one or more missing mandatory parameters: Name.', seg, 'InvalidArgument', '', 'MissingMandatoryParameter');
+    const idx = [];
+    for (const n of names) { const i = SRV_FEATURES.findIndex(r => sameName(r[1], n) && featFind(r[0])); if (i < 0) return psError(cmdlet, "ArgumentNotValid: The role, role service, or feature name is not valid: '" + n + "'. The name was not found.", seg, 'InvalidArgument', n, 'NameDoesNotExist'); idx.push(i); }
+    if (p.whatif != null) return { text: '[Range] -WhatIf preview: would remove {' + names.join(', ') + '}' };
+    // every installed row at or below each named row, in tree order
+    const all = [];
+    idx.forEach(i => { all.push(i); for (let j = i + 1; j < SRV_FEATURES.length && SRV_FEATURES[j][3] > SRV_FEATURES[i][3]; j++) all.push(j); });
+    const removed = all.filter((j, k) => all.indexOf(j) === k).sort((x, y) => x - y).filter(j => featOn(SRV_FEATURES[j][0])).map(j => SRV_FEATURES[j][2]);
+    mutate(() => idx.forEach(i => { const id = SRV_FEATURES[i][0]; setFeature(id, false); if (p.remove != null) { const mark = f => { f.removed = true; f.kids.forEach(mark); }; mark(featFind(id)); } }));
+    return { text: '\nSuccess Restart Needed Exit Code      Feature Result\n------- -------------- ---------      --------------\n' + padR('True', 8) + padR('No', 15) + padR(removed.length ? 'Success' : 'NoChangeNeeded', 15) + '{' + removed.join(', ') + '}\n' };
+  },
+  'update-mpsignature': () => { mutate(() => { S.defender.sigUpdated = Date.now(); }); return null; },
+  'start-mpscan': (ctx, a, seg) => {
+    const p = psParams(a); const type = String(p.scantype != null && p.scantype !== true ? p.scantype : 'QuickScan');
+    if (!/^(quickscan|fullscan|customscan)$/i.test(type)) return psError('Start-MpScan', "Cannot process argument transformation on parameter 'ScanType'.", seg, 'InvalidData', type, 'ParameterArgumentTransformationError');
+    if (S.defender.policyOff) return psError('Start-MpScan', 'Operation failed with the following error: 0x800106ba. Operation: Start-MpScan. Target: MSFT_MpScan.', seg, 'NotSpecified', 'MSFT_MpScan', 'HRESULT 0x800106ba');
+    mutate(() => { S.defender.lastScan = { type: type.toLowerCase(), at: Date.now() }; });
+    return null;
+  },
+  // no detections are modeled, and Windows prints nothing when the history is empty
+  'get-mpthreatdetection': () => null,
+  'get-mpthreat': () => null,
+  'get-smbshare': (ctx, a, seg) => {
+    const p = psParams(a); const nm = p.name != null && p.name !== true ? String(p.name) : p._[0];
+    let list = shareList().slice();
+    if (nm != null) {
+      const out = [];
+      for (const n of String(nm).split(',').map(s => s.trim()).filter(Boolean)) { const hit = list.filter(x => globRe(n).test(x.name)); if (!hit.length && !/[*?]/.test(n)) return smbNotFound('Get-SmbShare', n, seg); hit.forEach(x => { if (!out.includes(x)) out.push(x); }); }
+      list = out;
+    }
+    if (!list.length) return null;
+    return { objs: list.sort((x, y) => x.name.localeCompare(y.name, 'en', { sensitivity: 'base' })).map(x => ({ Name: x.name, ScopeName: '*', Path: x.path, Description: x.remark, Special: x.special ? 'True' : 'False' })), cols: ['Name', 'ScopeName', 'Path', 'Description'] };
+  },
+  'remove-smbshare': (ctx, a, seg) => {
+    const p = psParams(a); const name = String(p.name != null && p.name !== true ? p.name : p._[0] || '');
+    const sh = shareList().find(x => sameName(x.name, name));
+    if (!sh) return smbNotFound('Remove-SmbShare', name, seg);
+    if (!ctx.admin) return psError('Remove-SmbShare', 'Access is denied.', seg, 'PermissionDenied', 'MSFT_SMBShare', 'Windows System Error 5');
+    if (p.force == null && !(p.confirm != null && /false/i.test(String(p.confirm)))) return { text: '\nConfirm\nAre you sure you want to perform this action?\nPerforming operation \'Delete\' on Target \'*,' + sh.name + '\'.\n[Y] Yes  [A] Yes to All  [N] No  [L] No to All  [S] Suspend  [?] Help (default is "Y"):\n[Range] Interactive confirmation is not simulated: add -Force.' };
+    mutate(s => { s.shares = shareList().filter(x => x !== sh); });
+    return null;
+  },
   'restart-computer': () => { setTimeout(() => restartMachine(), 700); return null; },
   'stop-computer': () => { setTimeout(() => powerOff(), 700); return null; },
   'select-object': (ctx, a, seg, input) => ({ text: '' }),
@@ -4269,10 +4488,14 @@ const REG_KEYS = [
     EnableLUA: { get: () => (S.secopt.enableLua === false ? 0 : 1), set: v => { S.secopt.enableLua = !!v; } },
     ConsentPromptBehaviorAdmin: { get: () => [0, 5, 5, 2][S.uac], set: v => { S.uac = v === 0 ? 0 : v === 2 ? 3 : (S.uac === 1 ? 1 : 2); } },
     PromptOnSecureDesktop: { get: () => (S.uac >= 2 ? 1 : 0), set: v => { if (S.uac >= 1) S.uac = v ? Math.max(2, S.uac) : 1; } },
+    ConsentPromptBehaviorUser: { get: () => [0, 1, 3][S.secopt.uacStdPrompt == null ? 2 : S.secopt.uacStdPrompt], set: v => { S.secopt.uacStdPrompt = v === 0 ? 0 : v === 1 ? 1 : 2; }, del: () => { S.secopt.uacStdPrompt = 2; } },
     DontDisplayLastUserName: { get: () => (S.secopt.dontDisplayLastUser ? 1 : 0), set: v => { S.secopt.dontDisplayLastUser = !!v; } },
     DisableCAD: { get: () => (S.secopt.noCAD ? 1 : 0), set: v => { S.secopt.noCAD = !!v; } },
     InactivityTimeoutSecs: { get: () => (S.secopt.inactivityLimit || regFlag('InactivityTimeoutSecs') ? S.secopt.inactivityLimit || 0 : null), set: v => { S.secopt.inactivityLimit = v; } },
     FilterAdministratorToken: { get: () => (S.secopt.adminApprovalBuiltin ? 1 : 0), set: v => { S.secopt.adminApprovalBuiltin = !!v; } } } },
+  { key: 'HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer', vals: {
+    NoDriveTypeAutoRun: { get: () => autorunState().noDriveType, set: v => { autorunState().noDriveType = v; }, del: () => { autorunState().noDriveType = null; } },
+    NoAutorun: { get: () => autorunState().noAutorun, set: v => { autorunState().noAutorun = v; }, del: () => { autorunState().noAutorun = null; } } } },
   { key: 'HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa', vals: {
     LmCompatibilityLevel: { get: () => (S.secopt.lmAuth == null ? 3 : S.secopt.lmAuth), set: v => { S.secopt.lmAuth = clamp(v, 0, 5); } },
     NoLMHash: { get: () => (S.secopt.noLmHash === false ? 0 : 1), set: v => { S.secopt.noLmHash = !!v; } },
@@ -4314,7 +4537,7 @@ function regCommand(ctx, a) {
   const op = (a[0] || '').toLowerCase(); const key = a[1];
   const opt = n => { const i = a.findIndex(x => x.toLowerCase() === '/' + n); return i >= 0 ? (a[i + 1] == null ? '' : a[i + 1]) : null; };
   const has = n => a.some(x => x.toLowerCase() === '/' + n);
-  if (!op || op === '/?') return { text: 'REG <Operation> [Parameter List]\n\n  <Operation>  == [ QUERY   | ADD    | DELETE  | COPY    |\n                   SAVE    | LOAD   | UNLOAD  | RESTORE |\n                   COMPARE | EXPORT | IMPORT  | FLAGS ]\n\n[Range] QUERY, ADD and DELETE are simulated for the security-relevant HKLM values (Remote Desktop, UAC, LSA, Defender and Windows Update policies, service Start types).' };
+  if (!op || op === '/?') return { text: 'REG <Operation> [Parameter List]\n\n  <Operation>  == [ QUERY   | ADD    | DELETE  | COPY    |\n                   SAVE    | LOAD   | UNLOAD  | RESTORE |\n                   COMPARE | EXPORT | IMPORT  | FLAGS ]\n\n[Range] QUERY, ADD and DELETE are simulated for the security-relevant HKLM values (Remote Desktop, UAC, LSA, AutoPlay, Defender and Windows Update policies, and service Start types).' };
   if (!key) return { text: 'ERROR: Invalid syntax.\nType "REG ' + op.toUpperCase() + ' /?" for usage.', cls: 'err' };
   if (/^HKCU/i.test(regNormKey(key))) return { text: '[Range] HKEY_CURRENT_USER is not simulated; the trainer models machine-wide (HKLM) settings only.' };
   const k = regFind(key);
@@ -4334,7 +4557,7 @@ function regCommand(ctx, a) {
       if (!name || k.vals[name].get() == null) return { text: REG_MISSING, cls: 'err' };
       if (!has('f')) return { text: 'Delete the registry value ' + name + ' (Yes/No)?\n[Range] Interactive confirmation is not simulated: add /f.' };
       if (k.vals[name].ro) return { text: 'ERROR: Access is denied.', cls: 'err' };
-      mutate(() => { k.vals[name].set(0); S.regw = S.regw || {}; delete S.regw[name]; if (name === 'NoAutoUpdate' || name === 'AUOptions') S.update.autoPolicy = 'Not Configured'; });
+      mutate(() => { if (k.vals[name].del) k.vals[name].del(); else k.vals[name].set(0); S.regw = S.regw || {}; delete S.regw[name]; if (name === 'NoAutoUpdate' || name === 'AUOptions') S.update.autoPolicy = 'Not Configured'; });
       return { text: REG_OK };
     }
     const data = opt('d'); const type = (opt('t') || 'REG_SZ').toUpperCase();
@@ -4351,11 +4574,13 @@ function regCommand(ctx, a) {
   return { text: '[Range] "reg ' + op + '" is not simulated. Use reg query, reg add or reg delete.' };
 }
 /* ---------- secedit /configure: apply an exported-and-edited security template ---------- */
+/* what secedit prints for every verb in a window without elevation (two spaces after the first period, as Windows prints it) */
+const SECEDIT_ELEVATE = "You do not have sufficient permissions to perform this command.  Make sure that you are running as the local administrator or have opened the command prompt using the 'Run as administrator' option.";
 function seceditConfigure(ctx, a) {
   const t = a.join(' ');
+  if (!ctx.admin) return { text: SECEDIT_ELEVATE, cls: 'err' };
   const m = /\/cfg\s+("[^"]+"|\S+)/i.exec(t);
   if (!m) return { text: 'The syntax of this command is:\n\nsecedit /configure /db filename [/cfg filename ] [/overwrite][/areas area1 area2...] [/log filename] [/quiet]', cls: 'err' };
-  if (!ctx.admin) return { text: 'The task has completed with an error.\nAccess is denied.', cls: 'err' };
   const path = fsResolve(ctx.t.cwd, m[1].replace(/^"|"$/g, '')); const e = fsGet(path);
   if (!e || e.text == null) return { text: 'The task has completed with an error.\nAn extended error has occurred. Failed to open the template file ' + path + '.\nThe system cannot find the file specified.', cls: 'err' };
   let sect = ''; const bad = [];
@@ -4422,9 +4647,10 @@ function baseState(sc) {
     edition, hostname: sc.hostname, users, groups, services: baseServices(edition), tasks: baseTasks(sc.hostname, sc.login.user), programs: basePrograms(edition), features: baseFeatures(edition), firewall: baseFirewall(edition),
     fs: null, recycle: [], showHidden: false, showExt: false, runHistory: [], procs: [],
     policy: { pwHistory: 0, maxPwAge: 42, minPwAge: 0, minPwLen: 0, complexity: false, reversible: false, lockoutThreshold: 0, lockoutDuration: 30, lockoutReset: 30, adminLockout: true },
-    audit, secopt: { adminApprovalBuiltin: false, dontDisplayLastUser: false, noCAD: true, enableLua: true, blankPwConsoleOnly: true, inactivityLimit: 0, logonMessage: '', logonTitle: '', anonSam: true, anonSamShares: false, noLmHash: true, lmAuth: null, shutdownNoLogon: true, uacStdPrompt: 1, blockMsa: null },
+    audit, secopt: { adminApprovalBuiltin: false, dontDisplayLastUser: false, noCAD: true, enableLua: true, blankPwConsoleOnly: true, inactivityLimit: 0, logonMessage: '', logonTitle: '', anonSam: true, anonSamShares: false, noLmHash: true, lmAuth: null, shutdownNoLogon: true, uacStdPrompt: 2, blockMsa: null },
     uac: 2, rdp: { enabled: false, nla: true, policy: 'Not Configured' },
-    defender: { realtime: true, cloud: true, sample: true, tamper: true, policyOff: false, rtpPolicyOff: false },
+    defender: { realtime: true, cloud: true, sample: true, tamper: true, policyOff: false, rtpPolicyOff: false, exclusions: { path: [], process: [], extension: [] } },
+    autorun: { noDriveType: null, noAutorun: null }, shares: defaultShares(edition),
     update: { phase: 'idle', available: [], installed: [], lastChecked: null, lastCheckedDaysAgo: 19, paused: false, pausedUntil: null, restartPending: false, autoPolicy: 'Not Configured', autoOption: 4, progress: 0, otherProducts: false, getLatest: false, latestAsap: false },
     signin: { requireSignIn: 'When PC wakes up from sleep' },
     hotfixes: [(i => ({ kb: i.kb, desc: i.desc, title: cuTitle(edition, i.month, i.kb, i.build, i.desc !== 'Security Update'), date: winDate(daysAgo(i.daysAgo)) }))(osv(edition).installed)],
@@ -4444,6 +4670,7 @@ function plantProgram(st, name, publisher, version, size) { st.programs.push(pro
 function plantMedia(st, home, files) { files.forEach(f => fsAddFile(st.fs, home + '\\' + f[0], { size: f[1], mtime: daysAgo(20, 21, 15) })); }
 function buildLab(sc) {
   const st = baseState(sc);
+  st.rev = sc.rev || 0;
   sc.users.forEach(u => addUser(st, u.name, u));
   st.fs = baseFs(sc.hostname, st.users, st.edition);
   const home = 'C:\\Users\\' + sc.login.user;
@@ -4474,8 +4701,9 @@ const LEARN = {
 };
 /* ---------- reusable checks ---------- */
 const CK = {
-  userGone: (name, pts) => ({ id: 'user-' + name, title: 'Unauthorized user "' + name + '" removed', pts, cat: AREA.acct, test: s => !userByName(name), hint: 'Local Users and Groups (lusrmgr.msc) > Users > right-click ' + name + ' > Delete. Or: net user ' + name + ' /delete', fix: 'lusrmgr.msc > Users > ' + name + ' > Delete   |   net user ' + name + ' /delete', why: 'An account nobody authorized is a door into the machine.' }),
+  userGone: (name, pts) => ({ id: 'user-' + name, title: 'Unauthorized user "' + name + '" removed', pts, cat: AREA.acct, test: s => !userByName(name), hint: 'Local Users and Groups (lusrmgr.msc) > Users > right-click ' + name + ' > Delete. Or: net user ' + name + ' /delete. Deleting the account leaves its profile folder (C:\\Users\\' + name + ') in place; review its files before you remove the folder.', fix: 'lusrmgr.msc > Users > ' + name + ' > Delete   |   net user ' + name + ' /delete', why: 'An account nobody authorized is a door into the machine.' }),
   demote: (name, pts) => ({ id: 'demote-' + name, title: '"' + name + '" removed from the Administrators group (not an authorized administrator)', pts, cat: AREA.access, test: s => !userByName(name) || !isAdmin(name), hint: 'lusrmgr.msc > Groups > Administrators > Remove ' + name + '. Or: net localgroup Administrators ' + name + ' /delete', fix: 'lusrmgr.msc > Groups > Administrators > Properties > ' + name + ' > Remove   |   net localgroup Administrators ' + name + ' /delete', why: 'Administrators can undo every other fix; only the administrators named in the Scenario Brief belong there (least privilege).' }),
+  privGroup: (group, name, pts) => ({ id: 'grp-' + group.toLowerCase().replace(/\s+/g, '-') + '-' + name, title: '"' + name + '" removed from ' + group + ' (not an authorized administrator)', pts, cat: AREA.access, test: s => { const g = groupByName(group); return !userByName(name) || !g || !g.members.some(m => sameName(m, name)); }, hint: 'net localgroup "' + group + '" lists the members; lusrmgr.msc > Groups > ' + group + ' > Remove ' + name + '. Or: net localgroup "' + group + '" ' + name + ' /delete', fix: 'lusrmgr.msc > Groups > ' + group + ' > Properties > ' + name + ' > Remove   |   net localgroup "' + group + '" ' + name + ' /delete', why: 'Backup Operators can read and restore every file on the machine, past any folder permission: an administrator-level right that belongs only to the administrators the brief names.', learn: [LEARN.drill('B-03', 'Audit the Administrators group', 'Audit the privileged groups'), LEARN.dl('sophomore', 's2', 'Windows 11 hardening')] }),
   guest: pts => ({ id: 'guest', title: 'Guest account disabled', pts, cat: AREA.acct, test: s => !s.users.Guest || !s.users.Guest.enabled, hint: 'lusrmgr.msc > Users > Guest > Properties > Account is disabled. Or: net user Guest /active:no', fix: 'lusrmgr.msc > Guest > Properties > check "Account is disabled"   |   net user Guest /active:no', why: 'Guest is an anonymous login with no password.' }),
   builtinAdmin: pts => ({ id: 'builtin-admin', title: 'Built-in Administrator account disabled', pts, cat: AREA.acct, test: s => { const u = Object.values(s.users).find(x => x.builtin === 'Administrator'); return !u || !u.enabled; }, hint: 'lusrmgr.msc > Users > Administrator > Properties > Account is disabled (or: net user Administrator /active:no).', fix: 'lusrmgr.msc > Administrator > Properties > "Account is disabled"   |   net user Administrator /active:no', why: 'The well-known Administrator account is the first name guessed; workstations should keep it off.' }),
   noNeverExpires: (name, pts) => ({ id: 'pwexp-' + name, title: '"Password never expires" cleared on ' + name, pts, cat: AREA.acct, test: s => { const u = userByName(name); return !u || !u.pwNeverExpires; }, hint: 'lusrmgr.msc > Users > ' + name + ' > Properties > uncheck "Password never expires". PowerShell: Set-LocalUser -Name ' + name + ' -PasswordNeverExpires $false', fix: 'lusrmgr.msc > ' + name + ' > Properties > uncheck "Password never expires"   |   Set-LocalUser -Name ' + name + ' -PasswordNeverExpires $false', why: 'A password that never expires stays valid forever once leaked.' }),
@@ -4485,15 +4713,20 @@ const CK = {
   history: pts => ({ id: 'history', title: 'Password history of 5 or more enforced', pts, cat: AREA.acct, test: s => s.policy.pwHistory >= 5, hint: 'secpol.msc > Password Policy > Enforce password history = 5 (or more). Or: net accounts /uniquepw:5', fix: 'secpol.msc > Password Policy > Enforce password history = 5   |   net accounts /uniquepw:5', why: 'Stops toggling between two favourite passwords.' }),
   maxAge: pts => ({ id: 'maxage', title: 'Maximum password age is between 30 and 90 days', pts, cat: AREA.acct, test: s => s.policy.maxPwAge >= 30 && s.policy.maxPwAge <= 90, hint: 'secpol.msc > Password Policy > Maximum password age = 60. Or: net accounts /maxpwage:60', fix: 'secpol.msc > Password Policy > Maximum password age = 60   |   net accounts /maxpwage:60', why: '0 means passwords never expire.' }),
   minAge: pts => ({ id: 'minage', title: 'Minimum password age is 1 day or more', pts, cat: AREA.acct, test: s => s.policy.minPwAge >= 1 && (s.policy.maxPwAge === 0 || s.policy.minPwAge < s.policy.maxPwAge), hint: 'secpol.msc > Password Policy > Minimum password age = 1. Or: net accounts /minpwage:1', fix: 'secpol.msc > Password Policy > Minimum password age = 1   |   net accounts /minpwage:1', why: 'Without it, users cycle through the history in seconds to reuse an old password. When a maximum age is set, the minimum must be lower than it.' }),
+  reversible: pts => ({ id: 'reversible', title: 'Store passwords using reversible encryption disabled', pts, cat: AREA.acct, test: s => !s.policy.reversible, hint: 'secpol.msc > Account Policies > Password Policy > Store passwords using reversible encryption > Disabled. net accounts has no switch for it: secedit /export /cfg C:\\sec.inf, set ClearTextPassword = 0 in Notepad, then secedit /configure /db C:\\Windows\\security\\local.sdb /cfg C:\\sec.inf', fix: 'secpol.msc > Password Policy > "Store passwords using reversible encryption" = Disabled   |   secedit template line ClearTextPassword = 0, then secedit /configure /db C:\\Windows\\security\\local.sdb /cfg C:\\sec.inf', why: 'Reversible encryption stores each password in a form that decrypts back to the plain text, so one stolen copy of the account database reveals every password.', learn: [LEARN.drill('B-06', 'Password policy', 'Password policy where it actually lives')] }),
   lockout: pts => ({ id: 'lockout', title: 'Account lockout after 1 to 10 failed attempts, with a lockout duration of 15 minutes or more', pts, cat: AREA.access, test: s => s.policy.lockoutThreshold >= 1 && s.policy.lockoutThreshold <= 10 && (s.policy.lockoutDuration === 0 || s.policy.lockoutDuration >= 15), hint: 'secpol.msc > Account Lockout Policy > Account lockout threshold = 5 (duration 30, reset 30). Or: net accounts /lockoutthreshold:5 /lockoutduration:30 /lockoutwindow:30', fix: 'secpol.msc > Account Lockout Policy > threshold 5, duration 30, reset 30   |   net accounts /lockoutthreshold:5 /lockoutduration:30 /lockoutwindow:30', why: 'Lockout turns a million guesses into five. A duration of 0 also passes: it keeps the account locked until an administrator unlocks it.' }),
   audit: (key, label, pts) => ({ id: 'audit-' + key, title: label + ' audited for Success and Failure', pts, cat: AREA.audit, test: s => s.audit[key].s && s.audit[key].f, hint: 'secpol.msc > Local Policies > Audit Policy > ' + label + ' > check Success and Failure. Or: auditpol /set /category:"' + AUDIT_SUBS[key][0] + '" /success:enable /failure:enable', fix: 'secpol.msc > Audit Policy > ' + label + ' = Success, Failure   |   auditpol /set /category:"' + AUDIT_SUBS[key][0] + '" /success:enable /failure:enable', why: 'No audit trail means no way to see who signed in or what changed.' }),
-  lastUser: pts => ({ id: 'lastuser', title: '"Do not display last user name" enabled', pts, cat: AREA.access, test: s => !!s.secopt.dontDisplayLastUser, hint: 'secpol.msc > Local Policies > Security Options > Interactive logon: Do not display last user name > Enabled.', fix: 'secpol.msc > Security Options > "Interactive logon: Do not display last user name" = Enabled   |   reg add HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System /v DontDisplayLastUserName /t REG_DWORD /d 1 /f', why: 'Showing the last user hands an attacker half of the credentials.' }),
+  lastUser: pts => ({ id: 'lastuser', title: '"Interactive logon: Don\'t display last signed-in" enabled', pts, cat: AREA.access, test: s => !!s.secopt.dontDisplayLastUser, hint: 'secpol.msc > Local Policies > Security Options > Interactive logon: Don\'t display last signed-in > Enabled (older guides call it "Do not display last user name"). Or: reg add HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System /v DontDisplayLastUserName /t REG_DWORD /d 1 /f', fix: 'secpol.msc > Security Options > "Interactive logon: Don\'t display last signed-in" = Enabled   |   reg add HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System /v DontDisplayLastUserName /t REG_DWORD /d 1 /f', why: 'Showing the last user hands an attacker half of the credentials.' }),
   cad: pts => ({ id: 'cad', title: 'CTRL+ALT+DEL required to sign in', pts, cat: AREA.access, test: s => !s.secopt.noCAD, hint: 'secpol.msc > Security Options > Interactive logon: Do not require CTRL+ALT+DEL > Disabled.', fix: 'secpol.msc > Security Options > "Interactive logon: Do not require CTRL+ALT+DEL" = Disabled   |   reg add HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System /v DisableCAD /t REG_DWORD /d 0 /f', why: 'The secure attention sequence defeats fake login screens.' }),
+  blankConsole: pts => ({ id: 'blankpw-console', title: 'Blank-password accounts limited to console sign-in', pts, cat: AREA.access, test: s => s.secopt.blankPwConsoleOnly !== false, hint: 'secpol.msc > Local Policies > Security Options > Accounts: Limit local account use of blank passwords to console logon only > Enabled. Or: reg add HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa /v LimitBlankPasswordUse /t REG_DWORD /d 1 /f', fix: 'secpol.msc > Security Options > "Accounts: Limit local account use of blank passwords to console logon only" = Enabled   |   reg add HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa /v LimitBlankPasswordUse /t REG_DWORD /d 1 /f', why: 'With this off, an account with an empty password also signs in over the network (file shares and Remote Desktop), well beyond the keyboard.', learn: [LEARN.drill('I-02', 'Security Options in secpol.msc')] }),
   lmAuth: pts => ({ id: 'lmauth', title: 'LAN Manager authentication level set to NTLMv2 only (level 5)', pts, cat: AREA.access, test: s => s.secopt.lmAuth != null && s.secopt.lmAuth >= 5, hint: 'secpol.msc > Security Options > Network security: LAN Manager authentication level > "Send NTLMv2 response only. Refuse LM & NTLM".', fix: 'secpol.msc > Security Options > "Network security: LAN Manager authentication level" = Send NTLMv2 response only. Refuse LM & NTLM   |   reg add HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa /v LmCompatibilityLevel /t REG_DWORD /d 5 /f', why: VERSIONS.server.family + ' has removed NTLMv1, but the setting is still there and hardening baselines still require level 5: a lower value is a deliberate downgrade to undo, and on older systems the same policy reaches, LM and NTLMv1 responses crack in seconds.', learn: [LEARN.dl('junior', 'j1', 'Windows Server and Active Directory'), LEARN.dl('senior', 'se7', 'Windows: credentials and the domain attack surface')] }),
   uac: pts => ({ id: 'uac', title: 'UAC at the default level or higher (prompts on the secure desktop)', pts, cat: AREA.access, test: s => s.uac >= 2 && s.secopt.enableLua !== false, hint: 'Control Panel > User Accounts > Change User Account Control settings > slide to the default (third from bottom) or higher.', fix: 'Control Panel > User Accounts > Change User Account Control settings > default or "Always notify"   |   reg add HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System /v ConsentPromptBehaviorAdmin /t REG_DWORD /d 5 /f  and  /v PromptOnSecureDesktop /d 1', why: 'With UAC off, any program the user runs silently gets administrator power.', learn: [LEARN.drill('I-03', 'UAC to Always notify'), LEARN.dl('freshman', 'f5', 'First look at Windows')] }),
   firewall: pts => ({ id: 'firewall', title: 'Windows Defender Firewall on for all profiles', pts, cat: AREA.config, test: s => firewallAllOn() && s.services.mpssvc && s.services.mpssvc.status === 'Running', hint: 'Windows Security > Firewall & network protection > turn on every profile. Or: netsh advfirewall set allprofiles state on', fix: 'Windows Security > Firewall & network protection > Domain, Private, Public = On   |   netsh advfirewall set allprofiles state on', why: 'A profile that is off exposes every listening service on that network.' }),
   rogueRule: (name, pts) => ({ id: 'rule-' + name, title: 'Suspicious inbound firewall rule "' + name + '" removed or disabled', pts, cat: AREA.config, test: s => { const r = ruleByName(name); return !r || !r.enabled; }, hint: 'wf.msc > Inbound Rules > right-click "' + name + '" > Delete (or Disable Rule). Or: netsh advfirewall firewall delete rule name="' + name + '"', fix: 'wf.msc > Inbound Rules > "' + name + '" > Delete   |   netsh advfirewall firewall delete rule name="' + name + '"', why: 'An allow-anything rule on an odd port is a planted back door.', learn: [LEARN.drill('I-12', 'Firewall allow-rule review')] }),
+  share: (name, path, pts) => ({ id: 'share-' + name.toLowerCase().replace(/[^a-z0-9]+/g, ''), title: 'Unauthorized share "' + name + '" removed', pts, cat: AREA.access, test: s => !(s.shares || defaultShares(s.edition)).some(x => sameName(x.name, name)), hint: 'net share lists every share, hidden $ shares included (Get-SmbShare in PowerShell). ' + name + ' points at ' + path + '. Keep ADMIN$, C$, and IPC$, and remove it: net share ' + name + ' /delete, Remove-SmbShare -Name \'' + name + '\' -Force, or Computer Management > Shared Folders > Shares > right-click ' + name + ' > Stop Sharing.', fix: 'net share ' + name + ' /delete   |   Remove-SmbShare -Name \'' + name + '\' -Force   |   compmgmt.msc > Shared Folders > Shares > ' + name + ' > Stop Sharing', why: 'A share nobody authorized hands the folder behind it to anyone on the network, and a $ at the end of the name hides it from browsing.', learn: [LEARN.drill('I-06', 'Shares'), LEARN.dl('sophomore', 's2', 'Windows 11 hardening')] }),
   defender: pts => ({ id: 'defender', title: 'Microsoft Defender real-time protection on', pts, cat: AREA.malware, test: s => s.defender.realtime && !s.defender.policyOff && !s.defender.rtpPolicyOff && s.services.WinDefend && s.services.WinDefend.status === 'Running', hint: 'Windows Security > Virus & threat protection > Manage settings > Real-time protection On (and no "Turn off" policy in gpedit).', fix: 'Windows Security > Virus & threat protection > Manage settings > Real-time protection = On   |   Set-MpPreference -DisableRealtimeMonitoring $false', why: 'With real-time protection off, malware runs unchallenged.' }),
+  exclusion: (path, pts) => ({ id: 'defender-exclusion', title: 'Microsoft Defender exclusion for ' + path + ' removed', pts, cat: AREA.malware, test: s => !((s.defender.exclusions || {}).path || []).some(x => sameName(String(x).replace(/\\+$/, ''), path)), hint: 'In PowerShell as administrator, Get-MpPreference | Select-Object ExclusionPath,ExclusionProcess,ExclusionExtension lists every exclusion (a standard window shows N/A). Windows Security > Virus & threat protection > Manage settings > Exclusions > Add or remove exclusions shows the same list. Remove it: Remove-MpPreference -ExclusionPath "' + path + '"', fix: 'Windows Security > Virus & threat protection > Manage settings > Add or remove exclusions > ' + path + ' > Remove   |   Remove-MpPreference -ExclusionPath "' + path + '"', why: 'An exclusion tells Microsoft Defender to skip a folder, so a program stored there runs unscanned even with real-time protection on; an intruder adds one for the folder their tools run from.', learn: [LEARN.drill('A-09', 'Defender beyond on: exclusions, PUA, cloud, ASR'), LEARN.dl('senior', 'se7', 'Windows: credentials and the domain attack surface')] }),
+  autorun: pts => ({ id: 'autorun', title: 'AutoRun turned off for every drive type (NoDriveTypeAutoRun 255)', pts, cat: AREA.malware, test: s => !!s.autorun && s.autorun.noDriveType === 255, hint: 'reg query "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer" shows NoDriveTypeAutoRun. Set it to 255 (0xff, every drive type): reg add "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer" /v NoDriveTypeAutoRun /t REG_DWORD /d 255 /f, or gpedit.msc > Computer Configuration > Administrative Templates > Windows Components > AutoPlay Policies > Turn off Autoplay > Enabled, All drives.', fix: 'gpedit.msc > AutoPlay Policies > Turn off Autoplay = Enabled (All drives)   |   reg add "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer" /v NoDriveTypeAutoRun /t REG_DWORD /d 255 /f', why: 'AutoRun starts a program from a USB drive or disc the moment it is inserted, the classic USB-drop infection.', learn: [LEARN.dl('sophomore', 's2', 'Windows 11 hardening'), LEARN.drill('A-04', 'AutoRun and AutoPlay off everywhere')] }),
   updates: pts => ({ id: 'updates', title: 'Windows updates installed and not paused', pts, cat: AREA.patch, test: s => !s.update.paused && (s.update.installed || []).length >= 2 && !(s.update.available || []).length, hint: 'Settings > Windows Update > Resume updates, Check for updates, Install all, then Restart now.', fix: 'Settings > Windows Update > Resume updates > Check for updates > Install all > Restart now', why: 'The pending updates include fixes for publicly known vulnerabilities.' }),
   svcOff: (name, label, pts) => ({ id: 'svc-' + name, title: label + ' service stopped and disabled', pts, cat: AREA.config, test: s => { const v = s.services[name]; return !v || (v.status !== 'Running' && v.start === 'Disabled'); }, hint: 'services.msc > ' + label + ' > Properties > Startup type Disabled, then Stop. Or: sc config ' + name + ' start= disabled && sc stop ' + name, fix: 'services.msc > ' + label + ' > Stop, Startup type = Disabled   |   sc stop ' + name + ' && sc config ' + name + ' start= disabled', why: 'Unneeded listening services are ways in; Disabled keeps them off after a reboot.' }),
   svcGone: (name, label, pts, more = []) => ({ id: 'rsvc-' + name, title: 'Rogue service "' + label + '" (' + name + ') disabled or removed', pts, cat: AREA.malware, test: s => { const v = s.services[name]; return !v || (v.status !== 'Running' && v.start === 'Disabled'); }, hint: 'Judge services by path: services.msc > "' + label + '" > Properties shows the Path to executable, and sc qc ' + name + ' shows it as BINARY_PATH_NAME. A service that runs from C:\\Users\\Public is planted. Stop it and set Startup type Disabled. Or: sc stop ' + name + ' && sc config ' + name + ' start= disabled (sc delete ' + name + ' removes it).', fix: 'services.msc > "' + label + '" > Stop, Startup type = Disabled   |   sc stop ' + name + ' && sc delete ' + name, why: 'A homemade service running from a user folder is persistence for an intruder.', learn: [LEARN.dl('sophomore', 's2', 'Windows 11 hardening'), LEARN.drill('I-04', 'Service audit: what runs, from where')].concat(more) }),
@@ -4503,7 +4736,7 @@ const CK = {
   feature: (id, label, pts) => ({ id: 'feat-' + id, title: label + ' feature turned off', pts, cat: AREA.config, test: s => !featOn(id), hint: 'Windows Features (optionalfeatures) > uncheck "' + label + '". PowerShell: Disable-WindowsOptionalFeature -Online -FeatureName ' + id, fix: 'optionalfeatures > uncheck "' + label + '"   |   Disable-WindowsOptionalFeature -Online -FeatureName ' + id, why: label.indexOf('SMB') >= 0 ? 'SMBv1 is the protocol WannaCry spread over.' : 'Telnet sends every keystroke, passwords included, in clear text.', learn: [LEARN.drill('I-05', 'Optional features: SMBv1, Telnet client, TFTP, IIS', 'Roles and features: remove what the brief does not need')] }),
   rdpOff: pts => ({ id: 'rdp-off', title: 'Remote Desktop disabled (not required on this machine)', pts, cat: AREA.config, test: s => !rdpEffective(), hint: 'Settings > System > Remote Desktop > Off (or System Properties > Remote > Don\'t allow remote connections).', fix: 'Settings > System > Remote Desktop = Off   |   reg add "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 1 /f', why: 'RDP exposed on a workstation is the most common ransomware entry point.', learn: [LEARN.drill('B-13', 'Stop obviously unsafe services')] }),
   rdpNla: pts => ({ id: 'rdp-nla', title: 'Remote Desktop requires Network Level Authentication', pts, cat: AREA.access, test: s => rdpEffective() && s.rdp.nla, hint: 'Settings > System > Remote Desktop > Require devices to use Network Level Authentication (keep Remote Desktop ON).', fix: 'Settings > System > Remote Desktop > check "Require devices to use Network Level Authentication"   |   reg add "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp" /v UserAuthentication /t REG_DWORD /d 1 /f', why: 'NLA authenticates before a session is created, blocking pre-auth exploits.', learn: [LEARN.dl('sophomore', 's2', 'Windows 11 hardening')] }),
-  ftpGone: pts => ({ id: 'ftp', title: 'FTP server removed (service stopped and feature off)', pts, cat: AREA.config, test: s => !featOn('IIS-FTPServer') && !(s.services.FTPSVC && s.services.FTPSVC.status === 'Running'), hint: 'Windows Features > Internet Information Services > uncheck FTP Server (keep World Wide Web Services). Or Server Manager > Remove Roles.', fix: 'optionalfeatures > Internet Information Services > uncheck "FTP Server"   |   Disable-WindowsOptionalFeature -Online -FeatureName IIS-FTPServer', why: 'FTP sends credentials in clear text, and the Scenario Brief does not authorize it.' }),
+  ftpGone: pts => ({ id: 'ftp', title: 'FTP server removed (service stopped and feature off)', pts, cat: AREA.config, test: s => !featOn('IIS-FTPServer') && !(s.services.FTPSVC && s.services.FTPSVC.status === 'Running'), hint: 'Windows Server: Get-WindowsFeature Web-Ftp-Server shows its Install State; Uninstall-WindowsFeature -Name Web-Ftp-Server removes FTP and keeps World Wide Web Services. Or Windows Features > Internet Information Services > uncheck FTP Server, or Server Manager > Manage > Remove Roles and Features.', fix: 'Uninstall-WindowsFeature -Name Web-Ftp-Server   |   optionalfeatures > Internet Information Services > uncheck "FTP Server"   |   Disable-WindowsOptionalFeature -Online -FeatureName IIS-FTPServer', why: 'FTP sends credentials in clear text, and the Scenario Brief does not authorize it.' }),
   answer: (n, answers, pts) => ({ id: 'investigation-' + n, title: 'Investigation ' + n + ' answered', pts, cat: AREA.inv, investigation: true, test: s => answerOk('C:\\Users\\' + CUR.login.user + '\\Desktop\\Investigation ' + n + '.txt', answers), hint: 'Open "Investigation ' + n + '.txt" on the Desktop, put the answer after ANSWER: and press Ctrl+S.', fix: 'Answer: ' + answers[0], why: 'Investigating first makes you read the machine before you change it.' })
 };
 /* ---------- availability checks: harm to what the Scenario Brief says the business needs ---------- */
@@ -4514,7 +4747,8 @@ const AVAIL = {
   svc: (name, label, pts) => ({ id: 'avail-svc-' + name, title: 'Required service "' + label + '" stopped or disabled', pts, test: s => { const v = s.services[name]; return !v || v.status !== 'Running' || v.start === 'Disabled'; }, why: 'The Scenario Brief calls this service required.' }),
   wu: pts => ({ id: 'avail-wu', title: 'Windows Update service disabled', pts, test: s => !s.services.wuauserv || s.services.wuauserv.start === 'Disabled', why: 'Disabling Windows Update stops every future security fix.' }),
   rdpReq: pts => ({ id: 'avail-rdp', title: 'Remote Desktop disabled on a server that requires it', pts, test: s => !rdpEffective() || !(s.services.TermService && s.services.TermService.status === 'Running'), why: 'Administrators manage this server over RDP.' }),
-  web: pts => ({ id: 'avail-web', title: 'Web server (IIS) stopped, removed, or blocked by the firewall', pts, test: s => !featOn('IIS-WebServer') || !(s.services.W3SVC && s.services.W3SVC.status === 'Running') || !(ruleByName('World Wide Web Services (HTTP Traffic-In)') && ruleByName('World Wide Web Services (HTTP Traffic-In)').enabled), why: 'The company portal must stay reachable on port 80.' })
+  web: pts => ({ id: 'avail-web', title: 'Web server (IIS) stopped, removed, or blocked by the firewall', pts, test: s => !featOn('IIS-WebServer') || !(s.services.W3SVC && s.services.W3SVC.status === 'Running') || !(ruleByName('World Wide Web Services (HTTP Traffic-In)') && ruleByName('World Wide Web Services (HTTP Traffic-In)').enabled), why: 'The company portal must stay reachable on port 80.' }),
+  shares: (names, pts) => ({ id: 'avail-share', title: 'Required file share removed (' + names.join(', ') + ')', pts, test: s => names.some(n => !(s.shares || defaultShares(s.edition)).some(x => sameName(x.name, n))), why: 'The Scenario Brief says the office works from these shares.' })
 };
 /* ---------- the scenarios ---------- */
 const SCENARIOS = [
@@ -4567,7 +4801,7 @@ const SCENARIOS = [
     availability: [AVAIL.users(['nalani', 'kekoa', 'ailani', 'moana', 'leilani'], -6), AVAIL.admins(['nalani'], -5), AVAIL.self(-10), AVAIL.svc('mpssvc', 'Windows Defender Firewall', -5), AVAIL.svc('WinDefend', 'Microsoft Defender Antivirus', -5), AVAIL.wu(-5)]
   },
   {
-    id: 'operator', level: 2, name: 'Operator', title: 'Hale Kula Robotics Lab — station 4', edition: 'win11', hostname: 'HKROBOTICS-04', ip: '10.20.7.14',
+    id: 'operator', level: 2, rev: 1, name: 'Operator', title: 'Hale Kula Robotics Lab — station 4', edition: 'win11', hostname: 'HKROBOTICS-04', ip: '10.20.7.14',
     login: { user: 'labuser', password: 'Medium!2026' },
     brief: {
       company: 'Hale Kula High School robotics lab, shared workstation #4',
@@ -4575,7 +4809,7 @@ const SCENARIOS = [
       admins: ['labuser (you) - password: Medium!2026', 'coachk'],
       users: ['tavita', 'hiro', 'pua', 'mele', 'keahi'],
       services: ['No remote access is needed: no Remote Desktop, no Remote Registry.', 'The firewall must be on for every profile; Microsoft Defender must stay on; Windows Update must run.'],
-      policy: ['Only the Authorized Administrators may be in the Administrators group.', 'Guest must be disabled; every account must have a password of at least 10 characters, complex, with a history of 5 or more, a maximum age of 30 to 90 days, and a minimum age of 1 day or more.', 'Account lockout (after 10 or fewer failed attempts, for 15 minutes or more) and auditing of logons and account changes are required.', 'The last signed-in user name stays hidden, and CTRL+ALT+DEL is required.', 'User Account Control stays on.', 'SMB 1.0 and the Telnet client stay off. Remove media files and unauthorized software (file sharing, miners, scanners, and games).']
+      policy: ['Only the Authorized Administrators may be in the Administrators group.', 'Guest must be disabled; every account must have a password of at least 10 characters, complex, with a history of 5 or more, a maximum age of 30 to 90 days, and a minimum age of 1 day or more.', 'Account lockout (after 10 or fewer failed attempts, for 15 minutes or more) and auditing of logons and account changes are required.', 'The last signed-in user name stays hidden, and CTRL+ALT+DEL is required.', 'User Account Control stays on.', 'SMB 1.0 and the Telnet client stay off. Remove media files and unauthorized software (file sharing, miners, scanners, and games).', 'Accounts with blank passwords stay limited to console sign-in, and AutoPlay and AutoRun stay off for every drive.', 'Only the Windows default shares (ADMIN$, C$, and IPC$) stay shared on this workstation.']
     },
     users: [
       { name: 'labuser', password: 'Medium!2026', fullName: 'Lab User', groups: ['Administrators', 'Users'] },
@@ -4595,6 +4829,9 @@ const SCENARIOS = [
       st.users.Guest.enabled = true;
       st.policy = { pwHistory: 0, maxPwAge: 0, minPwAge: 0, minPwLen: 4, complexity: false, reversible: false, lockoutThreshold: 0, lockoutDuration: 30, lockoutReset: 30, adminLockout: true };
       st.secopt.dontDisplayLastUser = false; st.secopt.noCAD = true;
+      st.secopt.blankPwConsoleOnly = false;
+      st.autorun = { noDriveType: 0, noAutorun: null };
+      st.shares.push({ name: 'Tools$', path: 'C:\\Users\\Public\\Libraries', remark: '' });
       st.uac = 0;
       st.firewall.profiles.Private.on = false;
       st.firewall.rules.push(rule('Remote Helper (TCP-In)', 'Remote Helper', { localPort: '4444', program: 'C:\\Users\\Public\\Libraries\\rhelper.exe', planted: true }));
@@ -4613,45 +4850,47 @@ const SCENARIOS = [
       plantProgram(st, 'ArcadeLoop', 'ArcadeLoop Games', '5.2.1', '2.4 GB');
       plantMedia(st, 'C:\\Users\\tavita', [['Music\\lofi-study-beats.mp3', 6291456], ['Music\\exam-week-playlist.m4a', 4194304]]);
       plantMedia(st, 'C:\\Users\\hiro', [['Videos\\robot-fails.mp4', 94371840], ['Downloads\\season-finale.mkv', 734003200]]);
+      fsAddFile(st.fs, 'C:\\Users\\keahi\\Videos\\hula-practice.mp4', { size: 52428800, hidden: true, mtime: daysAgo(9, 16, 40) });
       fsAddDir(st.fs, 'C:\\Users\\hiro\\Documents\\.tools', { hidden: true });
       fsAddFile(st.fs, 'C:\\Users\\hiro\\Documents\\.tools\\notes.txt', { text: 'rhelper listens on 4444 - connect from the bleachers wifi\r\n' , hidden: true });
       st.procs = [{ name: 'csweep.exe', pid: 7340, mem: '412,118 K', planted: true }, { name: 'rhelper.exe', pid: 7356, mem: '9,212 K', port: 4444, planted: true }];
     },
-    checks: [CK.userGone('svc_backup', 6), CK.demote('hiro', 5), CK.blankPw('pua', 5), CK.guest(4), CK.minLen(4, 10), CK.complexity(3), CK.history(3), CK.maxAge(2), CK.minAge(2), CK.lockout(4), CK.audit('LogonEvents', 'Audit logon events', 3), CK.audit('AccountManagement', 'Audit account management', 3), CK.lastUser(2), CK.cad(2), CK.uac(3), CK.firewall(4), CK.rogueRule('Remote Helper (TCP-In)', 3), CK.defender(4), CK.updates(4), CK.svcOff('RemoteRegistry', 'Remote Registry', 3), CK.rdpOff(3), CK.feature('TelnetClient', 'Telnet Client', 2), CK.feature('SMB1Protocol', 'SMB 1.0/CIFS File Sharing Support', 3), CK.programs(['CoinSweeper Miner', 'TorrentBolt 3.1', 'PortProbe Toolkit', 'ArcadeLoop'], 5), CK.media(4), CK.taskGone('DriverCleanupSvc', 4), CK.answer(1, ['pua'], 5), CK.answer(2, ['4444'], 5)],
+    checks: [CK.userGone('svc_backup', 5), CK.demote('hiro', 4), CK.blankPw('pua', 5), CK.guest(3), CK.minLen(4, 10), CK.complexity(3), CK.history(3), CK.maxAge(2), CK.minAge(2), CK.lockout(3), CK.audit('LogonEvents', 'Audit logon events', 3), CK.audit('AccountManagement', 'Audit account management', 3), CK.lastUser(2), CK.cad(2), CK.blankConsole(2), CK.uac(3), CK.firewall(4), CK.rogueRule('Remote Helper (TCP-In)', 3), CK.share('Tools$', 'C:\\Users\\Public\\Libraries', 3), CK.defender(3), CK.autorun(2), CK.updates(3), CK.svcOff('RemoteRegistry', 'Remote Registry', 3), CK.rdpOff(3), CK.feature('TelnetClient', 'Telnet Client', 2), CK.feature('SMB1Protocol', 'SMB 1.0/CIFS File Sharing Support', 3), CK.programs(['CoinSweeper Miner', 'TorrentBolt 3.1', 'PortProbe Toolkit', 'ArcadeLoop'], 4), CK.media(4), CK.taskGone('DriverCleanupSvc', 4), CK.answer(1, ['pua'], 5), CK.answer(2, ['4444'], 5)],
     availability: [AVAIL.users(['coachk', 'tavita', 'hiro', 'pua', 'mele', 'keahi'], -6), AVAIL.admins(['coachk'], -5), AVAIL.self(-10), AVAIL.svc('mpssvc', 'Windows Defender Firewall', -5), AVAIL.svc('WinDefend', 'Microsoft Defender Antivirus', -5), AVAIL.wu(-5)]
   },
   {
-    id: 'captain', level: 3, name: 'Captain', title: 'Honua Logistics — portal server', edition: 'server', hostname: 'HONUA-SRV1', ip: '10.20.9.10',
+    id: 'captain', level: 3, rev: 1, name: 'Captain', title: 'Honua Logistics — portal server', edition: 'server', hostname: 'HONUA-SRV1', ip: '10.20.9.10',
     login: { user: 'labuser', password: 'Hard!2026' },
     brief: {
       company: 'Honua Logistics, a freight forwarder with a small office on Sand Island',
       blurb: 'This ' + VERSIONS.server.family + ' machine hosts the internal web portal (IIS) and the HR and Ops file shares. Administrators manage it over Remote Desktop from the office LAN. The previous administrator left in a hurry and the owner wants the server audited.',
       admins: ['labuser (you) - password: Hard!2026', 'kahale', 'Administrator (built-in; must stay enabled on this server)'],
       users: ['dispatch1', 'dispatch2', 'hrclerk', 'opsmgr'],
-      services: ['Remote Desktop MUST stay enabled (with Network Level Authentication) and reachable through the firewall.', 'The IIS web portal (World Wide Web Publishing Service) must stay running and allowed on port 80.', 'FTP, SMB 1.0, and the Telnet client stay off this server.', 'Windows Update, Microsoft Defender, and the firewall must stay on.'],
-      policy: ['Only the Authorized Administrators may be in the Administrators group.', 'Guest must be disabled. Passwords: at least 12 characters, complex, 5 remembered, a maximum age of 30 to 90 days, and a minimum age of 1 day or more; "Password never expires" cleared on every account.', 'Account lockout (after 10 or fewer failed attempts, for 15 minutes or more), logon auditing, and account-management auditing are required.', 'NTLMv2 only (LAN Manager authentication level 5); the last signed-in user name stays hidden; UAC stays on.', 'Remove unauthorized software and unauthorized scheduled jobs.']
+      services: ['Remote Desktop MUST stay enabled (with Network Level Authentication) and reachable through the firewall.', 'The IIS web portal (World Wide Web Publishing Service) must stay running and allowed on port 80.', 'FTP, SMB 1.0, and the Telnet client stay off this server.', 'Windows Update, Microsoft Defender, and the firewall must stay on.', 'The HR and Ops file shares must stay shared.'],
+      policy: ['Only the Authorized Administrators may be in the Administrators or Backup Operators groups.', 'Guest must be disabled. Passwords: at least 12 characters, complex, 5 remembered, a maximum age of 30 to 90 days, and a minimum age of 1 day or more; "Password never expires" cleared on every account. Passwords are stored as one-way hashes only (reversible encryption off).', 'Account lockout (after 10 or fewer failed attempts, for 15 minutes or more), logon auditing, and account-management auditing are required.', 'NTLMv2 only (LAN Manager authentication level 5); the last signed-in user name stays hidden; UAC stays on.', 'Remove unauthorized software and unauthorized scheduled jobs.', 'Microsoft Defender scans every folder on this server, with every exclusion removed.']
     },
     users: [
       { name: 'labuser', password: 'Hard!2026', fullName: 'Lab User', groups: ['Administrators', 'Users', 'Remote Desktop Users'] },
       { name: 'kahale', password: 'Kahale-Admin-2026!', fullName: 'Kahale (IT)', groups: ['Administrators', 'Users', 'Remote Desktop Users'] },
       { name: 'dispatch1', password: 'Dispatch1!2026', fullName: 'Dispatch desk 1', groups: ['Users'] },
       { name: 'dispatch2', password: 'Dispatch2!2026', fullName: 'Dispatch desk 2', groups: ['Users'], pwNeverExpires: true },
-      { name: 'hrclerk', password: 'HRclerk#2026', fullName: 'HR clerk', groups: ['Users'] },
+      { name: 'hrclerk', password: 'HRclerk#2026', fullName: 'HR clerk', groups: ['Users', 'Backup Operators'] },
       { name: 'opsmgr', password: 'OpsMgr!2026', fullName: 'Operations manager', groups: ['Users', 'Remote Desktop Users'] },
       { name: 'backup_admin', password: 'Backup2024', fullName: 'backup_admin', description: 'Nightly backup account', groups: ['Administrators', 'Users', 'Remote Desktop Users'], planted: true, lastLogon: daysAgo(0, 2, 5) }
     ],
     investigations: [
       { text: 'Which account is a member of the Administrators group but is NOT listed in the Scenario Brief as an authorized administrator?', hint: 'Hint: net localgroup Administrators, or lusrmgr.msc > Groups > Administrators', answers: ['backup_admin'] },
-      { text: 'A scheduled task runs a .bat file from C:\\Users\\Public. What is the name of that task?', hint: 'Hint: schtasks /query /fo LIST /v | findstr /i "TaskName Task To Run"', answers: ['IISLogCleaner'] }
+      { text: 'A scheduled task runs a .bat file from C:\\Users\\Public. What is the name of that task?', hint: 'Hint: schtasks /query /fo LIST /v | findstr /i "TaskName Task.To.Run"', answers: ['IISLogCleaner'] }
     ],
     plant(st) {
       st.users.Guest.enabled = true;
-      st.policy = { pwHistory: 0, maxPwAge: 0, minPwAge: 0, minPwLen: 6, complexity: false, reversible: false, lockoutThreshold: 0, lockoutDuration: 30, lockoutReset: 30, adminLockout: true };
+      st.policy = { pwHistory: 0, maxPwAge: 0, minPwAge: 0, minPwLen: 6, complexity: false, reversible: true, lockoutThreshold: 0, lockoutDuration: 30, lockoutReset: 30, adminLockout: true };
       st.secopt.dontDisplayLastUser = false; st.secopt.lmAuth = 1;
       st.uac = 0;
       st.firewall.profiles.Domain.on = false;
       st.firewall.rules.push(rule('Ops Remote Helper (TCP-In)', 'Ops Remote Helper', { localPort: '4444', program: 'C:\\Users\\Public\\Libraries\\orh.exe', planted: true }));
       st.defender.realtime = false; st.defender.tamper = false;
+      st.defender.exclusions = { path: ['C:\\Users\\Public\\Libraries'], process: [], extension: [] };
       st.update.paused = true; st.update.pausedUntil = winDate(daysAgo(-20)); st.update.lastCheckedDaysAgo = 52;
       st.rdp.enabled = true; st.rdp.nla = false; st.services.TermService.status = 'Running';
       setFeature('TelnetClient', true); setFeature('SMB1Protocol', true);
@@ -4664,8 +4903,8 @@ const SCENARIOS = [
       plantProgram(st, 'TorrentBolt 3.1', 'TorrentBolt Project', '3.1.2', '46.0 MB');
       st.procs = [{ name: 'orh.exe', pid: 4412, mem: '9,212 K', port: 4444, planted: true }, { name: 'shm.exe', pid: 4420, mem: '15,780 K', planted: true }];
     },
-    checks: [CK.userGone('backup_admin', 6), CK.noNeverExpires('dispatch2', 3), CK.guest(4), CK.minLen(4, 12), CK.complexity(3), CK.history(3), CK.maxAge(3), CK.minAge(2), CK.lockout(5), CK.audit('LogonEvents', 'Audit logon events', 3), CK.audit('AccountManagement', 'Audit account management', 3), CK.lastUser(2), CK.lmAuth(3), CK.uac(3), CK.firewall(4), CK.rogueRule('Ops Remote Helper (TCP-In)', 4), CK.ftpGone(6), CK.feature('SMB1Protocol', 'SMB 1.0/CIFS File Sharing Support', 3), CK.feature('TelnetClient', 'Telnet Client', 2), CK.rdpNla(4), CK.defender(4), CK.updates(4), CK.taskGone('IISLogCleaner', 4), CK.svcGone('SrvHealthMon', 'Server Health Monitor', 3, [LEARN.dl('senior', 'se7', 'Windows: credentials and the domain attack surface')]), CK.programs(['PortProbe Toolkit', 'TorrentBolt 3.1'], 5), CK.answer(1, ['backup_admin'], 5), CK.answer(2, ['IISLogCleaner'], 5)],
-    availability: [AVAIL.users(['kahale', 'dispatch1', 'dispatch2', 'hrclerk', 'opsmgr', 'Administrator'], -8), AVAIL.admins(['kahale', 'Administrator'], -6), AVAIL.self(-10), AVAIL.rdpReq(-10), AVAIL.web(-10), AVAIL.svc('mpssvc', 'Windows Defender Firewall', -5), AVAIL.svc('WinDefend', 'Microsoft Defender Antivirus', -5), AVAIL.wu(-5)]
+    checks: [CK.userGone('backup_admin', 5), CK.privGroup('Backup Operators', 'hrclerk', 3), CK.noNeverExpires('dispatch2', 3), CK.guest(3), CK.minLen(4, 12), CK.complexity(3), CK.history(3), CK.maxAge(3), CK.minAge(2), CK.reversible(2), CK.lockout(4), CK.audit('LogonEvents', 'Audit logon events', 3), CK.audit('AccountManagement', 'Audit account management', 3), CK.lastUser(2), CK.lmAuth(3), CK.uac(3), CK.firewall(4), CK.rogueRule('Ops Remote Helper (TCP-In)', 3), CK.ftpGone(4), CK.feature('SMB1Protocol', 'SMB 1.0/CIFS File Sharing Support', 3), CK.feature('TelnetClient', 'Telnet Client', 2), CK.rdpNla(4), CK.defender(4), CK.exclusion('C:\\Users\\Public\\Libraries', 4), CK.updates(3), CK.taskGone('IISLogCleaner', 3), CK.svcGone('SrvHealthMon', 'Server Health Monitor', 3, [LEARN.dl('senior', 'se7', 'Windows: credentials and the domain attack surface')]), CK.programs(['PortProbe Toolkit', 'TorrentBolt 3.1'], 4), CK.answer(1, ['backup_admin'], 5), CK.answer(2, ['IISLogCleaner'], 5)],
+    availability: [AVAIL.users(['kahale', 'dispatch1', 'dispatch2', 'hrclerk', 'opsmgr', 'Administrator'], -8), AVAIL.admins(['kahale', 'Administrator'], -6), AVAIL.self(-10), AVAIL.rdpReq(-10), AVAIL.web(-10), AVAIL.shares(['HR', 'Ops'], -6), AVAIL.svc('mpssvc', 'Windows Defender Firewall', -5), AVAIL.svc('WinDefend', 'Microsoft Defender Antivirus', -5), AVAIL.wu(-5)]
   }
 ];
 SCENARIOS.forEach(sc => { const sum = sc.checks.reduce((a, c) => a + c.pts, 0); if (sum !== 100) throw new Error('scenario ' + sc.id + ' totals ' + sum + ' points'); });
@@ -4768,7 +5007,8 @@ function loadScenario(id, fresh) {
   CUR = sc;
   const rec = STORE.scen[sc.id];
   let st = null;
-  if (!fresh && rec && rec.S && rec.S.hostname === sc.hostname && rec.S.users) st = rec.S;
+  /* a scenario whose plant or checks change gets a higher rev; a saved lab built from an older rev is rebuilt (the best score in STORE.scen[id].best stays) */
+  if (!fresh && rec && rec.S && rec.S.hostname === sc.hostname && rec.S.users && (rec.S.rev || 0) === (sc.rev || 0)) st = rec.S;
   if (!st) st = buildLab(sc);
   S = st;
   UI.uacGranted = false; UI.pendingLogin = null;
@@ -4815,7 +5055,7 @@ function openDebrief() {
 function openHelp() {
   const body = h('div', { class: 'help-body' });
   const sec = (t, items) => { body.appendChild(h('h3', { text: t })); const ul = h('ul'); items.forEach(i => ul.appendChild(h('li', { text: i }))); body.appendChild(ul); };
-  sec('The routine', ['Pick a scenario (header pills), let it boot, sign in with the lab account shown under the password box (it is also in the Scenario Brief; labuser / Easy!2026 on Recruit, Medium!2026 on Operator, Hard!2026 on Captain).', 'Open Scenario Brief.txt on the Desktop. Write down the authorized administrators, users, and required services: you must keep those available. The brief also sets the password and lockout numbers; the matching check titles repeat them (Recruit shows them as you work, and every level shows them in the Debrief).', 'Answer the two investigation questions (open Investigation 1.txt and 2.txt in Notepad, type after ANSWER:, press Ctrl+S).', 'Work through the hardening areas (aligned with the CIS Critical Security Controls v8): account management, access control, secure configuration (services, firewall, features, software), patching, malware defenses, audit logging, and data protection (media files).', 'Watch the Progress Check. Finish / Debrief shows every miss with its fix and why it matters.']);
+  sec('The routine', ['Pick a scenario (header pills), let it boot, sign in with the lab account shown under the password box (it is also in the Scenario Brief; labuser / Easy!2026 on Recruit, Medium!2026 on Operator, Hard!2026 on Captain).', 'Open Scenario Brief.txt on the Desktop. Write down the authorized administrators, users, and required services: you must keep those available. The brief also sets the password and lockout numbers; the matching check titles repeat them (Recruit shows them as you work, and every level shows them in the Debrief).', 'Answer the two investigation questions (open Investigation 1.txt and 2.txt in Notepad, type after ANSWER:, press Ctrl+S).', 'Start Windows Update early (Settings > Windows Update > Resume updates > Check for updates > Install all) and keep working while it installs; restart once near the end.', 'Work through the hardening areas (aligned with the CIS Critical Security Controls v8): account management, access control, secure configuration (services, firewall, features, software), patching, malware defenses, audit logging, and data protection (media files).', 'Watch the Progress Check. Finish / Debrief shows every miss with its fix and why it matters.']);
   sec('Getting to the tools', ['Start > Run (or Alt+R) and type: lusrmgr.msc, secpol.msc, gpedit.msc, services.msc, taskschd.msc, wf.msc, appwiz.cpl, optionalfeatures, SystemPropertiesRemote (Remote Desktop settings), UserAccountControlSettings (the UAC slider), control, ms-settings:', 'Start > type the name to search. Enter opens it; Ctrl+Shift+Enter runs it as administrator.', 'Right-click a taskbar or Start tile for "Run as administrator". Terminal commands that change the machine need an administrator window (net, sc, schtasks, netsh, auditpol).', 'Windows+R cannot be captured by a web page; Alt+R opens Run here.']);
   sec('Keyboard', ['Windows: title bar focused + arrow keys moves, Shift+arrows resizes, Alt+F4 closes.', 'Terminal: Up/Down history, Tab completes, Ctrl+L clears, Ctrl+C cancels.', 'Desktop icons: arrows to move, Enter opens, Delete sends to the Recycle Bin.', 'Esc closes menus and dialogs.']);
   sec('What the simulation covers', ['A faithful subset of ' + VERSIONS.win11.family + ' (version ' + VERSIONS.win11.version + ') and ' + VERSIONS.server.family + ': the panels and commands an administrator uses to harden a standalone machine. Nothing touches your real computer.', 'Outside the simulation: Registry Editor, Event Viewer, Task Manager, real program windows, the Microsoft Store, and networking beyond this machine.', 'Progress and the machine state save in this browser. Reset lab reverts to the original snapshot.', 'Setting names and commands follow Microsoft Learn (Windows security policy settings reference, Windows Commands reference) and the CIS Critical Security Controls v8.', 'Unofficial practice; not affiliated with or endorsed by Microsoft. Practice only on machines you own or are authorized to manage.']);

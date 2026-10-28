@@ -29,11 +29,11 @@ behind the first five areas: Defense Ladder s1
 protection, which covers the prohibited media files, maps to CIS Control 3.
 The Debrief links each check to its Defense Ladder lesson: accounts,
 sudo, SSH, setuid files, firewall, updates, software, and media to s3;
-password length, history, and lockout to s3 (One PAM line); services and
-ports to s4; persistence, sysctl, /etc/shadow permissions, and
-repositories to j3; investigation questions to s6; the Captain's setuid
-question also to s3; and the Captain's package question to s4 and se1
-(FreeBSD, Hunting on any Unix).
+password length, history, lockout, and empty-password sign-in to s3 (One
+PAM line); services and ports to s4; persistence, sysctl, /etc/shadow
+permissions, and repositories to j3; investigation questions to s6; the
+Captain's setuid question also to s3; and the Captain's package question
+to s4 and se1 (FreeBSD, Hunting on any Unix).
 
 --------------------------------------------------------------------------------
 1. WHAT THE LAB IS (AND IS NOT)
@@ -84,16 +84,21 @@ password prompt and messages look slightly different.
          the editor; Ctrl+O Enter in nano).
   [ ] 5. Read before you change (cat, systemctl status, getent). Undo is
          cheap in the lab; on a real VM, take a snapshot first.
-  [ ] 6. Work by hardening area, same order every time:
+  [ ] 6. Start the long job early: once the package sources check out
+         (ls /etc/apt/sources.list.d) and /etc/hosts looks right, run
+         sudo apt update && sudo apt upgrade -y (on a real VM, in a second
+         terminal while you keep working), and confirm it at the end with
+         apt list --upgradable.
+  [ ] 7. Work by hardening area, same order every time:
          Account management -> Access control (sudo, SSH, logins) ->
          Secure configuration (services, firewall, software) -> Patching ->
          Malware defenses (persistence, rogue services) -> Data protection.
-  [ ] 7. Verify each area (getent group sudo, chage -l, ufw status verbose,
+  [ ] 8. Verify each area (getent group sudo, chage -l, ufw status verbose,
          ss -tulpn, dpkg -l | grep ...). Keep a short change log.
-  [ ] 8. Reboot when a change needs it (sudo reboot), sign in again, confirm
+  [ ] 9. Reboot when a change needs it (sudo reboot), sign in again, confirm
          the checks still pass.
-  [ ] 9. Finish / Debrief: read every miss and its fix. Reset lab, run it
-         again faster.
+  [ ] 10. Finish / Debrief: read every miss and its fix. Reset lab, run it
+          again faster.
 
 --------------------------------------------------------------------------------
 3. SCENARIO 1 - RECRUIT: MAKAI SURF SUPPLY (UBUNTU 24.04 WORKSTATION)
@@ -219,22 +224,24 @@ Investigation
       (sudo ls -la /home/*)
 
 Checks (100 points)
-  [7]  Unauthorized user dax removed                      (Account management)
+  [6]  Unauthorized user dax removed                      (Account management)
        fix: sudo userdel -r dax
   [6]  keanu removed from the sudo group (not an authorized administrator)
                                                               (Access control)
        fix: sudo gpasswd -d keanu sudo
-  [8]  Hidden root account sysadm removed (only root has UID 0)
+  [7]  Hidden root account sysadm removed (only root has UID 0)
                                                           (Account management)
-       fix: sudo userdel -r -f sysadm
+       fix: getent passwd sysadm   (field 6: /home/sysadm, its own folder)
+            sudo userdel -r -f sysadm
             (plain userdel refuses with "user sysadm is currently used by
-            process 1": every root process runs as UID 0. Alternative:
-            sudo nano /etc/passwd, change its UID from 0 to an unused
-            number, then sudo userdel -r sysadm)
+            process 1": every root process runs as UID 0. When the home is
+            /root or /, use sudo userdel -f sysadm, since -f with -r removes
+            a shared home. Alternative: sudo vipw, change its UID from 0 to
+            an unused number, then sudo userdel sysadm)
        why: any account with UID 0 IS root, whatever it is called.
   [6]  Blank password on account aria fixed               (Account management)
        fix: sudo passwd aria
-  [7]  Guest session disabled in LightDM (allow-guest=false)  (Access control)
+  [6]  Guest session disabled in LightDM (allow-guest=false)  (Access control)
        fix: sudo nano /etc/lightdm/lightdm.conf -> allow-guest=false
        why: a guest session is an anonymous login.
   [6]  Automatic login disabled in LightDM                    (Access control)
@@ -262,14 +269,21 @@ Checks (100 points)
             current Ubuntu and Mint releases do not ship it, so a pam_tally2
             line does not count.)
        why: lockout turns a million guesses into five.
-  [7]  Firewall (ufw) enabled                           (Secure configuration)
+  [4]  Empty passwords rejected at sign-in (nullok removed from common-auth)
+                                                          (Account management)
+       fix: sudo sed -i -E 's/[[:space:]]+nullok(_secure)?([[:space:]]|$)/\2/' \
+                /etc/pam.d/common-auth
+       why: nullok turns a blank /etc/shadow field into a working login.
+  [6]  Firewall (ufw) enabled                           (Secure configuration)
        fix: sudo ufw enable             (nothing needs allowing here)
   [5]  Automatic security updates enabled                           (Patching)
        fix: Update Manager (shield icon, bottom right) > Edit > Preferences >
             Automation > Apply updates automatically
             (or: sudo mintupdate-automation upgrade enable; this enables
-            the mintupdate-automation-upgrade.timer systemd timer.
-            unattended-upgrades via dpkg-reconfigure also counts)
+            the mintupdate-automation-upgrade.timer systemd timer and the
+            flag file the job checks. unattended-upgrades counts only when
+            50unattended-upgrades also lists "Ubuntu:noble-security": on
+            Mint its ${distro_id} entries expand to Linuxmint:zena-security)
   [5]  Prohibited media files removed from user home directories
                                                              (Data protection)
        fix: sudo find /home -type f \( -iname "*.mp3" -o -iname "*.mp4" \
@@ -333,9 +347,9 @@ Scenario Brief summary (cat ~/Desktop/Scenario\ Brief.txt)
   Authorized users: bkup (backup operator, NOT an admin), kai, lehua
   Critical: SSH (keep running and allowed through the firewall), Apache on
   port 80, MySQL. FTP, Samba, and Telnet are not authorized. Root may not log
-  in over SSH; empty passwords forbidden; IP forwarding off; no unauthorized
-  software, repositories, setuid binaries, or scheduled jobs; install
-  updates; firewall on.
+  in over SSH; sudo always asks for a password; empty passwords forbidden;
+  IP forwarding off; no unauthorized software, repositories, setuid
+  binaries, or scheduled jobs; install updates; firewall on.
 
 Investigation
   Q1  TCP port held by a program outside every installed package?
@@ -359,27 +373,35 @@ Investigation
       (find / -perm -4000 -type f 2>/dev/null)
 
 Checks (100 points)
-  [6]  Unauthorized user vex removed                      (Account management)
+  [5]  Unauthorized user vex removed                      (Account management)
        fix: sudo userdel -r vex
   [6]  Unauthorized sudo rule for bkup removed (/etc/sudoers.d)
                                                               (Access control)
        fix: sudo rm /etc/sudoers.d/90-backup
        why: NOPASSWD: ALL in a drop-in file is silent root.
-  [6]  Hidden root account ops removed (only root has UID 0)
+  [4]  Sudo asks for a password again (Defaults !authenticate removed)
+                                                              (Access control)
+       fix: sudo visudo, delete the line  Defaults !authenticate
+            (scripted: sudo sed -i '/^Defaults[[:space:]]*!authenticate/d' \
+                /etc/sudoers && sudo visudo -c)
+       why: a quieter NOPASSWD: every sudoer runs root commands without a
+            password.
+  [5]  Hidden root account ops removed (only root has UID 0)
                                                           (Account management)
-       fix: sudo userdel -r -f ops     (plain userdel says "currently used by
-            process 1", see scenario 2)
+       fix: getent passwd ops, then sudo userdel -r -f ops   (its home is
+            /home/ops; plain userdel says "currently used by process 1",
+            see scenario 2)
   [6]  SSH root login disabled (PermitRootLogin no)           (Access control)
        fix: sudo sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' \
                 /etc/ssh/sshd_config && sudo systemctl restart ssh
-  [6]  SSH empty passwords disabled (PermitEmptyPasswords no) (Access control)
+  [5]  SSH empty passwords disabled (PermitEmptyPasswords no) (Access control)
        fix: sudo sed -i \
             's/^#\?PermitEmptyPasswords.*/PermitEmptyPasswords no/' \
             /etc/ssh/sshd_config && sudo systemctl restart ssh
   [4]  SSH MaxAuthTries limited to 4 or fewer                 (Access control)
        fix: sudo sed -i 's/^#\?MaxAuthTries.*/MaxAuthTries 4/' \
                 /etc/ssh/sshd_config && sudo systemctl restart ssh
-  [6]  FTP server (vsftpd) removed or disabled (vsftpd) (Secure configuration)
+  [5]  FTP server (vsftpd) removed or disabled (vsftpd) (Secure configuration)
        fix: sudo apt purge -y vsftpd  (or: sudo systemctl disable --now vsftpd)
   [5]  Samba file sharing removed or disabled (smbd/nmbd)
                                                         (Secure configuration)
@@ -390,9 +412,12 @@ Checks (100 points)
             sudo ufw allow 80/tcp
             sudo ufw enable
        why: both allows first, or the SSH and web availability checks fail.
-  [5]  IPv4 forwarding disabled in /etc/sysctl.conf     (Secure configuration)
+  [5]  IPv4 forwarding disabled at boot (sysctl files) (Secure configuration)
        fix: sudo sed -i 's/^net.ipv4.ip_forward=1/net.ipv4.ip_forward=0/' \
                 /etc/sysctl.conf && sudo sysctl -p
+            (or: put net.ipv4.ip_forward=0 in /etc/sysctl.d/99-hardening.conf,
+            delete the sysctl.conf line, then sudo sysctl --system; Ubuntu
+            26.04 ships without /etc/sysctl.conf, so the drop-in is its route)
        why: a forwarding server is a pivot into the rest of the network.
   [6]  Setuid bit removed from /usr/local/bin/lsmon           (Access control)
        fix: sudo rm /usr/local/bin/lsmon   (or: sudo chmod u-s it)
@@ -438,7 +463,9 @@ Account management
   sudo cat /etc/shadow            field 2 = hash; "!" or "*" locked; EMPTY =
                                   no password at all
   sudo userdel -r NAME            remove the user and the home directory
-  sudo userdel -r -f NAME         needed for an extra UID 0 account
+  sudo userdel -f NAME            an extra UID 0 account; read its home with
+                                  getent passwd NAME and add -r only when
+                                  that home is its own
   sudo passwd NAME                set a password (asked twice)
   sudo passwd -l NAME  /  -u      lock / unlock
   sudo chage -l NAME              aging; chage -M 90 -m 7 -W 14 NAME sets it
@@ -541,6 +568,11 @@ Editors
     a real system has them for everything.
   - Out-of-scope commands get a "[Range] ..." note instead of pretending to
     work. If something you need is missing, try it on a practice VM.
+  - md5sum and sha256sum hash a text file's real content, so printf 'abc' |
+    sha256sum matches any reference value. A simulated binary has no bytes,
+    so it hashes a stand-in value: compare binaries on a real machine.
+  - The audit tools (auditctl, augenrules, ausearch) keep rules and status
+    but record no events, so ausearch -k KEY always says <no matches>.
   - Only the Captain server simulates ssh socket activation. On a real
     Ubuntu 24.04 desktop, installing openssh-server is socket-activated
     too; the Recruit desktop keeps the simpler ssh.service model.

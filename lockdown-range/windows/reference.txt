@@ -59,8 +59,8 @@ nothing but the checks already passed.
 --------------------------------------------------------------------------------
   [ ] 1. Pick the scenario (level pill in the header). Click the lock screen.
   [ ] 2. Sign in with the lab account shown under the password box (it is also
-         in the Scenario Brief). If "Do not display last user name" is on, type
-         the user name too.
+         in the Scenario Brief). If "Interactive logon: Don't display last
+         signed-in" is on, type the user name too.
   [ ] 3. Open Scenario Brief.txt on the Desktop. Write down the authorized
          administrators, users, required services, and policy numbers: those
          must stay available.
@@ -69,17 +69,20 @@ nothing but the checks already passed.
          https://freeapp4that.store/defense-ladder/#freshman/f1). Open
          Investigation 1.txt and 2.txt in Notepad, type the answer after
          "ANSWER:", and press Ctrl+S.
-  [ ] 5. Work by hardening area, in the same order every time (see the list
+  [ ] 5. Start Windows Update in the first minutes (Settings > Windows Update >
+         Resume updates > Check for updates > Install all) and keep working
+         while it installs.
+  [ ] 6. Work by hardening area, in the same order every time (see the list
          below).
-  [ ] 6. Elevate when needed: right-click a tool > Run as administrator, or
+  [ ] 7. Elevate when needed: right-click a tool > Run as administrator, or
          Ctrl+Shift+Enter in Start/Run. Commands that change the machine need an
          administrator window.
-  [ ] 7. Verify each area (net accounts, auditpol /get /category:*, sc query,
+  [ ] 8. Verify each area (net accounts, auditpol /get /category:*, sc query,
          netsh advfirewall show allprofiles).
-  [ ] 8. Install updates and restart when Windows asks; sign in again and
-         confirm the progress is still there.
-  [ ] 9. Finish / Debrief: read every miss and its fix. Reset lab and run it
-         again faster.
+  [ ] 9. Restart once near the end, after the updates you started early finish
+         installing; sign in again and confirm the progress is still there.
+  [ ] 10. Finish / Debrief: read every miss and its fix. Reset lab and run it
+          again faster.
 
 Hardening areas (the Operator Progress Check counts what remains in each one,
 and every check below names its area). The areas and their CIS Controls: Defense
@@ -291,6 +294,10 @@ Scenario Brief summary
     - User Account Control stays on.
     - SMB 1.0 and the Telnet client stay off. Remove media files and
       unauthorized software (file sharing, miners, scanners, and games).
+    - Accounts with blank passwords stay limited to console sign-in, and
+      AutoPlay and AutoRun stay off for every drive.
+    - Only the Windows default shares (ADMIN$, C$, and IPC$) stay shared on this
+      workstation.
 
 Investigation questions
   Q1  One student account (not a built-in account) was set up so that it does
@@ -308,12 +315,12 @@ Investigation questions
        name="Remote Helper (TCP-In)" and read the LocalPort line.)
 
 Checks (100 points)
-  [6]  Unauthorized user "svc_backup" removed
+  [5]  Unauthorized user "svc_backup" removed
        area: Account management
        fix: lusrmgr.msc > Users > svc_backup > Delete
        or:  net user svc_backup /delete
        why: An account nobody authorized is a door into the machine.
-  [5]  "hiro" removed from the Administrators group (not an authorized
+  [4]  "hiro" removed from the Administrators group (not an authorized
        administrator)
        area: Access control
        fix: lusrmgr.msc > Groups > Administrators > Properties > hiro > Remove
@@ -326,7 +333,7 @@ Checks (100 points)
        or:  net user pua Str0ng-Passw0rd! /passwordreq:yes
        why: An empty password lets anyone sign in with Enter. /passwordreq:yes
             also stops the password being set back to blank.
-  [4]  Guest account disabled
+  [3]  Guest account disabled
        area: Account management
        fix: lusrmgr.msc > Guest > Properties > check "Account is disabled"
        or:  net user Guest /active:no
@@ -361,7 +368,7 @@ Checks (100 points)
        why: Without it, users cycle through the history in seconds to reuse an
             old password. When a maximum age is set, the minimum must be lower
             than it.
-  [4]  Account lockout after 1 to 10 failed attempts, with a lockout duration of
+  [3]  Account lockout after 1 to 10 failed attempts, with a lockout duration of
        15 minutes or more
        area: Access control
        fix: secpol.msc > Account Lockout Policy > threshold 5, duration 30,
@@ -384,10 +391,10 @@ Checks (100 points)
        or:  auditpol /set /category:"Account Management" /success:enable
             /failure:enable
        why: No audit trail means no way to see who signed in or what changed.
-  [2]  "Do not display last user name" enabled
+  [2]  "Interactive logon: Don't display last signed-in" enabled
        area: Access control
-       fix: secpol.msc > Security Options > "Interactive logon: Do not display
-            last user name" = Enabled
+       fix: secpol.msc > Security Options > "Interactive logon: Don't display
+            last signed-in" = Enabled
        or:  reg add
             HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v
             DontDisplayLastUserName /t REG_DWORD /d 1 /f
@@ -400,6 +407,15 @@ Checks (100 points)
             HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v
             DisableCAD /t REG_DWORD /d 0 /f
        why: The secure attention sequence defeats fake login screens.
+  [2]  Blank-password accounts limited to console sign-in
+       area: Access control
+       fix: secpol.msc > Security Options > "Accounts: Limit local account use
+            of blank passwords to console logon only" = Enabled
+       or:  reg add HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v
+            LimitBlankPasswordUse /t REG_DWORD /d 1 /f
+       why: With this off, an account with an empty password also signs in over
+            the network (file shares and Remote Desktop), well beyond the
+            keyboard.
   [3]  UAC at the default level or higher (prompts on the secure desktop)
        area: Access control
        fix: Control Panel > User Accounts > Change User Account Control settings
@@ -423,13 +439,29 @@ Checks (100 points)
        fix: wf.msc > Inbound Rules > "Remote Helper (TCP-In)" > Delete
        or:  netsh advfirewall firewall delete rule name="Remote Helper (TCP-In)"
        why: An allow-anything rule on an odd port is a planted back door.
-  [4]  Microsoft Defender real-time protection on
+  [3]  Unauthorized share "Tools$" removed
+       area: Access control
+       fix: net share Tools$ /delete
+       or:  Remove-SmbShare -Name 'Tools$' -Force
+       or:  compmgmt.msc > Shared Folders > Shares > Tools$ > Stop Sharing
+       why: A share nobody authorized hands the folder behind it to anyone on
+            the network, and a $ at the end of the name hides it from browsing.
+  [3]  Microsoft Defender real-time protection on
        area: Malware defenses
        fix: Windows Security > Virus & threat protection > Manage settings >
             Real-time protection = On
        or:  Set-MpPreference -DisableRealtimeMonitoring $false
        why: With real-time protection off, malware runs unchallenged.
-  [4]  Windows updates installed and not paused
+  [2]  AutoRun turned off for every drive type (NoDriveTypeAutoRun 255)
+       area: Malware defenses
+       fix: gpedit.msc > AutoPlay Policies > Turn off Autoplay = Enabled (All
+            drives)
+       or:  reg add
+            "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer"
+            /v NoDriveTypeAutoRun /t REG_DWORD /d 255 /f
+       why: AutoRun starts a program from a USB drive or disc the moment it is
+            inserted, the classic USB-drop infection.
+  [3]  Windows updates installed and not paused
        area: Patching
        fix: Settings > Windows Update > Resume updates > Check for updates >
             Install all > Restart now
@@ -458,7 +490,7 @@ Checks (100 points)
        fix: optionalfeatures > uncheck "SMB 1.0/CIFS File Sharing Support"
        or:  Disable-WindowsOptionalFeature -Online -FeatureName SMB1Protocol
        why: SMBv1 is the protocol WannaCry spread over.
-  [5]  Unauthorized software removed (CoinSweeper Miner, TorrentBolt 3.1,
+  [4]  Unauthorized software removed (CoinSweeper Miner, TorrentBolt 3.1,
        PortProbe Toolkit, ArcadeLoop)
        area: Secure configuration
        fix: Settings > Apps > Installed apps > ... > Uninstall (each):
@@ -515,16 +547,21 @@ Scenario Brief summary
       and allowed on port 80.
     - FTP, SMB 1.0, and the Telnet client stay off this server.
     - Windows Update, Microsoft Defender, and the firewall must stay on.
+    - The HR and Ops file shares must stay shared.
   Security policy:
-    - Only the Authorized Administrators may be in the Administrators group.
+    - Only the Authorized Administrators may be in the Administrators or Backup
+      Operators groups.
     - Guest must be disabled. Passwords: at least 12 characters, complex, 5
       remembered, a maximum age of 30 to 90 days, and a minimum age of 1 day or
-      more; "Password never expires" cleared on every account.
+      more; "Password never expires" cleared on every account. Passwords are
+      stored as one-way hashes only (reversible encryption off).
     - Account lockout (after 10 or fewer failed attempts, for 15 minutes or
       more), logon auditing, and account-management auditing are required.
     - NTLMv2 only (LAN Manager authentication level 5); the last signed-in user
       name stays hidden; UAC stays on.
     - Remove unauthorized software and unauthorized scheduled jobs.
+    - Microsoft Defender scans every folder on this server, with every exclusion
+      removed.
 
 Investigation questions
   Q1  Which account is a member of the Administrators group but is NOT listed in
@@ -535,21 +572,29 @@ Investigation questions
   Q2  A scheduled task runs a .bat file from C:\Users\Public. What is the name
       of that task?
       ANSWER: IISLogCleaner
-      (Hint: schtasks /query /fo LIST /v | findstr /i "TaskName Task To Run")
+      (Hint: schtasks /query /fo LIST /v | findstr /i "TaskName Task.To.Run")
 
 Checks (100 points)
-  [6]  Unauthorized user "backup_admin" removed
+  [5]  Unauthorized user "backup_admin" removed
        area: Account management
        fix: lusrmgr.msc > Users > backup_admin > Delete
        or:  net user backup_admin /delete
        why: An account nobody authorized is a door into the machine.
+  [3]  "hrclerk" removed from Backup Operators (not an authorized administrator)
+       area: Access control
+       fix: lusrmgr.msc > Groups > Backup Operators > Properties > hrclerk >
+            Remove
+       or:  net localgroup "Backup Operators" hrclerk /delete
+       why: Backup Operators can read and restore every file on the machine,
+            past any folder permission: an administrator-level right that
+            belongs only to the administrators the brief names.
   [3]  "Password never expires" cleared on dispatch2
        area: Account management
        fix: lusrmgr.msc > dispatch2 > Properties > uncheck "Password never
             expires"
        or:  Set-LocalUser -Name dispatch2 -PasswordNeverExpires $false
        why: A password that never expires stays valid forever once leaked.
-  [4]  Guest account disabled
+  [3]  Guest account disabled
        area: Account management
        fix: lusrmgr.msc > Guest > Properties > check "Account is disabled"
        or:  net user Guest /active:no
@@ -584,7 +629,16 @@ Checks (100 points)
        why: Without it, users cycle through the history in seconds to reuse an
             old password. When a maximum age is set, the minimum must be lower
             than it.
-  [5]  Account lockout after 1 to 10 failed attempts, with a lockout duration of
+  [2]  Store passwords using reversible encryption disabled
+       area: Account management
+       fix: secpol.msc > Password Policy > "Store passwords using reversible
+            encryption" = Disabled
+       or:  secedit template line ClearTextPassword = 0, then secedit /configure
+            /db C:\Windows\security\local.sdb /cfg C:\sec.inf
+       why: Reversible encryption stores each password in a form that decrypts
+            back to the plain text, so one stolen copy of the account database
+            reveals every password.
+  [4]  Account lockout after 1 to 10 failed attempts, with a lockout duration of
        15 minutes or more
        area: Access control
        fix: secpol.msc > Account Lockout Policy > threshold 5, duration 30,
@@ -607,10 +661,10 @@ Checks (100 points)
        or:  auditpol /set /category:"Account Management" /success:enable
             /failure:enable
        why: No audit trail means no way to see who signed in or what changed.
-  [2]  "Do not display last user name" enabled
+  [2]  "Interactive logon: Don't display last signed-in" enabled
        area: Access control
-       fix: secpol.msc > Security Options > "Interactive logon: Do not display
-            last user name" = Enabled
+       fix: secpol.msc > Security Options > "Interactive logon: Don't display
+            last signed-in" = Enabled
        or:  reg add
             HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v
             DontDisplayLastUserName /t REG_DWORD /d 1 /f
@@ -642,16 +696,17 @@ Checks (100 points)
        or:  netsh advfirewall set allprofiles state on
        why: A profile that is off exposes every listening service on that
             network.
-  [4]  Suspicious inbound firewall rule "Ops Remote Helper (TCP-In)" removed or
+  [3]  Suspicious inbound firewall rule "Ops Remote Helper (TCP-In)" removed or
        disabled
        area: Secure configuration
        fix: wf.msc > Inbound Rules > "Ops Remote Helper (TCP-In)" > Delete
        or:  netsh advfirewall firewall delete rule name="Ops Remote Helper
             (TCP-In)"
        why: An allow-anything rule on an odd port is a planted back door.
-  [6]  FTP server removed (service stopped and feature off)
+  [4]  FTP server removed (service stopped and feature off)
        area: Secure configuration
-       fix: optionalfeatures > Internet Information Services > uncheck "FTP
+       fix: Uninstall-WindowsFeature -Name Web-Ftp-Server
+       or:  optionalfeatures > Internet Information Services > uncheck "FTP
             Server"
        or:  Disable-WindowsOptionalFeature -Online -FeatureName IIS-FTPServer
        why: FTP sends credentials in clear text, and the Scenario Brief does not
@@ -681,13 +736,21 @@ Checks (100 points)
             Real-time protection = On
        or:  Set-MpPreference -DisableRealtimeMonitoring $false
        why: With real-time protection off, malware runs unchallenged.
-  [4]  Windows updates installed and not paused
+  [4]  Microsoft Defender exclusion for C:\Users\Public\Libraries removed
+       area: Malware defenses
+       fix: Windows Security > Virus & threat protection > Manage settings > Add
+            or remove exclusions > C:\Users\Public\Libraries > Remove
+       or:  Remove-MpPreference -ExclusionPath "C:\Users\Public\Libraries"
+       why: An exclusion tells Microsoft Defender to skip a folder, so a program
+            stored there runs unscanned even with real-time protection on; an
+            intruder adds one for the folder their tools run from.
+  [3]  Windows updates installed and not paused
        area: Patching
        fix: Settings > Windows Update > Resume updates > Check for updates >
             Install all > Restart now
        why: The pending updates include fixes for publicly known
             vulnerabilities.
-  [4]  Planted scheduled task "IISLogCleaner" removed or disabled
+  [3]  Planted scheduled task "IISLogCleaner" removed or disabled
        area: Malware defenses
        fix: taskschd.msc > "IISLogCleaner" > Delete
        or:  schtasks /delete /tn "IISLogCleaner" /f
@@ -700,7 +763,7 @@ Checks (100 points)
        or:  sc stop SrvHealthMon && sc delete SrvHealthMon
        why: A homemade service running from a user folder is persistence for an
             intruder.
-  [5]  Unauthorized software removed (PortProbe Toolkit, TorrentBolt 3.1)
+  [4]  Unauthorized software removed (PortProbe Toolkit, TorrentBolt 3.1)
        area: Secure configuration
        fix: Settings > Apps > Installed apps > ... > Uninstall (each): PortProbe
             Toolkit, TorrentBolt 3.1
@@ -718,6 +781,7 @@ Availability checks (points lost if you break what the business needs)
   -10  Your own account deleted, disabled, or locked out
   -10  Remote Desktop disabled on a server that requires it
   -10  Web server (IIS) stopped, removed, or blocked by the firewall
+  -6  Required file share removed (HR, Ops)
   -5  Required service "Windows Defender Firewall" stopped or disabled
   -5  Required service "Microsoft Defender Antivirus" stopped or disabled
   -5  Windows Update service disabled
@@ -750,6 +814,7 @@ Accounts (Command Prompt as administrator)
   net user NAME /active:no          disable (Guest, built-in Administrator)
   net localgroup Administrators     who is an administrator
   net localgroup Administrators NAME /delete    remove administrator rights
+  net localgroup "Backup Operators"   members (the brief's administrators only)
   PowerShell: Get-LocalUser; Get-LocalGroupMember Administrators;
     Set-LocalUser -Name NAME -PasswordNeverExpires $false
 
@@ -761,9 +826,13 @@ Password and lockout policy
   Complexity has no net switch: secpol.msc, or
     secedit /export /cfg C:\sec.inf   (edit PasswordComplexity = 1)
     secedit /configure /db C:\Windows\security\local.sdb /cfg C:\sec.inf
+  Reversible encryption has no net switch either: ClearTextPassword = 0 in the
+    same secedit template
 
 Audit policy
   auditpol /get /category:*
+  auditpol /get /subcategory:"Process Creation"   one row (auditpol needs an
+    administrator window)
   auditpol /set /category:"Logon/Logoff" /success:enable /failure:enable
   auditpol /set /category:"Account Management" /success:enable /failure:enable
 
@@ -772,6 +841,10 @@ Security options and remote access (reg add needs /t REG_DWORD /d N /f)
     DontDisplayLastUserName = 1     DisableCAD = 0
     ConsentPromptBehaviorAdmin = 5  PromptOnSecureDesktop = 1   (UAC default)
   HKLM\SYSTEM\CurrentControlSet\Control\Lsa   LmCompatibilityLevel = 5
+  HKLM\SYSTEM\CurrentControlSet\Control\Lsa   LimitBlankPasswordUse = 1 (blank
+    passwords: console only)
+  "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer"
+    NoDriveTypeAutoRun = 255 (AutoRun off)
   "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server"
     fDenyTSConnections = 1 (RDP off)   ...\WinStations\RDP-Tcp
     UserAuthentication = 1 (NLA)
@@ -782,6 +855,15 @@ Services and tasks
   PowerShell: Get-Service; Set-Service -Name NAME -StartupType Disabled
   schtasks /query /fo LIST /v | findstr /i "TaskName Task.To.Run"
   schtasks /delete /tn "NAME" /f
+  netstat -abno (administrator)       port > PID > program
+  tasklist /svc /fi "PID eq 1234"     services inside a PID
+  PowerShell: Get-Process -Id 1234 | Select-Object Name,Path; Stop-Process -Id
+    1234 -Force
+
+Shares
+  net share                          every share, hidden $ shares included
+  net share NAME /delete             stop sharing (keep ADMIN$, C$, IPC$)
+  PowerShell: Get-SmbShare; Remove-SmbShare -Name NAME -Force
 
 Firewall, Defender, features
   netsh advfirewall show allprofiles
@@ -790,6 +872,12 @@ Firewall, Defender, features
   PowerShell: Set-MpPreference -DisableRealtimeMonitoring $false
   PowerShell: Disable-WindowsOptionalFeature -Online -FeatureName TelnetClient
               (SMB1Protocol, IIS-FTPServer the same way)
+  PowerShell (administrator): Get-MpPreference | Select-Object
+    ExclusionPath,ExclusionProcess,ExclusionExtension
+    Remove-MpPreference -ExclusionPath "PATH"
+    Update-MpSignature; Start-MpScan -ScanType QuickScan
+  Server: Get-WindowsFeature Web-Ftp-Server; Uninstall-WindowsFeature -Name
+    Web-Ftp-Server
 
 Files
   Find media in every profile, Downloads included (PowerShell): Get-ChildItem
