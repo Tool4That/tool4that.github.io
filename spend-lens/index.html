@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-YUxJWklfQzHhQ4yLy7ZXFmQsGetXOLqRNxIiPn0eK4M=' 'sha256-eRyzXa7mwZp7JkI4L5RG4yB106JzuyK2RvoTErF3ESs=' 'sha256-ltkjnw66bIy7opiUE9KThzttAvGthjR29/4l9KdBAjs=' 'wasm-unsafe-eval' https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/ https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/ https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/; connect-src data: https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int/; worker-src blob:; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-EtJI7oKrZU6wyOBIl5boMqeO6UkaHt8dt26REL2LFME=' 'sha256-eRyzXa7mwZp7JkI4L5RG4yB106JzuyK2RvoTErF3ESs=' 'sha256-ltkjnw66bIy7opiUE9KThzttAvGthjR29/4l9KdBAjs=' 'wasm-unsafe-eval' https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/ https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/ https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/; connect-src data: https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int/; worker-src blob:; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="See where your money goes. Add transactions by hand, paste text, or import bank, card, and investment statements (CSV, PDF, scanned PDFs, and screenshots, read on your device), then get a money-in, money-out Home summary, a paycheck plan, a 30-day look ahead, and a plain-language checkup. Everything stays on your device.">
 <link rel="canonical" href="https://freeapp4that.store/spend-lens/">
@@ -197,6 +197,16 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
 
 /* Preview */
 .preview { border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-top: 18px; background: var(--surface); }
+.pv-actions { margin: 8px 0 4px; }
+.batch { border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-top: 18px; background: var(--surface); }
+.batch-sum { color: var(--ink-2); font-size: 0.9rem; margin: 6px 0 4px; }
+.bpane { border-top: 1px solid var(--line-2); }
+.bpane > summary { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 10px 2px; cursor: pointer; }
+.bpane .bname { font-weight: 600; overflow-wrap: anywhere; }
+.bpane .bstat { color: var(--ink-2); font-size: 0.85rem; text-align: right; }
+.bpane .bstat.bs-look { color: var(--warn-ink); }
+.bpane .bstat.bs-bad { color: var(--out); }
+.bpane .bbody > .preview { margin-top: 0; border: 0; padding: 0 0 12px; }
 .preview h2 { margin-bottom: 4px; }
 .pv-table { margin-top: 10px; border-top: 1px solid var(--line); max-height: 420px; overflow: auto; }
 .pv-row { display: grid; grid-template-columns: 20px 4.25rem 1fr auto; gap: 8px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line-2); font-size: 0.9rem; }
@@ -527,13 +537,15 @@ footer { margin-top: 40px; color: var(--ink-3); font-size: 0.8rem; }
       <div id="mode-file" class="mode" role="tabpanel" aria-labelledby="modebtn-file">
         <label class="drop" id="drop">
           <input type="file" id="fileInput" multiple accept=".csv,.tsv,.txt,.ofx,.qfx,.qif,.pdf,.json,.png,.jpg,.jpeg,.webp,.gif,.bmp,.heic,text/csv,text/plain,application/pdf,application/json,image/*">
-          <strong>Choose files</strong> or drop them here
+          <strong>Choose files</strong> or drop them here (a folder works too)
           <div class="formats"><span>PDF statements, incl. scanned</span><span>Screenshots &amp; photos</span><span>CSV</span><span>TSV</span><span>OFX / QFX</span><span>QIF</span><span>JSON backup</span></div>
         </label>
         <p class="hint" id="fileHint" style="margin-top:10px">Files are read in your browser and stay on this device. Bank, card, and investment statements all work: PDFs use pdf.js (fetched from cdnjs), and screenshots or scanned PDFs use Tesseract, the open-source OCR engine (fetched once from jsDelivr, with your OK first). The <a href="https://freeapp4that.store/finance/" target="_blank" rel="noopener">offline download</a> builds both in.</p>
+        <div class="actions" id="folderRow" hidden><button class="btn" type="button" id="folderBtn">Choose a folder</button><input type="file" id="folderInput" webkitdirectory multiple hidden></div>
         <div class="busy" id="busy" hidden></div>
       </div>
 
+      <div id="batch" class="batch" hidden></div>
       <div id="preview" class="preview" hidden></div>
     </section>
 
@@ -5412,7 +5424,7 @@ function toast(msg, isErr) {
   const sr = $('#srStatus'); if (sr) { sr.textContent = ''; setTimeout(() => { sr.textContent = msg; }, 60); }
   clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.hidden = true; }, isErr ? 6000 : 3000);
 }
-function setBusy(msg, cancellable) { const b = $('#busy'); b.innerHTML = msg ? esc(msg) + (cancellable ? ' <button class="btn small" id="ocrCancel">Cancel</button>' : '') : ''; b.hidden = !msg; }
+function setBusy(msg, cancellable) { if (batchTarget) { batchTarget.msg = msg || ''; paintBatch(batchTarget); return; } const b = $('#busy'); b.innerHTML = msg ? esc(msg) + (cancellable ? ' <button class="btn small" id="ocrCancel">Cancel</button>' : '') : ''; b.hidden = !msg; }
 function accounts() { const s = new Set(); for (const t of state.txns) if (t.account) s.add(t.account); return Array.from(s).sort(); }
 function catOptions(selected, includeAuto) {
   let h = includeAuto ? '<option value="">Pick automatically</option>' : '';
@@ -5620,12 +5632,16 @@ function renderTransactions() {
 }
 function openEdit(id) {
   const t = state.txns.find(x => x.id === id); if (!t) return;
+  // every account, the row's own first among them, and "Create a new account…" always last
+  const accs = accounts(); if (t.account && !accs.includes(t.account)) accs.push(t.account);
+  const acctSel = '<select id="eAccount">' + (t.account ? '' : '<option value="" selected>Unassigned</option>') + accs.map(a => '<option value="' + esc(a) + '"' + (a === t.account ? ' selected' : '') + '>' + esc(a) + '</option>').join('') + '<option value="__new">Create a new account…</option></select>';
   const sheet = $('#sheet');
   sheet.innerHTML = '<div class="card" role="dialog" aria-modal="true" aria-label="Edit transaction"><h2>Edit transaction</h2><form id="editForm" class="form" autocomplete="off">' +
     '<label>Description <input type="text" id="eDesc" value="' + esc(t.desc) + '" required></label>' +
     '<div class="grid2"><label>Date <input type="date" id="eDate" value="' + esc(t.date) + '" required></label><label>Amount <input type="text" inputmode="decimal" id="eAmount" value="' + esc(t.amount.toFixed(2)) + '" required></label></div>' +
     '<p class="hint">Negative is money out, positive is money in.</p>' +
-    '<div class="grid2"><label>Category <select id="eCat">' + catOptions(t.category, false) + '</select></label><label>Account <input type="text" id="eAccount" list="accountList" value="' + esc(t.account) + '"></label></div>' +
+    '<div class="grid2"><label>Category <select id="eCat">' + catOptions(t.category, false) + '</select></label><label>Account ' + acctSel + '</label></div>' +
+    '<label id="eAccountNewBox" hidden>New account name <input type="text" id="eAccountNew" placeholder="e.g. Kona Credit Union checking"></label>' +
     '<div class="grid2"><label>Note <input type="text" id="eNote" value="' + esc(t.note) + '"></label><label>Who (optional) <input type="text" id="eWho" list="whoList" value="' + esc(t.who || '') + '" placeholder="household member"></label></div>' +
     '<label class="check"><input type="checkbox" id="eExcluded"' + (t.excluded ? ' checked' : '') + '> Leave out of totals (money moved between your own accounts)</label>' +
     '<label class="check"><input type="checkbox" id="eRemember"> Use this category for every <b>&nbsp;' + esc(titleCase(t.merchant)) + '&nbsp;</b> transaction, now and in future imports</label>' +
@@ -5633,15 +5649,18 @@ function openEdit(id) {
   sheet.hidden = false; trapSheet();
   $('#eDesc').focus();
   $('#eCancel').onclick = closeSheet;
+  $('#eAccount').onchange = () => { const nw = $('#eAccount').value === '__new'; $('#eAccountNewBox').hidden = !nw; if (nw) $('#eAccountNew').focus(); };
   $('#eDelete').onclick = (ev) => armConfirm(ev.currentTarget, 'Tap again to delete', () => { state.txns = state.txns.filter(x => x.id !== id); save(); closeSheet(); renderAll(); toast('Deleted'); });
   $('#editForm').onsubmit = (ev) => {
     ev.preventDefault();
     const a = slParseAmountToken($('#eAmount').value); if (!a) { fieldErr($('#eAmount'), 'Enter an amount like -45.67'); return; }
     const d = $('#eDate').value; if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) { toast('Pick a date', true); return; }
+    let acct = $('#eAccount').value;
+    if (acct === '__new') { acct = $('#eAccountNew').value.trim(); if (!acct) { fieldErr($('#eAccountNew'), 'Name the new account'); return; } }
     const newCat = $('#eCat').value;
     const changedCat = newCat !== t.category;
     t.desc = $('#eDesc').value.trim() || t.desc; t.merchant = slNormalizeMerchant(t.desc);
-    t.date = d; t.amount = slRound2(a.value); t.account = $('#eAccount').value.trim(); t.note = $('#eNote').value.trim(); t.who = $('#eWho').value.trim(); t.excluded = $('#eExcluded').checked;
+    t.date = d; t.amount = slRound2(a.value); t.account = acct; t.note = $('#eNote').value.trim(); t.who = $('#eWho').value.trim(); t.excluded = $('#eExcluded').checked;
     if (changedCat) { t.category = newCat; t.lock = true; }
     if ($('#eRemember').checked) {
       const kw = t.merchant.toLowerCase();
@@ -5739,9 +5758,193 @@ async function extractPdfText(pdf) {
   const text = lines.join('\n');
   return { text, chars: text.replace(/\s/g, '').length };
 }
+/* ---------- Many files at once: one list, read top to bottom ---------- */
+// Two or more files (or a folder) open as one list in name order. Each file is read in turn; its pane says where it stands,
+// and opening a read file shows its full check, one at a time. Import all brings in every file as it stands, in order; a
+// row that repeats one an earlier file in the list brought in stays out, unless the member ticked it.
+let batch = null, batchTarget = null, batchRunning = false;
+const IMPORTABLE = /\.(csv|tsv|txt|ofx|qfx|qif|pdf|json|png|jpe?g|webp|gif|bmp|heic|heif|tiff?)$/i;
+function importable(f) { const n = String(f.name || ''); return !n.startsWith('.') && (IMPORTABLE.test(n) || /^image\//.test(f.type || '')); }
+function batchName(f) { return String(f.webkitRelativePath || f.relPath || f.name || 'file'); }
+// A dropped folder: every file inside it, with its path
+async function droppedFiles(dt) {
+  const entries = Array.from(dt.items || []).map(it => it.webkitGetAsEntry ? it.webkitGetAsEntry() : null).filter(Boolean);
+  if (!entries.some(en => en.isDirectory)) return Array.from(dt.files);
+  const out = [];
+  const walk = async (en, path) => {
+    if (en.isFile) { const f = await new Promise((ok, no) => en.file(ok, no)); f.relPath = path + f.name; out.push(f); return; }
+    if (!en.isDirectory) return;
+    const rd = en.createReader(); let part;
+    do { part = await new Promise((ok, no) => rd.readEntries(ok, no)); for (const c of part) await walk(c, path + en.name + '/'); } while (part.length);
+  };
+  for (const en of entries) await walk(en, '');
+  return out;
+}
+function startBatch(files) {
+  const add = files.slice().sort((a, b) => batchName(a).localeCompare(batchName(b), undefined, { numeric: true, sensitivity: 'base' })).map(f => ({ file: f, name: batchName(f), state: 'wait', msg: '', p: null, init: null }));
+  if (batch) batch.items.push(...add); else batch = { items: add, open: -1, stop: false };
+  pending = null; renderPreview(); showTab('add'); setMode('file', true); renderBatch(); processBatch();
+  const el = $('#batch'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start' });
+}
+async function processBatch() {
+  if (batchRunning || !batch) return;
+  batchRunning = true; const list = batch;
+  try {
+    for (const x of list.items) {
+      if (batch !== list || list.stop) break;
+      if (x.state !== 'wait') continue;
+      x.state = 'read'; x.msg = ''; paintBatch(x);
+      batchTarget = x; ocrCancel = false;
+      try { await loadFile(x.file); if (!x.p) throw new Error('nothing could be read from it'); x.state = 'ready'; }
+      catch (e) { x.state = e && e.userStop ? 'stopped' : 'fail'; x.msg = batchFail(e); }
+      finally { batchTarget = null; }
+      if (batch === list) { paintBatch(x); if (list.open === list.items.indexOf(x)) openBatchItem(list.open); }
+    }
+  } finally { batchRunning = false; if (batch) paintBatch(); }
+}
+function batchFail(e) {
+  if (e && e.userStop) return 'left unread';
+  if (e && e.readFail) return 'this picture needs a clearer copy: the text reader stopped before finishing it';
+  if (e && e.pdfLoadFail) return PFAT_OFFLINE ? 'the PDF reader stopped while starting' : 'reading PDFs needs an internet connection, or the offline download';
+  if (e && e.ocrFail) return PFAT_OFFLINE ? 'the text reader stopped while starting' : 'reading pictures needs an internet connection, or the offline download';
+  return 'this file stopped: ' + String((e && e.message) || e);
+}
+function batchSnap(p) { return { include: p.include.slice(), account: p.account, opts: JSON.stringify(p.opts) }; }
+// The changes the member made to a file: rows ticked or unticked, rows flipped, the account, the reading options, the fixes
+function batchChanges(x) {
+  const p = x.p, i0 = x.init; if (!p || !i0 || !p.result) return 0;
+  let n = 0;
+  for (const t of p.result.txns || []) { if (!!p.include[t._i] !== !!i0.include[t._i]) n++; if (p.flipRow[t._i]) n++; }
+  if ((p.account || '') !== (i0.account || '')) n++;
+  if (JSON.stringify(p.opts) !== i0.opts) n++;
+  if (p.applyFixes) n++;
+  return n;
+}
+// Whether Import all can bring a file in as it stands (a locked file, a backup, or a statement waiting for an account needs the member)
+function batchCan(x) {
+  const p = x.p; if (x.state !== 'ready' || x.skip || x.done || !p || p.locked || !p.result || p.result.backup) return false;
+  const canDetails = p.kind === 'text' && p.details && p.details.balance != null && p.applyDetails !== false && !!p.target;
+  return p.include.some(Boolean) || canDetails;
+}
+function batchStat(x) {
+  if (x.done) return ['done', 'imported: ' + x.done.n + (x.done.n === 1 ? ' row' : ' rows')];
+  if (x.skip) return ['skip', 'left out'];
+  if (x.state === 'wait') return ['wait', 'waiting'];
+  if (x.state === 'read') return ['read', x.msg || 'reading…'];
+  if (x.state === 'stopped') return ['skip', 'left unread'];
+  if (x.state === 'fail') return ['bad', x.msg];
+  const p = x.p, res = p.result || {};
+  if (p.locked) return ['look', 'locked: open it to type its passphrase'];
+  if (res.backup) return ['look', 'a PFAT backup: open it to add or restore it'];
+  const rows = (res.txns || []).length, inc = p.include.filter(Boolean).length, v = p.kind === 'text' ? slCheckVerdict(p.checks) : '';
+  const look = (res.unread || []).length > 0 || (res.skippedLines || []).some(needsLook) || (p.kind === 'text' && !p.signAsked && signQuestion(p) !== '');
+  const bits = [inc + ' of ' + rows + ' rows'];
+  if (v === 'match') bits.push('totals match ✓'); else if (v === 'mismatch') bits.push('totals differ');
+  if (look) bits.push('needs a look');
+  if (p.seenBefore) bits.push('imported before');
+  const ch = batchChanges(x); if (ch) bits.push(ch + (ch === 1 ? ' change' : ' changes') + ' by you');
+  if (!batchCan(x)) return ['look', bits.join(' · ') + ' · open it to finish'];
+  return [v === 'mismatch' || look ? 'look' : 'ok', bits.join(' · ')];
+}
+function renderBatch() {
+  const el = $('#batch'); if (!el) return;
+  const pv = $('#preview'); if (pv && el.contains(pv)) el.parentNode.insertBefore(pv, el.nextSibling);
+  if (!batch) { el.hidden = true; el.innerHTML = ''; return; }
+  let h = '<h2>Review together</h2><p class="muted small">Read top to bottom, in name order. Open a file to check it; Import all brings in every file as it stands.</p>' +
+    '<div class="actions"><button class="btn primary" data-batch="all" id="batchAll"></button><button class="btn" data-batch="stop" id="batchStop" hidden>Stop reading</button><button class="btn" data-batch="go" id="batchGo" hidden>Go on reading</button><button class="btn" data-batch="discard">Discard all</button></div>' +
+    '<p class="batch-sum" id="batchSum" role="status"></p><div class="batch-list">';
+  batch.items.forEach((x, i) => { h += '<details class="bpane" data-bi="' + i + '"' + (batch.open === i ? ' open' : '') + '><summary><span class="bname">' + esc(x.name) + '</span><span class="bstat" id="bstat' + i + '"></span></summary><div class="bbody" id="bbody' + i + '"></div></details>'; });
+  h += '</div><div class="actions"><button class="btn primary" data-batch="all" id="batchAllB"></button><button class="btn" data-batch="discard">Discard all</button></div>';
+  el.innerHTML = h; el.hidden = false;
+  paintBatch();
+  if (batch.open >= 0) openBatchItem(batch.open);
+}
+// Updates the status of one file (or all of them) and the Import all buttons, leaving an open check where it is
+function paintBatch(only) {
+  if (!batch || !$('#batch') || $('#batch').hidden) return;
+  batch.items.forEach((x, i) => {
+    if (only && x !== only) return;
+    const [k, txt] = batchStat(x), s0 = $('#bstat' + i); if (s0) { s0.className = 'bstat bs-' + k; s0.textContent = txt; }
+    const body = $('#bbody' + i); if (body && batch.open === i && !(x.state === 'ready' && x.p && !x.done && !x.skip)) body.innerHTML = batchBody(x, i);
+  });
+  const xs = batch.items, ready = xs.filter(batchCan), read = xs.filter(x => x.state !== 'wait' && x.state !== 'read').length;
+  const changes = ready.reduce((a, x) => a + batchChanges(x), 0), needs = xs.filter(x => x.state === 'ready' && !x.done && !x.skip && !batchCan(x)).length;
+  const done = xs.filter(x => x.done).length, busy = batchRunning && read < xs.length;
+  const label = busy ? 'Import all (reading ' + read + ' of ' + xs.length + '…)' : 'Import all ' + ready.length + (ready.length === 1 ? ' file' : ' files');
+  const a = $('#batchAll'), b = $('#batchAllB');
+  if (a) { a.textContent = label; a.disabled = busy || !ready.length; }
+  if (b) { b.textContent = busy ? label : 'Import all ' + ready.length + (ready.length === 1 ? ' file' : ' files') + (changes ? ', with ' + changes + (changes === 1 ? ' change' : ' changes') + ' you made' : ' as read'); b.disabled = busy || !ready.length; }
+  const st = $('#batchStop'), go = $('#batchGo');
+  if (st) st.hidden = !batchRunning || batch.stop; if (go) go.hidden = batchRunning || !xs.some(x => x.state === 'wait');
+  const sum = $('#batchSum');
+  if (sum && !only) sum.textContent = read + ' of ' + xs.length + ' files read' + (done ? ' · ' + done + ' imported' : '') + (needs ? ' · ' + needs + (needs === 1 ? ' needs' : ' need') + ' you' : '') + (xs.some(x => x.state === 'fail') ? ' · ' + xs.filter(x => x.state === 'fail').length + ' could not be read' : '');
+}
+function batchBody(x, i) {
+  const [, txt] = batchStat(x), ahead = batch.items.slice(0, i).filter(y => y.state === 'wait' || y.state === 'read').length;
+  if (x.state === 'wait') return '<p class="muted small">Waiting: ' + (ahead ? ahead + (ahead === 1 ? ' file comes' : ' files come') + ' before it.' : 'it is next.') + '</p>';
+  if (x.state === 'read') return '<p class="muted small">' + esc(x.msg || 'Reading…') + '</p>';
+  if (x.skip) return '<p class="muted small">Left out of Import all.</p><div class="actions"><button class="btn small" data-batch="back" data-bi="' + i + '">Include it again</button></div>';
+  return '<p class="muted small">' + esc(cap(txt)) + '.</p>';
+}
+function openBatchItem(i) {
+  if (!batch) return;
+  const x = batch.items[i], body = $('#bbody' + i), pv = $('#preview'); if (!x || !body || !pv) return;
+  batch.open = i;
+  $$('#batch details.bpane').forEach(d => { if (+d.dataset.bi !== i && d.open) d.open = false; });
+  const d0 = $('#batch details[data-bi="' + i + '"]'); if (d0 && !d0.open) d0.open = true;
+  if (x.state === 'ready' && x.p && !x.done && !x.skip) { pending = x.p; body.innerHTML = ''; body.appendChild(pv); renderPreview(); }
+  else { if (pending && pending._batch) { pending = null; renderPreview(); } body.innerHTML = batchBody(x, i); }
+}
+function closeBatchItem() {
+  if (!batch) return;
+  const i = batch.open; batch.open = -1;
+  const d0 = $('#batch details[data-bi="' + i + '"]'); if (d0 && d0.open) d0.open = false;
+  pending = null; const pv = $('#preview'), el = $('#batch');
+  if (pv && el && el.contains(pv)) el.parentNode.insertBefore(pv, el.nextSibling);
+  renderPreview();
+}
+// After one file is imported from its pane: the next file waiting for review opens
+function batchAfterImport(x) {
+  const i = batch.items.indexOf(x); closeBatchItem(); paintBatch();
+  const next = batch.items.findIndex((y, k) => k > i && y.state === 'ready' && !y.done && !y.skip);
+  if (next >= 0) openBatchItem(next);
+  if (batch.items.every(y => y.done || y.skip)) batchFinish();
+}
+function batchFinish() { batch = null; renderBatch(); showTab('hud'); const hp = $('#tab-hud'); if (hp) { hp.tabIndex = -1; hp.focus({ preventScroll: true }); } }
+// Rows left as read that repeat a row an earlier file in this list brought in (same day, amount, and description) stay out
+function batchRepeats(x, added) {
+  const p = x.p, i0 = x.init; if (!added.size || !i0) return 0;
+  const seen = new Set(state.txns.filter(t => added.has(t.id)).map(slDedupeKey)); let n = 0;
+  for (const t of p.result.txns) {
+    if (!p.include[t._i] || !i0.include[t._i]) continue;
+    const amt = p.flipRow[t._i] ? -t.amount : t.amount;
+    if (seen.has(slDedupeKey({ date: t.date, amount: amt, desc: String(t.desc + (t.desc2 ? ' ' + t.desc2 : '')).trim() }))) { p.include[t._i] = false; n++; }
+  }
+  return n;
+}
+function batchImportAll() {
+  if (!batch || batchRunning) return;
+  const xs = batch.items.filter(batchCan); if (!xs.length) return;
+  closeBatchItem();
+  const added = new Set(); let rows = 0, files = 0, repeats = 0;
+  for (const x of xs) {
+    repeats += batchRepeats(x, added);
+    const r = importPending(x.p, String(x.p.account || '').trim() || 'Imported');
+    r.ids.forEach(id => added.add(id)); x.done = { n: r.added }; rows += r.added; files++;
+  }
+  if (rows) { const r0 = currentRange(); if (!slFilter(state.txns, { from: r0.from, to: r0.to, account: state.ui.account }).length) state.ui.period = 'all'; }
+  save(); renderAll();
+  const rest = batch.items.filter(x => !x.done && !x.skip && x.state !== 'fail' && x.state !== 'stopped');
+  toast('Imported ' + rows + (rows === 1 ? ' transaction' : ' transactions') + ' from ' + files + (files === 1 ? ' file' : ' files') + (repeats ? '; ' + repeats + (repeats === 1 ? ' row that repeats' : ' rows that repeat') + ' an earlier file stayed out' : '') + (rest.length ? '; ' + rest.length + (rest.length === 1 ? ' file needs' : ' files need') + ' you and stays listed' : ''));
+  if (!rest.length && batch.items.every(x => x.done || x.skip || x.state === 'fail' || x.state === 'stopped') && !batch.items.some(x => x.state === 'fail' || x.state === 'stopped')) batchFinish(); else paintBatch();
+}
 function defaultAccount(name) { return String(name || 'Imported').replace(/\.[^.]+$/, '').replace(/[_\-]+/g, ' ').trim().slice(0, 40) || 'Imported'; }
 let reading = false, ocrCancel = false;
-async function handleFiles(files) { for (const f of files) fileQueue.push(f); if (!pending && !reading) nextInQueue(); else if (reading) toast(files.length + ' more file' + (files.length > 1 ? 's' : '') + ' waiting'); }
+async function handleFiles(files) {
+  // two or more files (and any more while the list is open) are reviewed together; one file opens on its own
+  if (batch || (files.length >= 2 && !pending && !reading)) { startBatch(files); return; }
+  for (const f of files) fileQueue.push(f); if (!pending && !reading) nextInQueue(); else if (reading) toast(files.length + ' more file' + (files.length > 1 ? 's' : '') + ' waiting');
+}
 async function nextInQueue() {
   if (reading) return;
   const f = fileQueue.shift();
@@ -5796,7 +5999,10 @@ function startByText(text, name) {
   else startPreview('text', name, { text });
 }
 function startPreview(kind, name, payload) {
-  pending = Object.assign({ kind, name, account: defaultAccount(name), opts: { dayFirst: state.settings.dayFirst, lastIsBalance: 'auto', defaultYear: '', flip: undefined, replace: false }, include: [], flipRow: {} }, payload);
+  const np = Object.assign({ kind, name, account: defaultAccount(name), opts: { dayFirst: state.settings.dayFirst, lastIsBalance: 'auto', defaultYear: '', flip: undefined, replace: false }, include: [], flipRow: {} }, payload);
+  // a file read for the list keeps its check in its own pane; the one open on screen stays as it is
+  if (batchTarget) { const keep = pending; pending = np; try { reparse(true); } finally { pending = keep; } np._batch = batchTarget; batchTarget.p = np; batchTarget.init = batchSnap(np); return; }
+  pending = np;
   reparse(true);
   showTab('add');
   renderPreview();
@@ -5939,7 +6145,7 @@ function renderPreview() {
   const p = pending, res = p.result;
   const kindName = { csv: 'spreadsheet / CSV', ofx: 'OFX / QFX', qif: 'QIF', json: 'JSON', text: p.fromOcr ? (p.fromPdf ? 'scanned PDF, text recognized with OCR' : 'image, text recognized with OCR') : (p.fromPdf ? 'PDF statement' : 'pasted text') }[p.kind];
   const dupes = res.txns.filter(t => t._dupe).length;
-  let h = '<h2>Check before importing</h2><p class="muted small">' + esc(p.name) + ' · read as ' + esc(kindName) + (fileQueue.length ? ' · ' + fileQueue.length + ' more file' + (fileQueue.length > 1 ? 's' : '') + ' waiting' : '') + '</p>';
+  let h = '<h2>Check before importing</h2><p class="muted small">' + esc(p.name) + ' · read as ' + esc(kindName) + (!p._batch && fileQueue.length ? ' · ' + fileQueue.length + ' more file' + (fileQueue.length > 1 ? 's' : '') + ' waiting' : '') + '</p><!--pvact-->';
   if (res.error) h += '<div class="notice">Could not read this: ' + esc(res.error) + '</div>';
   if (res.locked) {
     pv.innerHTML = h + '<p>This backup is locked. Its passphrase opens it here, on this device.</p><div class="form"><label>Passphrase <input type="password" id="pvPass" autocomplete="off"></label></div><div class="actions"><button class="btn primary" id="pvUnlock">Unlock</button><button class="btn" id="pvCancel">Cancel</button></div>';
@@ -6003,9 +6209,11 @@ function renderPreview() {
   if (p.fromOcr) h += '<details class="ocrtext"' + (p.ocrOpen ? ' open' : '') + '><summary>Recognized text: check or fix</summary><textarea id="pvOcrText" spellcheck="false">' + esc(p.ocrDraft != null ? p.ocrDraft : p.text) + '</textarea><div class="actions" style="margin-top:6px"><button class="btn small" id="pvReread">Read again with my fixes</button></div></details>';
   const nInc = p.include.filter(Boolean).length;
   const canDetails = p.kind === 'text' && p.details && p.details.balance != null && p.applyDetails !== false && !!p.target;
-  const label = importLabel(p);
-  h += '<div class="actions"><button class="btn primary" id="pvImport"' + (res.txns.length || canDetails ? '' : ' disabled') + '>' + label + '</button><button class="btn" id="pvCancel">Discard</button></div>';
+  const label = importLabel(p), off = res.txns.length || canDetails ? '' : ' disabled', drop = p._batch ? 'Leave this file out' : 'Discard';
+  const acts = (id) => '<div class="actions' + (id ? '' : ' pv-actions') + '"><button class="btn primary" id="pvImport' + id + '"' + off + '>' + label + '</button><button class="btn" id="pvCancel' + id + '">' + drop + '</button></div>';
+  h = h.replace('<!--pvact-->', acts('')) + acts('B');
   pv.innerHTML = h; pv.hidden = false;
+  if (p._batch) paintBatch(p._batch);
 }
 function importLabel(p) {
   const res = p.result || {}, nInc = p.include.filter(Boolean).length;
@@ -6036,8 +6244,19 @@ function doImport() {
       toast('This backup could not be restored, so your data stays as it was (' + e.message + ')', true); return;
     }
     pending = null; save(); applyTheme(); renderAll(); toast('Backup restored: ' + state.txns.length + ' transactions');
+    if (p._batch) { p._batch.done = { n: state.txns.length }; batchAfterImport(p._batch); return; }
     nextInQueue(); return;
   }
+  const r = importPending(p, acct);
+  pending = null;
+  if (r.added) { const r0 = currentRange(); if (!slFilter(state.txns, { from: r0.from, to: r0.to, account: state.ui.account }).length) state.ui.period = 'all'; }
+  save(); renderAll();
+  toast((r.added ? 'Imported ' + r.added + ' transactions into ' + acct + (r.savedTo ? '; details saved to ' + r.savedTo : '') : r.savedTo ? acct + ' saved to ' + r.savedTo : 'Nothing imported') + (r.leftN ? '; ' + r.leftN + ' row' + (r.leftN === 1 ? '' : 's') + ' left out, as you chose' : ''));
+  if (p._batch) { p._batch.done = { n: r.added }; batchAfterImport(p._batch); return; }
+  if (fileQueue.length) nextInQueue(); else { renderPreview(); showTab('hud'); const hp = $('#tab-hud'); if (hp) { hp.tabIndex = -1; hp.focus({ preventScroll: true }); } }
+}
+// Saves one checked file: its rows, its statement details, and the import record. Returns what it added, for one file or a list
+function importPending(p, acct) {
   let savedTo = '';
   if (p.kind === 'text' && p.details && p.details.balance != null && p.applyDetails !== false) { const r = applyStatementDetails(p, acct); savedTo = r.to ? r.to + (r.note ? ' (' + r.note + ')' : '') : ''; if (r.note && !r.to) toast(r.note); }
   const items = p.result.txns.filter(t => p.include[t._i]);
@@ -6066,12 +6285,7 @@ function doImport() {
     ...(p.suggestOffered && p.suggestOffered.n ? (() => { const n = (p.applyFixes ? p.appliedN || 0 : 0) + (p.holdTaken || 0); return { suggested: p.suggestOffered.n, suggestedProven: p.suggestOffered.proven, fixesApplied: n > 0, applied: fixedLog.length + (p.holdTaken || 0), ...(fixedLog.length ? { fixed: fixedLog } : {}), ...(p.holdTaken ? { takenInPositions: p.holdTaken } : {}) }; })() : {}) });
   if (state.imports.length > 200) state.imports = state.imports.slice(-200);
   state.ui.lastAccount = acct;
-  pending = null;
-  if (added.length) { const r0 = currentRange(); if (!slFilter(state.txns, { from: r0.from, to: r0.to, account: state.ui.account }).length) state.ui.period = 'all'; }
-  save(); renderAll();
-  const leftN = p.result.txns.filter(t => !p.include[t._i]).length;
-  toast((added.length ? 'Imported ' + added.length + ' transactions into ' + acct + (savedTo ? '; details saved to ' + savedTo : '') : savedTo ? acct + ' saved to ' + savedTo : 'Nothing imported') + (leftN ? '; ' + leftN + ' row' + (leftN === 1 ? '' : 's') + ' left out, as you chose' : ''));
-  if (fileQueue.length) nextInQueue(); else { renderPreview(); showTab('hud'); const hp = $('#tab-hud'); if (hp) { hp.tabIndex = -1; hp.focus({ preventScroll: true }); } }
+  return { added: added.length, ids: added.map(t => t.id), savedTo, leftN: p.result.txns.filter(t => !p.include[t._i]).length };
 }
 
 /* ---------- rules ---------- */
@@ -6165,7 +6379,7 @@ function lockedOf(text) {
 }
 async function unlockPending() {
   const p = pending, inp = $('#pvPass'); if (!p || !p.locked || !inp) return;
-  try { p.text = await unlockText(p.locked, inp.value); p.locked = null; reparse(true); renderPreview(); $('#preview').focus({ preventScroll: true }); }
+  try { p.text = await unlockText(p.locked, inp.value); p.locked = null; reparse(true); if (p._batch) p._batch.init = batchSnap(p); renderPreview(); $('#preview').focus({ preventScroll: true }); }
   catch (e) { fieldErr(inp, 'This backup opens with a different passphrase. Check it and try again.'); }
 }
 function backupJSON() { return JSON.stringify({ app: 'pfat', version: 1, exported: new Date().toISOString(), imports: state.imports || [], txns: state.txns, rules: state.rules, customCats: state.customCats, catOverrides: state.catOverrides, budgets: state.budgets, bills: state.bills, balances: state.balances, plan: state.plan, accounts: state.accounts, goals: state.goals, cash: state.cash, paycheck: state.paycheck, snapshots: state.snapshots, insurance: state.insurance, limits: state.limits, settings: state.settings }, null, 1); }
@@ -7688,9 +7902,22 @@ function bind() {
   // Files
   const drop = $('#drop');
   $('#fileInput').addEventListener('change', e => { handleFiles(Array.from(e.target.files)); e.target.value = ''; });
+  if ('webkitdirectory' in document.createElement('input')) { $('#folderRow').hidden = false; $('#folderBtn').onclick = () => $('#folderInput').click(); }
+  $('#folderInput').addEventListener('change', e => { const all = Array.from(e.target.files); e.target.value = ''; const ok = all.filter(importable); if (all.length > ok.length) toast(ok.length + ' of ' + all.length + ' files in the folder are ones PFAT reads; the rest stay out'); if (ok.length) handleFiles(ok); });
+  const bt = $('#batch');
+  bt.addEventListener('toggle', e => { const d = e.target; if (!d.matches || !d.matches('details.bpane')) return; const i = +d.dataset.bi; if (d.open) openBatchItem(i); else if (batch && batch.open === i) closeBatchItem(); }, true);
+  bt.addEventListener('click', e => {
+    const b = e.target.closest('[data-batch]'); if (!b || !batch) return;
+    const k = b.dataset.batch;
+    if (k === 'all') batchImportAll();
+    else if (k === 'discard') { batch.stop = true; ocrCancel = true; batch = null; pending = null; renderBatch(); renderPreview(); toast('The list is cleared; nothing from it was imported'); }
+    else if (k === 'stop') { batch.stop = true; ocrCancel = true; paintBatch(); }
+    else if (k === 'go') { batch.stop = false; processBatch(); paintBatch(); }
+    else if (k === 'back') { const x = batch.items[+b.dataset.bi]; if (x) { x.skip = false; openBatchItem(+b.dataset.bi); paintBatch(); } }
+  });
   ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
   ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
-  drop.addEventListener('drop', e => { if (e.dataTransfer && e.dataTransfer.files.length) handleFiles(Array.from(e.dataTransfer.files)); });
+  drop.addEventListener('drop', e => { if (e.dataTransfer && e.dataTransfer.files.length) droppedFiles(e.dataTransfer).then(fs => { const ok = fs.filter(importable); if (fs.length > ok.length) toast(ok.length + ' of ' + fs.length + ' files are ones PFAT reads; the rest stay out'); if (ok.length) handleFiles(ok); }); });
   document.addEventListener('dragover', e => e.preventDefault()); document.addEventListener('drop', e => e.preventDefault());
 
   $('#busy').addEventListener('click', e => { if (e.target.id === 'ocrCancel') { ocrCancel = true; stopOcrWorker(); setBusy('Cancelling\u2026'); } });
@@ -7698,7 +7925,7 @@ function bind() {
   const pv = $('#preview');
   pv.addEventListener('click', e => {
     const t = e.target;
-    if (t.id === 'pvImport') {
+    if (t.id === 'pvImport' || t.id === 'pvImportB') {
       if (pending.ocrDraft != null && pending.ocrDraft !== pending.text) { const acct = pending.account; pending.text = pending.ocrDraft; pending.ocrDraft = null; pending.ocrOpen = true; pending.applyFixes = false; reparse(true); pending.account = acct; renderPreview(); toast('Your edits to the recognized text were read first: check the rows, then import'); return; }
       doImport(); return;
     }
@@ -7712,7 +7939,10 @@ function bind() {
     // the member's one click: every suggested reading applied (rows, details, holdings), or undone; kept across rereads
     if (t.id === 'pvApplyFixes' || t.id === 'pvUndoFixes') { pending.applyFixes = t.id === 'pvApplyFixes'; reparse(); renderPreview(); const b = document.querySelector(t.id === 'pvApplyFixes' ? '#pvUndoFixes' : '#pvApplyFixes'); if (b) b.focus(); return; }
     if (t.id === 'pvReread') { const acct = pending.account, nt = $('#pvOcrText').value; if (nt !== pending.text) pending.applyFixes = false; pending.text = nt; pending.ocrDraft = null; pending.ocrOpen = true; reparse(); pending.account = acct; renderPreview(); toast('Read again'); return; }
-    if (t.id === 'pvCancel') { pending = null; renderPreview(); if (fileQueue.length) nextInQueue(); return; }
+    if (t.id === 'pvCancel' || t.id === 'pvCancelB') {
+      if (pending && pending._batch) { const x = pending._batch; x.skip = true; closeBatchItem(); paintBatch(); const s0 = $('#batch details[data-bi="' + batch.items.indexOf(x) + '"] summary'); if (s0) s0.focus(); return; }
+      pending = null; renderPreview(); if (fileQueue.length) nextInQueue(); return;
+    }
     if (t.id === 'pvAll' || t.id === 'pvNone') { pending.include = pending.include.map(() => t.id === 'pvAll'); renderPreview(); return; }
     if (t.id === 'pvUnlock') { unlockPending(); return; }
     const sq = t.closest('[data-signq]'); if (sq) { if (sq.dataset.signq === 'out') for (const x of signQRows(pending)) pending.flipRow[x._i] = true; pending.signAsked = sq.dataset.signq; renderPreview(); $('#preview').focus({ preventScroll: true }); return; }
@@ -7723,7 +7953,7 @@ function bind() {
   pv.addEventListener('input', e => { if (pending && e.target.id === 'pvOcrText') pending.ocrDraft = e.target.value; });
   pv.addEventListener('change', e => {
     const t = e.target; if (!pending) return;
-    if (t.dataset.inc !== undefined) { pending.include[+t.dataset.inc] = t.checked; $('#pvImport').textContent = importLabel(pending); return; }
+    if (t.dataset.inc !== undefined) { pending.include[+t.dataset.inc] = t.checked; $$('#pvImport, #pvImportB').forEach(b => { b.textContent = importLabel(pending); }); if (pending._batch) paintBatch(pending._batch); return; }
     if (t.id === 'pvAccount') { pending.account = t.value; pending.accountTyped = true; return; }
     if (t.name === 'pvFlip') { pending.opts.flip = t.value === '1'; reparse(); renderPreview(); return; }
     if (t.name === 'pvReplace') { pending.opts.replace = t.value === '1'; renderPreview(); return; }
