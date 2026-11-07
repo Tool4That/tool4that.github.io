@@ -17,9 +17,11 @@ as you work.
 Simulated faithfully:
 - IOS modes and prompts: Router> Router# (config)# (config-if)#
   (config-if-range)# (config-subif)# (config-line)# (config-vlan)#
-  (config-std-nacl)# (config-router)#; unique-prefix abbreviations (conf t,
-  int g0/0, sh run, wr); ? context help; Tab completion; Up/Down history;
-  Ctrl+Z; Ctrl+C.
+  (config-std-nacl)# (config-ext-nacl)# (dhcp-config)# (config-router)#
+  (config-archive)# (config-archive-log-cfg)#; unique-prefix abbreviations
+  (conf t, int g0/0, sh run, wr); ? context help (sorted as IOS sorts it:
+  0 and 5, then ranges such as <1-31>, then words such as MONTH and WORD,
+  then keywords, then <cr>); Tab completion; Up/Down history; Ctrl+Z; Ctrl+C.
 - The exact error strings: % Invalid input detected at '^' marker. (caret
   under the bad word), % Ambiguous command:  "...", % Incomplete command.,
   % Bad secrets, % Bad passwords, % Login invalid, % No password set,
@@ -40,18 +42,38 @@ Simulated faithfully:
   allowed list, DTP dynamic auto/desirable), router-on-a-stick
   subinterfaces (encapsulation dot1Q N [native]), SVIs that come up once
   their VLAN exists and has an active port, ip default-gateway on switches,
-  standard ACLs on VTY lines (access-class), and login block-for quiet mode.
-  ping / traceroute / tracert / ssh / telnet are evaluated against that
-  model, with IOS and Windows style output (!!!!! / ..... / U.U.U, Request
-  timed out., Destination host unreachable., TTL that drops per router hop).
+  standard ACLs on VTY lines (access-class), standard and extended ACLs on
+  router interfaces (ip access-group N|NAME in|out: protocol, ports,
+  established, echo-reply, and log), and login block-for quiet mode.
+  Interface ACLs filter pings, SSH and Telnet sessions, DHCP relay, and OSPF
+  hellos. The router that drops a packet answers with an ICMP unreachable
+  however many hops away it sits, so a filtered ping reads U.U.U on IOS and
+  "Destination host unreachable." on a PC (or times out when no ip unreachables
+  is set there). The unreachable, like every reply, crosses the ACLs on its way
+  back. show access-lists counts matches, and an entry that ends in log reports
+  %SEC-6-IPACCESSLOGP / IPACCESSLOGDP to syslog. ping / traceroute / tracert /
+  ssh / telnet are evaluated against that model, with IOS and Windows style
+  output (!!!!! / ..... / U.U.U, Request timed out., Destination host
+  unreachable., TTL that drops per router hop). traceroute sends UDP probes
+  and marks a drop with !A (an ACL, administratively prohibited) or !H (a
+  missing route); tracert sends ICMP echo probes and ends with "reports:
+  Destination host unreachable." An inbound ACL acts before the TTL check, so
+  the router that drops a probe on arrival reports in place of its own hop;
+  with no ip unreachables set on that interface, the hop reads * * * (Request
+  timed out. on a PC). A PC without an address or a usable gateway prints
+  General failure. at hop 1, the same local failure its ping reports.
 - Routing tables built like IOS 15: connected (C) and local (L) routes,
-  static routes (S, with an optional distance for floating backups) that
-  install while their next hop sits on an up, connected subnet, and OSPF.
-  show ip route groups entries under their classful network ("is subnetted"
-  or "is variably subnetted"), in numeric order; the lowest administrative
-  distance wins (connected 0, static 1, OSPF 110).
+  static routes (S), and OSPF. A static route takes an optional distance for
+  floating backups, and it installs while its next hop sits on an up,
+  connected subnet. show ip route groups entries under their classful network
+  ("is subnetted" or "is variably subnetted"), in numeric order. The lowest
+  administrative distance wins (connected 0, static 1, OSPF 110).
 - OSPF in one area on Ethernet links: router ospf N, network A W area N,
-  passive-interface, router-id, and redistribute static [subnets].
+  passive-interface (or passive-interface default with no
+  passive-interface exceptions), router-id, redistribute static [subnets],
+  and default-information originate [always] (neighbours learn O*E2
+  0.0.0.0/0). clear ip ospf process drops and re-forms the adjacencies and
+  applies a router-id typed while neighbours were up.
   Neighbours reach FULL (DR/BDR; the first router up on a segment stays DR)
   when both ends share the subnet, mask, and area; routers learn O routes
   and O E2 externals ([110/20]), and a local static route beats the
@@ -80,15 +102,54 @@ Simulated faithfully:
   Gigabit ports). A factory router has VTY lines 0-4; line vty 0 15 creates
   lines 5-15. Switches and routers list 16 VTY lines as line vty 0 4 and
   line vty 5 15 in show running-config.
+- DHCP: a router serves pools (ip dhcp excluded-address, ip dhcp pool with
+  network, default-router, dns-server, and domain-name) to its own subnets
+  and to subnets that relay with ip helper-address. A PC set to DHCP under
+  IP Configuration, or running ipconfig /renew, leases the first free
+  address; DHCP snooping drops the offer unless an uplink is trusted. show
+  ip dhcp binding lists the leases. Level 4's Student-B starts as a DHCP
+  client with an APIPA address and leases once RtrB serves its pool.
+- AAA: aaa new-model, aaa authentication login default|NAME with local,
+  enable, line, and none methods, and login authentication NAME on a line.
+  With AAA on, VTY lines follow the default list (local when none is set).
+  The console signs in without a check until a default list exists or
+  line con 0 names a list. With aaa authentication login default local on
+  a device without local usernames, the next login locks out, as on real
+  IOS.
+- Spanning tree per VLAN: the lowest priority, then the lowest MAC, wins
+  root (spanning-tree vlan LIST priority P, or root primary|secondary), the
+  other switch shows its root port, spanning-tree mode rapid-pvst reports
+  rstp, and spanning-tree guard root blocks a port that hears a better
+  bridge (show spanning-tree inconsistentports, %SPANTREE-2-ROOTGUARD_BLOCK).
+- Also stored and shown: SNMP communities, v3 groups, and v3 users (show snmp
+  user | group), LLDP (lldp run, lldp transmit/receive, show lldp neighbors
+  [detail]), VTP domain and mode (show vtp status; transparent and off modes
+  write VTP and the VLANs into the running configuration, and client mode
+  refuses VLAN changes), SPAN (monitor session N; the destination port stops
+  switching normal traffic and reads monitoring), dynamic ARP inspection,
+  storm-control, voice VLANs, edge-interface switches (no ip redirects, no ip
+  unreachables, no ip proxy-arp), no service pad, ip http port and
+  authentication, config-register (show version shows the value for the next
+  reload; 0x2142 boots without the startup-config), secure boot-image and
+  boot-config, archive with log config (notify syslog reports each accepted
+  configuration command), transport output, no exec, copy running-config
+  flash:NAME, show cdp, show cdp neighbors detail, show interfaces status
+  err-disabled, and show mac address-table interface X.
 
 Deliberately NOT simulated (the console tells you with a [Range] note):
 - Output paging (--More--): everything scrolls; use the browser scrollback.
 - erase startup-config / write erase, copy startup-config running-config
-  (the real merge), the setup dialog itself (a factory device offers it:
-  answer no), debug output, extended ping options, SNMP, AAA (aaa
-  new-model), RIP, EIGRP, and BGP (OSPF is simulated), redistribute
-  connected, IPv6, NAT, extended or interface ACLs
-  (ip access-group), storm control, and DHCP server/client.
+  (the real merge), delete FILE (the [Range] note names the file it keeps),
+  the setup dialog itself (a factory device offers it: answer no), debug
+  output, extended ping options, SNMP polling (the agent
+  settings are stored and shown), RIP, EIGRP, and BGP (OSPF is simulated),
+  redistribute connected, IPv6, NAT, and broadcast storms (storm-control
+  settings are stored and shown).
+- enable algorithm-type scrypt|sha256 secret: type 9 and type 8 secrets arrived
+  in IOS 15.3(3)M, after this lab's 15.1(4)M4 router and 15.0(2)SE4 switch
+  images, so the line answers % Invalid input. A [Range] tip follows: the
+  Defense Ladder's form, with the algorithm-type keyword, works on IOS
+  15.3(3)M3 and later and on current IOS XE releases.
 - Real DNS behaviour on an unknown first word in EXEC mode: the real router
   prints Translating "shw"... and tries to telnet; the lab always gives
   the ^ marker error so the message you learn is the one that matters.
@@ -98,7 +159,7 @@ Deliberately NOT simulated (the console tells you with a [Range] note):
   configuration alone.
 
 How progress is measured:
-- Checks: each scenario has 22-27 checks worth 100 points in total. Each
+- Checks: each scenario has 22-30 checks worth 100 points in total. Each
   check belongs to a hardening area (the same areas the Windows and Linux
   labs use):
     Account management   - enable secret, local accounts, password
@@ -561,8 +622,8 @@ Availability checks (pass while the required items keep working):
   and ACLs (https://freeapp4that.store/defense-ladder/#junior/j4); Defense
   Ladder > Senior > Cisco: audit and extend the two-site network
   (https://freeapp4that.store/defense-ladder/#senior/se6); and, for logging,
-  NTP, and CDP, Defense Ladder > Sophomore > Cisco: configure a switch and a
-  router (https://freeapp4that.store/defense-ladder/#sophomore/s5).
+  NTP, SNMP, and CDP, Defense Ladder > Sophomore > Cisco: configure a switch
+  and a router (https://freeapp4that.store/defense-ladder/#sophomore/s5).
 Scenario Brief summary:
   You are the lead technician at Kaulana Creek Veterinary Clinic. The clinic
   network is a router (R1) doing inter-VLAN routing for two switches: S1 at the
@@ -601,6 +662,8 @@ Scenario Brief summary:
       the 10-minute default on every console and VTY line, set on the line
       itself (for example, exec-timeout 5 0; 0 0 turns the timeout off), login
       block-for, a MOTD banner, and the HTTP server off.
+    - The clinic monitors its devices through syslog alone. Remove the SNMP
+      community "public" that the contractor left on R1.
     - Save all three configurations.
   Warning: Removing vetadmin, breaking the trunks or the management addresses,
   or cutting PC1 off from its gateway fails an availability check.
@@ -625,7 +688,7 @@ Investigation answers:
       What is that IP address?
       ANSWER: 203.0.113.66
 
-Checks (27, 100 points):
+Checks (28, 100 points):
    1. Unauthorized account "svc_backup" removed from R1 (3 pts) [Account
       management]
         R1(config)# no username svc_backup
@@ -638,7 +701,7 @@ Checks (27, 100 points):
       management]
         S2(config)# no enable password
         why: The secret already protects enable mode; the password only leaks.
-   4. Service password-encryption on R1, S1, and S2 (4 pts) [Account management]
+   4. Service password-encryption on R1, S1, and S2 (3 pts) [Account management]
         (config)# service password-encryption
         why: Consistency matters: one readable config is enough.
    5. R1 RSA key regenerated at 2048 bits and SSH version 2 enforced (5 pts)
@@ -671,7 +734,7 @@ Checks (27, 100 points):
         S1(config-line)# access-class 10 in
         why: Only management stations should even see a login prompt.
    9. Exec timeout shorter than 10 minutes on console and VTY of all devices
-      (4 pts) [Access control]
+      (3 pts) [Access control]
         (config-line)# exec-timeout 5 0
         why: Idle sessions are unattended privileged shells.
   10. Login block-for configured on all devices (3 pts) [Access control]
@@ -685,31 +748,38 @@ Checks (27, 100 points):
   12. HTTP server disabled on all devices (3 pts) [Secure configuration]
         (config)# no ip http server
         why: Unused management surface.
-  13. Syslog host 192.168.99.50 and log timestamps on all devices (4 pts) [Audit
+  13. Default SNMP community "public" removed from R1 (3 pts) [Secure
+      configuration]
+        R1(config)# no snmp-server community public
+        why: Anyone who knows the word public can read the router over SNMP, and
+        with RW they can rewrite its whole configuration. When monitoring needs
+        SNMP, SNMPv3 with a group and a user (auth and priv) replaces community
+        strings.
+  14. Syslog host 192.168.99.50 and log timestamps on all devices (4 pts) [Audit
       logging]
         (config)# logging host 192.168.99.50
         (config)# service timestamps log datetime msec
         why: Central, time-stamped logs are the evidence trail.
-  14. NTP server 192.168.99.50 on all devices (3 pts) [Audit logging]
+  15. NTP server 192.168.99.50 on all devices (3 pts) [Audit logging]
         (config)# ntp server 192.168.99.50
         why: Logs from three devices only correlate if their clocks agree.
-  15. R1 GigabitEthernet0/0.20 enabled (no shutdown) (4 pts) [Troubleshooting]
+  16. R1 GigabitEthernet0/0.20 enabled (no shutdown) (4 pts) [Troubleshooting]
         R1(config)# interface GigabitEthernet0/0.20
         R1(config-subif)# no shutdown
         why: VLAN 20 has no gateway while its subinterface is down.
-  16. S2 Fa0/1 assigned to VLAN 20 (EXAM) (4 pts) [Troubleshooting]
+  17. S2 Fa0/1 assigned to VLAN 20 (EXAM) (4 pts) [Troubleshooting]
         S2(config)# interface FastEthernet0/1
         S2(config-if)# switchport access vlan 20
         why: PC2 has a VLAN 20 address but sits in VLAN 10: wrong broadcast
         domain.
-  17. PC2 default gateway corrected to 192.168.20.1 (3 pts) [Troubleshooting]
+  18. PC2 default gateway corrected to 192.168.20.1 (3 pts) [Troubleshooting]
         PC2 > IP Configuration > Default Gateway = 192.168.20.1
         why: A wrong gateway strands the PC on its own subnet.
-  18. PC1 can reach PC2 (end-to-end connectivity restored) (5 pts)
+  19. PC1 can reach PC2 (end-to-end connectivity restored) (5 pts)
       [Troubleshooting]
         PC1> ping 192.168.20.10
         why: The business outcome: the clinic works again.
-  19. Native VLAN 99 and nonegotiate on all trunks (S1 Gi0/1 mismatch fixed) (4
+  20. Native VLAN 99 and nonegotiate on all trunks (S1 Gi0/1 mismatch fixed) (4
       pts) [Secure configuration]
         S1(config)# interface range gi0/1 - 2
         S1(config-if-range)# switchport trunk native vlan 99
@@ -718,27 +788,27 @@ Checks (27, 100 points):
         S2(config-if)# switchport nonegotiate
         why: The native mismatch on S1 Gi0/1 is why management traffic to R1
         fails; nonegotiate stops DTP.
-  20. Unused ports shut down on S1 and S2 (4 pts) [Secure configuration]
+  21. Unused ports shut down on S1 and S2 (3 pts) [Secure configuration]
         S1(config)# interface range fa0/2 - 24
         S1(config-if-range)# shutdown
         S2(config)# interface range fa0/2 - 24 , gi0/2
         S2(config-if-range)# shutdown
         why: Every open port in an exam room is a place to plug in.
-  21. Port security (sticky, max 2) on S1 Fa0/1 and S2 Fa0/1 (4 pts) [Access
+  22. Port security (sticky, max 2) on S1 Fa0/1 and S2 Fa0/1 (4 pts) [Access
       control]
         (config-if)# switchport port-security
         (config-if)# switchport port-security maximum 2
         (config-if)# switchport port-security violation restrict
         (config-if)# switchport port-security mac-address sticky
         why: Limits each port to the devices that belong there.
-  22. PortFast and BPDU guard on the access ports (trunks free of PortFast) (3
+  23. PortFast and BPDU guard on the access ports (trunks free of PortFast) (3
       pts) [Secure configuration]
         (config-if)# spanning-tree portfast
         (config-if)# spanning-tree bpduguard enable
         why: PortFast belongs on edge ports, and BPDU guard keeps a rogue switch
         there from influencing the topology. Trunks keep the full spanning-tree
         checks.
-  23. DHCP snooping on VLANs 10 and 20 with trusted trunks (S1, S2) (4 pts)
+  24. DHCP snooping on VLANs 10 and 20 with trusted trunks (S1, S2) (4 pts)
       [Secure configuration]
         S1(config)# ip dhcp snooping
         S1(config)# ip dhcp snooping vlan 10,20
@@ -747,19 +817,19 @@ Checks (27, 100 points):
         (same on S2 with gi0/1)
         why: Stops a rogue DHCP server on a user port from redirecting the
         clinic.
-  24. CDP disabled on PC-facing ports (or globally) on S1 and S2 (2 pts) [Secure
+  25. CDP disabled on PC-facing ports (or globally) on S1 and S2 (2 pts) [Secure
       configuration]
         (config-if)# no cdp enable
         why: CDP tells anyone on the port the switch model, IOS version, and
         VLAN.
-  25. Configurations saved on R1, S1, and S2 (4 pts) [Secure configuration]
+  26. Configurations saved on R1, S1, and S2 (4 pts) [Secure configuration]
         # copy running-config startup-config
         why: Three devices, three saves.
-  26. Investigation 1 answered (3 pts) [Investigation]
+  27. Investigation 1 answered (3 pts) [Investigation]
         Answer: GigabitEthernet0/0.20
         why: show ip interface brief is the fastest health check on any IOS
         device.
-  27. Investigation 2 answered (3 pts) [Investigation]
+  28. Investigation 2 answered (3 pts) [Investigation]
         Answer: 203.0.113.66
         why: Read ACLs line by line; one permit is all it takes.
 
@@ -779,7 +849,9 @@ Availability checks (pass while the required items keep working):
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   Theme: VLANs, router-on-a-stick, OSPF, and SSH across two sites
   Grade: Senior. Learn it: Defense Ladder > Senior > Cisco: audit and extend
-  the two-site network (https://freeapp4that.store/defense-ladder/#senior/se6).
+  the two-site network (https://freeapp4that.store/defense-ladder/#senior/se6);
+  and, for the DHCP pool, Defense Ladder > Junior > Cisco: VLANs, routing, and
+  ACLs (https://freeapp4that.store/defense-ladder/#junior/j4).
 Scenario Brief summary:
   The school runs two sites joined by a private inter-site link, and each site
   has its own uplink to the provider. Site A (RtrA and SwA) is finished and
@@ -833,6 +905,20 @@ Scenario Brief summary:
       redistribute static subnets. The local static route (distance 1) beats the
       neighbour's O E2 copy (distance 110), so that copy is the backup when the
       local uplink fails.
+    - OSPF hellos stay on the inter-site link: like RtrA, RtrB makes g0/0.10,
+      .20, and .30 passive interfaces (or uses passive-interface default with no
+      passive-interface g0/2).
+    - RtrB G0/1 filters what arrives from the provider with a named extended
+      ACL, EDGE-IN, applied with ip access-group EDGE-IN in. It permits replies
+      (permit tcp any any established and permit icmp any any echo-reply) and
+      DNS answers from the resolver (permit udp host 8.8.8.8 eq domain any), and
+      it ends in deny ip any any log.
+    - Student PCs lease their addresses from RtrB, as Site A's do from RtrA
+      (pool STUDENTS). RtrB excludes 10.2.10.1 to 10.2.10.9 with ip dhcp
+      excluded-address and serves pool STUDENTS-B: network 10.2.10.0
+      255.255.255.0, default-router 10.2.10.1, and dns-server 8.8.8.8. Student-B
+      is a DHCP client, so ipconfig /renew on Student-B then leases 10.2.10.10,
+      the first free address and the one in the addressing table.
     - Remote management is SSH version 2 only (domain school.lan, 2048-bit RSA
       key, login local, user netadmin at privilege 15) from Teachers at either
       site: access-list 20 permits 10.1.20.0 0.0.0.255 and 10.2.20.0 0.0.0.255,
@@ -866,7 +952,8 @@ Scenario Brief summary:
     ISP | Gi0/1 (to RtrB) | 198.51.100.1 | 255.255.255.252 | -
     ISP | Gi0/2 (resolver LAN) | 8.8.8.1 | 255.255.255.0 | -
     Teacher-A | SwA Fa0/2 (VLAN 20) | 10.1.20.10 | 255.255.255.0 | 10.1.20.1
-    Student-B | SwB Fa0/1 (VLAN 10) | 10.2.10.10 | 255.255.255.0 | 10.2.10.1
+    Student-B | SwB Fa0/1 (VLAN 10) | 10.2.10.10 (DHCP) | 255.255.255.0 |
+      10.2.10.1
     Teacher-B | SwB Fa0/2 (VLAN 20) | 10.2.20.10 | 255.255.255.0 | 10.2.20.1
     Resolver | ISP Gi0/2 | 8.8.8.8 | 255.255.255.0 | 8.8.8.1
 
@@ -883,9 +970,9 @@ Investigation answers:
   Q4: Which keyword on redistribute static carries a /32 host route into OSPF?
       ANSWER: subnets
 
-Checks (27, 100 points):
+Checks (30, 100 points):
    1. SwB VLANs 10 STUDENTS, 20 TEACHERS, 30 PRINCIPALS, 99 NATIVE, and 999
-      PARKING (5 pts) [Secure configuration]
+      PARKING (4 pts) [Secure configuration]
         SwB(config)# vlan 10
         SwB(config-vlan)# name STUDENTS
         SwB(config-vlan)# vlan 20
@@ -899,7 +986,7 @@ Checks (27, 100 points):
         why: Each group gets its own broadcast domain and subnet, so the router
         (and later an ACL) decides what crosses between them. The names make
         show vlan brief readable.
-   2. SwB Fa0/1 access VLAN 10 and Fa0/2 access VLAN 20 (5 pts) [Secure
+   2. SwB Fa0/1 access VLAN 10 and Fa0/2 access VLAN 20 (4 pts) [Secure
       configuration]
         SwB(config)# interface fa0/1
         SwB(config-if)# switchport mode access
@@ -909,7 +996,7 @@ Checks (27, 100 points):
         SwB(config-if)# switchport access vlan 20
         why: Static access mode puts each PC in exactly one VLAN and turns off
         trunk negotiation on a user port.
-   3. PortFast and BPDU guard on Fa0/1-2; G0/1 free of PortFast (5 pts) [Secure
+   3. PortFast and BPDU guard on Fa0/1-2; G0/1 free of PortFast (4 pts) [Secure
       configuration]
         SwB(config)# interface range fa0/1 - 2
         SwB(config-if-range)# spanning-tree portfast
@@ -969,7 +1056,7 @@ Checks (27, 100 points):
         why: Only Teachers see a login prompt: SSH from a Students PC gets "%
         Connection refused by remote host" instead.
    9. RtrB G0/0 up with subinterfaces .10, .20, and .30 (dot1Q plus gateway
-      addresses) (7 pts) [Secure configuration]
+      addresses) (6 pts) [Secure configuration]
         RtrB(config)# interface g0/0
         RtrB(config-if)# no shutdown
         RtrB(config-if)# interface g0/0.10
@@ -979,7 +1066,7 @@ Checks (27, 100 points):
         why: Router-on-a-stick: one physical link carries every VLAN, and each
         subinterface is the gateway for one of them. The tag comes first; IOS
         refuses an address on a LAN subinterface without one.
-  10. RtrB G0/0.99: encapsulation dot1Q 99 native, without an IP address (4 pts)
+  10. RtrB G0/0.99: encapsulation dot1Q 99 native, without an IP address (3 pts)
       [Secure configuration]
         RtrB(config)# interface g0/0.99
         RtrB(config-subif)# encapsulation dot1Q 99 native
@@ -996,7 +1083,7 @@ Checks (27, 100 points):
         RtrB(config-if)# no shutdown
         why: A /30 holds exactly two hosts, one per end of a point-to-point
         link. Router ports start shut down on a fresh ISR.
-  12. RtrB static host route: ip route 8.8.8.8 255.255.255.255 198.51.100.1 (5
+  12. RtrB static host route: ip route 8.8.8.8 255.255.255.255 198.51.100.1 (4
       pts) [Secure configuration]
         RtrB(config)# ip route 8.8.8.8 255.255.255.255 198.51.100.1
         why: The /32 mask matches the resolver alone, so only that destination
@@ -1010,7 +1097,7 @@ Checks (27, 100 points):
         why: Neighbours form when both ends enable OSPF on the shared subnet in
         the same area. Each router then learns the other site's VLANs as O
         routes, so OSPF replaces hand-typed inter-site static routes.
-  14. RtrB redistributes its static route: redistribute static subnets (4 pts)
+  14. RtrB redistributes its static route: redistribute static subnets (3 pts)
       [Secure configuration]
         RtrB(config)# router ospf 1
         RtrB(config-router)# redistribute static subnets
@@ -1032,7 +1119,7 @@ Checks (27, 100 points):
         0 4, plus line vty 5 15 once line vty 0 15 creates those lines. One
         range left open to Telnet leaves the whole router open, so every range
         counts.
-  16. RtrB VTY ACL 20: Teachers at both sites only, on every VTY line (4 pts)
+  16. RtrB VTY ACL 20: Teachers at both sites only, on every VTY line (3 pts)
       [Access control]
         RtrB(config)# access-list 20 permit 10.1.20.0 0.0.0.255
         RtrB(config)# access-list 20 permit 10.2.20.0 0.0.0.255
@@ -1041,12 +1128,52 @@ Checks (27, 100 points):
         why: access-class filters who may open a session to the router itself,
         whatever address they aim at. The implicit deny at the end refuses
         everyone else.
-  17. Enable secret on SwB and RtrB (in place of an enable password) (3 pts)
+  17. RtrB keeps OSPF hellos off G0/0.10, .20, and .30 (passive) while the G0/2
+      neighbour stays FULL (2 pts) [Secure configuration]
+        RtrB(config)# router ospf 1
+        RtrB(config-router)# passive-interface g0/0.10
+        RtrB(config-router)# passive-interface g0/0.20
+        RtrB(config-router)# passive-interface g0/0.30
+        why: A passive interface still advertises its subnet, so Site A keeps
+        its O routes to the Site B VLANs. It stops sending hellos into rooms
+        full of PCs, where a rogue device could try to form an adjacency. G0/2
+        keeps its hellos, so the RtrA neighbour stays FULL.
+  18. RtrB G0/1 inbound extended ACL ends in deny ip any any log; Student-B
+      still reaches 8.8.8.8 (3 pts) [Access control]
+        RtrB(config)# ip access-list extended EDGE-IN
+        RtrB(config-ext-nacl)# permit tcp any any established
+        RtrB(config-ext-nacl)# permit icmp any any echo-reply
+        RtrB(config-ext-nacl)# permit udp host 8.8.8.8 eq domain any
+        RtrB(config-ext-nacl)# deny ip any any log
+        RtrB(config-ext-nacl)# exit
+        RtrB(config)# interface g0/1
+        RtrB(config-if)# ip access-group EDGE-IN in
+        why: An interface ACL judges each packet on its own, unlike a stateful
+        firewall. The edge list lets in the replies inside hosts need
+        (established TCP, echo replies, and DNS answers from the resolver) and
+        logs everything else it drops, such as a Telnet attempt from outside.
+        show access-lists counts the matches on each line.
+  19. RtrB serves DHCP on VLAN 10 (.1-.9 excluded), and Student-B leases its
+      address (3 pts) [Secure configuration]
+        RtrB(config)# ip dhcp excluded-address 10.2.10.1 10.2.10.9
+        RtrB(config)# ip dhcp pool STUDENTS-B
+        RtrB(dhcp-config)# network 10.2.10.0 255.255.255.0
+        RtrB(dhcp-config)# default-router 10.2.10.1
+        RtrB(dhcp-config)# dns-server 8.8.8.8
+        RtrB(dhcp-config)# exit
+        Student-B> ipconfig /renew
+        why: Student PCs move between rooms, so the router hands out their
+        addresses. The exclusion keeps .1 to .9 for the gateway and other fixed
+        devices, so the first lease is 10.2.10.10, the address in the addressing
+        table, and the pings from Student-B keep working. Without an answer, a
+        DHCP client falls back to a 169.254.x.x (APIPA) address that reaches
+        only its own link. show ip dhcp binding on RtrB lists the lease.
+  20. Enable secret on SwB and RtrB (in place of an enable password) (3 pts)
       [Account management]
         SwB(config)# enable secret En@ble-B1
         RtrB(config)# enable secret En@ble-B2
         why: The secret is stored hashed and guards privileged mode.
-  18. Console password with login on SwB and RtrB (2 pts) [Access control]
+  21. Console password with login on SwB and RtrB (2 pts) [Access control]
         SwB(config)# line console 0
         SwB(config-line)# password C0nsole-B1
         SwB(config-line)# login
@@ -1055,44 +1182,44 @@ Checks (27, 100 points):
         RtrB(config-line)# login
         why: Without it, anyone with a console cable reaches the command line
         password-free.
-  19. MOTD and login banners on SwB and RtrB (3 pts) [Secure configuration]
+  22. MOTD and login banners on SwB and RtrB (3 pts) [Secure configuration]
         (config)# banner motd #Authorized school staff only. Activity is
             monitored.#
         (config)# banner login #Site B network equipment. Sign in with your own
             account.#
         why: The console shows the MOTD and then the login banner before the
         password prompt; SSH shows the login banner before authentication.
-  20. Configurations saved on SwB and RtrB (2 pts) [Secure configuration]
+  23. Configurations saved on SwB and RtrB (2 pts) [Secure configuration]
         # copy running-config startup-config
         why: A reload otherwise boots both devices back to factory defaults (the
         VLANs alone survive, in vlan.dat).
-  21. Student-B reaches Teacher-B (inter-VLAN routing) (3 pts) [Troubleshooting]
+  24. Student-B reaches Teacher-B (inter-VLAN routing) (3 pts) [Troubleshooting]
         Student-B> ping 10.2.20.10
         why: Proves the access ports, the trunk, and the router-on-a-stick
         subinterfaces work together.
-  22. Teacher-B reaches Teacher-A across the inter-site link (4 pts)
+  25. Teacher-B reaches Teacher-A across the inter-site link (4 pts)
       [Troubleshooting]
         Teacher-B> ping 10.1.20.10
         why: Each router reaches the other site only through the O routes OSPF
         installs.
-  23. Student-B reaches the resolver at 8.8.8.8 (3 pts) [Troubleshooting]
+  26. Student-B reaches the resolver at 8.8.8.8 (3 pts) [Troubleshooting]
         Student-B> ping 8.8.8.8
         why: Proves the host route and the ISP path. To see the backup path,
         shut RtrB G0/1: the ping still works over Site A through the O E2 route.
         Then run no shutdown to bring the uplink back.
-  24. Investigation 1 answered (2 pts) [Investigation]
+  27. Investigation 1 answered (2 pts) [Investigation]
         Answer: S
         why: S marks a static route; the local static wins over OSPF because its
         administrative distance is lower.
-  25. Investigation 2 answered (2 pts) [Investigation]
+  28. Investigation 2 answered (2 pts) [Investigation]
         Answer: O
         why: O marks an intra-area OSPF route: RtrA learned Site B's VLANs from
         RtrB.
-  26. Investigation 3 answered (2 pts) [Investigation]
+  29. Investigation 3 answered (2 pts) [Investigation]
         Answer: 1
         why: Static routes default to distance 1 and OSPF uses 110, so the
         router prefers the static route while it is installed.
-  27. Investigation 4 answered (2 pts) [Investigation]
+  30. Investigation 4 answered (2 pts) [Investigation]
         Answer: subnets
         why: Classic IOS 15 redistributes only classful networks into OSPF
         unless you add subnets. IOS XE adds subnets for you and shows it in the
@@ -1124,7 +1251,16 @@ Moving around
   show mac address-table / show cdp neighbors / show access-lists
   show spanning-tree [summary] / show crypto key mypubkey rsa
   show ip dhcp snooping / show flash: / dir / show arp
-  clear ip ospf process
+  show access-lists [N|NAME] / clear access-list counters [N|NAME]
+  show cdp / show cdp neighbors detail / show lldp [neighbors [detail]]
+  show ip interface X / show ip dhcp binding / show vtp status
+  show snmp [user|group] / show monitor [session N]
+  show ip arp inspection [vlan LIST]
+  show spanning-tree vlan N | inconsistentports / show interfaces status
+    err-disabled / show mac address-table interface X
+  clear ip ospf process (also applies a pending router-id)
+  clear port-security all|configured|sticky [interface X]
+  copy running-config flash:NAME (then dir flash:)
   ping A.B.C.D / traceroute A.B.C.D / ssh -l user A.B.C.D / telnet A.B.C.D
   copy running-config startup-config / write [memory] / reload
   clear line vty N / clock set hh:mm:ss day month year / terminal length 0
@@ -1132,6 +1268,9 @@ Global configuration
   hostname NAME                      enable secret SECRET
   no enable password                 service password-encryption
   service timestamps log datetime msec   security passwords min-length N
+  service timestamps log|debug datetime [msec] [localtime] [show-timezone]
+    [year]
+  no ip routing / ip routing   (routers: routing off and back on)
   login block-for S attempts N within S  username U privilege 15 secret P
   no username U                      banner motd|login #text#  (any delimiter)
   ip domain-name NAME                crypto key generate rsa [general-keys
@@ -1144,7 +1283,25 @@ Global configuration
   access-list N permit host A | A W | any
   ip access-list standard NAME|N (then permit/deny/remark, no SEQ)
   no access-list N  (any "no access-list N ..." deletes the whole list)
+  access-list N ... log (a standard entry that logs its matches)
+  access-list 100-199 permit|deny ip|tcp|udp|icmp|ospf SRC [eq P] DST [eq P]
+    [established | echo-reply] [log]   (SRC/DST: any | host A | A W)
+  ip access-list extended NAME (then permit/deny/remark, no SEQ)
   vlan N / name NAME / no vlan N      ip dhcp snooping [vlan LIST]
+  ip dhcp excluded-address A [B]     ip dhcp pool NAME (network A M,
+    default-router A, dns-server A, domain-name D; routers)
+  aaa new-model   aaa authentication login default|NAME local [enable|line|none]
+  snmp-server community S RO|RW [ACL]   snmp-server group G v3 auth|priv
+  snmp-server user U G v3 auth sha|md5 P [priv aes 128|des P]
+  lldp run   vtp domain D   vtp mode server|client|transparent|off
+  spanning-tree mode pvst|rapid-pvst
+  spanning-tree vlan LIST root primary|secondary | priority P (4096 steps)
+  monitor session N source interface X [rx|tx|both] | source vlan V
+  monitor session N destination interface X       ip arp inspection vlan LIST
+  no service pad   ip http port P   ip http secure-port P
+  ip http authentication local|enable|aaa   config-register 0xHHHH
+  secure boot-image   secure boot-config
+  archive / log config / logging enable / hidekeys / notify syslog
   spanning-tree portfast default    spanning-tree portfast bpduguard default
   interface X | interface range fa0/3 - 24 , gi0/2
   router ospf N                      (routers; enters (config-router)#)
@@ -1160,19 +1317,32 @@ Interface
   spanning-tree portfast [trunk]    spanning-tree bpduguard enable|disable
   ip dhcp snooping trust            ip dhcp snooping limit rate N
   no cdp enable                     duplex / speed
+  ip access-group N|NAME in|out     ip helper-address A   (routers)
+  no ip redirects | unreachables | proxy-arp   ip directed-broadcast
+  switchport voice vlan N           spanning-tree guard root|loop|none
+  storm-control broadcast level N   storm-control action shutdown|trap
+  ip arp inspection trust           [no] lldp transmit | lldp receive
 Router OSPF (router ospf N)
   network A W area N                 redistribute static [subnets]
   passive-interface X                router-id A.B.C.D
+  passive-interface default (then no passive-interface X for exceptions)
+  default-information originate [always]
   no <any of these>                  exit / end
 Line (line console 0 | line vty 0 4 | line vty 0 15 | line aux 0)
   password P / no password          login / login local / no login
   exec-timeout M [S]                logging synchronous
   transport input ssh|telnet|all|none   access-class N in
+  transport output ssh|telnet|all|none   no exec
+  login authentication NAME|default (after aaa new-model)
 PC command prompt
-  ipconfig [/all]  ping [-n N] A  tracert A  arp -a | -d
-  ssh -l USER A    telnet A       help / ?  cls  exit
-  IP Configuration button: static address, mask, gateway, DNS (or DHCP,
-  which fails to an APIPA address because there is no DHCP server).
+  ipconfig [/all | /renew | /release]  ping [-n N] A
+  ping -t A (then Ctrl+C stops it and prints the statistics)
+  tracert [-d] [-h N] A  arp -a | -d
+  ssh -l USER A    telnet A [PORT]   help / ?  cls  exit
+  IP Configuration button: static address, mask, gateway, DNS, or DHCP,
+  which leases from a router pool for the PC's VLAN (directly or through
+  an ip helper-address relay) and falls back to an APIPA address when the
+  request goes unanswered.
 
 5. THE REAL DEVICE DIFFERS HERE
 -------------------------------
@@ -1200,19 +1370,22 @@ PC command prompt
   RAM only as well, so save and export logs before a reload in real life.
 - Browser notes: Ctrl+W/Ctrl+T belong to the browser; use Ctrl+U to clear a
   line. On phones, type ? at the end of the line to get help.
-- OSPF: neighbours reach FULL at once here; a real router takes a few
+- OSPF timing: neighbours reach FULL at once here. A real router takes a few
   seconds (hello 10 s, dead 40 s) and passes through INIT, 2WAY, EXSTART,
-  EXCHANGE, and LOADING first. Ethernet links elect a DR and a BDR, so
-  show ip ospf neighbor reads FULL/DR or FULL/BDR; point-to-point links
-  read FULL/ -. DR election is non-preemptive: the first router up on the
-  segment stays DR; the higher router ID wins only when both start
-  together (a real router waits 40 seconds before it elects; the lab
-  elects at once). A reload drops the router's links, so the BDR takes over
-  as DR and keeps the role when the router returns; the lab logs the
-  neighbours' link and ADJCHG messages at the moment of the reload, while a
-  real network spreads them over the boot. The lab recalculates the router
-  ID from the configuration, while a real router keeps the ID it chose at
-  start-up until a reload or clear ip ospf process.
+  EXCHANGE, and LOADING first.
+- OSPF DR election: Ethernet links elect a DR and a BDR, so show ip ospf
+  neighbor reads FULL/DR or FULL/BDR; point-to-point links read FULL/ -.
+  DR election is non-preemptive: the first router up on the segment stays DR.
+  The higher router ID wins only when both start together. A real router
+  waits 40 seconds before it elects; the lab elects at once.
+- OSPF reload: a reload drops the router's links, so the BDR takes over as DR
+  and keeps the role when the router returns. The lab logs the neighbours'
+  link and ADJCHG messages at the moment of the reload, while a real network
+  spreads them over the boot.
+- OSPF router ID: router-id takes effect at once while the router has no
+  neighbours. With neighbours up, the lab keeps the old ID until clear ip
+  ospf process or a reload, as IOS does; a real router also keeps an
+  automatically chosen ID when interface addresses change later.
 - OSPF redistribution: classic IOS 15 (this lab and Packet Tracer) needs
   redistribute static subnets to carry a /32; without subnets it warns
   "% Only classful networks will be redistributed". IOS XE redistributes
@@ -1228,6 +1401,40 @@ PC command prompt
 - Trunks: the 2960 trunks with 802.1Q only, so it rejects switchport trunk
   encapsulation dot1q; a multilayer switch such as the 3560 needs that
   command before switchport mode trunk.
+- IP routing: the 2960 runs its default Layer 2 template, which lacks ip
+  routing, so the line answers % Invalid input, and a [Range] tip follows: a
+  Layer 3 switch routes between its VLAN interfaces once ip routing is on
+  (some 2960 models gain static routing after sdm prefer lanbase-routing and a
+  reload). The routers route from the start, so ip routing changes nothing
+  there until no ip routing turns routing off. A router with no ip routing
+  works as an IP host: it answers for its own addresses, forwards nothing
+  between its interfaces, drops traceroute probes silently (a timeout at its
+  hop), reaches other subnets through ip default-gateway alone, and lists the
+  host table under show ip route, starting at its default gateway. Like a
+  2960, it reports Internet Protocol routing is disabled under show
+  protocols. Its router ospf answers % IP routing not enabled, and the OSPF
+  process stays idle. The lab keeps the router ospf section in the
+  configuration for when ip routing returns; on a real router, check show
+  running-config | section router after turning routing back on.
+- PC ping -t sends one echo a second until Ctrl+C, then prints the statistics,
+  Control-C, and ^C, as Windows does; the console sets typed lines aside while
+  it runs, and the Ctrl+C button above the console stops it on a touch
+  keyboard. telnet A PORT opens a plain TCP connection: port 22 prints the SSH
+  server's version line (SSH-2.0-Cisco-1.25 after ip ssh version 2) when the
+  device has RSA keys and a VTY line takes SSH, port 80 or 443 opens when the
+  web server is on, and another port answers % Connection refused by remote
+  host. The lab closes the connection after the next line you type; a real
+  server may answer that line first (a web server sends an error page).
+- Secret types: IOS 15.1(4)M4 and 15.0(2)SE4 list 0 and 5 after enable secret
+  and username U secret, so a typed 9 starts a cleartext secret: the lab
+  stores the whole text, 9 included, as a type 5 hash and prints a [Range]
+  note. IOS 15.3(3)M introduced the newer secret hashes (types 8 and 9).
+- service timestamps: the lab takes datetime [msec] [localtime]
+  [show-timezone] [year] in the order the command reference lists them. Stamps
+  read UTC unless localtime is set, the year keyword adds the year after the
+  date, and the show-timezone keyword adds the zone name. The bare
+  service timestamps means service timestamps debug uptime, and a type alone
+  (service timestamps log) means uptime.
 - CDP repeats a native VLAN mismatch message every minute on a real switch;
   the lab prints it when the mismatch appears.
 - VLANs: in VTP server mode (the default) VLANs live in vlan.dat only; in
@@ -1236,6 +1443,17 @@ PC command prompt
 - The Level 4 ISP router routes the school's private 10.x ranges back to
   each site. A real provider does that only after NAT on the school's
   routers, which sits outside this lab.
+- Interface ACLs: the lab counts the pings and sessions you send. A real router
+  also counts routing and management packets and traceroute probes, sums log
+  matches in 5-minute messages, and rate-limits ICMP unreachables (hence U.U.U,
+  and the middle * in !A  *  !A).
+- Spanning tree: the lab elects a root and a root port per VLAN. A real
+  switch also blocks redundant links (Altn BLK); the lab topologies keep a
+  single link between switches.
+- DHCP, LLDP, and CDP answer at once here. A real PC takes a few seconds to
+  lease, LLDP advertises every 30 seconds, and CDP every 60.
+- secure boot-image and secure boot-config print their %IOS_RESILIENCE
+  messages; show secure bootset sits outside the lab.
 - Numbered ACLs: on a real device "no access-list 10 permit host X"
   deletes all of access list 10, and a VTY access-class that points at a
   missing list no longer filters anything. Edit single entries through

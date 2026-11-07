@@ -6,7 +6,7 @@
       "slug": "study-map",
       "name": "Study Map",
       "tagline": "Every concept: find it, learn it, practice it.",
-      "description": "Every concept in the cybersecurity course in one place. Search as you type or browse by topic, track, grade, network layer, or app, and see the Defense Ladder unit that teaches it, the drills and labs that practice it, and the commands on Windows, Linux, FreeBSD, and Cisco. Rate what you know to get your own study path.",
+      "description": "Every concept in the cybersecurity course in one place. Type a concept and see the Defense Ladder unit that teaches it, the drills and labs that practice it, and its commands on Windows, Linux, FreeBSD, and Cisco. Browse by topic, track, grade, network layer, or app. Rate what you know to get your own study path.",
       "badges": [
         "Cybersecurity",
         "Study",

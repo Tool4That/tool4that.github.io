@@ -3,11 +3,12 @@
      Ubuntu 24.04 LTS (GNOME), with 26.04 notes
  Training reference for virtual machines you own or are authorized to change.
  Three levels: L1 Doorman, L2 Watchman, L3 Hunter. Every item = COMMAND, WHY,
- NOTE and the hardening AREA it belongs to. No scripts by design: type it,
- read it, explain it. Item IDs match the Lockdown Drills trainer for this OS.
+ NOTE, and the hardening AREA it belongs to; ALSO adds a second caution when
+ an item needs one. No scripts by design: type it, read it, explain it. Item
+ IDs match the Lockdown Drills trainer for this OS.
  Unofficial practice; not affiliated with or endorsed by Canonical.
 
- HARDENING AREAS (CIS Critical Security Controls v8)
+ HARDENING AREAS (CIS Critical Security Controls v8.1)
    Account management ........ CIS Control 5
    Access control ............ CIS Control 6
    Secure configuration ...... CIS Control 4 (software inventory: Control 2)
@@ -27,16 +28,19 @@
 [B-00] Scenario brief and evidence first
   AREA: Investigation (forensics basics)
   GUI: open the scenario brief (the documented requirements for this machine) and write down authorized users, admins, required services, and anything forbidden
-  WHY: Authorized users, admins, and required services decide what is a fix and
-       what breaks the business. Evidence first: answer the investigation
+  $ mkdir -p ~/audit/day1 && cd ~/audit/day1 && touch changes.txt && pwd   (one folder for evidence and backups; log each change with what, why, and how to undo it)
+  $ sudo cp -a /etc/login.defs /etc/login.defs.bak   (copy each file before you edit it; -a keeps the owner, mode, and time)
+  $ sudo rsync -a /home/ /mnt/backup/home/   (copies the home folders to a mounted backup drive; a backup counts once a test restore works)
+  $ man login.defs   (the manual for a command or a config file; / searches, n finds the next match, q quits)
+  WHY: Authorized users, admins, and required services decide what is a fix
+       and what breaks the business. Evidence first: answer the investigation
        questions before any change (Defense Ladder f1).
-  NOTE: Unfamiliar is distinct from unauthorized: trace it and ask before
-        removing an agent (Defense Ladder s1). Keep a second terminal open as
-        root (sudo -i) before touching PAM, sudoers, or SSH, so a typo leaves
-        you a way back in. Right after the brief, start B-08's upgrade in a
-        second terminal so it runs while you fix accounts, and read its result
-        near the end; while it runs, other apt commands (B-05, B-09) wait for
-        its lock, so work on the items without apt first.
+  NOTE: Unfamiliar differs from unauthorized: trace and ask before removing
+        agents (Defense Ladder s1). Before PAM, sudoers, or SSH edits, keep a
+        root shell (sudo -i) open to fix lockout typos.
+  ALSO: Start B-08's upgrade now in another terminal. B-05 and B-09 wait for
+        its apt lock, so do the apt-free items first and read its result near
+        the end.
 
 [B-01] List human users, admins, and UID-0 accounts
   AREA: Account management (CIS Control 5)
@@ -44,14 +48,15 @@
   $ awk -F: '$3==0 {print $1}' /etc/passwd
   $ getent group sudo admin adm wheel docker lxd disk
   $ awk -F: -v g="$(getent group sudo | cut -d: -f3)" '$4==g {print $1" has sudo as its primary group"}' /etc/passwd
+  $ whoami; id   (the account you work as, and its groups, before you judge anyone else's)
   GUI: Settings, System, Users (Unlock first).
-  WHY: An extra UID-0 user is a second root. sudo is the admin group (wheel on
-       some distributions); docker, lxd, and disk are root-equivalent, since
-       they can mount the host filesystem or read and write raw disks; adm reads
-       logs. The default sudoers file also grants %admin, so a group named admin
-       is a second admin path. An account whose primary group (field 4 of
-       /etc/passwd) is sudo holds admin rights while staying out of the member
-       list that getent group sudo prints.
+  WHY: An extra UID-0 user is a second root. Members of sudo (or wheel) and
+       admin (default sudoers grants %admin) hold root-level power; adm
+       members read logs.
+  NOTE: A user whose primary group is sudo (/etc/passwd field 4) holds admin
+        rights yet hides from getent group sudo.
+  ALSO: Treat docker, lxd, and disk members as root too: they can mount the
+        host filesystem or read raw disks.
 
 [B-02] Remove or disable an unauthorized user
   AREA: Account management (CIS Control 5)
@@ -62,11 +67,10 @@
   $ sudo mkdir -p /root/removed-users && sudo deluser --remove-home --backup-to /root/removed-users baduser
   $ sudo userdel -r baduser
   $ sudo usermod -L -e 1 baduser && sudo usermod -s /usr/sbin/nologin baduser
-  WHY: Deleting closes the login path; --remove-home removes planted files, and
-       deluser also removes the user's crontab, which userdel leaves behind.
-       --backup-to keeps a root-only copy of the home folder as evidence. Lock
-       plus expiry plus nologin disables without destroying evidence: -e 1 also
-       stops SSH key sign-in, which -L alone leaves working.
+  WHY: --remove-home clears planted files, deluser drops the crontab userdel
+       leaves, and --backup-to keeps a root-only copy of the home as evidence.
+       Lock, expiry, and nologin disable without destroying evidence: -e 1 stops
+       SSH key sign-in, which -L alone leaves working.
   NOTE: The brief decides between delete and disable. Lock first, end the
         processes, then delete: when pgrep -u prints nothing, the account is
         idle. A service that runs as the user restarts its processes until you
@@ -82,12 +86,13 @@
   $ sudo loginctl terminate-user mallory      (ends the open sessions, which keep the old groups)
   $ sudo usermod -aG sudo alice
   $ groups alice
+  $ sudo adduser keola   (when the brief lists an account this machine lacks: it sets a password and creates the home; the low-level form is sudo useradd -m -s /bin/bash keola, then sudo passwd keola)
+  $ sudo addgroup designers && sudo gpasswd -M malia,keola designers   (when the brief names a group and its members; -M sets the whole member list)
   GUI: Settings, System, Users: Administrator toggle (adds or removes the sudo
        group).
-  WHY: Least privilege. -aG appends; -G alone replaces every group the user had.
-       Open sessions keep the group list they started with, so a removed admin
-       keeps sudo until each session ends, and a new member gains it at the next
-       sign-in.
+  WHY: Least privilege. -aG appends; -G alone replaces existing groups. Open
+       sessions keep their starting groups: removed admins keep sudo until
+       each session ends; new members gain it at next sign-in.
 
 [B-04] Passwords: strong, forced change, no empties, root locked
   AREA: Account management (CIS Control 5)
@@ -98,15 +103,14 @@
   $ awk -F: '$2!="x" {print $1" has something other than x in /etc/passwd field 2"}' /etc/passwd
   $ sudo passwd -l root
   $ sudo passwd -S root                      (expect: root L)
-  WHY: An empty shadow field means login with Enter. Locked root forces
-       accountable sudo instead of a shared root password. pam_unix reads
-       /etc/shadow only when field 2 of /etc/passwd is x, so an empty field
-       there is also a login with Enter (sudo pwconv moves it back into
-       /etc/shadow).
-  NOTE: Record changed passwords somewhere safe (on paper, in a lab). Keep the
-        password of the account you sign in with unless the brief says to change
-        it. Leave service accounts and accounts that sign in only with keys out
-        of the bulk chage line.
+  WHY: Empty field 2 in /etc/shadow or /etc/passwd means Enter logs in; pam_unix
+       reads /etc/shadow only when /etc/passwd holds x (fix: sudo pwconv, which
+       carries an empty field into /etc/shadow, then sudo passwd <user> or sudo
+       passwd -l <user>). Locked root forces accountable sudo over shared
+       passwords.
+  NOTE: Record changed passwords safely (on paper, in a lab). Keep your own
+        sign-in password unless the brief says otherwise; leave service and
+        key-only accounts out of the bulk chage line.
 
 [B-05] Password aging and quality
   AREA: Account management (CIS Control 5)
@@ -114,6 +118,7 @@
   $ sudo sed -i 's/^PASS_MIN_DAYS.*/PASS_MIN_DAYS\t1/' /etc/login.defs
   $ sudo sed -i 's/^PASS_WARN_AGE.*/PASS_WARN_AGE\t7/' /etc/login.defs
   $ sudo sed -i 's/^UMASK.*/UMASK\t\t027/' /etc/login.defs
+  $ diff /etc/login.defs.bak /etc/login.defs   (compares the B-00 copy with your edit: < marks the old lines, > the new ones)
   $ sudo chage -M 60 -m 1 -W 7 alice
   $ for u in $(awk -F: '$3>=1000 && $3<=60000 {print $1}' /etc/passwd); do sudo chage -M 60 -m 1 -W 7 "$u"; done
   $ sudo passwd -S -a                         (min, max, and warn for every account)
@@ -126,12 +131,11 @@
       ... pam_unix.so ... remember=5                       (add to the pam_unix line)
   $ grep -n pam_pwquality /etc/pam.d/common-password
   $ sudo apt install -y libpwquality-tools && printf 'Summer2026\n' | pwscore
-  WHY: login.defs only affects new users, so chage (or the loop) sets existing
-       ones. UMASK sets the starting permissions of new files through pam_umask;
-       with a private group per user (USERGROUPS_ENAB yes) users see 0007.
-       pwquality enforces complexity when a password is changed; remember=
-       blocks reuse. pwscore tests a password against the policy without
-       changing one.
+  WHY: login.defs covers only new users; chage (or the loop) sets existing ones.
+       UMASK sets the starting permissions of new files through pam_umask; with
+       a private group per user (USERGROUPS_ENAB yes) users see 0007. pwquality
+       enforces complexity at each change, and remember= blocks reuse. Confirm
+       with pwscore, which tests a password without changing one.
   NOTE: The scenario brief sets the numbers; these commands show one sample
         brief. The CIS Benchmark asks for a minlen of 14 or more, a history of
         24 or more, a maximum age of 365 days or fewer, a minimum age of 1 day
@@ -156,13 +160,14 @@
       auth  sufficient                 pam_faillock.so authsucc
   $ sudo nano /etc/pam.d/common-account       (add first)
       account required pam_faillock.so
+  $ su - alice   (the lockout test, in a second terminal while your root shell stays open: each wrong password raises the count sudo faillock --user alice shows)
   $ sudo faillock --user alice
   $ sudo faillock --user alice --reset
   WHY: Stops online brute force. pam_faillock replaced pam_tally2, which current
        Ubuntu, Mint, and Debian releases have dropped. nullok allows empty
        passwords. faillock.conf holds the numbers; locking starts only once the
        PAM lines are in place, and numbers written on a PAM line override the
-       file.
+       file. Confirm with sudo faillock --user NAME after failed tries.
   NOTE: Test with su - alice in a second terminal before closing your root
         shell. Set the pam_unix line to [success=1 default=ignore] whatever
         number it had: some installs (Ubuntu desktop among them) ship
@@ -195,6 +200,7 @@
   $ sudo apt update && sudo apt upgrade -y
   $ apt list --upgradable
   $ sudo apt full-upgrade                     (when upgrade lists packages kept back; read the REMOVED list)
+  $ uname -r   (the running kernel; after a kernel update, the new version runs once you reboot)
   $ sudo snap refresh
   $ snap list; apt-mark showhold              (held in the Notes column, or a held package, freezes updates)
   $ sudo snap refresh --unhold <name>; sudo apt-mark unhold <package>
@@ -204,17 +210,16 @@
   $ sudo apt install -y unattended-upgrades && sudo dpkg-reconfigure -plow unattended-upgrades
   $ sudo unattended-upgrade --dry-run -d 2>&1 | grep 'Allowed origins'     (expect an Ubuntu noble-security origin)
   GUI: Software and Updates, Updates: Automatically check for updates Daily; When there are security updates: Download and install automatically
-  WHY: Ubuntu installs unattended-upgrades by default, so the usual
-       misconfiguration is the values set to 0, the package removed, or the GUI
-       set to Never. Two separate goals: patched now, and set to keep patching.
-       apt reads every file in apt.conf.d, so a later file can set 0: apt-config
-       prints the value apt uses, and the two timers run the job.
-  NOTE: Start the upgrade first because it takes time. Snaps update themselves,
-        but snap refresh forces it now. Close Firefox before snap refresh: snap
-        updates a running app only after it closes. Packages listed as deferred
-        due to phasing belong to Ubuntu's staged rollout and install on a later
-        run. After a kernel update, uname -r shows the old kernel until a
-        reboot, and /var/run/reboot-required exists while one is due.
+  WHY: unattended-upgrades is preinstalled, run by apt-daily and
+       apt-daily-upgrade timers. Check for Update-Package-Lists or
+       Unattended-Upgrade at 0, the package removed, or automatic checks set
+       to Never; apt-config shows what apt uses.
+  NOTE: apt reads every apt.conf.d file, so a later file can reset either to
+        0. After a kernel update, uname -r shows the old kernel until reboot;
+        /var/run/reboot-required marks one due.
+  ALSO: Snaps update themselves; snap refresh forces it now. Close Firefox
+        first: running snaps update once closed. 'Deferred due to phasing'
+        packages are Ubuntu's staged rollout; a later run installs them.
 
 [B-09] Remove unapproved software
   AREA: Secure configuration: software (CIS Controls 2 and 4)
@@ -228,40 +233,36 @@
   $ sudo snap remove <name>
   GUI: App Center, Manage
   WHY: Hacking tools, games, and P2P clients are acceptable-use violations and
-       attack surface. The description search catches a tool by what it does
-       when its name is unfamiliar, and the Section field lists every installed
-       game in one pass. apt's history log shows what someone installed and
-       when. Packages install outside /usr/local, so anything there was placed
-       by hand.
-  NOTE: Packages the brief requires (vsftpd, apache2, samba, openssh-server,
-        mysql) stay; harden them in Watchman I-12. On Ubuntu, Firefox and
-        several apps are snaps; they never show in apt list. Check both.
-        Expected stock hits to keep: cracklib-runtime and libcrack2 (the
-        dictionary pam_pwquality uses), netcat-openbsd (part of ubuntu-minimal:
-        purging it also removes that metapackage), and transmission-gtk, which
-        the full desktop installs: it is still a P2P client, so the brief
-        decides whether it stays. Leave out -y and read apt's REMOVED list
-        before answering Y, because --auto-remove also removes every package apt
-        already marks as no longer required. apt stops at an unknown name, so
-        purge only the names dpkg lists.
+       attack surface. Description search finds tools by purpose, Section
+       lists games, apt's history.log dates installs, and /usr/local holds
+       hand-placed files.
+  NOTE: Required vsftpd, apache2, samba, openssh-server, and mysql stay;
+        Watchman I-12 hardens them. Keep pam_pwquality's dictionary
+        (cracklib-runtime, libcrack2) and netcat-openbsd (purging removes
+        ubuntu-minimal). Snaps like Firefox appear only in snap list.
+  ALSO: Desktop-installed transmission-gtk is still P2P; the brief decides.
+        Skip -y and read apt's REMOVED list: --auto-remove also removes
+        packages marked unneeded. Purge only dpkg-listed names; apt stops at
+        unknown ones.
 
 [B-10] Find unapproved media files
   AREA: Data protection (CIS Control 3)
   $ sudo find /home /root /tmp /var /dev/shm /srv /opt /mnt /media /usr/local -xdev -type f \( -iname '*.mp3' -o -iname '*.mp4' -o -iname '*.m4a' -o -iname '*.mov' -o -iname '*.avi' -o -iname '*.mkv' -o -iname '*.webm' -o -iname '*.wmv' -o -iname '*.flv' -o -iname '*.mpg' -o -iname '*.mpeg' -o -iname '*.wav' -o -iname '*.flac' -o -iname '*.ogg' -o -iname '*.aac' -o -iname '*.wma' \) -not -path '/var/lib/snapd/*' -not -path '/var/lib/flatpak/*' -printf '%u\t%s\t%p\n' 2>/dev/null
   $ sudo find /home /root /tmp /var/tmp /dev/shm /srv /opt -xdev -type f -size +32k -exec file --mime-type {} + 2>/dev/null | grep -E ': (audio|video)/'
+  $ sudo apt install -y plocate && sudo updatedb && sudo locate -i '*.mp3'   (a quick second look; the index skips /tmp, /dev/shm, and /media, so find stays the proof)
   $ sudo sha256sum '<path>'; sudo rm -- '<reviewed path>'
-  WHY: Many acceptable-use policies ban personal media on work machines, and the
-       search also surfaces hidden folders in /home and /var/tmp. file reads
-       each file's first bytes, so a song renamed to notes.txt still shows as
-       audio/mpeg. -printf records owner, size, and path for the change log.
-  NOTE: Confirm each path against the brief, then rm. Write the path down in
-        case an investigation question needs it, and if a question asks for its
-        hash, run sha256sum first (Defense Ladder s6). The OS ships its own
-        sounds under /usr/share, so the search skips /usr except /usr/local; a
-        hit inside an app folder (~/.local/share/flatpak, ~/snap, /opt/<app>)
-        usually belongs to the app, so judge it against the brief, and images go
-        only when the brief bans them. locate reads a nightly index that skips
-        /tmp and /dev/shm, so find is the search to trust.
+  $ sudo mkdir -p /root/quarantine && sudo mv -- '<reviewed path>' /root/quarantine/   (keeps the file as evidence when the brief asks for it, out of the user's reach)
+  WHY: Many acceptable-use policies ban personal media; the search also
+       surfaces hidden folders in /home and /var/tmp. file reads first bytes,
+       so a song renamed notes.txt still shows as audio/mpeg.
+  NOTE: App-folder hits (~/.local/share/flatpak, ~/snap, /opt/<app>) are
+        usually the app's; images go only if banned. Before rm, confirm paths
+        against the brief and, for hash questions, run sha256sum (Defense
+        Ladder s6).
+  ALSO: -printf records owner, size, and path for change logs and
+        investigation questions. Skipping /usr except /usr/local avoids OS
+        sounds in /usr/share. Trust find; locate's nightly index skips /tmp
+        and /dev/shm.
 
 [B-11] Services: what runs, what listens
   AREA: Secure configuration (CIS Control 4)
@@ -270,16 +271,15 @@
   $ systemctl list-sockets --no-pager
   $ sudo systemctl disable --now vsftpd
   $ sudo systemctl disable --now telnet.socket inetd xinetd 2>/dev/null
-  WHY: Telnet and FTP are cleartext; avahi, cups, rpcbind, nfs and smb are
-       exposure when nobody needs them. ss -tulpn shows the PID and program for
-       every open port.
-  NOTE: Required services stay. disable --now means stop it and do not start it
-        at boot. Check what starts a service before you trust that: a systemd
-        .socket unit can keep the port open after its .service is stopped (ss
-        then shows systemd holding it). systemctl list-sockets shows each socket
-        unit with the service it starts; disable the .socket as well as the
-        .service. To trace an unknown listener to its unit and package, use
-        I-07.
+  WHY: Telnet and FTP are cleartext; avahi, cups, rpcbind, nfs, and smb are
+       exposure when unneeded. ss -tulpn shows the PID and program for every
+       open port.
+  NOTE: Required services stay. Check what starts a service before trusting it
+        is off: a .socket unit can hold the port after its .service stops; ss
+        shows systemd holding it.
+  ALSO: disable --now stops units and keeps them off at boot. systemctl
+        list-sockets pairs each socket with its service; disable both. I-07
+        traces an unknown listener to its unit and package.
 
 [B-12] GDM auto-login and screen lock
   AREA: Secure configuration (CIS Control 4)
@@ -301,16 +301,14 @@
   $ sudo find /home /root /tmp /var/tmp /dev/shm /srv /opt -xdev -type f \( -iname '*.zip' -o -iname '*.7z' -o -iname '*.rar' -o -iname '*.tar' -o -iname '*.tgz' -o -iname '*.tar.gz' -o -iname '*.tar.xz' -o -iname '*.txt' \) -printf '%u\t%TY-%Tm-%Td\t%p\n' 2>/dev/null
   $ sudo unzip -l '<file.zip>'; sudo python3 -m zipfile -l '<file.zip>'; sudo tar -tvf '<file.tar.gz>'
   $ file '<file>'
-  WHY: A password list in a home folder hands an intruder every account it
-       names, and an archive can carry tools past a package search. grep finds
-       credentials by content, whatever the file is called; unzip -l, python3 -m
-       zipfile -l, and tar -tvf list an archive without extracting it, and file
-       names the real type of a renamed one.
-  NOTE: The brief, the investigation questions, and required documents stay, so
-        judge each path instead of deleting every .txt. Keys in ~/.ssh are
-        expected for users the brief lets sign in with keys (I-01). Record the
-        path and hash before removing anything (Defense Ladder s6). python3 -m
-        zipfile works where unzip is absent.
+  WHY: Password lists open every named account; archives slip tools past
+       package searches. grep matches content under any name; unzip -l and tar
+       -tvf list without extracting; file unmasks renamed ones.
+  NOTE: Judge each .txt before deleting it: the brief, the investigation
+        questions, and required documents stay. ~/.ssh keys are expected for
+        users the brief lets sign in with keys (I-01).
+  ALSO: Record the path and hash before removing anything (Defense Ladder s6).
+        python3 -m zipfile works where unzip is absent.
 
 ------------------------------ WATCHMAN ----------------------------------------
  Check the windows. SSH, sudoers, cron and timers, shell persistence,
@@ -322,6 +320,8 @@
 [I-01] SSH hardening, only when SSH is required
   AREA: Access control (CIS Control 6)
   $ sudo grep -rniE '^[[:space:]]*(Include|Match|PermitRootLogin|PermitEmptyPasswords|PermitUserEnvironment|PasswordAuthentication|AllowUsers)' /etc/ssh/sshd_config /etc/ssh/sshd_config.d/
+  $ sudo less /etc/ssh/sshd_config   (read the whole file before you edit it; / searches, n finds the next match, q quits)
+  $ ssh-keygen -t ed25519 -C '<user>@<laptop>'; ssh-copy-id <user>@<server>   (on the admin's own machine, before PasswordAuthentication no; then test a key login)
   $ sudo nano /etc/ssh/sshd_config.d/00-hardening.conf      (or the main file, after reading every drop-in)
       PermitRootLogin no        PermitEmptyPasswords no     MaxAuthTries 3
       LoginGraceTime 30         X11Forwarding no            UsePAM yes
@@ -333,24 +333,20 @@
   $ systemctl list-units 'ssh*' --no-pager     (is ssh.socket the unit that listens on 22?)
   $ sudo systemctl daemon-reload && sudo systemctl restart ssh.socket   (after a Port or ListenAddress change)
   $ sudo find / -name authorized_keys -exec ls -l {} \; -exec cat {} \; 2>/dev/null
-  WHY: Root over SSH means no accountability and the prime brute-force target. A
-       planted authorized_keys file is a password-less backdoor that survives
-       every password you fix. The && runs the restart only when sshd -t passes,
-       so a config typo leaves the running server in place. Check how sshd is
-       started: when ssh.socket owns port 22, a Port change or a disable aimed
-       only at ssh.service leaves ssh.socket listening on the old port. sshd
-       keeps the first value it reads, and the Include line at the top of
-       sshd_config reads sshd_config.d/*.conf in name order, so one
-       00-hardening.conf wins over the shipped drop-ins and the main file. sshd
-       -T prints the values in force; -C applies any Match block, which plain -T
-       skips.
-  NOTE: Not required: sudo systemctl disable --now ssh.socket ssh.service &&
-        sudo apt purge -y openssh-server, then confirm with sudo ss -tlpn that
-        nothing holds port 22. Also read /etc/ssh/sshd_config.d/*.conf because
-        Include files override. A drop-in whose name sorts before 00- still
-        wins: the grep and sshd -T show it. If sshd -t or sshd -T stops at
-        'Missing privilege separation directory: /run/sshd', run sudo mkdir -p
-        /run/sshd and test again.
+  WHY: Root over SSH erases accountability and invites brute force; a planted
+       authorized_keys backdoor survives every password fix. sshd -T, plus -C
+       for Match blocks, confirms the values in force.
+  NOTE: The && runs the restart only when sshd -t passes, so a config typo
+        leaves the running server in place. sshd keeps the first value it reads,
+        and Include reads sshd_config.d/*.conf in name order, so
+        00-hardening.conf wins over the shipped drop-ins and the main file; a
+        drop-in that sorts before 00- still wins, and the grep and sshd -T show
+        it. When ssh.socket owns port 22, a Port change or a disable aimed at
+        ssh.service alone leaves the socket listening on the old port. Not
+        required: sudo systemctl disable --now ssh.socket ssh.service && sudo
+        apt purge -y openssh-server; confirm with sudo ss -tlpn that port 22 is
+        closed. If sshd -t or sshd -T stops at 'Missing privilege separation
+        directory: /run/sshd', run sudo mkdir -p /run/sshd and test again.
 
 [I-02] sudoers audit
   AREA: Access control (CIS Control 6)
@@ -359,11 +355,15 @@
   $ sudo visudo -f /etc/sudoers.d/<file>
   $ sudo -l -U mallory
   $ sudo visudo -c; sudo -k; sudo -v          (expect a password prompt)
+  $ sudoedit /etc/hosts   (edits a copy as you, then installs it as root; grant sudoedit FILE in sudoers in place of an editor, which can open a root shell)
   WHY: A NOPASSWD ALL line in a sudoers.d drop-in is a silent root backdoor.
-       Never edit sudoers with nano: a syntax error means nobody can sudo.
-       Defaults !authenticate, global or scoped as Defaults:<user>, acts like
-       NOPASSWD on every rule it reaches; sudo -l -U lists it under Matching
-       Defaults entries. Single quotes keep bash from reading the ! as history.
+       Edit only with visudo, never nano: a syntax error locks everyone out of
+       sudo.
+  NOTE: Defaults !authenticate, global or Defaults:<user>, acts like NOPASSWD
+        on every rule it reaches. In the grep, single quotes keep bash from
+        reading the ! as history.
+  ALSO: sudo -l -U <user> lists the user's rules, with Defaults under Matching
+        Defaults entries.
 
 [I-03] Cron, at and systemd timers
   AREA: Malware defenses (CIS Control 10)
@@ -373,23 +373,24 @@
   $ for u in $(cut -d: -f1 /etc/passwd); do sudo crontab -l -u "$u" 2>/dev/null | sed "s/^/$u: /"; done
   $ systemctl list-timers --all
   $ sudo atq                                  (command not found means at is absent, along with any at jobs)
+  $ sudo atrm <job>   (removes one job that atq lists; read it first with sudo at -c <job>)
   $ sudo crontab -r -u baduser
   WHY: Cron re-creates users, re-opens ports, and re-installs tools every few
-       minutes. It is the reason a fixed problem comes back. The stock
-       /etc/crontab runs four run-parts jobs (hourly, daily, weekly, and
-       monthly). dpkg --verify on cron-daemon-common, the package that owns
-       /etc/crontab on 24.04, flags any edit (??5?????? c /etc/crontab) without
-       a clean VM to compare against, and dpkg -S marks a hand-placed drop-in
-       with 'no path found'.
-  NOTE: Record and hash the program a planted job runs, end its process, find
-        its other starters with I-07's grep -rlF line, then delete it. Cron
-        rereads changed files every minute, so a fix needs no restart.
+       minutes, so a fixed problem comes back. The stock /etc/crontab runs
+       four run-parts jobs (hourly, daily, weekly, and monthly).
+  NOTE: Before deleting a planted job, record and hash its program, end its
+        process, and find other starters (I-07's grep -rlF). Cron rereads
+        changed files every minute; fixes apply without restart.
+  ALSO: cron-daemon-common owns /etc/crontab on 24.04, so dpkg --verify flags
+        any edit (??5?????? c /etc/crontab) without a clean VM to compare
+        against. dpkg -S marks hand-placed drop-ins with 'no path found'.
 
 [I-04] Shell and startup persistence
   AREA: Malware defenses (CIS Control 10)
   $ grep -R -nE 'alias|nc |ncat|bash -i|/dev/tcp|curl .*\| *sh|wget .*\| *sh' /etc/profile /etc/bash.bashrc /etc/profile.d/ /home/*/.bashrc /home/*/.profile /root/.bashrc 2>/dev/null
   $ cat /etc/rc.local 2>/dev/null; ls -la /etc/init.d/ /etc/systemd/system/
   $ systemctl list-unit-files --state=enabled
+  $ echo '<encoded text>' | base64 -d   (decodes a blob found in a cron line or startup file; read what it would run before anything else)
   WHY: An alias on sudo or a reverse shell in .bashrc runs every time a terminal
        opens, including the one you use to fix things.
 
@@ -405,45 +406,55 @@
   $ sudo find / -xdev -type d -perm -0002 ! -perm -1000 2>/dev/null
   $ sudo find / -xdev -type f \( -perm -4000 -o -perm -2000 \) 2>/dev/null
   $ sudo chmod u-s /path/to/evil
-  WHY: A readable /etc/shadow means offline cracking. A writable /etc/passwd
-       means make yourself root. SUID on bash, nmap, find, or vim is instant
-       root (see GTFOBins). The backup copies (names ending in -) hold the same
-       data, so they take the same owner and mode as the main files. grub.cfg
-       carries the kernel command line and any GRUB password hash; update-grub
-       keeps the mode you set.
-  NOTE: Common stock SUID files: passwd, su, sudo, mount, umount, chsh, chfn,
-        gpasswd, newgrp, pkexec, fusermount3, ssh-keysign,
-        dbus-daemon-launch-helper, and polkit-agent-helper-1. Stock SGID files
-        include chage, expiry, unix_chkpwd, and crontab. Investigate anything
-        else, and compare with a clean VM of the same release.
+  $ sudo getcap -r / 2>/dev/null   (cap_net_raw or cap_net_admin on a packaged network tool is normal; cap_setuid on python3 or perl gives root to anyone who runs it: sudo setcap -r <file>)
+  $ sudo getfacl /etc/shadow /etc/sudoers   (a + after the mode in ls -l means extra entries; sudo setfacl -x u:<user> <file> removes one, and sudo setfacl -b <file> removes them all)
+  WHY: Readable /etc/shadow allows offline cracking. Writable /etc/passwd
+       gives root, as does SUID on bash, nmap, find, or vim (GTFOBins).
+       grub.cfg holds the kernel command line and any GRUB password hash.
+  NOTE: Investigate anything outside this expected list. SUID: passwd, su,
+        sudo, mount, umount, chsh, chfn, gpasswd, newgrp, pkexec, fusermount3,
+        ssh-keysign, dbus-daemon-launch-helper, and polkit-agent-helper-1;
+        SGID: chage, expiry, unix_chkpwd, and crontab.
+  ALSO: Compare unexpected SUID/SGID files with a clean VM of the same
+        release. Backups ending in - (same data) take the main files' owner
+        and mode. update-grub keeps your grub.cfg mode.
 
 [I-06] Hosts file and name resolution
   AREA: Secure configuration (CIS Control 4)
   $ cat /etc/hosts
   $ resolvectl status 2>/dev/null | grep -i 'DNS Servers'
+  $ ip -br a; ip route   (addresses and the default route; explain anything the brief leaves out)
+  $ ip -br link   (every interface; an unexpected tun0, wg0, or second NIC needs an explanation)
+  $ ip neigh   (the MAC address behind each neighbor; two addresses that share one MAC suggest ARP spoofing)
+  $ traceroute -n security.ubuntu.com   (hop 1 should be the gateway the brief names; a different first hop means a changed route; sudo apt install traceroute when it is missing, or use tracepath)
+  $ dig +short <name>; dig -x <address>   (what DNS answers, to compare with /etc/hosts; sudo apt install bind9-dnsutils when dig is missing)
+  $ nmcli connection show   (saved network profiles; an unknown VPN or Wi-Fi profile needs an explanation)
   WHY: Redirecting security.ubuntu.com or archive.ubuntu.com to 127.0.0.1 breaks
        updates silently.
 
 [I-07] Processes and connections: find the backdoor
   AREA: Malware defenses (CIS Control 10)
   $ ps -eo pid,ppid,user,cmd --sort=-%cpu | head -25
+  $ top   (live CPU use; a miner sits at the top of the list; q quits)
   $ ps -ef | grep -Ei 'nc |ncat|socat|bash -i|python.* -c|perl -e|xmrig|miner' | grep -v grep
+  $ pstree -p   (who started whom: a shell under apache2 or cron is a lead)
   $ sudo ss -tulpn; sudo lsof -i -P -n | grep -Ei 'LISTEN|ESTABLISHED'
   $ sudo ls -l /proc/<pid>/exe; sudo cat /proc/<pid>/cmdline | tr '\0' ' '
   $ systemctl status <pid> --no-pager; dpkg -S "$(sudo readlink -f /proc/<pid>/exe)"
+  $ systemctl cat <unit>   (the unit file plus every drop-in; ExecStart names the program it runs)
   $ sudo grep -rlF '<program>' /etc /var/spool/cron /home /root 2>/dev/null
   $ sudo kill -9 <pid>
-  WHY: Killing a process is pointless unless you also remove what starts it:
-       cron, a systemd unit, rc.local, .bashrc. Find the parent, then the file.
-       systemctl status <pid> names the unit you disable, dpkg -S answers 'no
-       path found' for a program no package installed (retry with /bin in place
-       of /usr/bin first, since 24.04 merges them), and grep -rlF lists every
-       file that starts the program.
+  WHY: Killing a process is pointless unless you also remove its starter (cron,
+       a systemd unit, rc.local, .bashrc): find the parent, then the file.
+       systemctl status <pid> names the unit to disable; dpkg -S 'no path found'
+       means no package installed it (on 24.04 retry with /bin in place of
+       /usr/bin first, since they merge); grep -rlF lists every file that starts
+       it.
   NOTE: When systemctl status names cron.service, rc-local.service,
         inetd.service, or a session scope, the process is that starter's child:
-        remove the planted line, end the process, and keep the starter. A
-        packaged python3, nc, or bash in /proc/<pid>/exe hides what it runs, so
-        read cmdline. An exe path ending in (deleted) is a finding.
+        remove the planted line, end the process, keep the starter. A packaged
+        python3, nc, or bash in /proc/<pid>/exe hides what it runs, so read
+        cmdline; an exe path ending in (deleted) is a finding.
 
 [I-08] AppArmor enforcing
   AREA: Secure configuration (CIS Control 4)
@@ -451,17 +462,19 @@
   $ sudo systemctl enable --now apparmor
   $ sudo aa-status
   $ sudo aa-enforce /etc/apparmor.d/<profile>     (only profiles aa-status lists in complain mode)
+  $ sudo aa-logprof   (reads AppArmor events from the logs and offers a rule for each; allow only what the program needs)
   WHY: Mandatory access control: a compromised service cannot read files outside
        its profile. Ubuntu and Mint enable it by default, so a stopped or
        disabled AppArmor is itself a finding.
-  NOTE: Never run aa-enforce on /etc/apparmor.d/*: some shipped profiles are
-        deliberately in unconfined mode and only grant one permission (see
-        Version notes), so enforcing them breaks those apps. Enforce by name,
-        then test the apps the brief requires.
+  NOTE: Enforce profiles by name: aa-enforce /etc/apparmor.d/* also enforces
+        shipped, deliberately unconfined profiles that only grant one
+        permission (see Version notes), breaking those apps. Test the brief's
+        required apps after.
 
 [I-09] Logging and audit
   AREA: Audit logging (CIS Control 8)
   $ systemctl status rsyslog --no-pager
+  $ df -h /var   (a full /var stops the logs; keep space free before you turn auditing up)
   $ sudo apt install -y auditd && sudo systemctl enable --now auditd
   $ sudo nano /etc/audit/rules.d/hardening.rules
       -w /etc/passwd -p wa -k identity
@@ -470,16 +483,22 @@
       -w /etc/sudoers.d/ -p wa -k sudoers
   $ sudo augenrules --load && sudo auditctl -l
   $ sudo ausearch -k identity
+  $ sudo aureport -x --summary   (audit events per program; an unfamiliar path is a lead)
   $ sudo grep -rnE 'audit=(0|off)' /etc/default/grub /etc/default/grub.d/ 2>/dev/null
   $ sudo mkdir -p /etc/default/grub.d && echo 'GRUB_CMDLINE_LINUX="$GRUB_CMDLINE_LINUX audit=1 audit_backlog_limit=8192"' | sudo tee /etc/default/grub.d/99-audit.cfg && sudo update-grub
   $ grep -oE 'audit=[^ ]+' /proc/cmdline        (after a reboot: audit=1)
   $ last; lastlog; sudo lastb | head; who; w
   $ sudo grep -E 'Accepted|Failed|useradd|userdel|usermod' /var/log/auth.log | tail -40
+  $ sudo grep 'Failed password' /var/log/auth.log | wc -l   (one number to track between checks; grep -c counts the same lines)
+  $ sudo grep 'Failed password' /var/log/auth.log | awk '{print $(NF-3)}' | sort | uniq -c | sort -rn | head   (failed sign-ins counted per source address)
   $ journalctl -p err -b --no-pager | tail
-  WHY: Audit rules answer who changed /etc/passwd and when, which is exactly
-       what an investigation needs. auditd starts partway through boot; audit=1
-       makes the kernel record from the first process, and an audit=0 anywhere
-       on the line keeps auditing off.
+  $ journalctl --list-boots   (a single line after several reboots means the journal forgets each boot: set Storage=persistent in /etc/systemd/journald.conf)
+  $ logger -t hardening 'baseline done'; journalctl -t hardening --no-pager   (a test line that shows up proves logging works end to end)
+  $ date   (the local time the logs stamp; timedatectl status below shows whether NTP keeps it right)
+  $ timedatectl status   (System clock synchronized: yes and NTP service: active keep log times comparable; when either reads otherwise, run sudo timedatectl set-ntp true)
+  WHY: Audit rules answer who changed /etc/passwd and when. auditd starts
+       mid-boot, so audit=1 makes the kernel record from the first process;
+       audit=0 anywhere on the kernel line keeps auditing off.
   NOTE: If rsyslog is not installed (journald only, as on a default Debian
         install), use journalctl.
 
@@ -488,59 +507,67 @@
   $ grep -vE 'nologin|/bin/false|/bin/sync' /etc/passwd
   $ sudo usermod -s /usr/sbin/nologin <system-account>
   $ sudo chage -l alice
+  $ sudo lslogins -u   (every human account with its process count, lock state, and last login in one table)
   $ getent group root shadow adm systemd-journal sudo admin docker lxd disk
   $ for g in shadow disk adm systemd-journal docker lxd; do awk -F: -v g="$(getent group "$g" | cut -d: -f3)" -v n="$g" 'g!="" && $4==g {print $1" has primary group "n}' /etc/passwd; done
   $ sudo gpasswd -d <user> shadow
-  WHY: A service account with /bin/bash is a login. The disk group reads raw
-       disks, which means the shadow file. Planted group memberships are quiet
-       privilege. adm and systemd-journal read the whole system journal. An
-       account whose primary group is shadow reads every password hash without
-       appearing in the member list. gpasswd keeps /etc/group and /etc/gshadow
-       in step, which a hand edit can split.
+  WHY: A service account with /bin/bash is a login. Planted group memberships
+       grant quiet privilege: disk reads raw disks, including the shadow file;
+       adm and systemd-journal read the whole journal.
+  NOTE: A primary group of shadow reads every hash without appearing in the
+        member list.
+  ALSO: gpasswd keeps /etc/group and /etc/gshadow in step; a hand edit can
+        split them.
 
 [I-11] Apt sources hygiene (deb822 .sources files)
   AREA: Patching (CIS Control 7)
   $ cat /etc/apt/sources.list.d/ubuntu.sources
   $ ls -l /etc/apt/sources.list.d/; cat /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list 2>/dev/null
   $ ls -l /etc/apt/trusted.gpg.d/ /etc/apt/keyrings/ /etc/apt/preferences.d/ 2>/dev/null
-  $ apt-cache policy | grep -- '-security'      (expect 500 lines for noble-security)
+  $ apt-cache policy | grep -- '-security'      (expect 500 lines for noble-security; apt policy prints the same table)
   $ sudo add-apt-repository --remove ppa:evil/ppa
   $ sudo apt update
   WHY: A malicious repository or key means apt upgrade installs the attacker's
        packages. Keep the official archive.ubuntu.com and security.ubuntu.com
        entries; remove unknown PPAs and the keys their Signed-By fields point
        to.
-  NOTE: /etc/apt/sources.list may hold only a comment: the real list is in the
-        .sources files, one stanza per repository (Types, URIs, Suites,
-        Components, Signed-By). An Enabled: no line in a stanza, or a pin in
-        /etc/apt/preferences.d, switches the security pocket off quietly;
-        apt-cache policy shows both.
+  NOTE: /etc/apt/sources.list may hold only a comment. Each repository is one
+        stanza (Types, URIs, Suites, Components, and Signed-By) in a .sources
+        file under /etc/apt/sources.list.d/.
+  ALSO: An Enabled: no line in a stanza, or a pin in /etc/apt/preferences.d,
+        quietly switches off the security pocket (noble-security). apt-cache
+        policy reveals either one.
 
 [I-12] Harden required services instead of removing them
   AREA: Secure configuration (CIS Control 4)
       vsftpd  /etc/vsftpd.conf: anonymous_enable=NO  local_enable=YES  write_enable=NO  chroot_local_user=YES  ssl_enable=YES
   $ sudo systemctl restart vsftpd && systemctl is-active vsftpd
   $ openssl s_client -connect 127.0.0.1:21 -starttls ftp -brief </dev/null; grep -x root /etc/ftpusers
+  $ nc -zv 127.0.0.1 21   (succeeded means the service answers; Connection refused means it is closed; ufw filters traffic from other hosts, so prove a firewall rule from a second machine)
       apache2 /etc/apache2/conf-enabled/security.conf: ServerTokens Prod  ServerSignature Off  TraceEnable Off ; apache2.conf <Directory /var/www/>: Options FollowSymLinks
-  $ sudo apache2ctl configtest && sudo systemctl restart apache2
+  $ sudo apache2ctl configtest && sudo systemctl restart apache2   (apachectl configtest is the same check)
   $ curl -sI http://127.0.0.1/ | grep -i '^server:'; curl -si -X TRACE http://127.0.0.1/ | head -1
+  $ openssl x509 -in /etc/ssl/certs/ssl-cert-snakeoil.pem -noout -subject -issuer -dates   (issuer equal to subject means self-signed; notAfter is the expiry)
       nginx   /etc/nginx/nginx.conf http block: server_tokens off;  ssl_protocols TLSv1.2 TLSv1.3;
   $ sudo nginx -t && sudo systemctl reload nginx
       samba   /etc/samba/smb.conf [global]: map to guest = Never  restrict anonymous = 2 ; per share: guest ok = no
   $ testparm && sudo systemctl restart smbd
-  $ sudo mysql_secure_installation
+  $ sudo mysql_secure_installation   (on MariaDB the same script is sudo mariadb-secure-installation)
+  $ sudo mysql -e "SELECT user, host, plugin FROM mysql.user;"   (an empty user name, or root with host %, is a finding)
       mysql   /etc/mysql/mysql.conf.d/mysqld.cnf: bind-address = 127.0.0.1
   $ sudo systemctl restart mysql
-  WHY: Keeping the service running and making it safe is the real job, and real
-       findings hide in these configs. Anonymous FTP is the classic.
-  NOTE: vsftpd reads each line as option=value with no spaces around the = sign
-        and stops on a bad line, so is-active proves the restart took; openssl
-        shows TLS working, and /etc/ftpusers lists the accounts FTP refuses,
-        root among them. Apache rejects a line that mixes signed and plain
-        options (Options -Indexes FollowSymLinks): write Options FollowSymLinks
-        or -Indexes +FollowSymLinks. curl should print Server: Apache (or nginx)
-        with no version, and TRACE should answer 405 (sudo apt install curl if
-        it is missing).
+  $ systemd-analyze security <service>   (an exposure level from 0 to 10, where lower is safer; each flagged line names a sandbox setting to add with systemctl edit)
+  $ sudo systemctl edit <service>   (a drop-in for sandboxing, such as NoNewPrivileges=yes and ProtectSystem=full; restart it and confirm it stays active, since ProtectSystem=strict also needs ReadWritePaths= for the service's data and logs; systemd-analyze security <service> shows the change)
+  WHY: Required services must keep running, so harden their configs instead;
+       anonymous FTP is the classic finding. /etc/ftpusers lists the accounts
+       FTP refuses, root included, and openssl s_client shows TLS working.
+  NOTE: A bad line, like spaces around =, stops vsftpd; is-active proves the
+        restart took. Apache refuses mixed signed and plain options (Options
+        -Indexes FollowSymLinks); write Options FollowSymLinks or -Indexes
+        +FollowSymLinks.
+  ALSO: After the restarts, curl should print Server: Apache (or nginx)
+        without a version, and TRACE should answer 405. If curl is missing,
+        run sudo apt install curl.
 
 [I-13] Browser protections (Firefox and Chromium)
   AREA: Secure configuration (CIS Control 4)
@@ -561,19 +588,18 @@
   GUI: Chromium, chrome://policy, Reload policies: SafeBrowsingProtectionLevel 2, status OK
   WHY: Safe Browsing blocks known phishing and malware pages and downloads,
        HTTPS-Only Mode asks before loading an unencrypted page, and the add-on
-       warning stops a site from installing an extension on its own. A policy
-       file locks each setting for every user, where a Settings checkbox covers
-       one profile. A user.js line restores its value at every start, so a
-       protection turned off there is a persistence finding.
-  NOTE: Firefox reads /etc/firefox/policies/policies.json in place of the copy
-        in its own folder, so cp brings the shipped policies along first; a
-        brand-new file needs the outer wrapper {"policies": { ... }}. Use
-        "enabled" in place of "force_enabled" when the brief names a site that
-        works over HTTP alone. Restart the browser to apply. The Chromium snap
-        reads policies from /etc/chromium-browser/policies. Updates come from
-        sudo snap refresh (B-08), so Help, About Firefox reports the version
-        only; close the browser first, because snap updates a running app only
-        after it closes.
+       warning stops a site installing an extension on its own. A policy file
+       locks a setting for every user; a Settings checkbox covers one profile. A
+       user.js line restores its value at every start, so a protection turned
+       off there is a persistence finding.
+  NOTE: Firefox reads /etc/firefox/policies/policies.json in place of its own
+        copy, so cp brings the shipped policies along first; a new file needs
+        the wrapper {"policies": { ... }}. Write "enabled" rather than
+        "force_enabled" when the brief names a site that works over HTTP alone.
+        Restart the browser. The Chromium snap reads policies from
+        /etc/chromium-browser/policies. Updates come from sudo snap refresh
+        (B-08), so Help, About Firefox reports the version only; close the
+        browser first, because snap updates a running app only after it closes.
 
 ------------------------------ HUNTER ------------------------------------------
  Hunt and harden. Kernel and network sysctl, rootkits and tampered packages, the
@@ -598,24 +624,23 @@
       fs.protected_hardlinks = 1   fs.protected_symlinks = 1   fs.suid_dumpable = 0
   $ sudo sysctl --system
   $ sysctl net.ipv4.ip_forward kernel.randomize_va_space
+  $ dmesg | tail   (as a regular user, 'Operation not permitted' proves kernel.dmesg_restrict = 1)
   $ sysctl -a 2>/dev/null | grep -E 'rp_filter|accept_redirects'      (an interface that still reads 2 keeps loose checking: sudo sysctl -w net.ipv4.conf.<iface>.rp_filter=1)
   $ sudo grep -rnE 'ip_forward|randomize_va_space|accept_redirects|rp_filter' /etc/sysctl.conf /etc/sysctl.d/ /etc/ufw/sysctl.conf 2>/dev/null
-  WHY: ip_forward=1 turns the host into a pivot; syncookies and rp_filter blunt
-       SYN floods and spoofing; ASLR at 2 and suid_dumpable 0 make exploitation
-       harder. sysctl --system loads every file, including /etc/sysctl.d/;
-       sysctl -p reads /etc/sysctl.conf alone. ip_forward goes first because
-       changing it resets the interface settings, which would undo lines above
-       it. The kernel applies the higher of the all value and each interface
-       value for rp_filter, so the default line and the per-interface read-back
-       both matter.
-  NOTE: A bad change can leave ip_forward=1 or randomize_va_space=0 in
-        /etc/sysctl.conf, a file in /etc/sysctl.d/, or /etc/ufw/sysctl.conf,
-        which ufw applies each time it starts (its keys use slashes:
-        net/ipv4/ip_forward). The stock ufw file sets log_martians=0, so with
-        ufw on, change its two log_martians lines to 1 as well. On 24.04,
-        /etc/sysctl.conf applies last and wins. Ubuntu and Mint ship rp_filter =
-        2 (loose) in /etc/sysctl.d/10-network-security.conf; 1 is strict and can
-        drop traffic on a machine with two network paths.
+  WHY: ip_forward=1 enables pivoting; syncookies and rp_filter blunt SYN floods
+       and spoofing; ASLR 2 and suid_dumpable 0 raise exploit cost. sysctl
+       --system loads /etc/sysctl.d/ too; sysctl -p reads /etc/sysctl.conf
+       alone.
+  NOTE: ip_forward goes first: changing it resets the interface settings and
+        would undo lines above it. A bad change can leave ip_forward=1 or
+        randomize_va_space=0 in /etc/sysctl.conf, a file in /etc/sysctl.d/, or
+        /etc/ufw/sysctl.conf, which ufw applies at each start (its keys use
+        slashes: net/ipv4/ip_forward). The stock ufw file sets log_martians=0,
+        so with ufw on, set its two log_martians lines to 1 as well. On 24.04,
+        /etc/sysctl.conf applies last and wins. Stock rp_filter is 2 (loose) in
+        /etc/sysctl.d/10-network-security.conf; 1 is strict and can drop traffic
+        on a host with two network paths. The kernel takes the higher of the all
+        value and each interface value for rp_filter, so read both back.
 
 [A-02] Rootkits, tampered packages, malware
   AREA: Malware defenses (CIS Control 10)
@@ -628,19 +653,17 @@
   $ which nc ncat netcat socat; sudo find / -xdev -type f \( -name nc -o -name ncat -o -name netcat -o -name socat \) 2>/dev/null
   $ sudo apt install -y --no-install-recommends aide aide-common && sudo aideinit -y -f     (last step of the session)
   $ sudo aide --check --config /etc/aide/aide.conf
-  WHY: debsums catches a replaced /bin/ls or sshd; rkhunter knows rootkit paths;
-       netcat binaries are the backdoor toolkit. debsums -c skips configuration
-       files; -ce lists every edited conffile, /etc/crontab included;
-       sshd_config is managed by ucf rather than dpkg, so compare it with
-       /usr/share/openssh/sshd_config instead. AIDE records a baseline of the
-       hardened system and reports every later change.
-  NOTE: Signatures need internet. Run debsums first, then propupd, so rkhunter's
-        baseline starts from checked files. clamscan loads about 1.2 GiB of
-        signatures: on a 2 GB machine close other programs or scan one folder at
-        a time. A plain aide install brings postfix and port 25;
-        --no-install-recommends keeps the machine mail-free. On Ubuntu,
-        /usr/bin/nc is the stock netcat-openbsd (part of ubuntu-minimal): hunt
-        the copies outside packages.
+  WHY: debsums catches a replaced /bin/ls or sshd; rkhunter knows rootkit
+       paths; AIDE reports changes since its baseline. Netcat is the backdoor
+       toolkit: /usr/bin/nc (netcat-openbsd) is stock; hunt copies outside
+       packages.
+  NOTE: Run debsums before rkhunter --propupd, or rkhunter's baseline trusts
+        tampered files. debsums -c skips conffiles; -ce lists edited dpkg
+        ones, /etc/crontab included. sshd_config is ucf-managed, so compare it
+        with /usr/share/openssh/sshd_config.
+  ALSO: clamscan's signatures need internet and about 1.2 GiB of RAM: with 2
+        GB, close other programs or scan folder by folder. Installing AIDE
+        with --no-install-recommends skips postfix and port 25.
 
 [A-03] The lsattr trap, core dumps, Ctrl-Alt-Del
   AREA: Secure configuration (CIS Control 4)
@@ -649,10 +672,15 @@
   $ sudo nano /etc/security/limits.conf
       * hard core 0
   $ sudo systemctl mask ctrl-alt-del.target
-  WHY: Attackers set the immutable flag so your useradd, passwd, and chage fail
-       with a misleading error, such as 'useradd: cannot open /etc/passwd' or
-       'Authentication token manipulation error', even as root. It is the most
-       common reason a fix refuses to stick on a compromised machine.
+  $ findmnt /tmp; findmnt /dev/shm   (OPTIONS should read nodev and nosuid, plus noexec where the brief allows; empty output means /tmp lives on the root file system)
+  $ lsblk -f   (FSTYPE crypto_LUKS means full-disk encryption; record it, since it is chosen at install time)
+  $ mokutil --sb-state   (SecureBoot enabled means the firmware checks each signed step of the boot chain; a BIOS-booted VM prints 'EFI variables are not supported on this system')
+  $ grub-mkpasswd-pbkdf2   (hashes a GRUB superuser password for /etc/grub.d/40_custom: set superusers="root" and password_pbkdf2 root <hash>; mark the normal entry --unrestricted (CLASS line in /etc/grub.d/10_linux) so unattended reboots still start; then sudo update-grub)
+  WHY: An immutable flag set by attackers is the most common reason a fix
+       refuses to stick on a compromised machine, so run lsattr first.
+  NOTE: With the flag set, useradd, passwd, and chage fail even as root, with
+        misleading errors like 'useradd: cannot open /etc/passwd' or
+        'Authentication token manipulation error'.
 
 [A-04] PAM deep dive
   AREA: Access control (CIS Control 6)
@@ -661,12 +689,14 @@
   $ sudo sed -i 's/ nullok//g' /etc/pam.d/common-auth
   $ grep -n 'pam_unix' /etc/pam.d/common-password
   $ sudo awk -F: '{h=$2; sub(/^!+/,"",h); if (h ~ /^[$](1|5|6)[$]/) print $1, substr(h,1,3)}' /etc/shadow
-  WHY: An auth sufficient pam_permit.so line at the top of common-auth means any
-       password works for everyone. Expect yescrypt (the Ubuntu and Mint
-       default), obscure, and remember=5 on the pam_unix line, and leave the
-       algorithm alone: adding sha512 there downgrades every new hash. A hash
-       changes only when its password changes, so the awk line lists accounts
-       still on MD5 ($1$), SHA-256 ($5$), or SHA-512 ($6$) to reset.
+  WHY: auth sufficient pam_permit.so atop common-auth lets any password in.
+       Expect yescrypt (the Ubuntu and Mint default), obscure, and remember=5
+       on the pam_unix line.
+  NOTE: Adding sha512 to the pam_unix line downgrades every new hash. A hash
+        changes only when its password changes, so old-format hashes remain
+        until reset.
+  ALSO: The awk line lists accounts still on MD5 ($1$), SHA-256 ($5$), or
+        SHA-512 ($6$); reset those passwords.
 
 [A-05] Forensics toolkit
   AREA: Investigation (forensics basics)
@@ -677,18 +707,24 @@
   $ sudo find /home /root /tmp /var/tmp /dev/shm /opt /srv /usr/local -xdev -type f -size -1024k -not -path '*/.mozilla/*' -not -path '*/snap/*' -not -path '*/.local/share/flatpak/*' -not -path '*/.var/app/*' -exec file {} + 2>/dev/null | grep -iE 'python|perl|shell script|ELF'
   $ comm -13 <(dpkg-query -L $(dpkg-query -W -f='${binary:Package} ') 2>/dev/null | sed -E 's#^/(s?bin)/#/usr/\1/#' | sort -u) <(sudo find /usr/bin /usr/sbin /usr/local/bin /usr/local/sbin -xdev -type f | sort -u)
   $ stat <file>; file <file>; strings <file> | head; md5sum <file>; sha1sum <file>; sha256sum <file>; sha512sum <file>
+  $ xxd <file> | head -2   (the first bytes give the real type, whatever the name claims: 7f45 4c46 is ELF, 2550 4446 is PDF; sudo apt install xxd when it is missing)
   $ sudo journalctl _COMM=sudo --no-pager | tail -40
+  $ history; sudo sh -c 'tail -n 20 /home/*/.bash_history /root/.bash_history' 2>/dev/null   (the last lines each account typed; the glob runs as root because home folders are 750; an empty history, or one linked to /dev/null, is itself a finding)
   $ sudo grep -E 'useradd|userdel|usermod|groupadd|passwd' /var/log/auth.log* 2>/dev/null
-  WHY: Investigation questions usually want a hash, a timestamp, a hidden path,
-       or who ran what. -newermt finds what changed most recently. -uid takes a
-       number, so it works after the account is gone. file reads first bytes, so
-       a script or program needs no .py or .sh name to show up. comm lists
-       programs in the system folders that no package installed; check each with
-       dpkg -S before calling it planted, since a few come from install scripts.
+  $ sudo tcpdump -n -i any -c 20 port 4444   (who talks to a suspicious port; -c stops after 20 packets; sudo apt install tcpdump when it is missing)
+  WHY: Investigation questions usually want a hash, a timestamp, a hidden
+       path, or who ran what. find -newermt shows recent changes; the file
+       command reads first bytes, exposing renamed scripts.
+  NOTE: comm prints system programs missing from every package's file list. A
+        few come from install scripts, so confirm with dpkg -S before calling
+        one planted.
+  ALSO: find -uid takes a number, so it still works after the account is
+        deleted.
 
 [A-06] Firewall depth: ufw internals, IPv6, unneeded daemons
   AREA: Secure configuration (CIS Control 4)
   $ sudo ufw status numbered; sudo ufw delete <n>
+  $ sudo ufw show added; sudo ufw show raw | less   (added lists your rules as typed; raw is the full loaded set, before.rules included)
   $ grep IPV6 /etc/default/ufw
   $ sudo iptables -S; sudo nft list ruleset 2>/dev/null | head -60
   $ sudo grep -nE 'ACCEPT.*--dport' /etc/ufw/before.rules /etc/ufw/user.rules 2>/dev/null
@@ -704,13 +740,13 @@
       24.04 Settings (GNOME 46): Users under System; Screen Lock under Privacy and Security; App Center replaces Ubuntu Software
       24.04 also: pam_faillock (no pam_tally2), yescrypt hashes, unattended-upgrades on by default, systemd-timesyncd, Firefox as a snap, rsyslog, last and lastlog
       26.04 LTS: sudo-rs is the default sudo (original sudo kept as sudo.ws); Rust coreutils (GNU cp, mv, rm kept); chrony with NTS replaces systemd-timesyncd on new installs; apt 3 (apt-key removed); Software and Updates app no longer installed by default
+      26.04 time: chronyc tracking shows Leap status Normal and a small System time offset while chrony keeps the clock; on 24.04, timedatectl status shows the same
       26.04 sysctl: /etc/sysctl.conf is absent and skipped at boot; kernel settings live in /etc/sysctl.d/*.conf, and Ubuntu's defaults move to /usr/lib/sysctl.d/55-*.conf
       Debian 13 (trixie): sudo group (not wheel), gdm3; may lack ufw, rsyslog, and unattended-upgrades (apt install them); no snaps; lastlog2 and wtmpdb replace lastlog and last; systemd-sysctl skips /etc/sysctl.conf
       All of them: AppArmor present, /etc/ssh/sshd_config.d/ includes override the main file
-  WHY: Knowing the defaults keeps you from hunting for a tool that was never
-       installed, and from calling a normal default a finding. Every other item
-       on this page is written to hold across these releases; the differences
-       live here.
+  WHY: Knowing the defaults stops two wastes: hunting for a tool never
+       installed, and calling a normal default a finding. Every other item holds
+       across these releases; the differences live here.
 
 [A-08] Verify loop, every thirty minutes
   $ sudo ss -tulpn; getent group sudo admin; awk -F: '$3==0' /etc/passwd
@@ -741,19 +777,17 @@
         required pam_faillock.so
   $ sudo pam-auth-update --enable faillock faillock_notify
   $ grep -n pam_faillock /etc/pam.d/common-auth /etc/pam.d/common-account
-  WHY: Ubuntu and Mint build common-auth and common-account from the profiles in
-       /usr/share/pam-configs, and pam-auth-update computes every [success=N]
-       jump for you, so the same two files work on both systems and survive
-       later package installs. Priority sets the order: 1024 runs before
-       pam_unix (256), and 0 runs after it. Indent each module line under its
-       Auth: or Account: field.
-  NOTE: After a hand edit (B-06), pam-auth-update answers 'Local modifications
-        to /etc/pam.d/common-*, not updating.' and still exits 0, so always read
-        common-auth back. Restore your backup first, or add --force, which keeps
-        the old files as /etc/pam.d/common-*.pam-old and brings nullok back:
-        strip it again (A-04) and move the .pam-old copies out of /etc/pam.d.
-        Keep a root shell open and run the su - test from B-06. faillock.conf
-        (B-06) still holds the numbers.
+  WHY: pam-auth-update builds common-auth and common-account from
+       /usr/share/pam-configs profiles, computing [success=N] jumps, so both
+       files work on Ubuntu and Mint and survive package installs. Priority
+       1024 precedes pam_unix (256); 0 follows.
+  NOTE: After B-06's hand edit, pam-auth-update prints 'Local modifications to
+        /etc/pam.d/common-*, not updating.' yet exits 0: always reread
+        common-auth. Restore your backup before rerunning, or add --force.
+        faillock.conf keeps the numbers.
+  ALSO: --force leaves /etc/pam.d/common-*.pam-old copies (move them out) and
+        restores nullok (strip it, A-04). Retest su - (B-06) with a root shell
+        open. Indent module lines under Auth: or Account: fields.
 
 [A-10] Self-audit with Lynis
   AREA: Secure configuration (CIS Control 4)
@@ -762,10 +796,9 @@
   $ sudo grep -E '^(warning|suggestion)' /var/log/lynis-report.dat
   $ sudo grep '^hardening_index=' /var/log/lynis-report.dat
   $ sudo lynis show details <TEST-ID>
-  WHY: A second pair of eyes that changes nothing: Lynis reads the system and
-       writes warnings, suggestions, and a hardening index from 0 to 100. Run it
-       before and after your fixes, watch the index climb, and act on the
-       suggestions the brief supports.
+  WHY: Lynis reads the system without changing it, then reports warnings,
+       suggestions, and a hardening index from 0 to 100. Run it before and
+       after fixes; the index should climb.
   NOTE: A suggestion is a lead to check, since some would break a service the
         brief requires. show details prints the log lines behind one test ID
         from the report.
@@ -871,6 +904,13 @@
                      pwquality.conf, so 8 still applies. Remove minlen=8 from
                      the PAM line and keep the number in the conf file (B-05).
 
+  Brief: The brief requires SSH and the company website, behind a firewall.
+  Action: Run sudo ufw disable because the website stopped loading after you
+          enabled ufw.
+  Call: BREAKS IT. Turning ufw off exposes every listening port. Allow the site
+                   instead: sudo ufw allow 80/tcp (and 443/tcp for HTTPS), then
+                   check sudo ufw status numbered.
+
 ------------------------------ SPOT THE FINDING (output snippets) --------------
   Lines from /etc/passwd. Tap the finding.
      root:x:0:0:root:/root:/bin/bash
@@ -960,7 +1000,7 @@
     https://discourse.ubuntu.com/t/sshd-now-uses-socket-based-activation-ubuntu-22-10-and-later/30189
   pam_faillock manual (Ubuntu 24.04)
     https://manpages.ubuntu.com/manpages/noble/man8/pam_faillock.8.html
-  CIS Critical Security Controls v8
+  CIS Critical Security Controls v8.1
     https://www.cisecurity.org/controls/v8
   CIS Benchmarks
     https://www.cisecurity.org/cis-benchmarks

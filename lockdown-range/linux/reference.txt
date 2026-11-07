@@ -22,32 +22,36 @@ Format of the check lists below:
            why: one line on why it matters
 
 Hardening areas: Account management, Access control, Secure
-configuration, Patching, Malware defenses, and Data protection. The two
-questions per scenario are listed as Investigation. The CIS Controls
-behind the first five areas: Defense Ladder s1
-(https://freeapp4that.store/defense-ladder/#sophomore/s1). Data
-protection, which covers the prohibited media files, maps to CIS Control 3.
-The Debrief links each check to its Defense Ladder lesson: accounts,
-sudo, SSH, setuid files, firewall, updates, software, and media to s3;
-password length, history, lockout, and empty-password sign-in to s3 (One
-PAM line); services and ports to s4; persistence, sysctl, /etc/shadow
-permissions, and repositories to j3; investigation questions to s6; the
-Captain's setuid question also to s3; and the Captain's package question
-to s4 and se1 (FreeBSD, Hunting on any Unix).
+configuration, Patching, Malware defenses, Audit logging, and Data
+protection. Data protection covers the prohibited media files. The two
+questions per scenario are listed as Investigation. Defense Ladder s1
+introduces the areas (https://freeapp4that.store/defense-ladder/#sophomore/s1).
+The Debrief links each check to its Defense Ladder lesson:
+  - s3: accounts, sudo, SSH, setuid files, firewall, updates, software,
+    media, time sync, Flatpak apps, and the web server banner.
+  - s3 (One PAM line): password length, history, lockout, and empty-password
+    sign-in.
+  - s4: services and ports.
+  - j3: persistence, sysctl, /etc/shadow permissions, repositories,
+    AppArmor profiles, package file integrity, file capabilities, and
+    database accounts.
+  - s6: investigation questions.
+  - Captain exceptions: the setuid question also links to s3, and the package
+    question links to s4 and se1 (FreeBSD, Hunting on any Unix).
 
 --------------------------------------------------------------------------------
 1. WHAT THE LAB IS (AND IS NOT)
 --------------------------------------------------------------------------------
 Linux Range is a single HTML page that behaves like a small Linux machine you
 have been asked to secure: a boot splash, a login screen, a minimal desktop
-(Ubuntu, Mint, or a text console on the server) and a bash-like terminal over
-an in-memory filesystem with real paths and realistic contents (/etc/passwd,
-/etc/shadow, /etc/group, /etc/sudoers, /etc/login.defs, /etc/pam.d/*,
-/etc/ssh/sshd_config, /etc/ufw, /etc/apt, cron, lightdm/gdm, user homes).
-The terminal understands the commands Linux administrators use every day
-(section 6): sudo, apt, systemctl, ufw, useradd/usermod/userdel, passwd,
-chage, visudo, nano, vi, sed -i, find, grep, pipes, and redirection. Every
-change re-runs the scenario's checks and the Progress Check updates live.
+(Ubuntu, Mint, or a text console on the server), and a bash-like terminal.
+The terminal runs over an in-memory filesystem with real paths and realistic
+contents: /etc/passwd, /etc/shadow, /etc/group, /etc/sudoers, /etc/login.defs,
+/etc/pam.d/*, /etc/ssh/sshd_config, /etc/ufw, /etc/apt, cron, lightdm/gdm, and
+user homes. The terminal understands the commands Linux administrators use
+every day (section 6): sudo, apt, systemctl, ufw, useradd/usermod/userdel,
+passwd, chage, visudo, nano, vi, sed -i, find, grep, pipes, and redirection.
+Every change re-runs the scenario's checks and the Progress Check updates live.
 Availability checks fail (in red, with negative points) when something the
 Scenario Brief says the business needs gets broken.
 
@@ -57,7 +61,8 @@ the page touches your own computer. Progress is saved in the browser; "Reset
 lab" restores the scenario's original state and keeps the best score (like
 reverting a VM snapshot).
 
-Levels: 1 Recruit lists every check as a to-do with hints; 2 Operator shows
+Levels: 1 Recruit lists every check as a to-do with hints (two steps: the
+area and the principle, then the command); 2 Operator shows
 only the remaining count per hardening area; 3 Captain shows nothing but the
 checks you have passed.
 
@@ -92,7 +97,8 @@ password prompt and messages look slightly different.
   [ ] 7. Work by hardening area, same order every time:
          Account management -> Access control (sudo, SSH, logins) ->
          Secure configuration (services, firewall, software) -> Patching ->
-         Malware defenses (persistence, rogue services) -> Data protection.
+         Malware defenses (persistence, rogue services) -> Audit logging
+         (auditd, the journal, the clock) -> Data protection.
   [ ] 8. Verify each area (getent group sudo, chage -l, ufw status verbose,
          ss -tulpn, dpkg -l | grep ...). Keep a short change log.
   [ ] 9. Reboot when a change needs it (sudo reboot), sign in again, confirm
@@ -114,7 +120,7 @@ Scenario Brief summary
   least 10 characters that expires within 90 days and stays unchanged for
   at least 7 days after each change; no media files; no file-sharing
   clients or network scanners; firewall on; automatic security updates;
-  nobody logged in automatically.
+  nobody logged in automatically; the clock stays synchronized.
 
 Investigation
   Q1  Which account has an empty password?        ANSWER: tiko
@@ -123,7 +129,7 @@ Investigation
       (getent group sudo)
 
 Checks (100 points)
-  [8]  Unauthorized user rufus removed                    (Account management)
+  [7]  Unauthorized user rufus removed                    (Account management)
        fix: sudo userdel -r rufus
        why: an account nobody authorized is a door into the machine.
   [7]  leilani removed from the sudo group (not an authorized administrator)
@@ -133,7 +139,7 @@ Checks (100 points)
   [7]  Blank password on account tiko fixed               (Account management)
        fix: sudo passwd tiko      (type a strong password twice)
        why: an empty hash field lets anyone log in with Enter.
-  [7]  SSH root login disabled (PermitRootLogin no)           (Access control)
+  [6]  SSH root login disabled (PermitRootLogin no)           (Access control)
        fix: sudo sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' \
                 /etc/ssh/sshd_config && sudo systemctl restart ssh
        why: one guessed root password gives total control.
@@ -159,7 +165,7 @@ Checks (100 points)
             sudo nano /etc/pam.d/common-password  and make the line read:
             password requisite pam_pwquality.so retry=3 minlen=12
        why: without the PAM module, passwd accepts "abc".
-  [8]  Firewall (ufw) enabled                           (Secure configuration)
+  [7]  Firewall (ufw) enabled                           (Secure configuration)
        fix: sudo ufw allow ssh
             sudo ufw enable
        why: firewall off = every listener reachable. Allow SSH first, or the
@@ -172,7 +178,14 @@ Checks (100 points)
             unattended-upgrades, answer yes)
        why: security updates close old bugs while nobody is watching.
   [6]  System updates installed (apt upgrade)                       (Patching)
-       fix: sudo apt update && sudo apt upgrade -y
+       fix: sudo apt-mark unhold sudo
+            sudo apt update && sudo apt upgrade -y
+            (apt upgrade lists sudo as "kept back": apt-mark showhold names
+            the held package, and dpkg -l marks it hi. Software Updater
+            leaves a held package out of its list, so unhold it first
+            there too. The firefox snap is held as well: snap list shows
+            "held" in Notes, and sudo snap refresh --unhold firefox
+            lifts it.)
        why: the pending updates include fixes for sudo and OpenSSL.
   [6]  Prohibited media files removed from user home directories
                                                              (Data protection)
@@ -190,6 +203,11 @@ Checks (100 points)
        fix: sudo nano /etc/gdm3/custom.conf -> TimedLoginEnable = false
             (keep AutomaticLoginEnable off)
        why: timed login hands the desktop to whoever waits.
+  [3]  Clock synchronization on (systemd-timesyncd)            (Audit logging)
+       fix: sudo timedatectl set-ntp true
+            (timedatectl status reads "System clock synchronized: no" and
+            "NTP service: inactive" until then)
+       why: logs line up across machines only when their clocks agree.
   [5]  Investigation 1 answered                tiko            (Investigation)
   [5]  Investigation 2 answered                leilani         (Investigation)
 
@@ -215,7 +233,8 @@ Scenario Brief summary
   Policy: only admins have sudo; never auto-login and no guest session;
   every account has a 10+ character password, no reuse of the last 5,
   lockout after repeated failures; no media; no miners or remote-shell
-  servers; firewall on; automatic security updates.
+  servers; only approved apps (Flatpak apps included); every AppArmor
+  profile in enforce mode; firewall on; automatic security updates.
 
 Investigation
   Q1  Account other than root with UID 0?         ANSWER: sysadm
@@ -224,12 +243,21 @@ Investigation
       (sudo ls -la /home/*)
 
 Checks (100 points)
-  [6]  Unauthorized user dax removed                      (Account management)
+  [5]  Audit daemon running with a rule that watches /etc/sudoers (auditd)
+                                                              (Audit logging)
+       fix: sudo apt install -y auditd
+            printf "%s\n" "-w /etc/sudoers -p wa -k sudoers" | \
+                sudo tee /etc/audit/rules.d/50-sudoers.rules
+            sudo augenrules --load
+            sudo systemctl enable --now auditd
+       why: logs are how you prove what changed; a watch on /etc/sudoers
+            records every edit to who can become root.
+  [5]  Unauthorized user dax removed                      (Account management)
        fix: sudo userdel -r dax
   [6]  keanu removed from the sudo group (not an authorized administrator)
                                                               (Access control)
        fix: sudo gpasswd -d keanu sudo
-  [7]  Hidden root account sysadm removed (only root has UID 0)
+  [6]  Hidden root account sysadm removed (only root has UID 0)
                                                           (Account management)
        fix: getent passwd sysadm   (field 6: /home/sysadm, its own folder)
             sudo userdel -r -f sysadm
@@ -241,10 +269,10 @@ Checks (100 points)
        why: any account with UID 0 IS root, whatever it is called.
   [6]  Blank password on account aria fixed               (Account management)
        fix: sudo passwd aria
-  [6]  Guest session disabled in LightDM (allow-guest=false)  (Access control)
+  [5]  Guest session disabled in LightDM (allow-guest=false)  (Access control)
        fix: sudo nano /etc/lightdm/lightdm.conf -> allow-guest=false
        why: a guest session is an anonymous login.
-  [6]  Automatic login disabled in LightDM                    (Access control)
+  [5]  Automatic login disabled in LightDM                    (Access control)
        fix: sudo sed -i '/^autologin-user/d' /etc/lightdm/lightdm.conf
        why: auto-login hands an admin session to the next person.
   [6]  Minimum password length of 10 or more enforced via pam_pwquality
@@ -252,7 +280,7 @@ Checks (100 points)
        fix: sudo nano /etc/pam.d/common-password  ->
             password requisite pam_pwquality.so retry=3 minlen=12
             (libpam-pwquality is already installed on this machine)
-  [5]  Password history enforced (remember=5 or more)     (Account management)
+  [4]  Password history enforced (remember=5 or more)     (Account management)
        fix: same file: append  remember=5  to the pam_unix.so line
             (a pam_pwhistory.so remember=5 line also counts)
        why: stops toggling between two passwords forever.
@@ -267,16 +295,22 @@ Checks (100 points)
             authsucc line a CORRECT password lands on pam_deny and nobody
             can log in. pam_tally2 was removed in Linux-PAM 1.5.0 and
             current Ubuntu and Mint releases do not ship it, so a pam_tally2
-            line does not count.)
+            line does not count. The managed way: on Ubuntu 24.04 and
+            Mint 22 the faillock profiles are yours to write, and a name
+            works once its profile exists: write the faillock and
+            faillock_notify profiles in /usr/share/pam-configs/, then
+            sudo pam-auth-update --enable faillock faillock_notify. It
+            rebuilds the common-* files and refuses while they carry hand
+            edits, unless you add --force.)
        why: lockout turns a million guesses into five.
-  [4]  Empty passwords rejected at sign-in (nullok removed from common-auth)
+  [3]  Empty passwords rejected at sign-in (nullok removed from common-auth)
                                                           (Account management)
        fix: sudo sed -i -E 's/[[:space:]]+nullok(_secure)?([[:space:]]|$)/\2/' \
                 /etc/pam.d/common-auth
        why: nullok turns a blank /etc/shadow field into a working login.
-  [6]  Firewall (ufw) enabled                           (Secure configuration)
+  [5]  Firewall (ufw) enabled                           (Secure configuration)
        fix: sudo ufw enable             (nothing needs allowing here)
-  [5]  Automatic security updates enabled                           (Patching)
+  [4]  Automatic security updates enabled                           (Patching)
        fix: Update Manager (shield icon, bottom right) > Edit > Preferences >
             Automation > Apply updates automatically
             (or: sudo mintupdate-automation upgrade enable; this enables
@@ -284,14 +318,14 @@ Checks (100 points)
             flag file the job checks. unattended-upgrades counts only when
             50unattended-upgrades also lists "Ubuntu:noble-security": on
             Mint its ${distro_id} entries expand to Linuxmint:zena-security)
-  [5]  Prohibited media files removed from user home directories
+  [4]  Prohibited media files removed from user home directories
                                                              (Data protection)
        fix: sudo find /home -type f \( -iname "*.mp3" -o -iname "*.mp4" \
                 -o -iname "*.m4a" \) -delete      (there is an .m4a file!)
   [6]  Unauthorized software minerd-x removed (cryptocurrency miner)
                                                             (Malware defenses)
        fix: sudo apt purge -y minerd-x
-  [5]  Telnet server removed (nothing listening on port 23)
+  [4]  Telnet server removed (nothing listening on port 23)
                                                         (Secure configuration)
        fix: sudo apt purge -y telnetd inetutils-telnetd
             (found with: sudo ss -tulpn, then dpkg -l | grep -i telnet.
@@ -302,11 +336,22 @@ Checks (100 points)
             Alternative: sudo systemctl disable --now inetd)
        why: Telnet sends passwords in clear text. Check which package
             really provides a program before you remove it.
-  [6]  Rogue service libupdater disabled or removed         (Malware defenses)
+  [5]  Rogue service libupdater disabled or removed         (Malware defenses)
        fix: sudo systemctl disable --now libupdater
             sudo rm /etc/systemd/system/libupdater.service
             sudo rm -r /opt/.libupd && sudo systemctl daemon-reload
+            (systemctl cat libupdater shows ExecStart=/opt/.libupd/libupd
+            and Restart=always)
        why: Restart=always means kill alone brings it straight back.
+  [3]  cupsd AppArmor profile back in enforce mode      (Secure configuration)
+       fix: sudo apt install -y apparmor-utils
+            sudo aa-enforce /etc/apparmor.d/usr.sbin.cupsd
+            (sudo aa-status lists /usr/sbin/cupsd under complain mode)
+       why: a profile in complain mode logs a violation and lets it happen.
+  [3]  Unauthorized Flatpak app removed (PixelQuest)    (Secure configuration)
+       fix: sudo flatpak uninstall -y io.example.PixelQuest
+            (flatpak list --app names it; dpkg -l misses Flatpak apps)
+       why: Flatpak apps sit outside apt, so they outlive a package audit.
   [5]  Investigation 1 answered                sysadm          (Investigation)
   [5]  Investigation 2 answered     /home/jace/.hidden_tools   (Investigation)
 
@@ -349,7 +394,9 @@ Scenario Brief summary (cat ~/Desktop/Scenario\ Brief.txt)
   port 80, MySQL. FTP, Samba, and Telnet are not authorized. Root may not log
   in over SSH; sudo always asks for a password; empty passwords forbidden;
   IP forwarding off; no unauthorized software, repositories, setuid
-  binaries, or scheduled jobs; install updates; firewall on.
+  binaries, or scheduled jobs; install updates; firewall on; every system
+  program matches its package, interpreters keep their normal privileges,
+  the web server hides its version, and every database account has a name.
 
 Investigation
   Q1  TCP port held by a program outside every installed package?
@@ -367,81 +414,128 @@ Investigation
       /usr/sbin/init names systemd-sysv. Every other listener comes
       from a package: sshd (22, held by systemd), vsftpd (21), apache2
       (80), smbd (139 and 445), systemd-resolved (53, loopback only),
-      and mysqld (3306, loopback only). Also see
-      /etc/rc.local and root's crontab.)
+      and mysqld (3306, loopback only). sudo ss -tnp also shows an
+      ESTABLISHED connection to 4444 from 10.20.4.88. Also see
+      /etc/rc.local and root's crontab, whose line is base64-encoded:
+      echo THE-STRING | base64 -d shows the command.)
   Q2  Setuid binary that gives a root shell?      ANSWER: /usr/local/bin/lsmon
       (find / -perm -4000 -type f 2>/dev/null)
 
 Checks (100 points)
-  [5]  Unauthorized user vex removed                      (Account management)
+  [4]  System journal kept across reboots (journald Storage=persistent)
+                                                              (Audit logging)
+       fix: sudo sed -i 's/^Storage=.*/Storage=persistent/' \
+                /etc/systemd/journald.conf && \
+            sudo systemctl restart systemd-journald
+       why: the intern set Storage=volatile; a journal in RAM vanishes at the
+            first reboot, and the evidence goes with it
+            (journalctl --list-boots lists only the current boot).
+  [4]  Unauthorized user vex removed                      (Account management)
        fix: sudo userdel -r vex
-  [6]  Unauthorized sudo rule for bkup removed (/etc/sudoers.d)
+  [5]  Unauthorized sudo rule for bkup removed (/etc/sudoers.d)
                                                               (Access control)
-       fix: sudo rm /etc/sudoers.d/90-backup
+       fix: sudo chattr -i /etc/sudoers.d/90-backup
+            sudo rm /etc/sudoers.d/90-backup
+            (a plain rm says "Operation not permitted": sudo lsattr
+            /etc/sudoers.d/90-backup shows the i (immutable) flag)
        why: NOPASSWD: ALL in a drop-in file is silent root.
-  [4]  Sudo asks for a password again (Defaults !authenticate removed)
+  [3]  Sudo asks for a password again (Defaults !authenticate removed)
                                                               (Access control)
        fix: sudo visudo, delete the line  Defaults !authenticate
             (scripted: sudo sed -i '/^Defaults[[:space:]]*!authenticate/d' \
                 /etc/sudoers && sudo visudo -c)
        why: a quieter NOPASSWD: every sudoer runs root commands without a
             password.
-  [5]  Hidden root account ops removed (only root has UID 0)
+  [4]  Hidden root account ops removed (only root has UID 0)
                                                           (Account management)
        fix: getent passwd ops, then sudo userdel -r -f ops   (its home is
             /home/ops; plain userdel says "currently used by process 1",
             see scenario 2)
-  [6]  SSH root login disabled (PermitRootLogin no)           (Access control)
+  [5]  SSH root login disabled (PermitRootLogin no)           (Access control)
        fix: sudo sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' \
                 /etc/ssh/sshd_config && sudo systemctl restart ssh
-  [5]  SSH empty passwords disabled (PermitEmptyPasswords no) (Access control)
+  [4]  SSH empty passwords disabled (PermitEmptyPasswords no) (Access control)
        fix: sudo sed -i \
             's/^#\?PermitEmptyPasswords.*/PermitEmptyPasswords no/' \
             /etc/ssh/sshd_config && sudo systemctl restart ssh
-  [4]  SSH MaxAuthTries limited to 4 or fewer                 (Access control)
+  [3]  SSH MaxAuthTries limited to 4 or fewer                 (Access control)
        fix: sudo sed -i 's/^#\?MaxAuthTries.*/MaxAuthTries 4/' \
                 /etc/ssh/sshd_config && sudo systemctl restart ssh
-  [5]  FTP server (vsftpd) removed or disabled (vsftpd) (Secure configuration)
+  [4]  FTP server (vsftpd) removed or disabled (vsftpd) (Secure configuration)
        fix: sudo apt purge -y vsftpd  (or: sudo systemctl disable --now vsftpd)
-  [5]  Samba file sharing removed or disabled (smbd/nmbd)
+  [4]  Samba file sharing removed or disabled (smbd/nmbd)
                                                         (Secure configuration)
        fix: sudo apt purge -y samba      (or: disable --now smbd nmbd)
        why: a guest-writable share of the website lets the LAN change it.
-  [6]  Firewall (ufw) enabled                           (Secure configuration)
+  [5]  Firewall (ufw) enabled                           (Secure configuration)
        fix: sudo ufw allow ssh
             sudo ufw allow 80/tcp
             sudo ufw enable
        why: both allows first, or the SSH and web availability checks fail.
-  [5]  IPv4 forwarding disabled at boot (sysctl files) (Secure configuration)
+  [4]  IPv4 forwarding disabled at boot (sysctl files) (Secure configuration)
        fix: sudo sed -i 's/^net.ipv4.ip_forward=1/net.ipv4.ip_forward=0/' \
                 /etc/sysctl.conf && sudo sysctl -p
             (or: put net.ipv4.ip_forward=0 in /etc/sysctl.d/99-hardening.conf,
             delete the sysctl.conf line, then sudo sysctl --system; Ubuntu
             26.04 ships without /etc/sysctl.conf, so the drop-in is its route)
        why: a forwarding server is a pivot into the rest of the network.
-  [6]  Setuid bit removed from /usr/local/bin/lsmon           (Access control)
+  [5]  Setuid bit removed from /usr/local/bin/lsmon           (Access control)
        fix: sudo rm /usr/local/bin/lsmon   (or: sudo chmod u-s it)
        why: a setuid copy of a shell is an instant root shell for anyone.
-  [6]  Persistence line removed from /etc/rc.local          (Malware defenses)
+  [5]  Persistence line removed from /etc/rc.local          (Malware defenses)
        fix: sudo sed -i '/sysupd/d' /etc/rc.local
             sudo rm -f /tmp/.sysupd && sudo pkill sysupd
        why: rc.local runs as root at boot; the 4444 listener returns after
             every reboot until the line is gone.
-  [5]  Planted root cron job removed                        (Malware defenses)
+  [4]  Planted root cron job removed                        (Malware defenses)
        fix: sudo crontab -r      (or: sudo crontab -e and delete the line)
+            (the line pipes a base64 string into sh:
+            echo L3RtcC8uc3lzdXBkIC1sIDQ0NDQgLWUgL2Jpbi9zaA== | base64 -d
+            prints /tmp/.sysupd -l 4444 -e /bin/sh)
        why: cron restarts the backdoor every 10 minutes.
-  [5]  /etc/shadow permissions restored (640 root:shadow)     (Access control)
-       fix: sudo chmod 640 /etc/shadow && sudo chown root:shadow /etc/shadow
+  [4]  /etc/shadow permissions restored (640 root:shadow)     (Access control)
+       fix: sudo setfacl -b /etc/shadow
+            sudo chmod 640 /etc/shadow && sudo chown root:shadow /etc/shadow
+            (ls -l shows -rw-rw-r--+: the + is an ACL entry. sudo getfacl
+            /etc/shadow names it: user:vex:rw-, or user:1006 once vex is
+            deleted.)
        why: world-readable hashes can be cracked offline by any user.
-  [4]  Untrusted third-party repository removed                     (Patching)
+  [3]  Untrusted third-party repository removed                     (Patching)
        fix: sudo rm /etc/apt/sources.list.d/torrentbolt.list && sudo apt update
             (ubuntu.sources next to it is the official archive: keep it)
        why: a [trusted=yes] repository can push any package onto the box.
-  [4]  System updates installed (apt upgrade)                       (Patching)
+  [3]  System updates installed (apt upgrade)                       (Patching)
        fix: sudo apt update && sudo apt upgrade -y
-  [4]  Unauthorized software netprobe-ng removed (network scanner)
+  [3]  Unauthorized software netprobe-ng removed (network scanner)
                                                         (Secure configuration)
        fix: sudo apt purge -y netprobe-ng
+  [3]  Apache hides its version (ServerTokens Prod, ServerSignature Off)
+                                                        (Secure configuration)
+       fix: sudo sed -i -e 's/^ServerTokens .*/ServerTokens Prod/' \
+                -e 's/^ServerSignature .*/ServerSignature Off/' \
+                /etc/apache2/conf-available/security.conf
+            sudo apache2ctl configtest && sudo systemctl reload apache2
+            (curl -sI localhost shows the Server header before and after)
+       why: a version string tells an attacker which exploits to try.
+  [4]  Changed package file restored (debsums -s clean)   (Malware defenses)
+       fix: sudo apt install -y debsums && sudo debsums -s
+            sudo apt install --reinstall -y procps
+            (debsums -s reports /usr/bin/ps from procps; sudo dpkg --verify
+            procps shows ??5?????? for it)
+       why: a changed ps can hide processes from the administrator; the
+            package archive holds the real one.
+  [4]  cap_setuid removed from python3.12                     (Access control)
+       fix: sudo setcap -r /usr/bin/python3.12
+            (sudo getcap -r / 2>/dev/null lists file capabilities)
+       why: an interpreter that may change its user ID is a root shell for
+            everyone.
+  [3]  Anonymous MySQL account removed                        (Access control)
+       fix: sudo mysql -e "DROP USER ''@'localhost';"
+            (or: sudo mysql_secure_installation, y to Remove anonymous
+            users. sudo mysql -e "SELECT user, host, plugin FROM
+            mysql.user;" shows the empty user name.)
+       why: an anonymous account lets anyone on the server connect without
+            a name.
   [5]  Investigation 1 answered                4444            (Investigation)
   [5]  Investigation 2 answered          /usr/local/bin/lsmon  (Investigation)
 
@@ -476,6 +570,9 @@ Access control
   sudo usermod -aG sudo NAME      grant sudo rights
   sudo visudo                     edit /etc/sudoers with a syntax check
   sudo ls -la /etc/sudoers.d      drop-in sudo rules hide here
+  sudo lsattr FILE / chattr -i    the i flag blocks every change, root's too
+  sudo getfacl FILE / setfacl -b  a + after ls -l modes means an ACL entry
+  sudo getcap -r / 2>/dev/null    file capabilities; sudo setcap -r FILE
 
 Password policy
   /etc/login.defs                 PASS_MAX_DAYS 90, PASS_MIN_DAYS 7,
@@ -486,11 +583,17 @@ Password policy
   /etc/pam.d/common-auth          pam_faillock.so preauth / authfail /
                                   authsucc, deny=5 (see scenario 2)
   sudo apt install libpam-pwquality     the module that enforces minlen
+  sudo pam-auth-update --enable NAME    profiles in /usr/share/pam-configs
 
 SSH  (/etc/ssh/sshd_config, then sudo systemctl restart ssh)
   PermitRootLogin no   PermitEmptyPasswords no   MaxAuthTries 4
   PasswordAuthentication per the brief  X11Forwarding no
   sudo sshd -t                    syntax check before restarting
+  ssh NAME@localhost              test a sign-in from a second terminal
+                                  before you log out; it asks about the
+                                  key of the server first, and sshd uses
+                                  the settings it read at its last start
+                                  or reload
   systemctl status ssh            "TriggeredBy: ssh.socket" = socket-activated
                                   (Ubuntu 24.04): ssh.socket owns port 22
   sudo systemctl daemon-reload && sudo systemctl restart ssh.socket
@@ -506,11 +609,19 @@ Services and ports
                                   keep the port open and restart it)
   sudo systemctl mask NAME        make it unstartable
   ls /etc/systemd/system          homemade unit files live here
+  systemctl cat NAME              the unit file and its drop-ins
+  systemctl list-unit-files --state=enabled      what starts at boot
+  systemctl --user list-unit-files               your own units; others hide
+                                  in ~/.config/systemd/user of each account
+  sudo ss -tnp; sudo lsof -nP -i  established connections and their programs
+  curl -sI localhost              a web server's banner (Server header)
 
 Firewall
   sudo ufw status verbose         state and rules
   sudo ufw allow ssh              allow required services FIRST
   sudo ufw default deny incoming  then: sudo ufw enable
+  sudo ufw show raw               every netfilter table ufw loaded, IPv4
+                                  and IPv6, the shipped rules included
 
 Patching and software
   sudo apt update && sudo apt upgrade -y
@@ -520,8 +631,14 @@ Patching and software
                                   official archive in deb822 format)
   dpkg -l | grep -i NAME          also shows transitional packages: the real
                                   program may come from another package
+  apt-mark showhold               held packages (apt upgrade keeps them back)
+  sudo dpkg -i FILE.deb           install a downloaded package (-r removes
+                                  one, -P also its configuration files)
   /etc/apt/apt.conf.d/20auto-upgrades   APT::Periodic::Unattended-Upgrade "1";
   sudo mintupdate-automation upgrade enable    Linux Mint automatic updates
+  flatpak list --app; sudo flatpak uninstall ID   apps installed outside apt
+                                  (flatpak uninstall --unused then removes
+                                  the runtime they leave behind)
 
 Malware defenses and files
   sudo find /home -type f \( -iname "*.mp3" -o -iname "*.mp4" ... \)
@@ -530,20 +647,40 @@ Malware defenses and files
   sudo crontab -l; cat /etc/crontab; ls /etc/cron.d      scheduled jobs
   cat /etc/rc.local               runs as root at boot
   ps aux | grep NAME; sudo kill PID               running processes
+  sudo debsums -s; sudo dpkg --verify PKG         package files changed?
+  sudo aa-status                  AppArmor profiles and their modes
+  sudo clamscan -r -i DIR; sudo rkhunter --check --sk; sudo aide --check
+                                  scanners and integrity checkers (apt install)
 
 Login managers
   /etc/gdm3/custom.conf           AutomaticLoginEnable = false,
                                   TimedLoginEnable = false      (Ubuntu)
   /etc/lightdm/lightdm.conf       allow-guest=false, no autologin-user=
                                   (Linux Mint)
+  gsettings set org.gnome.desktop.screensaver lock-enabled true
+                                  screen lock for the current user (Mint:
+                                  org.cinnamon.desktop.screensaver)
 
 Kernel and network
   /etc/sysctl.conf                net.ipv4.ip_forward=0, then sudo sysctl -p
+  sudo tcpdump -n -w case.pcap    save a capture (the file belongs to the
+                                  tcpdump user); tcpdump -n -r case.pcap
+                                  reads it back without sudo
+
+Shell
+  for u in keola pua; do sudo chage -l "$u"; done    one command per name
+  set -u                          a line that reads an unset variable stops
+  set -euo pipefail               the safety line for scripts; typed at a
+                                  prompt, -e closes the shell at the first
+                                  failed command
 
 Audit logging
   sudo tail -n 20 /var/log/auth.log     logins, sudo use, su
   journalctl -u ssh -n 20               recent SSH service log
-  last                                  recent logins
+  journalctl --list-boots               boots the journal kept
+  last; sudo lastb; lastlog             logins, failed logins, latest each
+  sudo ausearch -k KEY -i; sudo aureport -x --summary    audit events
+  timedatectl status                    clock and NTP sync
 
 Editors
   nano FILE        Ctrl+O Enter = save, Ctrl+X = exit
@@ -568,14 +705,54 @@ Editors
     a real system has them for everything.
   - Out-of-scope commands get a "[Range] ..." note instead of pretending to
     work. If something you need is missing, try it on a practice VM.
-  - md5sum and sha256sum hash a text file's real content, so printf 'abc' |
-    sha256sum matches any reference value. A simulated binary has no bytes,
-    so it hashes a stand-in value: compare binaries on a real machine.
-  - The audit tools (auditctl, augenrules, ausearch) keep rules and status
-    but record no events, so ausearch -k KEY always says <no matches>.
+  - md5sum, sha1sum, sha256sum, and sha512sum hash a text file's real
+    content, so printf 'abc' | sha256sum matches any reference value. A
+    simulated binary has no bytes, so it hashes a stand-in value: compare
+    binaries on a real machine. debsums, dpkg --verify, AIDE, and rkhunter
+    compare package programs with their shipped size in the same way.
+  - The audit tools record events while auditd runs: each rule that
+    auditctl or augenrules --load adds or removes (a CONFIG_CHANGE event
+    that carries the rule's key), file watches (-w PATH -p wa -k KEY),
+    execve rules, and the USER_CMD event sudo writes for each command.
+    ausearch -k KEY and aureport read them. The SYSCALL records leave out
+    the a0-a3 argument fields that a real log carries.
+  - The network is the lab segment. The machine's own addresses reach its
+    listening services (curl, wget, nc, ssh, ssh-copy-id), and ping gets
+    answers from them and from the gateway. Names resolve from /etc/hosts
+    and from the names systemd-resolved provides (the host name, _gateway,
+    and localhost); every other name returns NXDOMAIN. An empty address on
+    the segment answers ping with "Destination Host Unreachable", and a
+    host past the gateway stays silent (a connection times out). ssh asks
+    about the host key, then follows the sshd_config that sshd read at its
+    last start or reload (PermitRootLogin for UID 0 accounts,
+    PasswordAuthentication, PermitEmptyPasswords, MaxAuthTries, AllowUsers,
+    and keys in authorized_keys, command="..." options included) and opens
+    a session; known_hosts names are hashed with a stand-in digest. tcpdump
+    shows a few modeled packets, sudo tcpdump -w saves them to a file that
+    tcpdump -r reads without root, and traceroute stops at the gateway.
+    ping -6, scp, and sftp run on a real machine.
+  - A ufw command with a syntax error prints "ERROR: Invalid syntax"; a
+    real ufw then also prints its command help.
+  - The shell runs for loops (on one line, or across lines at the "> "
+    prompt), NAME=value variables, and set -e, -u, -x, and -o pipefail, as
+    bash does. if, while, until, case, and select blocks, command
+    substitution with $( ), and scripts run on a real shell.
+  - systemctl --user reaches the signed-in account's own user manager. For
+    other accounts, read the files in their ~/.config/systemd/user: their
+    managers run only while they are signed in.
+  - ufw show raw prints the same tables a real machine does, the IPv6
+    rules from before6.rules included, with every packet counter at 0.
+    iptables 1.8.10 with -n shows the protocol as a number (0 for all, 6
+    for tcp, 17 for udp, 58 for ipv6-icmp).
+  - On the Captain server, nginx installed beside Apache fails to start:
+    both want port 80, as they would on a real server.
   - Only the Captain server simulates ssh socket activation. On a real
     Ubuntu 24.04 desktop, installing openssh-server is socket-activated
     too; the Recruit desktop keeps the simpler ssh.service model.
+  - On Mint, the ${distro_id} entries in
+    /etc/apt/apt.conf.d/50unattended-upgrades expand to
+    Linuxmint:zena-security, an origin that misses every Ubuntu security
+    update. Only an entry that names "Ubuntu:noble-security" counts.
   - The lab's kernel is the noble 6.8 GA kernel on all three machines; a
     fresh Linux Mint 22.3 or Ubuntu 24.04.5 desktop install ships a newer
     HWE kernel (Mint 22.3: 6.14).
@@ -611,5 +788,3 @@ Editors
     https://wiki.debian.org/PeriodicUpdates
   Linux Mint Update Manager source (automation):
     https://github.com/linuxmint/mintupdate
-  CIS Critical Security Controls v8:
-    https://www.cisecurity.org/controls/v8

@@ -30,17 +30,22 @@ Windows Range is a single HTML page that behaves like a small Windows machine
 you have been asked to secure: OEM boot screen, lock screen, sign-in, and a
 Windows 11 (version 26H2) or Windows Server 2025 desktop with taskbar, Start,
 Search, and a Run box. The administration tools are faithful subsets of the real
-ones, with the real names, menu paths, and control types: Local Users and Groups
-(lusrmgr.msc), Local Security Policy (secpol.msc), Local Group Policy Editor
-(gpedit.msc), Services, Task Scheduler, Windows Defender Firewall with Advanced
-Security (wf.msc), Programs and Features (appwiz.cpl), Windows Features
-(optionalfeatures), Settings (Accounts, Windows Update, Remote Desktop,
-Installed apps), Windows Security, the UAC slider, System Properties, File
-Explorer, Notepad, and Server Manager. Windows Terminal has Command Prompt and
-PowerShell tabs with the commands in section 6, including pipes, findstr,
-redirection (> and >>), secedit /export and /configure, and reg query/add for
-the security registry values that hardening guides such as the CIS Benchmarks
-use.
+ones, with the real names, menu paths, and control types:
+  - Local Users and Groups (lusrmgr.msc), Local Security Policy (secpol.msc),
+    and Local Group Policy Editor (gpedit.msc)
+  - Services and Task Scheduler
+  - Windows Defender Firewall with Advanced Security (wf.msc)
+  - Programs and Features (appwiz.cpl) and Windows Features (optionalfeatures)
+  - Settings (Accounts, Windows Update, Remote Desktop, Installed apps), Windows
+    Security, the UAC slider, and System Properties
+  - Event Viewer (eventvwr.msc), System Information (msinfo32), and TPM
+    Management (tpm.msc)
+  - File Explorer (with the shell:startup folders), Notepad, and Server Manager
+Windows Terminal has Command Prompt and PowerShell tabs with the commands in
+section 6. Those include pipes, findstr, redirection (> and >>), secedit /export
+and /configure, and reg query/add for the security registry values that
+hardening guides use. Each PowerShell tab keeps its variables ($ts = 'HKLM:\...'
+on one line, Test-Path $ts on the next) and runs if and foreach lines.
 
 Every panel and every command changes ONE machine state, and the Progress Check
 re-runs the checks after each change. Security includes availability: breaking
@@ -50,9 +55,12 @@ Nothing on the page touches the real computer. Progress is saved in the browser;
 "Reset lab" restores the scenario's original state and keeps the best score
 (like reverting a VM snapshot).
 
-Levels: 1 Recruit lists every check as a to-do with hints (training wheels); 2
+Levels: 1 Recruit lists every check as a to-do with hints that open in two steps
+(the hardening area and the principle, then the console path or command); 2
 Operator shows only the remaining count per hardening area; 3 Captain shows
-nothing but the checks already passed.
+nothing but the checks already passed. The Coach control at the top of the
+Progress Check picks any of the three for any level, and the best score
+remembers how many hints it took.
 
 --------------------------------------------------------------------------------
 2. THE ROUTINE: POWER-ON TO PROGRESS CHECK
@@ -66,8 +74,8 @@ nothing but the checks already passed.
          must stay available.
   [ ] 4. Evidence first: answer the investigation questions before any change
          (Defense Ladder f1:
-         https://freeapp4that.store/defense-ladder/#freshman/f1). Open
-         Investigation 1.txt and 2.txt in Notepad, type the answer after
+         https://freeapp4that.store/defense-ladder/#freshman/f1). Open each
+         Investigation N.txt on the Desktop in Notepad, type the answer after
          "ANSWER:", and press Ctrl+S.
   [ ] 5. Start Windows Update in the first minutes (Settings > Windows Update >
          Resume updates > Check for updates > Install all) and keep working
@@ -77,8 +85,9 @@ nothing but the checks already passed.
   [ ] 7. Elevate when needed: right-click a tool > Run as administrator, or
          Ctrl+Shift+Enter in Start/Run. Commands that change the machine need an
          administrator window.
-  [ ] 8. Verify each area (net accounts, auditpol /get /category:*, sc query,
-         netsh advfirewall show allprofiles).
+  [ ] 8. Verify each area (net accounts, auditpol /get /category:*, sc.exe
+         query, netsh advfirewall show allprofiles). Type sc.exe, which works in
+         both shells: in PowerShell, a bare sc runs Set-Content.
   [ ] 9. Restart once near the end, after the updates you started early finish
          installing; sign in again and confirm the progress is still there.
   [ ] 10. Finish / Debrief: read every miss and its fix. Reset lab and run it
@@ -93,10 +102,11 @@ Ladder s1 (https://freeapp4that.store/defense-ladder/#sophomore/s1).
   - Secure configuration: services, firewall, features, remote access,
     unauthorized software
   - Patching: Windows Update
-  - Malware defenses: Defender, planted services, and scheduled tasks
+  - Malware defenses: Defender, planted services, scheduled tasks, and startup
+    items
   - Audit logging: audit policy
   - Data protection: prohibited media files
-  - Investigation: the two questions on the Desktop (forensics basics).
+  - Investigation: the questions on the Desktop (forensics basics).
 
 --------------------------------------------------------------------------------
 3. SCENARIO 1 - RECRUIT: KAIMANA DENTAL CLINIC — FRONT DESK PC
@@ -140,19 +150,32 @@ Investigation questions
       ANSWER: kekoa
       (Hint: net user <name> shows "Password expires"; or lusrmgr.msc > Users >
        Properties)
+  Q3  The Security log records who created each account. Which account created
+      the techsupport account?
+      ANSWER: dwight
+      (Hint: Event Viewer (eventvwr.msc) > Windows Logs > Security > Filter
+       Current Log, Event ID 4720, then read Subject: Account Name. Or, in
+       PowerShell as administrator: Get-WinEvent -FilterHashtable
+       @{LogName='Security'; Id=4720} | Format-List TimeCreated,Message)
+  Q4  The Windows System Helper service runs C:\Users\Public\Libraries\wsh.exe.
+      What Status does Get-AuthenticodeSignature report for that program?
+      ANSWER: NotSigned
+      (Hint: in PowerShell, Get-AuthenticodeSignature
+       C:\Users\Public\Libraries\wsh.exe (Valid means a trusted publisher signed
+       it, and NotSigned means the file is unsigned).)
 
 Checks (100 points)
-  [6]  Unauthorized user "dwight" removed
+  [5]  Unauthorized user "dwight" removed
        area: Account management
        fix: lusrmgr.msc > Users > dwight > Delete
        or:  net user dwight /delete
        why: An account nobody authorized is a door into the machine.
-  [6]  Unauthorized user "techsupport" removed
+  [5]  Unauthorized user "techsupport" removed
        area: Account management
        fix: lusrmgr.msc > Users > techsupport > Delete
        or:  net user techsupport /delete
        why: An account nobody authorized is a door into the machine.
-  [6]  "moana" removed from the Administrators group (not an authorized
+  [5]  "moana" removed from the Administrators group (not an authorized
        administrator)
        area: Access control
        fix: lusrmgr.msc > Groups > Administrators > Properties > moana > Remove
@@ -182,7 +205,7 @@ Checks (100 points)
             Notepad, then secedit /configure /db C:\Windows\security\local.sdb
             /cfg C:\sec.inf
        why: Complexity blocks "password1" and the user's own name.
-  [6]  Account lockout after 1 to 10 failed attempts, with a lockout duration of
+  [5]  Account lockout after 1 to 10 failed attempts, with a lockout duration of
        15 minutes or more
        area: Access control
        fix: secpol.msc > Account Lockout Policy > threshold 5, duration 30,
@@ -198,7 +221,7 @@ Checks (100 points)
        or:  auditpol /set /category:"Logon/Logoff" /success:enable
             /failure:enable
        why: No audit trail means no way to see who signed in or what changed.
-  [6]  Windows Defender Firewall on for all profiles
+  [5]  Windows Defender Firewall on for all profiles
        area: Secure configuration
        fix: Windows Security > Firewall & network protection > Domain, Private,
             Public = On
@@ -211,7 +234,7 @@ Checks (100 points)
             Real-time protection = On
        or:  Set-MpPreference -DisableRealtimeMonitoring $false
        why: With real-time protection off, malware runs unchallenged.
-  [6]  Windows updates installed and not paused
+  [5]  Windows updates installed and not paused
        area: Patching
        fix: Settings > Windows Update > Resume updates > Check for updates >
             Install all > Restart now
@@ -220,20 +243,21 @@ Checks (100 points)
   [4]  Remote Registry service stopped and disabled
        area: Secure configuration
        fix: services.msc > Remote Registry > Stop, Startup type = Disabled
-       or:  sc stop RemoteRegistry && sc config RemoteRegistry start= disabled
+       or:  sc.exe stop RemoteRegistry, then sc.exe config RemoteRegistry start=
+            disabled
        why: Unneeded listening services are ways in; Disabled keeps them off
             after a reboot.
-  [6]  Planted scheduled task "SystemUpdaterSvc" removed or disabled
+  [5]  Planted scheduled task "SystemUpdaterSvc" removed or disabled
        area: Malware defenses
        fix: taskschd.msc > "SystemUpdaterSvc" > Delete
        or:  schtasks /delete /tn "SystemUpdaterSvc" /f
-       why: A task that runs a .bat from a public folder re-infects the machine
-            on schedule.
+       why: A task that runs a script from a public folder re-infects the
+            machine on schedule.
   [4]  Rogue service "Windows System Helper" (WinSysHelper) disabled or removed
        area: Malware defenses
        fix: services.msc > "Windows System Helper" > Stop, Startup type =
             Disabled
-       or:  sc stop WinSysHelper && sc delete WinSysHelper
+       or:  sc.exe stop WinSysHelper, then sc.exe delete WinSysHelper
        why: A homemade service running from a user folder is persistence for an
             intruder.
   [5]  Unauthorized software removed (TorrentBolt 3.1, GameLoop Arcade,
@@ -256,6 +280,10 @@ Checks (100 points)
        fix: Answer: SystemUpdaterSvc
   [5]  Investigation 2 answered
        fix: Answer: kekoa
+  [4]  Investigation 3 answered
+       fix: Answer: dwight
+  [3]  Investigation 4 answered
+       fix: Answer: NotSigned
 
 Availability checks (points lost if you break what the business needs)
   -6  Authorized user removed or disabled
@@ -280,12 +308,15 @@ Scenario Brief summary
   Authorized administrators: labuser (you) - password: Medium!2026; coachk
   Authorized users: tavita, hiro, pua, mele, keahi
   Required services and settings:
-    - No remote access is needed: no Remote Desktop, no Remote Registry.
+    - Remote access stays off on this PC: Remote Desktop, Remote Assistance, and
+      Remote Registry.
     - The firewall must be on for every profile; Microsoft Defender must stay
       on; Windows Update must run.
   Security policy:
     - Only the Authorized Administrators may be in the Administrators group.
-    - Guest must be disabled; every account must have a password of at least 10
+    - Remove anything planted to start on its own: scheduled tasks and
+      Startup-folder shortcuts.
+    - Guest must be disabled. Every account must have a password of at least 10
       characters, complex, with a history of 5 or more, a maximum age of 30 to
       90 days, and a minimum age of 1 day or more.
     - Account lockout (after 10 or fewer failed attempts, for 15 minutes or
@@ -304,8 +335,8 @@ Investigation questions
       not require a password, and its password is blank. Which account is it?
       ANSWER: pua
       (Hint: net user <name> shows "Password required" (No means the account may
-       have a blank password); in PowerShell, Get-LocalUser <name> lists
-       PasswordRequired.)
+       have a blank password); in PowerShell, Get-LocalUser <name> | Format-List
+       * lists PasswordRequired.)
   Q2  An inbound firewall rule was added that is not part of Windows. What TCP
       port does it allow?
       ANSWER: 4444
@@ -313,9 +344,14 @@ Investigation questions
        Group sits outside the Windows set (Core Networking, File and Printer
        Sharing, and the like), or: netsh advfirewall firewall show rule
        name="Remote Helper (TCP-In)" and read the LocalPort line.)
+  Q3  The planted task runs C:\Users\Public\Libraries\dc.bat. What are the first
+      8 characters of its SHA256 hash? Record it before you remove the file.
+      ANSWER: 4B10444A
+      (Hint: in PowerShell, Get-FileHash -Algorithm SHA256
+       C:\Users\Public\Libraries\dc.bat; the Hash column holds the value.)
 
 Checks (100 points)
-  [5]  Unauthorized user "svc_backup" removed
+  [4]  Unauthorized user "svc_backup" removed
        area: Account management
        fix: lusrmgr.msc > Users > svc_backup > Delete
        or:  net user svc_backup /delete
@@ -327,7 +363,7 @@ Checks (100 points)
        or:  net localgroup Administrators hiro /delete
        why: Administrators can undo every other fix; only the administrators
             named in the Scenario Brief belong there (least privilege).
-  [5]  Blank password on account "pua" replaced with a real one
+  [4]  Blank password on account "pua" replaced with a real one
        area: Account management
        fix: lusrmgr.msc > pua > Set Password...
        or:  net user pua Str0ng-Passw0rd! /passwordreq:yes
@@ -338,7 +374,7 @@ Checks (100 points)
        fix: lusrmgr.msc > Guest > Properties > check "Account is disabled"
        or:  net user Guest /active:no
        why: Guest is an anonymous login with no password.
-  [4]  Minimum password length is 10 or more
+  [3]  Minimum password length is 10 or more
        area: Account management
        fix: secpol.msc > Password Policy > Minimum password length = 12
        or:  net accounts /minpwlen:12
@@ -365,9 +401,10 @@ Checks (100 points)
        area: Account management
        fix: secpol.msc > Password Policy > Minimum password age = 1
        or:  net accounts /minpwage:1
-       why: Without it, users cycle through the history in seconds to reuse an
-            old password. When a maximum age is set, the minimum must be lower
-            than it.
+       why: A minimum age of 1 day makes each password change wait a day, so
+            cycling through the history to reuse an old password takes days
+            instead of seconds. When a maximum age is set, the minimum must stay
+            lower than it.
   [3]  Account lockout after 1 to 10 failed attempts, with a lockout duration of
        15 minutes or more
        area: Access control
@@ -426,7 +463,7 @@ Checks (100 points)
             PromptOnSecureDesktop /d 1
        why: With UAC off, any program the user runs silently gets administrator
             power.
-  [4]  Windows Defender Firewall on for all profiles
+  [3]  Windows Defender Firewall on for all profiles
        area: Secure configuration
        fix: Windows Security > Firewall & network protection > Domain, Private,
             Public = On
@@ -470,7 +507,8 @@ Checks (100 points)
   [3]  Remote Registry service stopped and disabled
        area: Secure configuration
        fix: services.msc > Remote Registry > Stop, Startup type = Disabled
-       or:  sc stop RemoteRegistry && sc config RemoteRegistry start= disabled
+       or:  sc.exe stop RemoteRegistry, then sc.exe config RemoteRegistry start=
+            disabled
        why: Unneeded listening services are ways in; Disabled keeps them off
             after a reboot.
   [3]  Remote Desktop disabled (not required on this machine)
@@ -480,6 +518,16 @@ Checks (100 points)
             fDenyTSConnections /t REG_DWORD /d 1 /f
        why: RDP exposed on a workstation is the most common ransomware entry
             point.
+  [2]  Remote Assistance turned off and its firewall rules disabled
+       area: Secure configuration
+       fix: SystemPropertiesRemote > Remote > clear "Allow Remote Assistance
+            connections to this computer"
+       or:  reg add "HKLM\SYSTEM\CurrentControlSet\Control\Remote Assistance" /v
+            fAllowToGetHelp /t REG_DWORD /d 0 /f, then Disable-NetFirewallRule
+            -Group "@FirewallAPI.dll,-33002"
+       why: Remote Assistance lets a helper on the network see and control this
+            screen once a user accepts an invitation, a favorite opening for
+            fake support callers. The brief rules out remote access here.
   [2]  Telnet Client feature turned off
        area: Secure configuration
        fix: optionalfeatures > uncheck "Telnet Client"
@@ -490,7 +538,7 @@ Checks (100 points)
        fix: optionalfeatures > uncheck "SMB 1.0/CIFS File Sharing Support"
        or:  Disable-WindowsOptionalFeature -Online -FeatureName SMB1Protocol
        why: SMBv1 is the protocol WannaCry spread over.
-  [4]  Unauthorized software removed (CoinSweeper Miner, TorrentBolt 3.1,
+  [3]  Unauthorized software removed (CoinSweeper Miner, TorrentBolt 3.1,
        PortProbe Toolkit, ArcadeLoop)
        area: Secure configuration
        fix: Settings > Apps > Installed apps > ... > Uninstall (each):
@@ -498,7 +546,7 @@ Checks (100 points)
        or:  appwiz.cpl
        why: File-sharing clients, miners, and scanners are banned by policy and
             often carry malware.
-  [4]  Prohibited media files removed from user folders
+  [3]  Prohibited media files removed from user folders
        area: Data protection
        fix: File Explorer > C:\Users\<user>\Music, Videos, Downloads > Delete
        or:  del /s /a C:\Users\*.mp3 C:\Users\*.m4a C:\Users\*.wav
@@ -510,12 +558,22 @@ Checks (100 points)
        area: Malware defenses
        fix: taskschd.msc > "DriverCleanupSvc" > Delete
        or:  schtasks /delete /tn "DriverCleanupSvc" /f
-       why: A task that runs a .bat from a public folder re-infects the machine
-            on schedule.
-  [5]  Investigation 1 answered
+       why: A task that runs a script from a public folder re-infects the
+            machine on schedule.
+  [3]  Startup-folder launcher "RobotSync.lnk" removed
+       area: Malware defenses
+       fix: Win+R > shell:common startup > RobotSync.lnk > Delete
+       or:  del "C:\ProgramData\Microsoft\Windows\Start
+            Menu\Programs\StartUp\RobotSync.lnk"
+       why: A shortcut in the all-users Startup folder starts its program for
+            everyone who signs in, so a planted back door returns after every
+            restart.
+  [4]  Investigation 1 answered
        fix: Answer: pua
-  [5]  Investigation 2 answered
+  [4]  Investigation 2 answered
        fix: Answer: 4444
+  [3]  Investigation 3 answered
+       fix: Answer: 4B10444A
 
 Availability checks (points lost if you break what the business needs)
   -6  Authorized user removed or disabled
@@ -562,6 +620,9 @@ Scenario Brief summary
     - Remove unauthorized software and unauthorized scheduled jobs.
     - Microsoft Defender scans every folder on this server, with every exclusion
       removed.
+    - Everyone loses its full control of the HR folder (C:\Shares\HR); the HR
+      clerk keeps Modify.
+    - Delete any password saved for an account you remove.
 
 Investigation questions
   Q1  Which account is a member of the Administrators group but is NOT listed in
@@ -569,8 +630,8 @@ Investigation questions
       ANSWER: backup_admin
       (Hint: net localgroup Administrators, or lusrmgr.msc > Groups >
        Administrators)
-  Q2  A scheduled task runs a .bat file from C:\Users\Public. What is the name
-      of that task?
+  Q2  A scheduled task runs a script from C:\Users\Public. What is the name of
+      that task?
       ANSWER: IISLogCleaner
       (Hint: schtasks /query /fo LIST /v | findstr /i "TaskName Task.To.Run")
 
@@ -586,8 +647,8 @@ Checks (100 points)
             Remove
        or:  net localgroup "Backup Operators" hrclerk /delete
        why: Backup Operators can read and restore every file on the machine,
-            past any folder permission: an administrator-level right that
-            belongs only to the administrators the brief names.
+            past any folder permission: an administrator-level right for the
+            brief's named administrators only.
   [3]  "Password never expires" cleared on dispatch2
        area: Account management
        fix: lusrmgr.msc > dispatch2 > Properties > uncheck "Password never
@@ -599,7 +660,7 @@ Checks (100 points)
        fix: lusrmgr.msc > Guest > Properties > check "Account is disabled"
        or:  net user Guest /active:no
        why: Guest is an anonymous login with no password.
-  [4]  Minimum password length is 12 or more
+  [3]  Minimum password length is 12 or more
        area: Account management
        fix: secpol.msc > Password Policy > Minimum password length = 12
        or:  net accounts /minpwlen:12
@@ -626,9 +687,10 @@ Checks (100 points)
        area: Account management
        fix: secpol.msc > Password Policy > Minimum password age = 1
        or:  net accounts /minpwage:1
-       why: Without it, users cycle through the history in seconds to reuse an
-            old password. When a maximum age is set, the minimum must be lower
-            than it.
+       why: A minimum age of 1 day makes each password change wait a day, so
+            cycling through the history to reuse an old password takes days
+            instead of seconds. When a maximum age is set, the minimum must stay
+            lower than it.
   [2]  Store passwords using reversible encryption disabled
        area: Account management
        fix: secpol.msc > Password Policy > "Store passwords using reversible
@@ -636,9 +698,9 @@ Checks (100 points)
        or:  secedit template line ClearTextPassword = 0, then secedit /configure
             /db C:\Windows\security\local.sdb /cfg C:\sec.inf
        why: Reversible encryption stores each password in a form that decrypts
-            back to the plain text, so one stolen copy of the account database
+            back to the plain text. One stolen copy of the account database then
             reveals every password.
-  [4]  Account lockout after 1 to 10 failed attempts, with a lockout duration of
+  [3]  Account lockout after 1 to 10 failed attempts, with a lockout duration of
        15 minutes or more
        area: Access control
        fix: secpol.msc > Account Lockout Policy > threshold 5, duration 30,
@@ -676,8 +738,8 @@ Checks (100 points)
        or:  reg add HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v
             LmCompatibilityLevel /t REG_DWORD /d 5 /f
        why: Windows Server 2025 has removed NTLMv1, but the setting is still
-            there and hardening baselines still require level 5: a lower value
-            is a deliberate downgrade to undo, and on older systems the same
+            there and hardening baselines still require level 5. A lower value
+            is a deliberate downgrade to undo. On the older systems the same
             policy reaches, LM and NTLMv1 responses crack in seconds.
   [3]  UAC at the default level or higher (prompts on the secure desktop)
        area: Access control
@@ -703,12 +765,13 @@ Checks (100 points)
        or:  netsh advfirewall firewall delete rule name="Ops Remote Helper
             (TCP-In)"
        why: An allow-anything rule on an odd port is a planted back door.
-  [4]  FTP server removed (service stopped and feature off)
+  [3]  FTP server removed (service stopped and feature off)
        area: Secure configuration
        fix: Uninstall-WindowsFeature -Name Web-Ftp-Server
        or:  optionalfeatures > Internet Information Services > uncheck "FTP
             Server"
        or:  Disable-WindowsOptionalFeature -Online -FeatureName IIS-FTPServer
+       or:  Server Manager > Manage > Remove Roles and Features
        why: FTP sends credentials in clear text, and the Scenario Brief does not
             authorize it.
   [3]  SMB 1.0/CIFS File Sharing Support feature turned off
@@ -742,7 +805,7 @@ Checks (100 points)
             or remove exclusions > C:\Users\Public\Libraries > Remove
        or:  Remove-MpPreference -ExclusionPath "C:\Users\Public\Libraries"
        why: An exclusion tells Microsoft Defender to skip a folder, so a program
-            stored there runs unscanned even with real-time protection on; an
+            stored there runs unscanned even with real-time protection on. An
             intruder adds one for the folder their tools run from.
   [3]  Windows updates installed and not paused
        area: Patching
@@ -754,23 +817,35 @@ Checks (100 points)
        area: Malware defenses
        fix: taskschd.msc > "IISLogCleaner" > Delete
        or:  schtasks /delete /tn "IISLogCleaner" /f
-       why: A task that runs a .bat from a public folder re-infects the machine
-            on schedule.
+       why: A task that runs a script from a public folder re-infects the
+            machine on schedule.
   [3]  Rogue service "Server Health Monitor" (SrvHealthMon) disabled or removed
        area: Malware defenses
        fix: services.msc > "Server Health Monitor" > Stop, Startup type =
             Disabled
-       or:  sc stop SrvHealthMon && sc delete SrvHealthMon
+       or:  sc.exe stop SrvHealthMon, then sc.exe delete SrvHealthMon
        why: A homemade service running from a user folder is persistence for an
             intruder.
-  [4]  Unauthorized software removed (PortProbe Toolkit, TorrentBolt 3.1)
+  [3]  Unauthorized software removed (PortProbe Toolkit, TorrentBolt 3.1)
        area: Secure configuration
        fix: Settings > Apps > Installed apps > ... > Uninstall (each): PortProbe
             Toolkit, TorrentBolt 3.1
        or:  appwiz.cpl
        why: File-sharing clients, miners, and scanners are banned by policy and
             often carry malware.
-  [5]  Investigation 1 answered
+  [2]  Saved password for HONUA-NAS01 (backup_admin) deleted
+       area: Access control
+       fix: cmdkey /list, then cmdkey /delete:HONUA-NAS01
+       why: A saved password still opens HONUA-NAS01 as backup_admin for anyone
+            who signs in as you, even after the account here is gone.
+  [3]  Everyone removed from the NTFS permissions on C:\Shares\HR
+       area: Access control
+       fix: icacls "C:\Shares\HR" /remove Everyone, then icacls "C:\Shares\HR"
+            /grant "hrclerk:(OI)(CI)M"
+       why: Full control for Everyone lets any account read, change, or delete
+            these records and even rewrite who may open them. Grant access to
+            the people the brief names.
+  [4]  Investigation 1 answered
        fix: Answer: backup_admin
   [5]  Investigation 2 answered
        fix: Answer: IISLogCleaner
@@ -782,6 +857,7 @@ Availability checks (points lost if you break what the business needs)
   -10  Remote Desktop disabled on a server that requires it
   -10  Web server (IIS) stopped, removed, or blocked by the firewall
   -6  Required file share removed (HR, Ops)
+  -5  hrclerk lost Modify access to C:\Shares\HR
   -5  Required service "Windows Defender Firewall" stopped or disabled
   -5  Required service "Microsoft Defender Antivirus" stopped or disabled
   -5  Windows Update service disabled
@@ -798,6 +874,8 @@ Open the tools (Start > Run, or Alt+R in this lab)
   services.msc           Services (startup type, stop/start)
   taskschd.msc           Task Scheduler
   wf.msc                 Windows Defender Firewall with Advanced Security
+  eventvwr.msc           Event Viewer (Security, System, and Application logs)
+  shell:common startup   Startup folder for every account (shell:startup: yours)
   appwiz.cpl             Programs and Features (uninstall)
   optionalfeatures       Windows Features (Telnet Client, SMB 1.0, IIS, FTP)
   UserAccountControlSettings   UAC slider
@@ -848,10 +926,15 @@ Security options and remote access (reg add needs /t REG_DWORD /d N /f)
   "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server"
     fDenyTSConnections = 1 (RDP off)   ...\WinStations\RDP-Tcp
     UserAuthentication = 1 (NLA)
+  reg export KEY C:\Backup\KEY.reg   keeps a copy of the key before a change
+  reg import C:\Backup\KEY.reg       sets the saved values back
+  PowerShell: Test-Path HKLM:\KEY, then New-Item -Path HKLM:\KEY only when it is
+    False (-Force empties a key that exists)
 
 Services and tasks
-  sc query NAME; sc qc NAME          state and startup type
-  sc stop NAME && sc config NAME start= disabled   (the space after = matters)
+  sc.exe query NAME; sc.exe qc NAME  state and startup type
+  sc.exe stop NAME, then sc.exe config NAME start= disabled
+    (the space after = matters; sc.exe works in both shells)
   PowerShell: Get-Service; Set-Service -Name NAME -StartupType Disabled
   schtasks /query /fo LIST /v | findstr /i "TaskName Task.To.Run"
   schtasks /delete /tn "NAME" /f
@@ -859,6 +942,22 @@ Services and tasks
   tasklist /svc /fi "PID eq 1234"     services inside a PID
   PowerShell: Get-Process -Id 1234 | Select-Object Name,Path; Stop-Process -Id
     1234 -Force
+
+Evidence (PowerShell; the Security log needs an administrator window)
+  Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4720} | Format-List
+    TimeCreated,Message
+    4720 account created, 4732 added to a group, 4625 failed sign-in,
+    7045 (System log) service installed
+  Get-FileHash -Algorithm SHA256 FILE        hash it before you delete it
+  certutil -hashfile FILE SHA256             the same hash from Command Prompt
+  Get-AuthenticodeSignature FILE             Valid (signed) or NotSigned
+  Get-Content FILE -Stream Zone.Identifier   ZoneId=3: an internet download
+  Get-CimInstance Win32_StartupCommand       every startup item
+  cmdkey /list; cmdkey /delete:TARGET        passwords saved for your account
+  icacls FOLDER; icacls FOLDER /remove Everyone
+  icacls FOLDER /grant "NAME:(OI)(CI)M"      Modify for NAME, inherited below
+  Read an encoded command without running it:
+    [Text.Encoding]::Unicode.GetString([Convert]::FromBase64String('TEXT'))
 
 Shares
   net share                          every share, hidden $ shares included
@@ -878,6 +977,8 @@ Firewall, Defender, features
     Update-MpSignature; Start-MpScan -ScanType QuickScan
   Server: Get-WindowsFeature Web-Ftp-Server; Uninstall-WindowsFeature -Name
     Web-Ftp-Server
+  Server: sconfig shows the update, network, and Remote Desktop settings in one
+    menu
 
 Files
   Find media in every profile, Downloads included (PowerShell): Get-ChildItem
@@ -886,6 +987,8 @@ Files
     SilentlyContinue
   Delete them with one pattern per extension found (/a includes hidden files):
     del /s /a C:\Users\*.mp3 C:\Users\*.m4a C:\Users\*.mp4 C:\Users\*.mkv
+  Remove a whole folder: rd /s /q FOLDER (Command Prompt) or Remove-Item -Path
+    FOLDER -Recurse -Force
   File Explorer: View > Show > Hidden items to see hidden folders
 
 --------------------------------------------------------------------------------
@@ -897,9 +1000,15 @@ Files
   - UAC prompts on a real machine appear for every elevation; the lab asks once
     per sign-in.
   - Windows+R cannot be captured by a web page: use Alt+R or the Run tile.
-  - Registry Editor, Event Viewer, Task Manager, and most third-party programs
-    sit outside the simulation. reg.exe covers only the values listed in section
-    6.
+  - Registry Editor, Task Manager, and most third-party programs sit outside the
+    simulation. reg.exe and Set-ItemProperty store any value you write and read
+    it back; the values listed in section 6 are the ones that change how the lab
+    machine behaves.
+  - Each scenario's event logs start with a short history. Then they record
+    account and group changes once Account Management auditing is on (the User
+    Account Management and Security Group Management subcategories), and service
+    start-type changes always. A real machine logs far more, so filter by event
+    ID.
   - Compliance scanners and Group Policy read the same settings the lab checks,
     but some changes only take effect after a policy refresh (gpupdate /force)
     or a restart.
@@ -907,12 +1016,13 @@ Files
     and record each change in a change log.
   - Never run these commands on a computer you depend on. Practice VMs and this
     lab are the places to experiment.
-  - Version notes (Windows 11 version 26H2, Windows Server 2025): WMIC is
-    removed from Windows 11, so use PowerShell instead (Get-CimInstance,
-    Get-HotFix, Get-LocalUser, Get-Service); Windows PowerShell 2.0, Microsoft
-    Defender Application Guard, and NTLMv1 are removed; new installs of Windows
-    11 22H2 and later lock an account after 10 failed sign-ins for 10 minutes by
-    default.
+  - Version notes (Windows 11 version 26H2, Windows Server 2025):
+    - WMIC is removed from Windows 11, so use PowerShell instead
+      (Get-CimInstance, Get-HotFix, Get-LocalUser, Get-Service).
+    - Windows PowerShell 2.0, Microsoft Defender Application Guard, and NTLMv1
+      are removed.
+    - New installs of Windows 11 22H2 and later lock an account after 10 failed
+      sign-ins for 10 minutes by default.
 
 --------------------------------------------------------------------------------
 8. SOURCES

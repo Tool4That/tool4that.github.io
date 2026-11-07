@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-pxVvL68lQyUZNF6Jl5CVDpRRRpyzsrFagTnT+5J36+o='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-6cG3Nedgu6zOqXk//gBqCdfD6ygVAgYRoAoown9fLZY=' 'sha256-fdrbz9PDCKiE4XvnDBxiBpUjEuCA+0zwunDjBgyD0TQ='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Slide the mask in the sandbox and watch every value react, then work out network, broadcast, and host ranges against the clock. Includes VLSM planning and IPv6 drills.">
 <link rel="canonical" href="https://freeapp4that.store/net-drills/subnet-sprint/">
@@ -184,6 +184,21 @@ fieldset.topics legend{font-size:14px;color:var(--muted);padding:0;margin-bottom
 footer{margin-top:40px;font-size:13px;color:var(--muted)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @media (prefers-reduced-motion:no-preference){.led{transition:background-color .15s}}
+
+/* reading support (panel review): text size, support bar, terms panel, banner, contrast, forced colours, print */
+:root[data-text="large"]{font-size:112.5%}:root[data-text="larger"]{font-size:125%}
+:root[data-text="large"] body{font-size:18px}:root[data-text="larger"] body{font-size:20px}
+.sbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 14px;max-width:100%;font-size:.85rem}
+.sbar button,.theme.sb{font:inherit;font-size:.8rem;padding:5px 10px;border-radius:999px;border:1px solid var(--line,var(--rule,#8a97a5));background:var(--panel,var(--face,#fff));color:var(--ink);cursor:pointer;white-space:nowrap}
+.termsbox{position:fixed;right:12px;bottom:12px;width:min(420px,calc(100vw - 24px));max-height:min(60vh,520px);overflow:auto;background:var(--panel,var(--face,#fff));color:var(--ink);border:1px solid var(--line,var(--rule,#8a97a5));border-radius:12px;padding:12px 14px;box-shadow:0 8px 28px rgba(0,0,0,.25);z-index:50;font-size:.92rem}
+.termsbox h2{margin:0 0 6px;font-size:1rem}.termsbox .trow{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px}.termsbox input{flex:1;min-width:120px;font:inherit;padding:5px 8px;border:1px solid var(--line,var(--rule,#8a97a5));border-radius:8px;background:var(--panel,var(--face,#fff));color:var(--ink)}
+.termsbox button{font:inherit;font-size:.8rem;padding:4px 9px;border-radius:8px;border:1px solid var(--line,var(--rule,#8a97a5));background:var(--panel,var(--face,#fff));color:var(--ink);cursor:pointer}
+.termsbox dl{margin:6px 0 0}.termsbox dt{font-weight:600;margin-top:6px}.termsbox dd{margin:0}.termsbox .tdef{margin:4px 0;padding:6px 8px;border-left:3px solid currentColor;min-height:1.2em}
+.sharebar{display:flex;flex-wrap:wrap;gap:.5rem .8rem;align-items:center;padding:.6rem .9rem;background:var(--soft,var(--face,#eef3f7));color:var(--ink);border-bottom:1px solid var(--line,var(--rule,#8a97a5));font-size:.92rem;max-width:100%}
+.sharebar button{font:inherit;font-size:.85rem;padding:.25rem .7rem;border-radius:6px;border:1px solid var(--line,var(--rule,#8a97a5));background:var(--panel,var(--face,#fff));color:var(--ink);cursor:pointer}
+@media (prefers-contrast:more){:root{--line:currentColor;--rule:currentColor}button,.btn,.opts button,.list button,.chk,.card,.ticket{border:1px solid currentColor}}
+@media (forced-colors:active){button,.btn,.opts button,.list button{border:1px solid ButtonText}.bar2 i,.fill{background:Highlight}}
+@media print{.sbar,.termsbox,.sharebar,header .levels,header .modes,header .theme,nav.series,aside.report,footer,.nav,button{display:none !important}.wrap{display:block}.list{flex-direction:column}.list button{display:grid !important;border:none}#view,.learn{display:block}body{background:#fff;color:#000}}
 </style>
 <style>a.jack{color:inherit;text-decoration:none}a.jack:hover,a.jack:focus-visible{color:var(--ink);text-decoration:underline;text-underline-offset:3px}</style>
 </head>
@@ -199,6 +214,7 @@ footer{margin-top:40px;font-size:13px;color:var(--muted)}
   <h1>Subnet Sprint</h1>
   <p class="lede">Work out the network, broadcast, and usable host range for any IPv4 address, then do it faster.</p>
 </header>
+<div class="sbar" role="toolbar" aria-label="Reading support"><button type="button" id="sbTheme">Theme: auto</button><button type="button" id="sbText">Text: Default</button><button type="button" id="sbRead">Read aloud</button><button type="button" id="sbTerms" aria-controls="termsbox">Terms</button></div>
 
 <div class="tabs" role="tablist" aria-label="Practice mode">
   <button role="tab" id="t-sand" aria-controls="p-sand" aria-selected="true">Sandbox</button>
@@ -325,7 +341,7 @@ footer{margin-top:40px;font-size:13px;color:var(--muted)}
 </section>
 
 <section id="p-quick" role="tabpanel" aria-labelledby="t-quick" hidden>
-  <p class="tier"><b>Sophomore</b> · Learn it: <a href="https://freeapp4that.store/defense-ladder/#sophomore/s5" target="_blank" rel="noopener">Defense Ladder s5, Addresses and subnets</a>; for binary and decimal, <a href="https://freeapp4that.store/defense-ladder/#freshman/f7" target="_blank" rel="noopener">Freshman f7, Core ideas</a>; for IPv6, <a href="https://freeapp4that.store/defense-ladder/#freshman/f7" target="_blank" rel="noopener">Freshman f7, Networking fundamentals and Cisco basics</a> (the IPv6 addresses in text detail panel). Wildcard masks are <b>Junior</b> · Learn it: <a href="https://freeapp4that.store/defense-ladder/#junior/j4" target="_blank" rel="noopener">j4, Cisco: VLANs, routing, and ACLs</a></p>
+  <p class="tier"><b>Sophomore</b> · Learn it: <a href="https://freeapp4that.store/defense-ladder/#sophomore/s5" target="_blank" rel="noopener">Defense Ladder s5, Addresses and subnets</a>; for binary, decimal, and IPv6, <a href="https://freeapp4that.store/defense-ladder/#freshman/f7" target="_blank" rel="noopener">Freshman f7, Networking fundamentals and Cisco basics</a> (binary and decimal in Core ideas; IPv6 in the IPv6 addresses in text detail panel). Wildcard masks are <b>Junior</b> · Learn it: <a href="https://freeapp4that.store/defense-ladder/#junior/j4" target="_blank" rel="noopener">j4, Cisco: VLANs, routing, and ACLs</a></p>
   <fieldset class="topics">
     <legend>Topics in the mix</legend>
     <div class="chips" id="chips">
@@ -493,7 +509,7 @@ const GEN = {
   },
   v6() {
     const g = v6Random(), full = g.join(':'), comp = v6Compress(g), k = rnd(0, 2);
-    if (k === 0) return { q: `Compress this IPv6 address: ${full}`, a: g, kind: 'v6', why: `Drop leading zeros in each group, then replace the longest run of all-zero groups (two or more; the first run if two tie) with :: once, and write hex digits in lowercase (RFC 5952). Result: ${comp}` };
+    if (k === 0) return { q: `Compress this IPv6 address: ${full}`, a: g, kind: 'v6', why: `Drop leading zeros in each group. Replace the longest run of two or more all-zero groups with :: once; on a tie, pick the first run. Write hex digits in lowercase (RFC 5952). Result: ${comp}` };
     if (k === 1) return { q: `Write ${comp} out in full, all 8 groups.`, a: g, kind: 'v6e', why: `:: stands for as many 0000 groups as it takes to reach 8, and every group is padded to 4 hex digits: ${full}` };
     const net = [...g.slice(0, 4), '0000', '0000', '0000', '0000'];
     return { q: `What is the network prefix of ${comp}/64?`, a: net, kind: 'v6pfx', why: `A /64 keeps the first 4 groups (64 bits) and zeroes the rest: ${v6Compress(net)}/64` };
@@ -529,7 +545,8 @@ function makePlan(level) {
   return null;
 }
 function planSteps(pr) {
-  const out = [`Largest first: ${pr.order.map(r => `${r.name} ${r.hosts} + 2 = ${r.hosts + 2} → ${r.size} addresses (/${r.p})`).join('; ')}.`];
+  const out = ['Sort the networks largest first, so each one takes the next block in size order.'];
+  pr.order.forEach(r => out.push(`${r.name}: ${r.hosts} hosts + 2 = ${r.hosts + 2} → ${r.size} addresses (/${r.p}).`));
   pr.order.forEach(r => out.push(`${r.name}: ${toStr(r.net)}/${r.p}, hosts ${toStr(r.net + 1)} to ${toStr(r.bc - 1)}, broadcast ${toStr(r.bc)}. Next subnet starts at ${toStr(r.bc + 1)}.`));
   return out;
 }
@@ -981,6 +998,90 @@ newProblem(); updFull();
 newPlan(); updPlan();
 nextQ(false); updQuick();
 newTarget(); updBin();
+})();
+</script>
+<div id="termsbox" class="termsbox" hidden role="dialog" aria-label="Terms on this page"><h2>Terms on this page</h2><div class="trow"><input id="termsQ" type="search" placeholder="Filter terms" aria-label="Filter terms"><button type="button" id="termsDefine">Define selection</button><button type="button" id="termsClose">Close</button></div><p class="tdef" id="termsDef" role="status">Select a word on the page and press Define selection, or browse the list. Definitions come from the Defense Ladder glossary.</p><dl id="termsList"></dl></div>
+<script>
+/* Reading support (panel review, UDL): text size, read aloud, terms, and (Drills) a shared-computer banner. Same code in every practice page. */
+(function(){
+  const C={"key": "netdrills.subnet-sprint", "read": ["section[role=tabpanel]:not([hidden])"], "gloss": [["Baseline", "A record of how a system looks before you change it: its users, services, ports, software, and settings."], ["Broadcast address", "The last address of a subnet, with every host bit set to 1."], ["Host route", "A /32 route that matches exactly one address."], ["HTTPS", "HTTP inside TLS on port 443: private and protected against tampering."], ["JSON", "A data format of braces, brackets, and quoted keys, used in API answers, cloud policies, and audit events."], ["Network address", "The first address of a subnet, with every host bit set to 0."], ["OSPF", "A link-state routing protocol in which neighbors share routes inside areas; area 0 is the backbone."], ["Prefix length", "The /n count of leading network bits in an address."], ["RADIUS", "The server that answers 802.1X and VPN sign-in requests, assigns a VLAN, and logs each decision."], ["root", "The Linux superuser, UID 0, with full control of the system."], ["Sandbox", "A walled-off, low-rights space where code runs with little reach: browsers and apps run each tab or app in one, and analysts open suspicious files in one to watch what they do."], ["Script", "A text file of commands that an interpreter reads and runs. Read every line before you run one."], ["Subnet mask", "The number that marks the network part of an address, such as 255.255.255.0 for /24."], ["VLSM", "Carving one address block into subnets of different sizes, largest first."], ["WAN", "Wide area network: links that join distant sites, rented from a provider or run over the internet."], ["Wildcard mask", "An ACL and OSPF mask in which 0 bits must match and 1 bits are ignored: the inverse of the subnet mask."]]};
+  const $=s=>document.querySelector(s);
+  const lsGet=k=>{try{return localStorage.getItem(k);}catch(e){return null;}};
+  const lsSet=(k,v)=>{try{localStorage.setItem(k,v);}catch(e){}};
+  const lsDel=k=>{try{localStorage.removeItem(k);}catch(e){}};
+  /* theme (pages without their own button) */
+  const themeBtn=$('#sbTheme');
+  if(themeBtn){
+    const apply=t=>{if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);else document.documentElement.removeAttribute('data-theme');themeBtn.textContent='Theme: '+(t||'auto');};
+    let t=lsGet(C.key+'-theme');if(t!=='light'&&t!=='dark')t='';apply(t);
+    themeBtn.addEventListener('click',()=>{t=t===''?'light':t==='light'?'dark':'';if(t)lsSet(C.key+'-theme',t);else lsDel(C.key+'-theme');apply(t);});
+  }
+  /* text size: Default, Large, Larger; the root font size scales rem text, and the body rule scales px text */
+  const textBtn=$('#sbText');
+  if(textBtn){
+    const SIZES=[['default','Default'],['large','Large'],['larger','Larger']];
+    const apply=v=>{const s=SIZES.find(x=>x[0]===v)||SIZES[0];if(s[0]==='default')document.documentElement.removeAttribute('data-text');else document.documentElement.setAttribute('data-text',s[0]);textBtn.textContent='Text: '+s[1];textBtn.title='Text size: '+s[1]+'. Press for the next size.';};
+    let v=lsGet(C.key+'-text');if(!SIZES.some(s=>s[0]===v))v='default';apply(v);
+    textBtn.addEventListener('click',()=>{const i=SIZES.findIndex(s=>s[0]===v);v=SIZES[(i+1)%SIZES.length][0];lsSet(C.key+'-text',v);apply(v);});
+  }
+  /* read aloud: the selection when there is one, else the first visible main region */
+  const readBtn=$('#sbRead');
+  if(readBtn){
+    if(!('speechSynthesis' in window)){readBtn.hidden=true;}
+    else{
+      const visible=el=>!!(el&&el.offsetParent!==null&&!el.hidden);
+      const region=()=>{for(const sel of C.read){const el=document.querySelector(sel);if(visible(el)&&el.textContent.trim())return el;}return document.body;};
+      let speaking=false;
+      const stop=()=>{speechSynthesis.cancel();speaking=false;readBtn.textContent='Read aloud';readBtn.setAttribute('aria-pressed','false');};
+      readBtn.setAttribute('aria-pressed','false');
+      readBtn.addEventListener('click',()=>{
+        if(speaking){stop();return;}
+        const sel=String(window.getSelection&&window.getSelection()||'').trim();
+        const text=(sel||region().innerText||'').replace(/\s+/g,' ').trim().slice(0,6000);
+        if(!text)return;
+        const u=new SpeechSynthesisUtterance(text);u.lang=document.documentElement.lang||'en';u.rate=1;
+        u.onend=stop;u.onerror=stop;
+        speechSynthesis.cancel();speechSynthesis.speak(u);speaking=true;readBtn.textContent='Stop reading';readBtn.setAttribute('aria-pressed','true');
+      });
+      window.addEventListener('pagehide',()=>{if(speaking)speechSynthesis.cancel();});
+    }
+  }
+  /* terms: the Defense Ladder glossary terms this page uses, plus Define selection */
+  const termsBtn=$('#sbTerms'),box=$('#termsbox');
+  if(termsBtn&&box){
+    const list=$('#termsList'),q=$('#termsQ'),def=$('#termsDef'),defBtn=$('#termsDefine'),close=$('#termsClose');
+    const G=C.gloss;
+    const norm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9 .\-\/+]/g,' ').replace(/\s+/g,' ').trim();
+    const draw=f=>{list.textContent='';const ff=norm(f);let n=0;for(const [t,d] of G){if(ff&&norm(t).indexOf(ff)<0&&norm(d).indexOf(ff)<0)continue;const dt=document.createElement('dt');dt.textContent=t;const dd=document.createElement('dd');dd.textContent=d;list.append(dt,dd);n++;}if(!n){const dd=document.createElement('dd');dd.textContent='No term matches. Try a shorter word.';list.append(dd);}};
+    const open=o=>{box.hidden=!o;termsBtn.setAttribute('aria-expanded',o?'true':'false');termsBtn.textContent=o?'Close terms':'Terms';if(o){draw(q.value);q.focus();}else termsBtn.focus();};
+    termsBtn.setAttribute('aria-expanded','false');
+    termsBtn.addEventListener('click',()=>open(box.hidden));
+    close.addEventListener('click',()=>open(false));
+    q.addEventListener('input',()=>draw(q.value));
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!box.hidden)open(false);});
+    defBtn.addEventListener('click',()=>{
+      const sel=norm(String(window.getSelection&&window.getSelection()||'')).replace(/[.,;:!?]+$/,'');
+      if(!sel){def.textContent='Select a word or phrase on the page first, then press Define selection.';return;}
+      const hit=G.find(([t])=>norm(t)===sel)||G.find(([t])=>norm(t)===sel.replace(/s$/,''))||G.find(([t])=>norm(t).indexOf(sel)===0)||G.find(([t])=>sel.indexOf(norm(t))>=0&&norm(t).length>3);
+      def.textContent=hit?hit[0]+': '+hit[1]:'"'+sel+'" is outside this page\u2019s glossary. The Defense Ladder glossary holds every course term.';
+    });
+    draw('');
+  }
+  /* Drills: a return after 30 minutes or more on a browser that holds progress */
+  if(C.progressKey){
+    const seenKey=C.progressKey+'-seen';const now=Date.now();const last=parseInt(lsGet(seenKey)||'0',10)||0;
+    let has=false;try{const o=JSON.parse(lsGet(C.progressKey)||'null');has=!!(o&&((o.learned&&Object.keys(o.learned).length)||(o.drilled&&Object.keys(o.drilled).length)||(o.best&&Object.keys(o.best).length)||(o.run&&o.run.done&&Object.keys(o.run.done).length)));}catch(e){}
+    if(has&&last&&now-last>=30*60*1000){
+      const mins=Math.round((now-last)/60000);const when=mins<120?mins+' minutes':Math.round(mins/60)+' hours';
+      const bar=document.createElement('div');bar.className='sharebar';bar.setAttribute('role','region');bar.setAttribute('aria-label','Saved progress');
+      const span=document.createElement('span');span.textContent='This browser last showed this trainer '+when+' ago and holds saved progress. On a shared computer it may be someone else\u2019s.';
+      const keep=document.createElement('button');keep.type='button';keep.textContent='Keep my progress';keep.addEventListener('click',()=>bar.remove());
+      const fresh=document.createElement('button');fresh.type='button';fresh.textContent='Start fresh';fresh.addEventListener('click',()=>{lsDel(C.progressKey);lsSet(seenKey,String(Date.now()));location.reload();});
+      bar.append(span,keep,fresh);document.body.insertBefore(bar,document.body.firstChild);
+    }
+    const stamp=()=>lsSet(seenKey,String(Date.now()));stamp();setInterval(stamp,60000);
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')stamp();});window.addEventListener('pagehide',stamp);
+  }
 })();
 </script>
 <!-- tool4that:foot --><p style="text-align:center;margin:28px 0 22px;font:14px/1.4 system-ui,-apple-system,Segoe UI,Arial,sans-serif"><a href="../../">More free tools at Tool4That</a></p><!-- /tool4that:foot -->

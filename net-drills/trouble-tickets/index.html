@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-32t+rQhXTYmT0A66zrM3vLeLlJ02f1pkLz9uydYRKtk='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-D2CouuupM5kEM6nwkFEH/uF7o63V1n+e4YqQRpwnUjE=' 'sha256-XuHSeFT2LliYygK7R9SdkI+73RBYBDz3YycuEOk4Ddg='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Study the complaint and real device output, then pick the root cause. Every ticket ends with the fix and the configuration habits that prevent it.">
 <link rel="canonical" href="https://freeapp4that.store/net-drills/trouble-tickets/">
@@ -100,6 +100,23 @@ fieldset.topics legend{font-size:14px;color:var(--muted);padding:0;margin-bottom
 .end h2{margin:0 0 6px;font:700 28px/1.1 var(--head)}
 .end ul{margin:8px 0 0;padding-left:20px}
 footer{margin-top:40px;font-size:13px;color:var(--muted)}
+.res .picked{margin:.5rem 0;padding:.5rem .7rem;border-left:3px solid currentColor;opacity:.92}
+.end .later{opacity:.85;font-size:.95em}
+
+/* reading support (panel review): text size, support bar, terms panel, banner, contrast, forced colours, print */
+:root[data-text="large"]{font-size:112.5%}:root[data-text="larger"]{font-size:125%}
+:root[data-text="large"] body{font-size:18px}:root[data-text="larger"] body{font-size:20px}
+.sbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 14px;max-width:100%;font-size:.85rem}
+.sbar button,.theme.sb{font:inherit;font-size:.8rem;padding:5px 10px;border-radius:999px;border:1px solid var(--line,var(--rule,#8a97a5));background:var(--panel,var(--face,#fff));color:var(--ink);cursor:pointer;white-space:nowrap}
+.termsbox{position:fixed;right:12px;bottom:12px;width:min(420px,calc(100vw - 24px));max-height:min(60vh,520px);overflow:auto;background:var(--panel,var(--face,#fff));color:var(--ink);border:1px solid var(--line,var(--rule,#8a97a5));border-radius:12px;padding:12px 14px;box-shadow:0 8px 28px rgba(0,0,0,.25);z-index:50;font-size:.92rem}
+.termsbox h2{margin:0 0 6px;font-size:1rem}.termsbox .trow{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px}.termsbox input{flex:1;min-width:120px;font:inherit;padding:5px 8px;border:1px solid var(--line,var(--rule,#8a97a5));border-radius:8px;background:var(--panel,var(--face,#fff));color:var(--ink)}
+.termsbox button{font:inherit;font-size:.8rem;padding:4px 9px;border-radius:8px;border:1px solid var(--line,var(--rule,#8a97a5));background:var(--panel,var(--face,#fff));color:var(--ink);cursor:pointer}
+.termsbox dl{margin:6px 0 0}.termsbox dt{font-weight:600;margin-top:6px}.termsbox dd{margin:0}.termsbox .tdef{margin:4px 0;padding:6px 8px;border-left:3px solid currentColor;min-height:1.2em}
+.sharebar{display:flex;flex-wrap:wrap;gap:.5rem .8rem;align-items:center;padding:.6rem .9rem;background:var(--soft,var(--face,#eef3f7));color:var(--ink);border-bottom:1px solid var(--line,var(--rule,#8a97a5));font-size:.92rem;max-width:100%}
+.sharebar button{font:inherit;font-size:.85rem;padding:.25rem .7rem;border-radius:6px;border:1px solid var(--line,var(--rule,#8a97a5));background:var(--panel,var(--face,#fff));color:var(--ink);cursor:pointer}
+@media (prefers-contrast:more){:root{--line:currentColor;--rule:currentColor}button,.btn,.opts button,.list button,.chk,.card,.ticket{border:1px solid currentColor}}
+@media (forced-colors:active){button,.btn,.opts button,.list button{border:1px solid ButtonText}.bar2 i,.fill{background:Highlight}}
+@media print{.sbar,.termsbox,.sharebar,header .levels,header .modes,header .theme,nav.series,aside.report,footer,.nav,button{display:none !important}.wrap{display:block}.list{flex-direction:column}.list button{display:grid !important;border:none}#view,.learn{display:block}body{background:#fff;color:#000}}
 </style>
 <style>a.jack{color:inherit;text-decoration:none}a.jack:hover,a.jack:focus-visible{color:var(--ink);text-decoration:underline;text-underline-offset:3px}</style>
 </head>
@@ -113,8 +130,9 @@ footer{margin-top:40px;font-size:13px;color:var(--muted)}
     <span class="jack on" style="--c:var(--brown)" aria-current="page">Trouble Tickets</span>
   </p>
   <h1>Trouble Tickets</h1>
-  <p class="lede">Read the complaint, study the real device output, and pick the root cause. Every ticket ends with the fix, including the ones where everything works but the config still doesn't match the plan.</p>
+  <p class="lede">Read the complaint, study the real device output, and pick the root cause. Every ticket ends with the fix, including the ones where everything works yet the config still differs from the plan.</p>
 </header>
+<div class="sbar" role="toolbar" aria-label="Reading support"><button type="button" id="sbTheme">Theme: auto</button><button type="button" id="sbText">Text: Default</button><button type="button" id="sbRead">Read aloud</button><button type="button" id="sbTerms" aria-controls="termsbox">Terms</button></div>
 
 <fieldset class="topics">
   <legend>Ticket types in the deck</legend>
@@ -128,6 +146,7 @@ footer{margin-top:40px;font-size:13px;color:var(--muted)}
   <div><dt>Best</dt><dd id="s-best">0</dd></div>
 </dl>
 
+<section class="ticket end review" id="review" hidden></section>
 <article class="ticket" id="ticket" aria-live="polite">
   <div class="thead"><span id="t-no"></span><span class="cat" id="t-cat"></span></div>
   <h2 id="t-title"></h2>
@@ -141,7 +160,7 @@ footer{margin-top:40px;font-size:13px;color:var(--muted)}
 
 <section class="ticket end" id="end" hidden aria-live="polite"></section>
 
-<footer>Unofficial practice; not affiliated with or endorsed by Cisco. Outputs are modeled on Cisco IOS and the free Cisco Packet Tracer simulator. Your best streak stays in this browser only.</footer>
+<footer>Unofficial practice; not affiliated with or endorsed by Cisco. Device outputs and some PC outputs are modeled on Cisco IOS and the free Cisco Packet Tracer simulator, and the other PC and server outputs on Windows 11, Windows Server 2025, Ubuntu 24.04, and Linux Mint 22. Your best streak stays in this browser only.</footer>
 </div>
 
 <script>
@@ -178,6 +197,14 @@ FastEthernet0 Connection:(default port)
    Subnet Mask.....................: 255.255.255.0
    Default Gateway.................: 192.168.10.254
 
+C:\\>route print -4
+...
+Active Routes:
+Network Destination        Netmask          Gateway       Interface  Metric
+          0.0.0.0          0.0.0.0   192.168.10.254    192.168.10.25     25
+     192.168.10.0    255.255.255.0         On-link     192.168.10.25    281
+...
+
 C:\\>ping 192.168.10.30
 
 Pinging 192.168.10.30 with 32 bytes of data:
@@ -200,8 +227,28 @@ Interface              IP-Address      OK? Method Status                Protocol
 GigabitEthernet0/0     192.168.10.1    YES manual up                    up
 GigabitEthernet0/1     203.0.113.2     YES manual up                    up`]],
   opts: ["The PC's gateway is .254, but the router is at .1", "The PC's subnet mask is wrong", 'The router LAN interface is down', 'The printer is using the same IP address as the PC'],
-  why: 'Traffic for other networks goes to the default gateway. This PC sends it to .254, where no router is listening, so local traffic works and remote traffic dies.',
+  why: 'Traffic for other networks goes to the default gateway. This PC sends it to .254, where no router is listening, so local traffic works and remote traffic dies. route print shows the same fault in the routing table: the default route, 0.0.0.0, leads to 192.168.10.254.',
   fix: 'Set the PC default gateway to 192.168.10.1. If DHCP handed it out, fix the pool:\nip dhcp pool LAN\n default-router 192.168.10.1' },
+{ id: 'linuxgw', cat: 'Addressing', title: 'The Linux PC reaches only the printer',
+  sym: "Noe's Ubuntu lab PC at Site A keeps a fixed address. It prints to the lab printer at 10.1.10.5, and every other network times out.",
+  ev: [['Lab PC terminal (Ubuntu 24.04)', `$ ip -br link
+lo               UNKNOWN        00:00:00:00:00:00 <LOOPBACK,UP,LOWER_UP>
+enp0s3           UP             d8:5e:d3:21:7a:4c <BROADCAST,MULTICAST,UP,LOWER_UP>
+$ ip -br a
+lo               UNKNOWN        127.0.0.1/8 ::1/128
+enp0s3           UP             10.1.10.8/24 fe80::da5e:d3ff:fe21:7a4c/64
+$ ip route
+default via 10.1.10.254 dev enp0s3 proto static metric 100
+10.1.10.0/24 dev enp0s3 proto kernel scope link src 10.1.10.8 metric 100
+$ ip neigh
+10.1.10.5 dev enp0s3 lladdr 30:05:5c:8a:41:e2 REACHABLE
+10.1.10.254 dev enp0s3 FAILED
+$ traceroute -n 10.1.20.50
+traceroute to 10.1.20.50 (10.1.20.50), 30 hops max, 60 byte packets
+ 1  10.1.10.8  3071.112 ms !H  3071.090 ms !H  3071.081 ms !H`]],
+  opts: ['The default route sends traffic to 10.1.10.254, an address that stays silent on ARP', 'The network interface is down', 'The subnet mask is too small for Site A', 'The printer holds the same address as the PC'],
+  why: "Every packet for another network goes to the default route's next hop, 10.1.10.254, and ip neigh shows FAILED for it: that address stays silent on ARP. traceroute stops at hop 1 with !H (host unreachable) from the PC's own address. The Site A gateway is RtrA at 10.1.10.1. Local traffic goes straight to its target, so the printer still works.",
+  fix: 'Set the default route to the Site A gateway, 10.1.10.1. nmcli connection show names the profile; then:\nsudo nmcli connection modify "Wired connection 1" ipv4.gateway 10.1.10.1\nsudo nmcli connection up "Wired connection 1"\nip route (expect default via 10.1.10.1)' },
 { id: 'mask', cat: 'Addressing', title: 'The gateway looks right, but is not',
   sym: 'PC3 can reach 192.168.1.65 through .126, but nothing else, not even the gateway.',
   ev: [['PC3 command prompt', `C:\\>ipconfig
@@ -221,7 +268,7 @@ Interface              IP-Address      OK? Method Status                Protocol
 GigabitEthernet0/0     192.168.10.1    YES manual up                    up
 GigabitEthernet0/1     192.168.20.1    YES manual administratively down down`]],
   opts: ['G0/1 has been shut down and needs no shutdown', 'The cable on G0/1 is bad', 'G0/1 has the wrong IP address', 'R1 needs a routing protocol for the second floor'],
-  why: 'administratively down means the interface is disabled in the configuration: someone typed shutdown, or it was never enabled (router ports start shut down). A cabling fault shows plain down/down instead.',
+  why: 'administratively down means the interface is disabled in the configuration. Someone typed shutdown, or the port kept its default state (router ports start shut down). A cabling fault shows plain down/down instead.',
   fix: 'interface g0/1\nno shutdown' },
 { id: 'phys', cat: 'Physical', title: 'Dead link after the office move',
   sym: 'The link from R1 to the second-floor switch has been dead since the move. The switch is powered on.',
@@ -232,6 +279,22 @@ GigabitEthernet0/1     192.168.20.1    YES manual down                  down`]],
   opts: ['A Layer 1 fault in the cable, connector, or far-end port', 'Someone typed shutdown on G0/1', 'G0/1 has a duplicate IP address with the second-floor switch', 'The VTY lines are misconfigured'],
   why: 'down/down without the word administratively means the port is enabled but sees no signal. That points at the physical layer: cable, connector, port, or the device at the other end.',
   fix: 'Check the cable and its type, the port lights on both ends, and the far-end port. Swap in a known-good cable.' },
+{ id: 'duplex', cat: 'Physical', title: 'The link is up, and file copies crawl',
+  sym: 'Kumu Leilani says the classroom PC on Fa0/7 copies files at a crawl, though its link light is green.',
+  ev: [['SwA console', `SwA#show interfaces f0/7 status
+
+Port      Name               Status       Vlan       Duplex  Speed Type
+Fa0/7     Classroom-7        connected    10         a-half  a-100 10/100BaseTX`],
+    ['SwA console (excerpt)', `SwA#show interfaces f0/7
+FastEthernet0/7 is up, line protocol is up (connected)
+  Description: Classroom-7
+  Half-duplex, 100Mb/s, media type is 10/100BaseTX
+     0 output errors, 2318 collisions, 0 interface resets
+     0 babbles, 1406 late collision, 0 deferred`],
+    ['Classroom PC: network adapter properties, Advanced tab', `Speed & Duplex: 100 Mbps Full Duplex`]],
+  opts: ['The PC forces full duplex, so Fa0/7 falls back to half duplex', 'The cable is a crossover', 'Port security limits the speed', 'VLAN 10 is overloaded'],
+  why: 'A side set by hand stops negotiating. Fa0/7 still senses 100 Mb/s from the signal, but without a duplex offer to read, it falls back to half (a-half). The PC sends whenever it likes while the switch takes turns, so late collisions pile up. A duplex mismatch keeps the link up and slow.',
+  fix: 'Give both ends the same settings. Simplest: set the PC adapter back to Auto Negotiation, so both ends negotiate 100 Mb/s full duplex. Or keep the PC at 100 Mbps Full Duplex and match it by hand on SwA:\ninterface f0/7\nspeed 100\nduplex full\nThen show interfaces f0/7 status reads full and 100.' },
 { id: 'dns', cat: 'Services', title: 'Websites fail, the internet works',
   sym: 'Websites will not load, but the IT person says the internet connection is fine.',
   ev: [['PC command prompt', `C:\\>ping 8.8.8.8
@@ -244,10 +307,110 @@ Reply from 8.8.8.8: bytes=32 time=22ms TTL=117
 Reply from 8.8.8.8: bytes=32 time=21ms TTL=117
 
 C:\\>ping www.example.com
-Ping request could not find host www.example.com. Please check the name and try again.`]],
+Ping request could not find host www.example.com. Please check the name and try again.
+
+C:\\>nslookup www.example.com
+DNS request timed out.
+    timeout was 2 seconds.
+Server:  UnKnown
+Address:  192.168.10.53
+
+DNS request timed out.
+    timeout was 2 seconds.
+DNS request timed out.
+    timeout was 2 seconds.
+DNS request timed out.
+    timeout was 2 seconds.
+DNS request timed out.
+    timeout was 2 seconds.
+*** Request to UnKnown timed-out`]],
   opts: ['DNS is failing, so names never turn into addresses', 'The default gateway is wrong, so traffic stays on the LAN', 'The website blocks ping', 'The PC has an APIPA address'],
-  why: 'Pinging an internet IP works, so addressing, the gateway, and routing are fine. "Could not find host" means the name never became an address, which is DNS. A site that blocks ping would time out, not fail to resolve.',
-  fix: 'Check the DNS server with ipconfig /all, fix the DHCP dns-server option or static DNS entry, and confirm the DNS server is up.' },
+  why: 'Pinging 8.8.8.8 works, so addressing, the gateway, and routing are fine. "Could not find host" means the name never became an address: DNS. A site that blocks ping would time out after its name resolved. nslookup confirms it: every request to the DNS server at 192.168.10.53 times out.',
+  fix: 'Check the DNS server with ipconfig /all, fix the DHCP dns-server option or static DNS entry, and confirm the DNS server is up.\nThen clear the stale answers and test again:\nipconfig /flushdns\nnslookup www.example.com (or Resolve-DnsName www.example.com)' },
+{ id: 'icmp', cat: 'Services', title: 'Ping fails, the website works',
+  sym: 'The help desk marked the intranet web server, a Windows Server 2025 machine at 10.1.20.40, as down because ping times out. Staff are using the site right now.',
+  ev: [['Help desk PC (Site B) command prompt', `C:\\>ping 10.1.20.40
+
+Pinging 10.1.20.40 with 32 bytes of data:
+Request timed out.
+Request timed out.
+Request timed out.
+Request timed out.
+
+Ping statistics for 10.1.20.40:
+    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss),`],
+    ['Help desk PC (Site B) PowerShell', `PS C:\\> Test-NetConnection 10.1.20.40 -Port 443
+
+ComputerName     : 10.1.20.40
+RemoteAddress    : 10.1.20.40
+RemotePort       : 443
+InterfaceAlias   : Ethernet
+SourceAddress    : 10.2.20.15
+TcpTestSucceeded : True`]],
+  opts: ['The server firewall drops ICMP echo, and TCP 443 answers', 'The server is down', 'DNS is failing', 'The PC is missing its default gateway'],
+  why: 'TcpTestSucceeded True means the server completed a TCP handshake on port 443, so it is up and its web service answers. Windows Firewall drops inbound echo requests by default, so a silent ping alone proves little. Test the port the service uses.',
+  fix: 'Close the ticket as working, and check the service port from now on:\nTest-NetConnection 10.1.20.40 -Port 443\nAllow inbound echo on the server only when monitoring needs ping.' },
+{ id: 'linuxdns', cat: 'Services', title: 'The Linux laptop reaches addresses, and names fail',
+  sym: "Kaimana's Linux Mint laptop at Site A pings 8.8.8.8, but websites and the intranet name both fail.",
+  ev: [['Laptop terminal (Linux Mint 22)', `$ ip -br a
+lo               UNKNOWN        127.0.0.1/8 ::1/128
+enp0s3           UP             10.1.10.52/24 fe80::3ea9:f4ff:fe52:6e10/64
+$ ip route
+default via 10.1.10.1 dev enp0s3 proto dhcp src 10.1.10.52 metric 100
+10.1.10.0/24 dev enp0s3 proto kernel scope link src 10.1.10.52 metric 100
+$ ping -c 2 8.8.8.8
+PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.
+64 bytes from 8.8.8.8: icmp_seq=1 ttl=117 time=21.4 ms
+64 bytes from 8.8.8.8: icmp_seq=2 ttl=117 time=20.9 ms
+
+--- 8.8.8.8 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1002ms
+rtt min/avg/max/mdev = 20.912/21.156/21.400/0.244 ms
+$ ping -c 2 intranet.school.lan
+ping: intranet.school.lan: Temporary failure in name resolution
+$ resolvectl status enp0s3
+Link 2 (enp0s3)
+    Current Scopes: DNS
+         Protocols: +DefaultRoute +LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+Current DNS Server: 10.1.20.5
+       DNS Servers: 10.1.20.5
+$ dig +short intranet.school.lan @10.1.20.50
+10.1.20.40`],
+    ['RtrA running-config (excerpt)', `ip dhcp pool STUDENTS
+ network 10.1.10.0 255.255.255.0
+ default-router 10.1.10.1
+ dns-server 10.1.20.5`]],
+  opts: ['The DHCP pool hands out DNS server 10.1.20.5, and the DNS server is 10.1.20.50', 'The default gateway is wrong, so traffic stays on the LAN', 'The website blocks ping', 'The laptop holds a link-local address'],
+  why: 'Pings by address cross the gateway and come back, so addressing and routing work. resolvectl names 10.1.20.5 as the DNS server, and that address stays silent, while dig against 10.1.20.50 answers at once. The STUDENTS pool on RtrA hands every laptop a mistyped DNS address.',
+  fix: 'On RtrA:\nip dhcp pool STUDENTS\ndns-server 10.1.20.50\n(dns-server replaces the old address)\nOn the laptop, nmcli connection show names the profile. Bring it up again to renew the lease:\nsudo nmcli connection up "Wired connection 1"\nresolvectl status enp0s3 (expect DNS Servers: 10.1.20.50)' },
+{ id: 'linuxport', cat: 'Services', title: 'The site answers ping, and HTTPS times out',
+  sym: 'After the web server hardening, staff load http://makani-web, and the https:// address spins until it times out.',
+  ev: [['Admin laptop terminal (Ubuntu 24.04)', `$ ping -c 2 10.1.20.80
+PING 10.1.20.80 (10.1.20.80) 56(84) bytes of data.
+64 bytes from 10.1.20.80: icmp_seq=1 ttl=64 time=0.412 ms
+64 bytes from 10.1.20.80: icmp_seq=2 ttl=64 time=0.398 ms
+
+--- 10.1.20.80 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1001ms
+rtt min/avg/max/mdev = 0.398/0.405/0.412/0.007 ms
+$ nc -zv -w 5 10.1.20.80 80
+Connection to 10.1.20.80 80 port [tcp/http] succeeded!
+$ nc -zv -w 5 10.1.20.80 443
+nc: connect to 10.1.20.80 port 443 (tcp) timed out: Operation now in progress`],
+    ['makani-web terminal (Ubuntu Server 24.04)', `$ sudo ss -tulnp | grep apache2
+tcp   LISTEN 0      511                *:80              *:*    users:(("apache2",pid=1104,fd=4),("apache2",pid=1103,fd=4),("apache2",pid=1101,fd=4))
+tcp   LISTEN 0      511                *:443             *:*    users:(("apache2",pid=1104,fd=6),("apache2",pid=1103,fd=6),("apache2",pid=1101,fd=6))
+$ sudo ufw status
+Status: active
+
+To                         Action      From
+--                         ------      ----
+22/tcp                     ALLOW       10.1.20.0/24
+80/tcp                     ALLOW       Anywhere
+80/tcp (v6)                ALLOW       Anywhere (v6)`]],
+  opts: ['ufw drops port 443, since only 80/tcp has an allow rule', 'Apache listens on port 80 alone', 'A router ACL blocks ICMP to the server', 'Apache stopped during the hardening'],
+  why: 'ping and port 80 answer, so the path and Apache work, and ss shows apache2 listening on 443 as well. A closed port answers "Connection refused" at once; a timeout means something drops the packets on the way in. ufw allows 80/tcp and leaves 443 to its default deny, which drops silently.',
+  fix: 'On makani-web:\nsudo ufw allow 443/tcp\nsudo ufw status numbered (expect 443/tcp ALLOW IN Anywhere)\nFrom the laptop:\nnc -zv -w 5 10.1.20.80 443 (expect succeeded!)' },
 { id: 'svi', cat: 'Switching', title: 'Cannot manage the new switch',
   sym: 'PCs plugged into the new switch work fine, but I cannot ping or SSH to the switch itself at 10.1.20.2.',
   ev: [['SwA console', `SwA#show ip interface brief
@@ -259,8 +422,8 @@ FastEthernet0/2        unassigned      YES unset  up                    up
 FastEthernet0/3        unassigned      YES unset  down                  down
 GigabitEthernet0/1     unassigned      YES unset  up                    up`]],
   opts: ['The management interface (the VLAN 20 SVI) is shut down', 'The switch needs a routing protocol', 'The PCs are in the wrong VLAN', 'Each switch port needs its own IP address'],
-  why: "Switching frames needs no IP address, so the PCs work. The switch's own IP lives on an SVI, and administratively down means Vlan20 is shut in the config. Interface Vlan1 ships shut down. An SVI's line protocol comes up only when its VLAN exists in the VLAN database and at least one up access or trunk port carries it (autostate), so after no shutdown, check for up/up. Larger networks give management its own dedicated VLAN; this network keeps it on Teachers so the Teachers-only ACL and the management subnet are one and the same.",
-  fix: 'interface vlan 20\nno shutdown\nend\nshow ip interface brief' },
+  why: "Frames switch without an IP address, so the PCs work. The switch's own address lives on the Vlan20 SVI, and administratively down means it is shut in the config. Interface Vlan1 ships shut down.",
+  fix: 'interface vlan 20\nno shutdown\nend\nshow ip interface brief (expect Vlan20 up/up once VLAN 20 exists and an up port carries it: autostate)' },
 { id: 'dgw', cat: 'Switching', title: 'Manageable from only one subnet',
   sym: 'Managing SwA works from a Teachers PC at Site A, on the same subnet, and fails from a Teachers PC at Site B.',
   ev: [['SwA running-config (excerpt)', `interface Vlan20
@@ -282,7 +445,7 @@ SwA#`],
     ['Pings to 10.1.20.2', `From Site A Teachers PC 10.1.20.30: Reply from 10.1.20.2: bytes=32 time<1ms TTL=255
 From Site B Teachers PC 10.2.20.20: Request timed out.`]],
   opts: ['SwA is missing its ip default-gateway', 'Access list 20 blocks the Site B Teachers subnet', 'The Site B PC needs the switch MAC address', 'SSH is disabled on SwA'],
-  why: 'A Layer 2 switch reaches other networks through ip default-gateway, and the filtered show running-config comes back empty, so SwA lacks one. Without it, SwA answers same-subnet hosts, and its replies to other subnets have nowhere to go. Access list 20 permits both Teachers subnets, and access-class filters only VTY logins, so pings pass it by. Larger networks give management its own dedicated VLAN; this network keeps it on Teachers so the Teachers-only ACL and the management subnet are one and the same.',
+  why: 'The filtered show running-config returns nothing: SwA lacks an ip default-gateway. A Layer 2 switch answers its own subnet by itself; replies to 10.2.20.20 need a gateway and have nowhere to go. Access list 20 permits both Teachers subnets, and access-class filters only VTY logins, so pings pass it by.',
   fix: 'ip default-gateway 10.1.20.1' },
 { id: 'mode', cat: 'Device config', title: 'The hostname command fails',
   sym: 'A new technician typed the exact command from the setup guide and got an error.',
@@ -356,7 +519,7 @@ Last Source Address:Vlan   : 0001.4297.A3C1:10
 Security Violation Count   : 1`]],
   opts: ['Port security saw a new MAC and err-disabled the port', 'The new laptop has a bad network card or driver', 'The DHCP pool ran out of addresses for the classroom', 'Spanning tree put the port in the blocking state to break a loop'],
   why: 'The port learned the old laptop as its one allowed MAC. The new MAC triggered a violation, and violation mode shutdown err-disabled the port. That is port security doing its job.',
-  fix: 'If the new laptop is approved, remove the old sticky MAC and bounce the port. On real IOS:\nclear port-security sticky interface f0/5\nIn Packet Tracer, under the interface:\nno switchport port-security mac-address sticky <old MAC from show port-security address>\nThen:\ninterface f0/5\nshutdown\nno shutdown' },
+  fix: 'If the new laptop is approved, clear the old sticky MAC, then bounce the port:\nclear port-security sticky interface f0/5\n(Packet Tracer, under the interface: no switchport port-security mac-address sticky <old MAC from show port-security address>)\ninterface f0/5\nshutdown\nno shutdown' },
 { id: 'cable', cat: 'Physical', title: 'The link stays red in Packet Tracer',
   sym: 'In Packet Tracer, the link between PC0 and R1 stays red even after no shutdown.',
   ev: [['Packet Tracer: the cable between PC0 and R1', `Connection: PC0 FastEthernet0  <->  R1 GigabitEthernet0/0
@@ -365,14 +528,14 @@ Cable:      Copper Straight-Through`],
 Interface              IP-Address      OK? Method Status                Protocol
 GigabitEthernet0/0     192.168.1.1     YES manual down                  down`]],
   opts: ['A PC-to-router link needs a crossover cable', 'The router port needs speed 100', 'PCs can never connect straight to routers', 'The PC needs a default gateway before the link comes up'],
-  why: 'A PC and a router transmit on the same pins, so they need a crossover cable. Straight-through joins unlike devices, such as PC to switch or switch to router. Many real ports auto-detect this (Auto-MDIX), but Packet Tracer and certification exams expect you to know the rule. Here the cable chosen between the PC and the router is Copper Straight-Through; that pair needs a crossover, so the link shows red.',
-  fix: 'Replace it with a Copper Cross-Over cable, or connect the PC through a switch.' },
+  why: 'A PC and a router transmit on the same pins, so the pair needs a crossover. Straight-through joins unlike devices, such as PC to switch or switch to router. The Copper Straight-Through cable here joins PC0 and R1, so the link shows red.',
+  fix: 'Replace it with a Copper Cross-Over cable, or connect the PC through a switch.\n(Many real ports auto-detect the cable type with Auto-MDIX; Packet Tracer and certification exams expect you to know the rule.)' },
 { id: 'native', cat: 'Switching', title: 'A warning keeps scrolling on S1',
   sym: 'This message keeps appearing on the S1 console since the trunk changes.',
   ev: [['S1 console log', `%CDP-4-NATIVE_VLAN_MISMATCH: Native VLAN mismatch discovered on GigabitEthernet0/1 (99), with S2 GigabitEthernet0/1 (1).`]],
   opts: ['The two ends of the trunk use different native VLANs', 'VLAN 99 is missing from the VLAN database on S1', 'CDP must be turned off to fix the trunk', 'The trunk cable is faulty'],
-  why: 'S1 sends untagged trunk traffic in VLAN 99 and S2 uses VLAN 1. Untagged frames can leak between those VLANs, which is why CDP warns about it. Both ends set native VLAN 99, a VLAN that carries no hosts, so every user VLAN crosses the trunk tagged.',
-  fix: 'On S2:\nvlan 99\nname NATIVE\ninterface g0/1\nswitchport trunk native vlan 99\nEvery trunk in the path uses native VLAN 99, including a router-on-a-stick link, where the native subinterface carries no IP:\ninterface g0/0.99\nencapsulation dot1Q 99 native' },
+  why: 'S1 sends untagged trunk frames as VLAN 99 and S2 as VLAN 1. Untagged frames can leak between those VLANs, which is why CDP warns about it. Both ends set native VLAN 99, a VLAN that stays free of hosts, so every user VLAN crosses the trunk tagged.',
+  fix: 'On S2:\nvlan 99\nname NATIVE\ninterface g0/1\nswitchport trunk native vlan 99\nEvery trunk in the path uses native VLAN 99, including a router-on-a-stick link, whose native subinterface lacks an IP:\ninterface g0/0.99\nencapsulation dot1Q 99 native' },
 { id: 'vlan', cat: 'Switching', title: 'Wrong subnet on one desk',
   sym: 'PC4 on port Fa0/4 keeps getting a 192.168.20.x address. It belongs on the users network, 192.168.10.x.',
   ev: [['S1 console', `S1#show vlan brief
@@ -385,19 +548,32 @@ VLAN Name                             Status    Ports
   opts: ['Fa0/4 is assigned to VLAN 20 (GUESTS) instead of VLAN 10', 'The DHCP server is handing out the wrong range', 'PC4 has a static IP address', 'The trunk is not carrying VLAN 10'],
   why: 'The switch port decides the VLAN, and the VLAN decides which DHCP scope answers. Fa0/4 sits in GUESTS, so PC4 gets a guest address.',
   fix: 'interface f0/4\nswitchport access vlan 10' },
+{ id: 'arpspoof', cat: 'Switching', title: 'Two neighbors, one MAC address',
+  sym: 'The student at KAILUA-WS07 says pages load slowly, and the browser warns about certificates on sites that worked yesterday.',
+  ev: [['KAILUA-WS07 command prompt', `C:\\>arp -a
+
+Interface: 10.1.10.37 --- 0xc
+  Internet Address      Physical Address      Type
+  10.1.10.1             5c-87-9c-11-22-33     dynamic
+  10.1.10.44            5c-87-9c-11-22-33     dynamic
+  10.1.10.255           ff-ff-ff-ff-ff-ff     static`],
+    ['Help desk notes: arp -a on KAILUA-WS07 last week (excerpt)', `  10.1.10.1             00-1a-2b-3c-4d-01     dynamic`]],
+  opts: ['10.1.10.44 sends forged ARP replies for the gateway, putting itself on-path', '10.1.10.44 is a second gateway that shares the load', 'A DHCP address conflict that clears itself at the next lease', "The websites' certificates expired"],
+  why: 'Two addresses share one physical address, and one of them is the gateway. Last week 10.1.10.1 answered as 00-1a-2b-3c-4d-01. Now 10.1.10.44 claims it with forged ARP replies (ARP spoofing), so KAILUA-WS07 hands that host every packet bound for another network. The on-path host slows pages and breaks certificate checks. Dynamic ARP inspection on the switch drops forged ARP replies.',
+  fix: 'Report it, and keep the arp -a output as evidence. Then find the port that MAC address uses and shut it:\nshow mac address-table address 5c87.9c11.2233\n(say it lists Fa0/3)\ninterface f0/3\nshutdown\nOn KAILUA-WS07, from an administrator prompt, drop the forged entry:\narp -d 10.1.10.1\nLasting fix: dynamic ARP inspection on the user VLANs, built on DHCP snooping.' },
 { id: 'hostcase', cat: 'Config accuracy', title: 'Compliance check flags the new switch',
   sym: 'The change request said to name the switch S1-Floor2. The switch works fine, but the nightly config compliance report marks it noncompliant.',
   ev: [['Change request (excerpt)', `Configure the switch hostname as S1-Floor2.`],
     ['S1 running-config (excerpt)', `hostname S1-floor2`]],
   opts: ['The value is case-sensitive: S1-floor2 is not S1-Floor2', 'Hostnames cannot contain hyphens', 'The hostname only takes effect after a reload', 'Hostnames must be set from user EXEC mode'],
-  why: 'IOS keeps the hostname exactly as typed, and the tools that read it (inventory and monitoring systems, config compliance scripts, log searches, a graded lab checker) compare strings exactly. One wrong letter case fails the check even though the switch forwards traffic fine. Copy names, VLAN names, and passwords character for character from the change record.',
+  why: 'IOS keeps the hostname exactly as typed, and compliance scripts, inventory and monitoring systems, log searches, and lab checkers compare strings exactly. S1-floor2 forwards traffic fine and still fails a check for S1-Floor2. Copy names, VLAN names, and passwords character for character from the change record.',
   fix: 'hostname S1-Floor2\nThen save it:\nend\ncopy running-config startup-config' },
 { id: 'bannertext', cat: 'Config accuracy', title: 'Security review rejects the banner',
   sym: 'The warning banner shows up when we log in, but the security review still lists it as a finding.',
   ev: [['Security policy (excerpt)', `Every network device must display this approved warning before login: Unauthorized Access Prohibited!`],
     ['R1 running-config (excerpt)', `banner motd ^CUnauthorized access prohibited^C`]],
   opts: ['The capitals and punctuation differ from the approved text', 'Security reviews ignore MOTD banners and only read login banners', 'The delimiter has to be #', 'The banner text needs quotation marks'],
-  why: 'A warning banner is legal text: organizations have it approved once and then audit devices against that exact wording, character for character. Capitals and punctuation count; the delimiter character does not, and IOS displays it as ^C in the running-config.',
+  why: 'A warning banner is legal text, approved once and audited character for character. Capitals and punctuation count. The delimiter stays outside the text, and IOS shows it as ^C in the running-config.',
   fix: 'banner motd #Unauthorized Access Prohibited!#' },
 { id: 'wrongif', cat: 'Config accuracy', title: 'Right address, wrong interface',
   sym: 'The addressing table gives G0/1 the address 192.168.20.1. We configured it, but hosts on that LAN still cannot ping their gateway.',
@@ -407,7 +583,7 @@ GigabitEthernet0/0     192.168.10.1    YES manual up                    up
 GigabitEthernet0/1     unassigned      YES unset  administratively down down
 GigabitEthernet0/2     192.168.20.1    YES manual up                    up`]],
   opts: ['The address landed on G0/2 in place of G0/1', 'The mask should be /16', 'G0/1 needs a description before it accepts an address', '192.168.20.1 is a reserved address'],
-  why: 'The design puts that address on one specific interface, and the cable goes to G0/1. The router happily accepted the address on G0/2, where it helps nobody. Before you call a change done, compare show ip interface brief with the addressing table line by line; documentation, monitoring, and any lab checker all expect the address where the table says.',
+  why: 'The design puts 192.168.20.1 on G0/1, where the cable goes. The router accepted it on G0/2, where it helps nobody. Before calling a change done, compare show ip interface brief with the addressing table line by line; documentation, monitoring, and any lab checker all expect the address where the table says.',
   fix: 'interface g0/2\nno ip address\nshutdown\ninterface g0/1\nip address 192.168.20.1 255.255.255.0\nno shutdown' },
 { id: 'parent', cat: 'Device config', title: 'Subinterfaces configured, nothing works',
   sym: 'Router-on-a-stick is configured exactly per the design, but no VLAN can reach its gateway.',
@@ -436,7 +612,7 @@ Gig0/1      10,30,99
 Port        Vlans in spanning tree forwarding state and not pruned
 Gig0/1      10,30,99`]],
   opts: ["VLAN 20 is missing from the trunk's allowed list on G0/1", 'SVIs answer only hosts on the same switch, never across a trunk', 'The native VLAN must be 20 so the SVI traffic crosses untagged', 'SwA needs a routing protocol to reach the Teachers gateway'],
-  why: 'A pruned allowed list carries only the VLANs listed. Everything else, including Teachers and the management SVI on VLAN 20, stops at the trunk port. Larger networks give management its own dedicated VLAN; this network keeps it on Teachers so the Teachers-only ACL and the management subnet are one and the same.',
+  why: 'A pruned allowed list carries only the VLANs listed. Teachers frames and the management SVI on VLAN 20 stop at the trunk port. Larger networks give management its own dedicated VLAN; this network keeps it on Teachers so the Teachers-only ACL and the management subnet are one and the same.',
   fix: 'interface g0/1\nswitchport trunk allowed vlan add 20\n(add keeps 10, 30, and 99; a bare list replaces them)' },
 { id: 'encap', cat: 'Device config', title: 'The gateway tags the wrong VLAN',
   sym: 'VLAN 10 hosts have the right gateway address configured but cannot reach it.',
@@ -459,8 +635,47 @@ interface GigabitEthernet0/0.50
 Pool: 10.1.10.0 /24, default gateway 10.1.10.1
 Server address: 10.1.50.10`]],
   opts: ['G0/0.10 needs ip helper-address 10.1.50.10', 'The server must be moved into VLAN 10', 'The pool has to live on the router instead', 'PCs need a static gateway before DHCP works'],
-  why: 'Routers keep broadcasts inside their subnet, so Students DHCP requests stop at G0/0.10, the VLAN 10 gateway. ip helper-address on that interface turns the DHCP broadcast into a unicast to the server and relays the reply back.',
+  why: 'Routers keep broadcasts inside their subnet, so Students DHCP requests stop at G0/0.10, the VLAN 10 gateway. ip helper-address there turns the broadcast into a unicast to the server and relays the reply.',
   fix: 'interface g0/0.10\nip helper-address 10.1.50.10' },
+{ id: 'snooptrust', cat: 'Switching', title: 'Snooping went on, and every Students PC lost its address',
+  sym: 'Since the switch change last night, every Students laptop at Site A shows a 169.254 address. Teachers keep fixed addresses and work fine.',
+  ev: [["SwA running-config (excerpt): last night's change", `ip dhcp snooping vlan 10,20,30
+no ip dhcp snooping information option
+ip dhcp snooping`],
+    ['SwA console log', `%DHCP_SNOOPING-5-DHCP_SNOOPING_UNTRUSTED_PORT: DHCP_SNOOPING drop message on untrusted port, message type: DHCPOFFER, MAC sa: 001a.2b3c.4d01`],
+    ['SwA console', `SwA#show ip dhcp snooping
+Switch DHCP snooping is enabled
+Switch DHCP gleaning is disabled
+DHCP snooping is configured on following VLANs:
+10,20,30
+DHCP snooping is operational on following VLANs:
+10,20,30
+DHCP snooping is configured on the following L3 Interfaces:
+
+Insertion of option 82 is disabled
+   circuit-id default format: vlan-mod-port
+   remote-id: 001b.d4a7.5c80 (MAC)
+Option 82 on untrusted port is not allowed
+Verification of hwaddr field is enabled
+Verification of giaddr field is enabled
+DHCP snooping trust/rate is configured on the following Interfaces:
+
+Interface                  Trusted    Allow option    Rate limit (pps)
+-----------------------    -------    ------------    ----------------
+
+SwA#show mac address-table address 001a.2b3c.4d01
+          Mac Address Table
+-------------------------------------------
+
+Vlan    Mac Address       Type        Ports
+----    -----------       --------    -----
+  10    001a.2b3c.4d01    DYNAMIC     Gi0/1
+  20    001a.2b3c.4d01    DYNAMIC     Gi0/1
+  30    001a.2b3c.4d01    DYNAMIC     Gi0/1
+Total Mac Addresses for this criterion: 3`]],
+  opts: ['Every port is untrusted, so SwA drops the offers arriving on uplink G0/1', 'DHCP snooping works on access ports alone, so the trunk breaks', 'The STUDENTS pool ran out of addresses', 'VLAN 10 is missing from the trunk'],
+  why: 'Once snooping is on, every port starts untrusted, and server messages arriving there are dropped and logged. The trust table is empty, and the log shows DHCPOFFER drops from 001a.2b3c.4d01, the MAC address SwA learns on Gi0/1, the trunk toward RtrA. That uplink is the one port to trust. Option 82 insertion is already off (no ip dhcp snooping information option), which RtrA needs because it serves the pool itself.',
+  fix: 'interface g0/1\nip dhcp snooping trust\nend\nshow ip dhcp snooping (expect GigabitEthernet0/1 with yes under Trusted)\nThen run ipconfig /renew on a Students laptop.' },
 { id: 'acldir', cat: 'Access lists', title: 'The ACL is applied, Students still get through',
   sym: 'Policy keeps Students out of the management subnet, which is the Teachers VLAN. The ACL is written and applied, but Students still reach it.',
   ev: [['RtrA running-config (excerpt)', `ip access-list extended NO-STUDENT-MGMT
@@ -475,12 +690,20 @@ interface GigabitEthernet0/0.20
  encapsulation dot1Q 20
  ip address 10.1.20.1 255.255.255.0
  ip access-group NO-STUDENT-MGMT in`]],
-  opts: ['The ACL sits inbound on G0/0.20, where Students traffic leaves the router', 'Extended ACLs work only on physical interfaces, so G0/0.20 skips it', 'The permit ip any any entry has to come before the deny entry', 'The wildcard masks in the deny entry are reversed, so it matches other hosts'],
-  why: 'Direction is relative to the interface. Students-to-Teachers packets enter on the Students subinterface and exit the Teachers one; inbound on .20 sees only packets sourced from Teachers, such as the replies, so the deny entry never matches. An extended ACL belongs close to the source, inbound on G0/0.10. Larger networks give management its own dedicated VLAN; this network keeps it on Teachers so the Teachers-only ACL and the management subnet are one and the same.',
+  opts: ['The ACL sits inbound on G0/0.20, where Students traffic leaves the router', 'Extended ACLs work only on physical interfaces, so G0/0.20 skips it', 'The permit ip any any entry has to come before the deny entry', "The deny entry's wildcard masks are reversed"],
+  why: 'Direction is relative to the interface. Students-to-Teachers packets enter on G0/0.10 and exit G0/0.20, so inbound on .20 sees only Teachers-sourced packets, such as the replies, and the deny matches nothing. An extended ACL belongs close to the source, inbound on G0/0.10.',
   fix: 'interface g0/0.20\nno ip access-group NO-STUDENT-MGMT in\ninterface g0/0.10\nip access-group NO-STUDENT-MGMT in' },
 { id: 'defroute', cat: 'Device config', title: 'Everything inside works, the internet does not',
   sym: 'Every internal ping succeeds, and R1 can ping the ISP router, but nothing past it answers.',
-  ev: [['R1 console', `R1#show ip route
+  ev: [['PC command prompt', `C:\\>tracert -d 8.8.8.8
+
+Tracing route to 8.8.8.8 over a maximum of 30 hops
+
+  1    <1 ms    <1 ms    <1 ms  192.168.10.1
+  2  192.168.10.1  reports: Destination host unreachable.
+
+Trace complete.`],
+    ['R1 console', `R1#show ip route
 Gateway of last resort is not set
 
       192.168.10.0/24 is variably subnetted, 2 subnets, 2 masks
@@ -490,8 +713,8 @@ L        192.168.10.1/32 is directly connected, GigabitEthernet0/0.10
 C        203.0.113.0/30 is directly connected, GigabitEthernet0/1
 L        203.0.113.2/32 is directly connected, GigabitEthernet0/1`]],
   opts: ['R1 has no default route toward the ISP', 'The ISP link needs DHCP', 'The LAN subnet mask is wrong', 'Pings to the internet require a routing protocol'],
-  why: '"Gateway of last resort is not set" means R1 only knows its connected networks. A default route sends everything else to the ISP. NAT on the edge router is assumed here, since a provider routes only public addresses.',
-  fix: 'ip route 0.0.0.0 0.0.0.0 203.0.113.1' },
+  why: 'The trace leads to R1: it answers hop 1, then reports the destination unreachable, the sign of a router that lacks a route. "Gateway of last resort is not set" means R1 knows only its connected networks. A default route sends everything else to the ISP.',
+  fix: 'ip route 0.0.0.0 0.0.0.0 203.0.113.1\n(NAT on the edge router is assumed: a provider routes only public addresses)' },
 { id: 'studentnative', cat: 'Switching', title: 'Students lost their gateway',
   sym: 'Every Students PC at Site A lost its gateway this morning. Teachers and Principals work fine.',
   ev: [['SwA console', `SwA#show interfaces trunk
@@ -517,7 +740,7 @@ interface GigabitEthernet0/0.20
 interface GigabitEthernet0/0.99
  encapsulation dot1Q 99 native`]],
   opts: ['SwA sets Students VLAN 10 as the trunk native VLAN', 'VLAN 10 is missing from the trunk allowed list on SwA', 'G0/0.10 has the wrong gateway address for the Students subnet', 'The Students PCs need static IP addresses in 10.1.10.0/24'],
-  why: 'The native VLAN crosses the trunk untagged. RtrA files untagged frames under its native subinterface, G0/0.99, which has no IP, so Students frames never reach G0/0.10. Teachers and Principals frames still carry their tags and match their subinterfaces. Native VLAN 99 carries no hosts, so every user VLAN stays tagged.',
+  why: 'The native VLAN crosses the trunk untagged. RtrA files untagged frames under its native subinterface G0/0.99, which lacks an IP, so Students frames never reach G0/0.10. Teachers and Principals frames stay tagged and match their subinterfaces. Native VLAN 99 stays free of hosts, so every user VLAN stays tagged.',
   fix: 'On SwA:\ninterface g0/1\nswitchport trunk native vlan 99\nRtrA already has the matching end:\ninterface g0/0.99\nencapsulation dot1Q 99 native' },
 { id: 'allowed30', cat: 'Switching', title: 'Principals stuck on their own VLAN',
   sym: 'The Principals PCs reach each other and stop at the edge of their VLAN: the gateway, Teachers, and the internet all time out.',
@@ -547,8 +770,43 @@ Gig0/1      10,20,99
 Port        Vlans in spanning tree forwarding state and not pruned
 Gig0/1      10,20,99`]],
   opts: ["VLAN 30 is missing from the trunk's allowed list on G0/1", 'VLAN 30 is missing from the VLAN database', 'The Principals ports must be trunk ports instead of access ports', 'RtrA needs a static route to 10.1.30.0/24'],
-  why: 'show vlan brief lists PRINCIPALS with its ports, so the VLAN exists and its PCs talk to each other. The trunk carries only 10, 20, and 99, so VLAN 30 frames never reach RtrA. RtrA learns 10.1.30.0/24 as a connected route from G0/0.30, so a static route adds nothing.',
+  why: 'show vlan brief lists PRINCIPALS with its ports, so the VLAN exists and its PCs reach each other. The trunk carries only 10, 20, and 99, so VLAN 30 frames stop before RtrA. RtrA learns 10.1.30.0/24 as a connected route from G0/0.30, so a static route adds nothing.',
   fix: 'interface g0/1\nswitchport trunk allowed vlan add 30\n(add keeps 10, 20, and 99; a bare list replaces them)' },
+{ id: 'vtpwipe', cat: 'Switching', title: 'A spare switch went in, and the VLANs vanished',
+  sym: 'Right after a spare switch from the Mānoa office was connected to SwA with a trunk link, every Students, Teachers, and Principals port on SwA stopped working.',
+  ev: [['SwA console (excerpt)', `SwA#show vtp status
+VTP Version capable             : 1 to 3
+VTP version running             : 1
+VTP Domain Name                 : school.lan
+...
+Configuration last modified by 10.3.20.2 at 11-3-26 16:42:10
+...
+Feature VLAN:
+--------------
+VTP Operating Mode                : Server
+Maximum VLANs supported locally   : 255
+Number of existing VLANs          : 5
+Configuration Revision            : 14`],
+    ['SwA console', `SwA#show vlan brief
+
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active
+1002 fddi-default                     act/unsup
+1003 token-ring-default               act/unsup
+1004 fddinet-default                  act/unsup
+1005 trnet-default                    act/unsup `]],
+  opts: ['The spare switch had a higher VTP revision in the same domain, and SwA adopted its VLAN list', 'The trunk to RtrA has a native VLAN mismatch', 'DHCP snooping deleted the user VLANs', "The spare switch shut down SwA's access ports"],
+  why: "In server mode (the default) or client mode, a switch adopts any VLAN list in its VTP domain with a higher configuration revision. The spare arrived with revision 14 and only the default VLANs, so SwA dropped VLANs 10, 20, 30, 99, and 999, and their ports went inactive. Transparent mode keeps a switch's own list, which is why the design sets it.",
+  fix: 'On SwA:\nvtp mode transparent\nvlan 10\nname STUDENTS\nvlan 20\nname TEACHERS\nvlan 30\nname PRINCIPALS\nvlan 99\nname NATIVE\nvlan 999\nname PARKING\nend\nshow vlan brief (expect each access port back in its VLAN)\nBefore the spare rejoins, set it to vtp mode transparent as well.' },
+{ id: 'trunkencap', cat: 'Switching', title: 'The donated switch refuses to trunk',
+  sym: "Kumu Leilani's team installed a donated 3560 multilayer switch at the Hilo office, and the trunk command from the setup guide fails on its uplink.",
+  ev: [['3560 console', `Switch(config)#interface g0/1
+Switch(config-if)#switchport mode trunk
+Command rejected: An interface whose trunk encapsulation is "Auto" can not be configured to "trunk" mode.`]],
+  opts: ['The 3560 also speaks ISL, so it needs switchport trunk encapsulation dot1q before switchport mode trunk', 'G0/1 is shut down', 'VLAN 99 is missing from the VLAN database', 'A multilayer switch trunks only to another multilayer switch'],
+  why: 'A switch that offers both ISL and 802.1Q starts in encapsulation Auto, so a static trunk needs the encapsulation named first. A 2960 speaks 802.1Q alone and goes without this command.',
+  fix: 'interface g0/1\nswitchport trunk encapsulation dot1q\nswitchport mode trunk\nswitchport nonegotiate' },
 { id: 'vtyacl', cat: 'Remote access', title: 'Teachers refused, Students let in',
   sym: 'Teachers get "Connection refused" when they SSH to SwA, yet a Students PC reached the login prompt.',
   ev: [['Teachers PC 10.1.20.30', `C:\\>ssh -l netadmin 10.1.20.2
@@ -566,9 +824,9 @@ line vty 5 15
  access-class 20 in
  login local
  transport input ssh`]],
-  opts: ['ACL 20 permits the Students subnets in place of Teachers', 'SSH is disabled on SwA, so the VTY lines refuse every SSH session', 'Teachers must use Telnet, because SSH admits only one subnet', 'The ACL belongs on interface Vlan20 with ip access-group 20 in'],
-  why: 'access-class 20 in admits only the sources ACL 20 permits, and an implicit deny any ends every ACL. These entries permit 10.1.10.0 and 10.2.10.0, the Students subnets, so Students get a login prompt and Teachers get refused. A Students PC reaching the prompt also proves SSH works. The design permits the Teachers subnets at both sites. Larger networks give management its own dedicated VLAN; this network keeps it on Teachers so the Teachers-only ACL and the management subnet are one and the same.',
-  fix: 'From the console, so your own session stays up:\nconfigure terminal\nno access-list 20\naccess-list 20 permit 10.1.20.0 0.0.0.255\naccess-list 20 permit 10.2.20.0 0.0.0.255\nline vty 0 15\naccess-class 20 in' },
+  opts: ['ACL 20 permits the Students subnets in place of Teachers', 'SSH is disabled on SwA', 'Teachers must use Telnet, because SSH admits only one subnet', 'The ACL belongs on interface Vlan20 with ip access-group 20 in'],
+  why: 'access-class 20 in admits only sources ACL 20 permits, and an implicit deny ends every ACL. The entries permit 10.1.10.0 and 10.2.10.0, the Students subnets, so Students reach the prompt and Teachers are refused. The design permits the Teachers subnets at both sites.',
+  fix: 'From the console, so your own session stays up:\nno access-list 20\naccess-list 20 permit 10.1.20.0 0.0.0.255\naccess-list 20 permit 10.2.20.0 0.0.0.255' },
 { id: 'bpduerr', cat: 'Physical', title: 'Classroom port died when a spare switch went in',
   sym: 'A teacher plugged a spare managed switch into the classroom wall jack to add a second PC, and the jack went dead right away.',
   ev: [['SwA console log', `%SPANTREE-2-BLOCK_BPDUGUARD: Received BPDU on port FastEthernet0/5 with BPDU Guard enabled. Disabling port.
@@ -609,25 +867,260 @@ router ospf 1
  network 10.0.0.0 0.0.0.3 area 0
  network 10.1.0.0 0.0.255.255 area 0`]],
   opts: ['RtrA redistributes static without the subnets keyword', 'OSPF is down between RtrA and RtrB', 'Static routes always beat OSPF, so RtrB can never learn 8.8.8.8 from RtrA', 'A static route needs a /24 mask, so 8.8.8.8 255.255.255.255 is invalid'],
-  why: 'OSPF works: RtrB learns every Site A subnet as an O route through 10.0.0.1. Only the O E2 8.8.8.8/32 route is missing. On IOS 15, redistribute static without subnets carries classful networks only, so the 8.8.8.8/32 host route stays out of OSPF, and IOS warns "Only classful networks will be redistributed" when you type it; newer IOS XE releases add subnets for you. With subnets in place, RtrB holds the Site A copy as a backup: its own static route (AD 1) beats O E2 (AD 110) while its uplink is up, and O E2 8.8.8.8/32 [110/20] takes over when it fails.',
-  fix: 'On RtrA, and the same on RtrB so each site backs up the other:\nrouter ospf 1\nredistribute static subnets\nThen on RtrB, with its uplink still shut:\nshow ip route 8.8.8.8\n(expect Known via "ospf 1", distance 110, metric 20, type extern 2)' }
+  why: 'OSPF is up: Site A subnets arrive as O routes through 10.0.0.1. Only O E2 8.8.8.8/32 is missing. On IOS 15, redistribute static without subnets carries classful networks only, so the /32 stays out. Newer IOS XE adds subnets itself.',
+  fix: 'On RtrA (and RtrB, so each site backs up the other):\nrouter ospf 1\nredistribute static subnets\nOn RtrB, uplink still shut:\nshow ip route 8.8.8.8\n(expect Known via "ospf 1", distance 110, metric 20, type extern 2)' },
+{ id: 'passivelink', cat: 'Device config', title: 'Site B lost every Site A route',
+  sym: 'After a tidy-up of the OSPF settings on RtrB, Site B PCs reach each other and 8.8.8.8, while every Site A address times out.',
+  ev: [['RtrB console: the neighbor list comes back empty', `RtrB#show ip ospf neighbor
+
+RtrB#`],
+    ['RtrB running-config (excerpt)', `router ospf 1
+ redistribute static subnets
+ passive-interface default
+ no passive-interface GigabitEthernet0/0.10
+ network 10.0.0.0 0.0.0.3 area 0
+ network 10.2.0.0 0.0.255.255 area 0`]],
+  opts: ['passive-interface default left G0/2, the inter-site link, passive', 'The network statements use the wrong wildcard masks', 'OSPF needs a router-id on every interface', 'The host route to 8.8.8.8 replaced the OSPF routes'],
+  why: 'passive-interface default makes every interface passive: each one still advertises its subnet and holds back its hellos. The tidy pattern then lists the links that need hellos under no passive-interface. This tidy-up listed G0/0.10, a Students subinterface, and left G0/2 passive, so RtrA and RtrB stay strangers and every O route is gone.',
+  fix: 'router ospf 1\nno passive-interface GigabitEthernet0/2\npassive-interface GigabitEthernet0/0.10\nend\nshow ip ospf neighbor (expect 203.0.113.2, RtrA, in state FULL on GigabitEthernet0/2)' }
 ];
+
+/* One reason per wrong option (opts[1], opts[2], opts[3]) for every ticket. Each reason says what the chosen cause would look like
+   in the evidence, and what the evidence shows instead. */
+const OPTWHY = {
+  apipa: [
+    "A DNS failure leaves a real address and a gateway, so only names fail. This laptop holds 169.254.87.14 with an empty gateway, so DHCP handed out nothing.",
+    "There is no gateway to be wrong: the Default Gateway line is empty. A self-assigned 169.254 address never comes with one.",
+    "255.255.0.0 is the correct mask for the 169.254.0.0/16 link-local range. The mask is a symptom of APIPA, and the cause is the failed DHCP lease."
+  ],
+  gw: [
+    "255.255.255.0 matches the router's /24 on G0/0, and the local ping to .30 succeeds, so the mask is fine.",
+    "show ip interface brief lists G0/0 as up/up with 192.168.10.1, so the router's LAN side is alive.",
+    "A duplicate address would break local traffic too, and the ping to the printer at .30 replies cleanly."
+  ],
+  mask: [
+    "Any address inside the subnet can be the gateway, and .1 is a common choice. PC3's /26 runs .64 to .127, so .1 sits outside it.",
+    "In 192.168.1.64/26 the broadcast is .127. The address .70 is an ordinary host address in that block.",
+    "R1 is directly connected to 192.168.1.0/24, so it already knows the way to PC3. The mismatch is on PC3's side, in its mask."
+  ],
+  admin: [
+    "A cabling fault shows down/down. The word administratively means the interface was shut down in the configuration.",
+    "192.168.20.1 is a sensible second-floor gateway, and a wrong address would never produce administratively down.",
+    "Both floors connect directly to R1, so it routes between them with no protocol. The interface is simply disabled."
+  ],
+  phys: [
+    "A shutdown command shows administratively down. This line shows plain down/down, so the port is enabled and sees no signal.",
+    "A duplicate address is a Layer 3 problem and leaves the link up/up. This link has no carrier at all.",
+    "VTY settings control remote logins to the router. They have no effect on whether a port detects a link."
+  ],
+  dns: [
+    "The ping to 8.8.8.8 leaves the LAN and comes back, so the gateway and routing work.",
+    "A site that blocks ping would time out after its name resolved. 'Could not find host' happens before any packet is sent.",
+    "An APIPA address could never reach 8.8.8.8. The successful internet ping rules it out."
+  ],
+  svi: [
+    "A Layer 2 switch forwards frames by MAC address and needs no routing protocol. Its own management address is the problem.",
+    "The PCs work, so their VLAN assignment is fine. The symptom is reaching the switch itself.",
+    "Switch ports work at Layer 2 and carry no IP addresses. The switch has one management address, on an SVI."
+  ],
+  dgw: [
+    "Access list 20 permits 10.2.20.0/24, and access-class applies only to VTY logins, so pings pass it by.",
+    "Hosts on other subnets send to their gateway, never to the switch's MAC address. ARP covers the local subnet by itself.",
+    "transport input ssh is configured, and the Site A PC manages the switch fine. The problem is reaching it across subnets."
+  ],
+  mode: [
+    "IOS accepts mixed-case hostnames such as R1. The caret under hostname shows the command itself is unknown in this mode.",
+    "No ordering rule ties hostname to enable secret. Both are global configuration commands and work in any order.",
+    "A reload would change nothing. The prompt Router# shows privileged EXEC, where configuration commands are unknown."
+  ],
+  netaddr: [
+    "The mask fits a /24 LAN. The problem is the address itself: .0 is the network address in that block.",
+    "Private addresses are used on routers everywhere. 192.168.30.1 would be accepted at once.",
+    "IOS accepts addresses on interfaces in any state. The rejection is about the address being the network number."
+  ],
+  overlap: [
+    "In 192.168.10.64/26 the broadcast is .127. The address .65 is the first usable host address.",
+    "Routers accept any valid mask. The error names an overlap with G0/0, and says nothing about the mask.",
+    "Interface state plays no part here. The router refuses two interfaces in overlapping subnets whatever their state."
+  ],
+  refused: [
+    "A powered-off router gives no answer, and the PC would time out. 'Connection refused' is an answer from a live device.",
+    "A wrong password reaches a prompt and fails there. This session is refused before any prompt, because the VTY lines admit SSH alone and the PC tried Telnet.",
+    "A wrong gateway makes the session time out with no reply. The router replied, so the path is fine."
+  ],
+  nopw: [
+    "A transport input block says 'Connection refused'. This session opened, then the router closed it for lack of a password.",
+    "The enable secret guards privileged mode after login. The session died at the login step, before enable mattered.",
+    "An access-class ACL refuses the connection outright. This connection opened, which an ACL would have prevented."
+  ],
+  keys: [
+    "SSH never needs Telnet. Adding Telnet would only reopen a plaintext door.",
+    "Any username works for SSH. show ip ssh says SSH is disabled because no RSA keys exist.",
+    "Version 1 is obsolete and would still need keys. The message asks for RSA keys, and version 2 needs at least 768 bits."
+  ],
+  psec: [
+    "A failed network card leaves the port down with no MAC address seen. The log records a MAC address and a security violation.",
+    "An empty pool leaves the port up and the laptop with an APIPA address. Here the port itself is err-disabled.",
+    "A spanning-tree block is a different state and is never logged as psecure-violation. The reason recorded is port security."
+  ],
+  cable: [
+    "Speed settings never turn a link red in Packet Tracer. The cable type does.",
+    "A PC can connect directly to a router; it needs the right cable, a crossover.",
+    "The gateway is a Layer 3 setting. Links come up at Layer 1 whether or not a gateway is set."
+  ],
+  native: [
+    "A missing VLAN shows in show vlan brief and leaves CDP quiet. This message compares the two ends' native VLANs, 99 and 1.",
+    "CDP is the messenger, and the mismatch is the problem. Silencing it hides a real fault that can leak frames between VLANs.",
+    "A faulty cable gives no CDP neighbor at all. The two switches are talking; they disagree on the native VLAN."
+  ],
+  vlan: [
+    "The DHCP server answers per VLAN. It handed out a guest address because the port sits in the GUESTS VLAN.",
+    "A static address would stay the same whatever the port's VLAN. show vlan brief shows Fa0/4 under VLAN 20.",
+    "The other users ports (Fa0/1 to Fa0/3) in VLAN 10 work. The problem is one access port's VLAN."
+  ],
+  hostcase: [
+    "Hyphens are valid in IOS hostnames. S1-Floor2 is a legal name.",
+    "hostname takes effect at once; the prompt changes on the spot.",
+    "hostname is a global configuration command, and it was accepted. The letter case is the issue."
+  ],
+  bannertext: [
+    "The policy says 'before login', and a MOTD banner shows before login. The banner type is fine; the wording differs.",
+    "Any delimiter character works. IOS shows it as ^C either way. The review compares the text alone.",
+    "Banner text takes no quotation marks. The finding is the capitals and the missing exclamation mark."
+  ],
+  wrongif: [
+    "The mask is fine, and a /16 would leave the address on the wrong port.",
+    "Descriptions are optional labels. An interface accepts an address with or without one.",
+    "192.168.20.1 is an ordinary private host address, and the router accepted it, on G0/2."
+  ],
+  parent: [
+    "Subinterfaces follow their parent. They stay down while G0/0 is shut, whatever you type on them.",
+    "Modern IOS supports dot1Q alone, and the design uses it. Encapsulation plays no part in holding the interfaces down.",
+    "The switch has nothing to learn here. The router's own physical interface is administratively down."
+  ],
+  allowed: [
+    "An SVI answers any host whose frames reach it, including across trunks. The trunk is dropping VLAN 20 before they arrive.",
+    "Native VLAN 20 would send management frames untagged and break the matching end. Allow VLAN 20 on the trunk instead.",
+    "The switch reaches other networks through its default gateway, and needs no routing protocol. VLAN 20 is pruned from the trunk."
+  ],
+  encap: [
+    "IOS allows any subinterface number. Matching numbers is a convention; the encapsulation value does the binding.",
+    "The gateway can be any address in the subnet, and 192.168.10.1 is fine.",
+    "The switch trunk is already dot1Q. The mismatch is the VLAN number in the router's encapsulation line."
+  ],
+  helper: [
+    "The server can stay in VLAN 50. Routers relay DHCP with ip helper-address; a server per VLAN scales badly.",
+    "A router pool would work, and the design puts DHCP on the server. The relay is the missing piece.",
+    "DHCP delivers the gateway. Requiring a static one defeats DHCP; the broadcast simply never reaches the server."
+  ],
+  acldir: [
+    "Extended ACLs work on subinterfaces. The ACL is applied; it sits in the wrong direction on the wrong interface.",
+    "ACLs are read top down, so a permit any first would make the deny unreachable. The order is correct.",
+    "0.0.0.255 is the correct wildcard for a /24. The entry matches the right hosts; it is never consulted."
+  ],
+  defroute: [
+    "R1 already pings the ISP router, so the uplink has a working address.",
+    "Every internal ping works, so LAN addressing is fine.",
+    "A single edge router reaches the internet with one default route. No protocol is needed."
+  ],
+  studentnative: [
+    "The allowed list shows 10,20,30,99. VLAN 10 crosses the trunk; it crosses untagged.",
+    "G0/0.10 holds 10.1.10.1, the Students gateway. The frames never reach it because they arrive untagged.",
+    "Addressing is sound. Even with static addresses, untagged frames land on the native subinterface, which has no IP."
+  ],
+  allowed30: [
+    "show vlan brief lists PRINCIPALS with its ports, so the VLAN exists.",
+    "Hosts belong on access ports. Turning them into trunks would still leave VLAN 30 off the uplink.",
+    "RtrA learns 10.1.30.0/24 as a connected route on G0/0.30. Frames never arrive, because the trunk drops VLAN 30."
+  ],
+  vtyacl: [
+    "A Students PC reached the login prompt, which proves SSH is running.",
+    "transport input ssh means SSH only, and SSH admits whichever subnets the ACL permits. The ACL lists the wrong subnets.",
+    "That would filter all traffic to the SVI, far beyond logins. access-class is the right tool; its ACL lists the wrong subnets."
+  ],
+  bpduerr: [
+    "The log names bpduguard, and a new MAC address would read psecure-violation.",
+    "A bad cable gives no link and no BPDU. The switch received a BPDU, which means the link worked.",
+    "Blocking is a spanning-tree state, and err-disabled is a shutdown. BPDU guard shuts the port outright."
+  ],
+  noredist: [
+    "RtrB learns every Site A subnet as an O route via 10.0.0.1, so OSPF is up.",
+    "RtrB's own static route (AD 1) wins only while RtrB holds it. Once the uplink fails, the O E2 route (AD 110) would take over, if it existed.",
+    "A /32 host route is valid and common. The route exists on RtrA; it is simply never redistributed."
+  ],
+  linuxgw: [
+    "ip -br link lists enp0s3 as UP with LOWER_UP, so the link is live, and the printer answers across it.",
+    "A /24 matches the Site A plan, 10.1.10.0/24, and the printer at .5 answers inside it.",
+    "ip neigh shows the printer at its own address, 10.1.10.5, with its own MAC address, and a duplicate address would break the PC's local traffic too."
+  ],
+  duplex: [
+    "A cable fault shows as notconnect or a flapping link, and the 2960 adjusts to a crossover on its own (Auto-MDIX). Fa0/7 is connected at 100 Mb/s, with the late collisions of a duplex mismatch.",
+    "Port security limits which MAC addresses may use a port and leaves the speed alone. A violation err-disables the port, and Fa0/7 is connected.",
+    "A busy VLAN would slow every port in it. Only Fa0/7 reads a-half and counts late collisions."
+  ],
+  icmp: [
+    "A server that is down stays silent on every port. TcpTestSucceeded True means it completed a TCP handshake on port 443.",
+    "Both tests used the address 10.1.20.40 directly, so they skipped DNS, and the TCP test succeeded.",
+    "The PC at 10.2.20.15 reached a server on another subnet, 10.1.20.40, so its gateway works."
+  ],
+  linuxdns: [
+    "ip route shows default via 10.1.10.1, the Site A gateway, and the ping to 8.8.8.8 crosses it and returns.",
+    "A site that blocks ping still resolves first. 'Temporary failure in name resolution' happens before any packet leaves for the site.",
+    "ip -br a shows 10.1.10.52/24, an ordinary DHCP address, and the laptop reached 8.8.8.8. A link-local 169.254 address stays on its own link."
+  ],
+  linuxport: [
+    "ss lists apache2 on *:443 as well as *:80, so Apache serves HTTPS.",
+    "Ping replies come back from 10.1.20.80, so ICMP passes. The failure is one TCP port.",
+    "Port 80 answers from apache2, and ss shows the same processes on 443, so Apache runs."
+  ],
+  arpspoof: [
+    "A second gateway would answer with its own MAC address at its own IP. Here 10.1.10.44 answers for 10.1.10.1, whose MAC address was 00-1a-2b-3c-4d-01 last week.",
+    "A DHCP conflict puts two hosts on one address. Here one MAC address answers for two addresses, and one of them is the gateway.",
+    "An expired certificate warns on one site and leaves the speed alone. Warnings on many sites, together with slow pages, suggest a host in the path."
+  ],
+  snooptrust: [
+    "Snooping runs on trunks and access ports alike. A trunk uplink simply needs ip dhcp snooping trust, so server messages may arrive there.",
+    "An empty pool stays silent. Here the log shows RtrA's offers reaching SwA, where snooping drops them.",
+    "A VLAN missing from the trunk stops its frames before they reach SwA. SwA learns RtrA's MAC address in VLAN 10 on Gi0/1, and the log shows the offers arriving."
+  ],
+  vtpwipe: [
+    "A native VLAN mismatch logs %CDP-4-NATIVE_VLAN_MISMATCH and leaves the VLAN list in place.",
+    "DHCP snooping filters DHCP messages and leaves the VLAN database untouched.",
+    "A shut port shows as disabled in show interfaces status. Here the VLANs themselves are gone."
+  ],
+  trunkencap: [
+    "A shut port still accepts switchport mode trunk. This message names the encapsulation.",
+    "A missing VLAN leaves trunk mode available. This message is about encapsulation.",
+    "A 3560 trunks to any 802.1Q device, a 2960 or a router included, once the encapsulation is set."
+  ],
+  passivelink: [
+    "10.0.0.0 0.0.0.3 matches G0/2 at 10.0.0.2, and 10.2.0.0 0.0.255.255 matches every Site B subnet, as the design lists them.",
+    "One router ID names the whole OSPF process, and RtrB already has one. The setting lives under router ospf, apart from the interfaces.",
+    "The /32 adds one entry for 8.8.8.8 beside any OSPF routes. Every O route is missing because the neighbor list is empty."
+  ]
+};
 
 const CATS = ['Addressing', 'Physical', 'Switching', 'Device config', 'Services', 'Remote access', 'Access lists', 'Config accuracy'];
 /* Grade tag and Defense Ladder links per ticket: [grade, [[unit hash, link text], ...], ticket ids] */
 const DL = 'https://freeapp4that.store/defense-ladder/#';
 const S5 = ['sophomore/s5', 'Defense Ladder s5, Cisco: configure a switch and a router'], J4 = ['junior/j4', 'Defense Ladder j4, Cisco: VLANs, routing, and ACLs'];
+const S7 = ['sophomore/s7', 'Defense Ladder s7, Network tools and a safer router'];
 const TIERS = [
   ['Sophomore', [['freshman/f4', 'Defense Ladder f4, Computers, virtualization, and the network']], ['apipa', 'dns']],
   ['Sophomore', [['freshman/f7', 'Defense Ladder f7, the Cables, link lights, and header sizes detail panel'], S5], ['cable']],
-  ['Sophomore', [S5], ['gw', 'admin', 'phys', 'svi', 'dgw', 'mode', 'netaddr', 'refused', 'nopw', 'keys', 'vlan', 'hostcase', 'bannertext', 'wrongif', 'bpduerr']],
+  ['Sophomore', [S5], ['admin', 'phys', 'svi', 'dgw', 'mode', 'netaddr', 'refused', 'nopw', 'keys', 'vlan', 'hostcase', 'bannertext', 'wrongif', 'bpduerr', 'duplex']],
+  ['Sophomore', [S5, S7], ['gw']],
+  ['Sophomore', [S7], ['icmp', 'arpspoof', 'linuxgw', 'linuxport']],
   ['Junior', [S5], ['mask', 'overlap', 'psec']],
-  ['Junior', [J4], ['native', 'parent', 'allowed', 'encap', 'helper', 'acldir', 'defroute', 'studentnative', 'allowed30', 'vtyacl']],
-  ['Senior', [['senior/se6', 'Defense Ladder se6, Cisco: audit and extend the two-site network']], ['noredist']]
+  ['Junior', [['junior/j3', 'Defense Ladder j3, Debian and deeper Linux'], J4], ['linuxdns']],
+  ['Junior', [J4], ['native', 'parent', 'allowed', 'encap', 'helper', 'acldir', 'defroute', 'studentnative', 'allowed30', 'vtyacl', 'snooptrust', 'vtpwipe', 'trunkencap']],
+  ['Senior', [['senior/se6', 'Defense Ladder se6, Cisco: audit and extend the two-site network']], ['noredist', 'passivelink']]
 ];
 const TIER = {};
 TIERS.forEach(([grade, learn, ids]) => ids.forEach(id => { TIER[id] = { grade, learn }; }));
 const on = new Set(CATS);
+const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+const DUE_KEY = 'netdrills.tickets.due';
 let deck = [], pos = 0, order = [], answered = false, missed = [];
 const S = { ok: 0, all: 0, streak: 0, best: Number(store.get('netdrills.tickets.best', 0)) || 0 };
 
@@ -721,6 +1214,16 @@ function answer(oi) {
   v.textContent = right ? 'Solved.' : 'Not this time. The answer outlined in green is the root cause.';
   v.className = 'verdict ' + (right ? 'good' : 'nope');
   res.querySelector('.why').textContent = t.why;
+  if (!right) {
+    const w = (OPTWHY[t.id] || [])[oi - 1];
+    if (w) {
+      const p = document.createElement('p'); p.className = 'picked';
+      const b = document.createElement('b'); b.textContent = 'What you picked: ';
+      const i = document.createElement('i'); i.textContent = t.opts[oi];
+      p.append(b, i, document.createTextNode('. ' + w));
+      res.insertBefore(p, res.querySelector('.fixl'));
+    }
+  }
   res.querySelector('.fix').textContent = t.fix;
   if (TIER[t.id]) {
     const l = document.createElement('p');
@@ -755,9 +1258,15 @@ function finish() {
   }
   const acts = box.querySelector('.actions');
   if (missed.length) {
+    const due = store.get(DUE_KEY, null) || { saved: today(), ids: [] };
+    missed.forEach(t => { if (!due.ids.includes(t.id)) due.ids.push(t.id); });
+    store.set(DUE_KEY, due);
+    const note = document.createElement('p'); note.className = 'later';
+    note.textContent = 'A review right now is a warm-up: the answers are still fresh. These tickets come back as a review deck the next day you open this page.';
+    box.insertBefore(note, acts);
     const r = document.createElement('button');
     r.type = 'button'; r.className = 'btn primary';
-    r.textContent = `Retry the ${missed.length} missed`;
+    r.textContent = `Review the ${missed.length} missed now`;
     const again = missed.slice();
     r.addEventListener('click', () => startDeck(again));
     acts.append(r);
@@ -775,8 +1284,107 @@ document.addEventListener('keydown', e => {
   if (!answered && /^[1-4]$/.test(e.key)) { answer(order[Number(e.key) - 1]); e.preventDefault(); }
   else if (answered && e.key === 'Enter' && document.activeElement !== $('#t-next')) { $('#t-next').click(); e.preventDefault(); }
 });
-renderChips(); updStats();
+function renderReview() {
+  const box = $('#review'); if (!box) return;
+  const due = store.get(DUE_KEY, null);
+  const ids = due && Array.isArray(due.ids) ? due.ids.filter(id => TICKETS.some(t => t.id === id)) : [];
+  if (!ids.length || due.saved === today()) { box.hidden = true; return; }
+  box.hidden = false;
+  box.innerHTML = '<h2></h2><p></p><div class="actions"></div>';
+  box.querySelector('h2').textContent = 'Review deck';
+  box.querySelector('p').textContent = `${ids.length} ticket${ids.length === 1 ? '' : 's'} you missed on ${due.saved} ${ids.length === 1 ? 'is' : 'are'} due for a second look. A right answer today, with the first one out of memory, is the real test.`;
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'btn primary'; b.textContent = 'Review them now';
+  b.addEventListener('click', () => { store.set(DUE_KEY, null); box.hidden = true; startDeck(TICKETS.filter(t => ids.includes(t.id))); $('#ticket').scrollIntoView({ block: 'start' }); });
+  const k = document.createElement('button'); k.type = 'button'; k.className = 'btn'; k.textContent = 'Keep for later';
+  k.addEventListener('click', () => { box.hidden = true; });
+  box.querySelector('.actions').append(b, k);
+}
+renderChips(); updStats(); renderReview();
 startDeck(TICKETS);
+})();
+</script>
+<div id="termsbox" class="termsbox" hidden role="dialog" aria-label="Terms on this page"><h2>Terms on this page</h2><div class="trow"><input id="termsQ" type="search" placeholder="Filter terms" aria-label="Filter terms"><button type="button" id="termsDefine">Define selection</button><button type="button" id="termsClose">Close</button></div><p class="tdef" id="termsDef" role="status">Select a word on the page and press Define selection, or browse the list. Definitions come from the Defense Ladder glossary.</p><dl id="termsList"></dl></div>
+<script>
+/* Reading support (panel review, UDL): text size, read aloud, terms, and (Drills) a shared-computer banner. Same code in every practice page. */
+(function(){
+  const C={"key": "netdrills.trouble-tickets", "read": ["#review", "#ticket", "#end"], "gloss": [["Access port", "A switch port in one VLAN that passes untagged frames to one end device."], ["access-class", "The line command that filters which source addresses may open a session to the device itself."], ["APIPA", "A self-assigned 169.254.x.x address that a Windows host takes when its DHCP request goes unanswered."], ["ARP", "The protocol that finds the MAC address for an IPv4 address on the local network."], ["ARP spoofing", "Forged ARP replies that claim another host’s IP address, often the gateway’s, to put the sender on-path."], ["Autostate", "The rule that keeps an SVI down until its VLAN exists and a port carrying it is up."], ["Backup", "An independent copy on separate media that survives the loss of the original and earns trust after a test restore."], ["Baseline", "A record of how a system looks before you change it: its users, services, ports, software, and settings."], ["BPDU", "The message switches exchange to run spanning tree."], ["BPDU guard", "A setting that err-disables an edge port the moment a BPDU arrives."], ["Broadcast address", "The last address of a subnet, with every host bit set to 1."], ["CDP", "Cisco Discovery Protocol, which announces a device’s model, IOS version, and addresses to its neighbors."], ["Command Prompt", "cmd.exe, the older Windows command line, where commands such as dir and del, and tools such as sc.exe, netsh, and reg, take their own options (such as /s or start= disabled) in place of PowerShell parameters."], ["Compliance", "Meeting the laws, standards, and contracts that apply to an organization, and proving it with evidence."], ["Default gateway", "The router a host sends traffic to when the destination sits on another network."], ["Default route", "The 0.0.0.0/0 route that catches every destination missing from the routing table."], ["DHCP", "The service that hands hosts an address, mask, gateway, and DNS server automatically."], ["DHCP snooping", "A switch feature that lets DHCP server replies in only on trusted ports."], ["DNS", "The service that turns names into IP addresses."], ["DNSSEC", "Signatures on DNS records that let a validating resolver prove an answer is the zone owner’s, unchanged."], ["Duplex mismatch", "One end of a link sending and receiving at once (full duplex) while the other takes turns (half): the link stays up but slow, with collisions and CRC errors."], ["Dynamic ARP inspection", "A switch feature that checks ARP packets on untrusted ports against the DHCP snooping table to stop ARP poisoning."], ["enable secret", "The IOS line that guards privileged mode with a hashed password; enable password keeps it in clear text."], ["Encapsulation", "Wrapping data from the layer above in each layer’s own header on the way down the stack."], ["Err-disabled", "A port state in which the switch has shut the port for a violation until an admin removes the cause and cycles the port."], ["Evidence", "The files, logs, and settings an investigation question depends on, kept unchanged until the question is answered."], ["Gateway of last resort", "The show ip route line that names the default route’s next hop."], ["Hardening", "Shrinking a system’s attack surface by removing what is unneeded and securely configuring what remains."], ["Host route", "A /32 route that matches exactly one address."], ["HTTPS", "HTTP inside TLS on port 443: private and protected against tampering."], ["ICMP", "The IP helper protocol that carries error and test messages, such as ping."], ["Implicit deny", "The hidden last line of every ACL that drops every packet no earlier line matched."], ["JSON", "A data format of braces, brackets, and quoted keys, used in API answers, cloud policies, and audit events."], ["Key pair", "A public key anyone may hold and a matching private key only its owner keeps."], ["LAN", "Local area network: devices in one building or campus, joined by links the owner controls."], ["Loop", "Code that repeats the same lines for each item, such as each line of a file."], ["MAC address", "A 48-bit hardware address that carries a frame to the next device on the local link."], ["NAT", "Address translation that swaps a private source address for a public one at the network edge."], ["Native VLAN", "The one VLAN that crosses a trunk untagged; both ends must agree on it."], ["Network address", "The first address of a subnet, with every host bit set to 0."], ["O E2", "An OSPF external type 2 route, whose cost stays at its starting metric (20 by default)."], ["On-path attack", "An attack that puts a stranger between two parties to read or change what passes; once called man-in-the-middle."], ["OSPF", "A link-state routing protocol in which neighbors share routes inside areas; area 0 is the backbone."], ["Port security", "A switch feature that limits which, and how many, MAC addresses may use an access port."], ["PortFast", "A setting that moves an edge port straight to forwarding, for ports with one end device."], ["RADIUS", "The server that answers 802.1X and VPN sign-in requests, assigns a VLAN, and logs each decision."], ["root", "The Linux superuser, UID 0, with full control of the system."], ["Root cause", "The underlying reason an incident could happen, such as an unpatched server, as opposed to its symptoms."], ["Router-on-a-stick", "One router port, split into subinterfaces, that routes between VLANs over a single trunk."], ["Scope", "The exact systems, accounts, methods, and time window that an authorization covers."], ["Script", "A text file of commands that an interpreter reads and runs. Read every line before you run one."], ["SSH", "Secure Shell, the encrypted remote-login service on TCP port 22."], ["Sticky MAC", "A MAC address that port security learns from traffic and writes into the running-config."], ["Subinterface", "A logical slice of a router port (such as g0/0.10) bound to one VLAN by encapsulation dot1Q."], ["Subnet mask", "The number that marks the network part of an address, such as 255.255.255.0 for /24."], ["sudo", "Runs one command as root after checking your own password and your rights in /etc/sudoers."], ["Traceroute", "A tool (tracert on Windows) that lists each router on a path by sending probes with a rising TTL and reading the time-exceeded replies."], ["Trunk", "A link that carries many VLANs, tagging each frame with its VLAN ID."], ["TTL", "A packet counter each router lowers by one, so a looping packet eventually dies."], ["ufw", "Uncomplicated Firewall: the front end that writes Linux packet-filter rules on Ubuntu and Mint."], ["VLAN", "A group of switch ports that forms its own broadcast domain, usually with its own IP subnet."], ["VTP", "VLAN Trunking Protocol, which copies VLAN lists between switches in server and client modes."], ["VTP transparent mode", "A VTP setting in which a switch keeps its own VLAN list and ignores VLAN changes advertised by other switches."]]};
+  const $=s=>document.querySelector(s);
+  const lsGet=k=>{try{return localStorage.getItem(k);}catch(e){return null;}};
+  const lsSet=(k,v)=>{try{localStorage.setItem(k,v);}catch(e){}};
+  const lsDel=k=>{try{localStorage.removeItem(k);}catch(e){}};
+  /* theme (pages without their own button) */
+  const themeBtn=$('#sbTheme');
+  if(themeBtn){
+    const apply=t=>{if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);else document.documentElement.removeAttribute('data-theme');themeBtn.textContent='Theme: '+(t||'auto');};
+    let t=lsGet(C.key+'-theme');if(t!=='light'&&t!=='dark')t='';apply(t);
+    themeBtn.addEventListener('click',()=>{t=t===''?'light':t==='light'?'dark':'';if(t)lsSet(C.key+'-theme',t);else lsDel(C.key+'-theme');apply(t);});
+  }
+  /* text size: Default, Large, Larger; the root font size scales rem text, and the body rule scales px text */
+  const textBtn=$('#sbText');
+  if(textBtn){
+    const SIZES=[['default','Default'],['large','Large'],['larger','Larger']];
+    const apply=v=>{const s=SIZES.find(x=>x[0]===v)||SIZES[0];if(s[0]==='default')document.documentElement.removeAttribute('data-text');else document.documentElement.setAttribute('data-text',s[0]);textBtn.textContent='Text: '+s[1];textBtn.title='Text size: '+s[1]+'. Press for the next size.';};
+    let v=lsGet(C.key+'-text');if(!SIZES.some(s=>s[0]===v))v='default';apply(v);
+    textBtn.addEventListener('click',()=>{const i=SIZES.findIndex(s=>s[0]===v);v=SIZES[(i+1)%SIZES.length][0];lsSet(C.key+'-text',v);apply(v);});
+  }
+  /* read aloud: the selection when there is one, else the first visible main region */
+  const readBtn=$('#sbRead');
+  if(readBtn){
+    if(!('speechSynthesis' in window)){readBtn.hidden=true;}
+    else{
+      const visible=el=>!!(el&&el.offsetParent!==null&&!el.hidden);
+      const region=()=>{for(const sel of C.read){const el=document.querySelector(sel);if(visible(el)&&el.textContent.trim())return el;}return document.body;};
+      let speaking=false;
+      const stop=()=>{speechSynthesis.cancel();speaking=false;readBtn.textContent='Read aloud';readBtn.setAttribute('aria-pressed','false');};
+      readBtn.setAttribute('aria-pressed','false');
+      readBtn.addEventListener('click',()=>{
+        if(speaking){stop();return;}
+        const sel=String(window.getSelection&&window.getSelection()||'').trim();
+        const text=(sel||region().innerText||'').replace(/\s+/g,' ').trim().slice(0,6000);
+        if(!text)return;
+        const u=new SpeechSynthesisUtterance(text);u.lang=document.documentElement.lang||'en';u.rate=1;
+        u.onend=stop;u.onerror=stop;
+        speechSynthesis.cancel();speechSynthesis.speak(u);speaking=true;readBtn.textContent='Stop reading';readBtn.setAttribute('aria-pressed','true');
+      });
+      window.addEventListener('pagehide',()=>{if(speaking)speechSynthesis.cancel();});
+    }
+  }
+  /* terms: the Defense Ladder glossary terms this page uses, plus Define selection */
+  const termsBtn=$('#sbTerms'),box=$('#termsbox');
+  if(termsBtn&&box){
+    const list=$('#termsList'),q=$('#termsQ'),def=$('#termsDef'),defBtn=$('#termsDefine'),close=$('#termsClose');
+    const G=C.gloss;
+    const norm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9 .\-\/+]/g,' ').replace(/\s+/g,' ').trim();
+    const draw=f=>{list.textContent='';const ff=norm(f);let n=0;for(const [t,d] of G){if(ff&&norm(t).indexOf(ff)<0&&norm(d).indexOf(ff)<0)continue;const dt=document.createElement('dt');dt.textContent=t;const dd=document.createElement('dd');dd.textContent=d;list.append(dt,dd);n++;}if(!n){const dd=document.createElement('dd');dd.textContent='No term matches. Try a shorter word.';list.append(dd);}};
+    const open=o=>{box.hidden=!o;termsBtn.setAttribute('aria-expanded',o?'true':'false');termsBtn.textContent=o?'Close terms':'Terms';if(o){draw(q.value);q.focus();}else termsBtn.focus();};
+    termsBtn.setAttribute('aria-expanded','false');
+    termsBtn.addEventListener('click',()=>open(box.hidden));
+    close.addEventListener('click',()=>open(false));
+    q.addEventListener('input',()=>draw(q.value));
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!box.hidden)open(false);});
+    defBtn.addEventListener('click',()=>{
+      const sel=norm(String(window.getSelection&&window.getSelection()||'')).replace(/[.,;:!?]+$/,'');
+      if(!sel){def.textContent='Select a word or phrase on the page first, then press Define selection.';return;}
+      const hit=G.find(([t])=>norm(t)===sel)||G.find(([t])=>norm(t)===sel.replace(/s$/,''))||G.find(([t])=>norm(t).indexOf(sel)===0)||G.find(([t])=>sel.indexOf(norm(t))>=0&&norm(t).length>3);
+      def.textContent=hit?hit[0]+': '+hit[1]:'"'+sel+'" is outside this page\u2019s glossary. The Defense Ladder glossary holds every course term.';
+    });
+    draw('');
+  }
+  /* Drills: a return after 30 minutes or more on a browser that holds progress */
+  if(C.progressKey){
+    const seenKey=C.progressKey+'-seen';const now=Date.now();const last=parseInt(lsGet(seenKey)||'0',10)||0;
+    let has=false;try{const o=JSON.parse(lsGet(C.progressKey)||'null');has=!!(o&&((o.learned&&Object.keys(o.learned).length)||(o.drilled&&Object.keys(o.drilled).length)||(o.best&&Object.keys(o.best).length)||(o.run&&o.run.done&&Object.keys(o.run.done).length)));}catch(e){}
+    if(has&&last&&now-last>=30*60*1000){
+      const mins=Math.round((now-last)/60000);const when=mins<120?mins+' minutes':Math.round(mins/60)+' hours';
+      const bar=document.createElement('div');bar.className='sharebar';bar.setAttribute('role','region');bar.setAttribute('aria-label','Saved progress');
+      const span=document.createElement('span');span.textContent='This browser last showed this trainer '+when+' ago and holds saved progress. On a shared computer it may be someone else\u2019s.';
+      const keep=document.createElement('button');keep.type='button';keep.textContent='Keep my progress';keep.addEventListener('click',()=>bar.remove());
+      const fresh=document.createElement('button');fresh.type='button';fresh.textContent='Start fresh';fresh.addEventListener('click',()=>{lsDel(C.progressKey);lsSet(seenKey,String(Date.now()));location.reload();});
+      bar.append(span,keep,fresh);document.body.insertBefore(bar,document.body.firstChild);
+    }
+    const stamp=()=>lsSet(seenKey,String(Date.now()));stamp();setInterval(stamp,60000);
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')stamp();});window.addEventListener('pagehide',stamp);
+  }
 })();
 </script>
 <!-- tool4that:foot --><p style="text-align:center;margin:28px 0 22px;font:14px/1.4 system-ui,-apple-system,Segoe UI,Arial,sans-serif"><a href="../../">More free tools at Tool4That</a></p><!-- /tool4that:foot -->

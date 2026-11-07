@@ -22,7 +22,7 @@
       ],
       "name": "Windows Range",
       "tagline": "Harden the workstation. Then the server.",
-      "description": "A Windows 11 and Windows Server 2025 hardening lab in your browser: sign in, read the scenario brief, answer the investigation questions, then fix it with the real panels or the command line while a live Progress Check keeps count.",
+      "description": "Windows 11 and Windows Server 2025 hardening scenarios in your browser. Sign in, read the scenario brief, answer the investigation questions, then fix each one with the real panels or the command line while a live Progress Check keeps count.",
       "badges": [
         "Windows",
         "Hardening",
@@ -42,7 +42,7 @@
       ],
       "name": "Linux Range",
       "tagline": "Harden the box from the shell.",
-      "description": "Ubuntu, Linux Mint, and Ubuntu Server hardening labs in your browser: a real-feeling bash terminal with sudo, apt, systemctl, ufw, PAM, cron, and nano, three scenarios, and a live Progress Check with availability checks.",
+      "description": "Ubuntu, Linux Mint, and Ubuntu Server, three scenarios in your browser. A real-feeling bash terminal with sudo, apt, systemctl, ufw, PAM, cron, and nano. A live Progress Check also runs availability checks that flag any authorized user, administrator, or critical service you break.",
       "badges": [
         "Linux",
         "Hardening",
@@ -62,7 +62,7 @@
       ],
       "name": "Cisco Range",
       "tagline": "Secure the topology. Prove it with ping.",
-      "description": "A Packet Tracer-style topology in your browser: IOS consoles with ? help, abbreviations, and the exact error messages, PC command prompts, four scenarios from one router to a two-site network with VLAN trunks, router-on-a-stick, and OSPF, and a live Progress Check.",
+      "description": "A Packet Tracer-style topology in your browser: IOS consoles with ? help, abbreviations, and the exact error messages, plus PC command prompts. Four scenarios, from one router to a two-site network with VLAN trunks, router-on-a-stick, and OSPF, with a live Progress Check.",
       "badges": [
         "Cisco IOS",
         "Hardening",

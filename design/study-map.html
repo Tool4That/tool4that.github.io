@@ -170,6 +170,7 @@ code{font:var(--t-sm) var(--mono);overflow-wrap:anywhere}
 .opts .k{margin-left:.3rem}
 .k-try{display:inline-block;max-width:100%;border-color:var(--tra);color:var(--tra);white-space:normal;line-height:1.3}
 .k-exp{border-color:var(--ink);background:var(--ink);color:var(--on-ink)}
+.k-trap{border-style:dashed;border-color:var(--ink);color:var(--ink)}
 details.app{margin:.3rem 0;border-top:1px solid var(--rule)}
 details.app>summary{cursor:pointer;padding:.45rem 0;font-weight:650}
 details.app>summary .ct{margin-left:.35rem}
@@ -443,7 +444,7 @@ details.more>summary{cursor:pointer;margin:.4rem 0;font-size:var(--t-md);color:v
   function placeholder() {
     var d = el('div', {cls: 'd'});
     d.appendChild(el('h2', {text: 'Pick a concept'}));
-    d.appendChild(el('p', {text: 'Choose one from the list, or type in the search box. Each concept shows the Defense Ladder unit that teaches it, the drills and labs that practice it, and the commands on each system.'}));
+    d.appendChild(el('p', {text: 'Choose one from the list or search. Each concept shows the Defense Ladder unit that teaches it, the drills and labs that practice it, and its commands on each system.'}));
     var lg = el('div', {cls: 'legend'}, [el('p', {text: 'Kinds of practice:'})]);
     var dl = el('dl');
     [['k', 'Drill', 'Quick questions or a short exercise: remember it.'], ['k k-build', 'Build', 'Configure it from instructions: apply it.'],
@@ -566,8 +567,11 @@ details.more>summary{cursor:pointer;margin:.4rem 0;font-size:var(--t-md);color:v
     var target = p.t === 'defense-ladder' && p.an ? dlHref(p.an) : href(p.t + '/');
     var bc = [el('a', {href: target, text: p.w.join(' › ') || t.name})];
     g.roles.forEach(function (r) { bc.push(el('span', {cls: 'k' + (r === 'answer' || r === 'fix' ? ' k-exp' : ''), text: ROLE[r] || r})); });
+    // a line shown wrong on purpose (a distractor, a break-it card, a faulty config line): label it so nobody copies it
+    var all = g.lines.every(function (l) { return g.tl[l]; });
+    if (all) bc.push(trapChip());
     var kids = [el('span', {cls: 'bc'}, bc)];
-    g.lines.forEach(function (l) { if (l !== f.name || g.lines.length > 1) kids.push(el('span', {cls: 'ln'}, [el('code', {text: l})])); });
+    g.lines.forEach(function (l) { if (l !== f.name || g.lines.length > 1) kids.push(el('span', {cls: 'ln'}, [el('code', {text: l}), g.tl[l] && !all ? trapChip() : null])); });
     if (g.c) kids.push(el('span', {cls: 'cx', text: g.c}));
     if (g.a.length) kids.push(el('details', {cls: 'ans'}, [el('summary', {text: 'Show the expected answer'}), el('code', {text: g.a.join('  or  ')})]));
     return el('li', null, kids);
@@ -577,15 +581,17 @@ details.more>summary{cursor:pointer;margin:.4rem 0;font-size:var(--t-md);color:v
     list.forEach(function (x) {
       var p = x[0], k = p.w.join('\u0001');
       var g = by[k];
-      if (!g) { g = by[k] = {p: p, roles: [], lines: [], c: '', a: []}; out.push(g); }
+      if (!g) { g = by[k] = {p: p, roles: [], lines: [], tl: {}, c: '', a: []}; out.push(g); }
       if (g.roles.indexOf(p.r) < 0) g.roles.push(p.r);
       var line = (p.d ? p.d + ': ' : '') + x[1];
-      if (g.lines.indexOf(line) < 0) g.lines.push(line);
+      if (g.lines.indexOf(line) < 0) { g.lines.push(line); g.tl[line] = !!p.x; }
+      else if (!p.x) g.tl[line] = false;
       if (!g.c && p.c && p.r !== 'reference') g.c = p.c;
       (p.a || []).forEach(function (a) { if (g.a.indexOf(a) < 0) g.a.push(a); });
     });
     return out;
   }
+  function trapChip() { return el('span', {cls: 'k k-trap', text: 'Wrong on purpose', title: 'This place uses the line as a wrong choice or a mistake to catch. Read why before you copy it.'}); }
   function cmdDetail(f) {
     var C = cliData(), d = el('div', {cls: 'd'});
     d.appendChild(el('h2', null, [el('code', {text: f.name}), sysBubble(f.os)]));
@@ -596,14 +602,14 @@ details.more>summary{cursor:pointer;margin:.4rem 0;font-size:var(--t-md);color:v
     if (f.care) d.appendChild(el('p', {cls: 'care'}, [el('b', {text: 'Careful: '}), f.care]));
     // options: what each does, and whether an answer or fix expects it, a lesson shows it, or a simulator lets you try it
     var used = {}, lines = [];
-    f.forms.forEach(function (x) { x.p.forEach(function (p) { lines.push([x.l, p.r]); }); });
+    f.forms.forEach(function (x) { x.p.forEach(function (p) { lines.push([x.l, p.x ? 'trap' : p.r]); }); });
     if (f.opts && f.opts.length) {
       d.appendChild(el('h3', {text: 'Options and arguments'}));
       var dl = el('dl', {cls: 'opts'}), lits = {};
       f.opts.forEach(function (o) { optWords(o.o).forEach(function (x) { if (!/</.test(x)) lits[x] = true; }); });
       f.opts.forEach(function (o) {
-        var exp = lines.some(function (x) { return x[1] !== 'teach' && x[1] !== 'reference' && hasOpt(x[0], o.o, lits); });
-        var shown = !exp && lines.some(function (x) { return hasOpt(x[0], o.o, lits); });
+        var exp = lines.some(function (x) { return x[1] !== 'teach' && x[1] !== 'reference' && x[1] !== 'trap' && hasOpt(x[0], o.o, lits); });
+        var shown = !exp && lines.some(function (x) { return x[1] !== 'trap' && hasOpt(x[0], o.o, lits); });
         var tries = (f.sup || []).filter(function (s) { return hasOpt(s.p.replace(/\b(WORD|LINE|IFACE|RANGE|A\.B\.C\.D|H\.H\.H)\b/g, '<$1>'), o.o, lits); });
         tries.forEach(function (s) { used[s.p] = true; });
         var tryTools = [];
@@ -658,7 +664,7 @@ details.more>summary{cursor:pointer;margin:.4rem 0;font-size:var(--t-md);color:v
   function cliPlaceholder() {
     var d = el('div', {cls: 'd'});
     d.appendChild(el('h2', {text: 'Find a command'}));
-    d.appendChild(el('p', {text: 'Type what you want to do, such as routing table, vlan, lockout, or firewall, or the start of a command, such as sh ip int. Pick a command to see its options, where each lesson, drill, and lab uses it, and the expected answers.'}));
+    d.appendChild(el('p', {text: 'Type a task (routing table, vlan, lockout, firewall) or the start of a command (sh ip int). Pick a command to see its options, every lesson, drill, and lab that uses it, and the expected answers.'}));
     var lg = el('div', {cls: 'legend'}, [el('p', {text: 'Labels on options and places:'})]);
     var dl = el('dl');
     [['k k-exp', 'Expected', 'An answer, a fix, or a drill needs it.'], ['k', 'In a lesson', 'A lesson or reference shows it.'],
@@ -779,7 +785,7 @@ details.more>summary{cursor:pointer;margin:.4rem 0;font-size:var(--t-md);color:v
     stack.appendChild(el('button', {cls: 'host g-host', type: 'button', style: 'grid-row:8', 'aria-pressed': String(S.layer === 'host'), 'data-layer': 'host',
       'aria-label': 'Host, the machine itself: ' + plural(count('host'), 'concept', 'concepts')}, [el('span', {cls: 'nm', text: 'Host: the machine itself'}), el('span', {cls: 'ct', text: String(count('host'))})]));
     filters.appendChild(stack);
-    filters.appendChild(el('p', {cls: 'stack-note', text: 'Layers 1 to 7 are the OSI model; the right column is TCP/IP. In TCP/IP, session (5) and presentation (6) jobs happen inside the application protocols, so concepts appear at 5 or 6 by what they do: idle timeouts at 5, encryption in transit at 6. Tap a layer to filter, tap again to clear.'}));
+    filters.appendChild(el('p', {cls: 'stack-note', text: 'Tap a layer to filter; tap again to clear. Left: OSI layers 1 to 7. Right: TCP/IP, which folds session (5) and presentation (6) into its Application layer. Concepts sit at 5 or 6 by what they do: idle timeouts at 5, encryption in transit at 6.'}));
     var list = D.concepts.filter(function (c) { return queryOk(c) && layerOk(c); });
     status(list, S.layer ? layerPhrase(S.layer) : '');
     if (!list.length) { emptyMsg(box); return; }
@@ -844,7 +850,7 @@ details.more>summary{cursor:pointer;margin:.4rem 0;font-size:var(--t-md);color:v
     if (!ids.length) {
       st.textContent = '';
       box.appendChild(el('div', {cls: 'empty'}, [
-        el('p', {text: 'Rate a few concepts first: open any concept and choose New, Shaky, or Solid. Your path then lists what to work on, in an order where each step builds on the last.'}),
+        el('p', {text: 'Rate a few concepts first: open one and choose New, Shaky, or Solid. Your path then lists what to work on, each step building on the last.'}),
         el('p', null, [el('button', {cls: 'pill', type: 'button', 'data-tab': 'track', text: 'Start with what every track needs'})])
       ]));
       return;

@@ -25,7 +25,7 @@
       ],
       "name": "Windows 11 Lockdown",
       "tagline": "Lock down the workstation.",
-      "description": "Windows 11 baseline hardening in three levels: beginner, intermediate, and advanced. Comes with a command reference that explains why each step matters.",
+      "description": "Windows 11 baseline hardening in three levels: beginner, intermediate, and advanced. A command reference explains why each step matters.",
       "badges": [
         "Windows",
         "Hardening",
@@ -42,7 +42,7 @@
       ],
       "name": "Windows Server Lockdown",
       "tagline": "Lock down the server.",
-      "description": "Windows Server baseline hardening in three levels: beginner, intermediate, and advanced. Comes with a command reference that explains why each step matters.",
+      "description": "Windows Server baseline hardening in three levels: beginner, intermediate, and advanced. A command reference explains why each step matters.",
       "badges": [
         "Windows Server",
         "Hardening",
@@ -58,7 +58,7 @@
       ],
       "name": "Linux Mint Lockdown",
       "tagline": "Lock down the desktop.",
-      "description": "Linux Mint baseline hardening in three levels: beginner, intermediate, and advanced. Comes with a command reference that explains why each step matters.",
+      "description": "Linux Mint baseline hardening in three levels: beginner, intermediate, and advanced. A command reference explains why each step matters.",
       "badges": [
         "Linux",
         "Hardening",
@@ -77,7 +77,7 @@
       ],
       "name": "Ubuntu Lockdown",
       "tagline": "Lock down Ubuntu.",
-      "description": "Ubuntu baseline hardening in three levels: beginner, intermediate, and advanced. Comes with a command reference that explains why each step matters.",
+      "description": "Ubuntu baseline hardening in three levels: beginner, intermediate, and advanced. A command reference explains why each step matters.",
       "badges": [
         "Linux",
         "Hardening",
@@ -94,7 +94,7 @@
       ],
       "name": "FreeBSD Lockdown",
       "tagline": "Lock down FreeBSD.",
-      "description": "FreeBSD baseline hardening in three levels: beginner, intermediate, and advanced. Comes with a command reference that explains why each step matters.",
+      "description": "FreeBSD baseline hardening in three levels: beginner, intermediate, and advanced. A command reference explains why each step matters.",
       "badges": [
         "FreeBSD",
         "Hardening",
@@ -111,7 +111,7 @@
       ],
       "name": "Cisco IOS Lockdown",
       "tagline": "Lock down the router.",
-      "description": "Cisco IOS baseline hardening in three levels: beginner, intermediate, and advanced. Comes with a command reference that explains why each step matters.",
+      "description": "Cisco IOS baseline hardening in three levels: beginner, intermediate, and advanced. A command reference explains why each step matters.",
       "badges": [
         "Cisco IOS",
         "Hardening",

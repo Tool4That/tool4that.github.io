@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-vdtWhFH6IXxNKr/FifNCkDbEg/bXIzr8R5POxAlivFM='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-7a4ii/BjGiifS4lKEJ1cLyzbqXpK0ugl80KlmUSVPiE=' 'sha256-K5OupLYl+8XODqF+hH5J88mQR0jiKGvpuyCF1WzcFqE='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Flag every risky line in a running-config, choose the best fix, and name the protections that are missing entirely. Four configs, including a Site B switch and router.">
 <link rel="canonical" href="https://freeapp4that.store/net-drills/config-audit/">
@@ -126,6 +126,21 @@ button.ln:hover{background:color-mix(in srgb,var(--accent) 9%,transparent)}
 .miss .cov{margin:4px 0 0 29px;font-size:14px;color:var(--muted)}
 footer{margin-top:40px;font-size:13px;color:var(--muted)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* reading support (panel review): text size, support bar, terms panel, banner, contrast, forced colours, print */
+:root[data-text="large"]{font-size:112.5%}:root[data-text="larger"]{font-size:125%}
+:root[data-text="large"] body{font-size:18px}:root[data-text="larger"] body{font-size:20px}
+.sbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 14px;max-width:100%;font-size:.85rem}
+.sbar button,.theme.sb{font:inherit;font-size:.8rem;padding:5px 10px;border-radius:999px;border:1px solid var(--line,var(--rule,#8a97a5));background:var(--panel,var(--face,#fff));color:var(--ink);cursor:pointer;white-space:nowrap}
+.termsbox{position:fixed;right:12px;bottom:12px;width:min(420px,calc(100vw - 24px));max-height:min(60vh,520px);overflow:auto;background:var(--panel,var(--face,#fff));color:var(--ink);border:1px solid var(--line,var(--rule,#8a97a5));border-radius:12px;padding:12px 14px;box-shadow:0 8px 28px rgba(0,0,0,.25);z-index:50;font-size:.92rem}
+.termsbox h2{margin:0 0 6px;font-size:1rem}.termsbox .trow{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px}.termsbox input{flex:1;min-width:120px;font:inherit;padding:5px 8px;border:1px solid var(--line,var(--rule,#8a97a5));border-radius:8px;background:var(--panel,var(--face,#fff));color:var(--ink)}
+.termsbox button{font:inherit;font-size:.8rem;padding:4px 9px;border-radius:8px;border:1px solid var(--line,var(--rule,#8a97a5));background:var(--panel,var(--face,#fff));color:var(--ink);cursor:pointer}
+.termsbox dl{margin:6px 0 0}.termsbox dt{font-weight:600;margin-top:6px}.termsbox dd{margin:0}.termsbox .tdef{margin:4px 0;padding:6px 8px;border-left:3px solid currentColor;min-height:1.2em}
+.sharebar{display:flex;flex-wrap:wrap;gap:.5rem .8rem;align-items:center;padding:.6rem .9rem;background:var(--soft,var(--face,#eef3f7));color:var(--ink);border-bottom:1px solid var(--line,var(--rule,#8a97a5));font-size:.92rem;max-width:100%}
+.sharebar button{font:inherit;font-size:.85rem;padding:.25rem .7rem;border-radius:6px;border:1px solid var(--line,var(--rule,#8a97a5));background:var(--panel,var(--face,#fff));color:var(--ink);cursor:pointer}
+@media (prefers-contrast:more){:root{--line:currentColor;--rule:currentColor}button,.btn,.opts button,.list button,.chk,.card,.ticket{border:1px solid currentColor}}
+@media (forced-colors:active){button,.btn,.opts button,.list button{border:1px solid ButtonText}.bar2 i,.fill{background:Highlight}}
+@media print{.sbar,.termsbox,.sharebar,header .levels,header .modes,header .theme,nav.series,aside.report,footer,.nav,button{display:none !important}.wrap{display:block}.list{flex-direction:column}.list button{display:grid !important;border:none}#view,.learn{display:block}body{background:#fff;color:#000}}
 </style>
 <style>a.jack{color:inherit;text-decoration:none}a.jack:hover,a.jack:focus-visible{color:var(--ink);text-decoration:underline;text-underline-offset:3px}</style>
 </head>
@@ -141,6 +156,7 @@ footer{margin-top:40px;font-size:13px;color:var(--muted)}
   <h1>Config Audit</h1>
   <p class="lede">Read a running-config the way an attacker would. Tap every line that creates a security or reliability problem, choose the best fix, then name the protections that are missing entirely.</p>
 </header>
+<div class="sbar" role="toolbar" aria-label="Reading support"><button type="button" id="sbTheme">Theme: auto</button><button type="button" id="sbText">Text: Default</button><button type="button" id="sbRead">Read aloud</button><button type="button" id="sbTerms" aria-controls="termsbox">Terms</button></div>
 
 <div class="picker" role="radiogroup" aria-label="Configuration to audit" id="picker"></div>
 
@@ -225,7 +241,7 @@ const ACL20 = {
 const SCEN = {
   r1: {
     name: 'R1 edge router', sub: '12 problems to find', grade: 'Sophomore', head: ['R1#show running-config', 'IOS 15.1, 2911-style router'],
-    intro: 'R1 connects the office LAN (G0/0) to the internet (G0/1). Besides the console and VTY lines, a router has an AUX (auxiliary) port: a second console-style line, configured under line aux 0 and often wired to a modem. The last admin left in a hurry. Tap any line you think is a problem.',
+    intro: 'R1 connects the office LAN (G0/0) to the internet (G0/1). Besides console and VTY, a router has an AUX port: a second console-style line under line aux 0, often wired to a modem. The last admin left in a hurry. Tap any line you think is a problem.',
     lines: [
       '!', 'version 15.1',
       ['no service timestamps log datetime msec', 'ts'], ['no service timestamps debug datetime msec', 'ts'],
@@ -256,7 +272,7 @@ const SCEN = {
       en: { sev: 'High', title: "Privileged EXEC is guarded by 'enable password cisco'",
         why: "It's stored in plain text and it's the first password anyone guesses. Whoever reaches the # prompt owns the router.",
         opts: ['no enable password\nenable secret En@ble-S3cret', 'enable password 7 cisco', 'service password-encryption'],
-        note: 'enable secret stores a one-way hash (type 5, MD5, on this 15.1 router). Encrypting cisco as type 7 still leaves a guessable, reversible password. Current IOS releases (15.3(3)M3 and later) also offer type 8 (PBKDF2-SHA-256) and type 9 (scrypt), which Cisco recommends over type 5 (MD5): enable algorithm-type scrypt secret <password>.', clue: 'How is privileged EXEC protected?' },
+        note: 'enable secret stores a one-way hash (type 5, MD5, on this 15.1 router). Type 7 leaves cisco guessable and reversible. IOS 15.3(3)M3 and later also offer type 8 (PBKDF2-SHA-256) and type 9 (scrypt), which Cisco recommends over type 5: enable algorithm-type scrypt secret <password>.', clue: 'How is privileged EXEC protected?' },
       user: { sev: 'High', title: 'Local account admin with the password admin, in plain text',
         why: "Default-style credentials are the first thing attackers try, and 'password 0' means it's stored unencrypted. The VTY lines log in with this account.",
         opts: ['no username admin\nusername netadmin secret N3tAdmin-2026', 'username admin password 7 admin', 'username admin privilege 1 password admin'],
@@ -278,7 +294,7 @@ const SCEN = {
       aux: { sev: 'Medium', title: 'The AUX port opens a CLI session for anyone',
         why: 'The AUX (auxiliary) port is a second console-style port, often wired to a modem. An empty line aux 0 accepts a session on it without a password, so anyone who plugs a cable or a modem into it reaches the CLI.',
         opts: ['line aux 0\nno exec', 'line aux 0\npassword cisco', 'line aux 0\ntransport input none'],
-        note: 'no exec stops the port from starting a CLI session, the simple fix for an idle port. If an admin does dial in through it, use login local and exec-timeout 5 0 under line aux 0 instead. A password line without login is ignored, and transport input none stops only connections that arrive over the network, so a cable on the port still reaches a prompt.', clue: 'Below the console line: which other line stands empty?' },
+        note: 'no exec stops the port from opening a CLI session, the simple fix for an idle port. If an admin does dial in through it, use login local and exec-timeout 5 0 under line aux 0 instead. A password line without login is ignored, and transport input none stops only network connections, so a cable on the port still reaches a prompt.', clue: 'Below the console line: which other line stands empty?' },
       telnet: TELNET,
       nologin: { sev: 'High', title: 'VTY lines 5 to 15 need no login at all',
         why: 'Lines 0 to 4 are set up, but 5 to 15 accept remote sessions with no authentication. An attacker just opens a sixth session.',
@@ -329,7 +345,7 @@ const SCEN = {
       trunk: { sev: 'High', title: 'The uplink negotiates trunking with DTP',
         why: 'dynamic desirable actively asks the far end to trunk. Uplinks should be static trunks with DTP off and an unused native VLAN, or switch spoofing and double-tagging get easier.',
         opts: ['vlan 99\nname NATIVE\ninterface g0/1\nswitchport mode trunk\nswitchport nonegotiate\nswitchport trunk native vlan 99', 'switchport mode dynamic auto', 'switchport access vlan 999'],
-        note: 'Static trunk, DTP off, and the native VLAN moved off VLAN 1 to VLAN 99, a VLAN that stays free of hosts, an SVI, and an IP address. Set the same native VLAN at the other end of the link. VLAN 999 stays the parking VLAN for unused ports, separate from the native VLAN.', clue: 'How does G0/1 decide whether to trunk?' },
+        note: 'Static trunk, DTP off, and native VLAN 99, a VLAN free of hosts, SVIs, and IP addresses. Set the same native VLAN at the far end. VLAN 999 stays the parking VLAN for unused ports, separate from the native VLAN.', clue: 'How does G0/1 decide whether to trunk?' },
       vlan1: { sev: 'Medium', title: 'Switch management lives on VLAN 1',
         why: 'VLAN 1 is the default for every port and carries control traffic, so the management IP is reachable from any port nobody configured.',
         opts: ['vlan 20\nname TEACHERS\ninterface vlan 20\nip address 192.168.20.2 255.255.255.0\nno shutdown\ninterface vlan 1\nno ip address\nshutdown\nexit\nip default-gateway 192.168.20.1', 'interface vlan 1\ndescription MGMT', 'no ip default-gateway'],
@@ -353,16 +369,16 @@ const SCEN = {
       { t: 'DHCP snooping (ip dhcp snooping)', present: false, why: 'Not configured: a rogue DHCP server on any port could hand out a fake gateway.' },
       { t: 'BPDU Guard on every PortFast port', present: false, why: 'F0/1 has PortFast without BPDU Guard (F0/3 has both).' },
       { t: 'Trunk native VLAN moved to an unused VLAN (99)', present: false, covered: 'trunk', coveredName: 'trunk', why: 'G0/1 carries no native VLAN setting, so untagged frames still ride VLAN 1.' },
-      { t: 'VTP mode confirmed as transparent with show vtp status', present: false, why: 'show running-config lists the vtp mode only in transparent mode; server and client modes live in vlan.dat, outside the running-config. This config lists no vtp line, so the switch runs as a VTP server (the default) or client and accepts updates that could overwrite its VLANs. show vtp status confirms the mode, and vtp mode transparent sets it.', learn: ['junior/j4', 'Learn it: Defense Ladder j4, Trunk negotiation and VTP detail panel.'] },
+      { t: 'VTP mode confirmed as transparent with show vtp status', present: false, why: 'show running-config shows vtp mode only in transparent mode; server and client modes live in vlan.dat, outside the running-config. Without a vtp line here, the switch runs as a VTP server (the default) or client and accepts updates that could overwrite its VLANs. show vtp status confirms the mode, and vtp mode transparent sets it.', learn: ['junior/j4', 'Learn it: Defense Ladder j4, Trunk negotiation and VTP detail panel.'] },
       { t: 'A legal warning banner (banner motd)', present: false, why: 'There is no banner, so nobody is warned before logging in.' },
       { t: 'Encryption of plaintext passwords', present: true, why: 'Present: service password-encryption (though type 7 is weak).' },
-      { t: 'A hashed enable secret', present: true, why: 'Present: enable secret 5. Type 5 (MD5) counts as hashed here, but Cisco now recommends type 8 (PBKDF2-SHA-256) or type 9 (scrypt) where the IOS release supports them: enable algorithm-type scrypt secret <password>.' },
+      { t: 'A hashed enable secret', present: true, why: 'Present: enable secret 5. Type 5 (MD5) counts as hashed here. Cisco now recommends type 8 (PBKDF2-SHA-256) or type 9 (scrypt) where the IOS release supports them: enable algorithm-type scrypt secret <password>.' },
       { t: 'Port security on F0/1', present: true, why: 'Present: switchport port-security with sticky MACs.' }
     ]
   },
   swb: {
     name: 'Site B switch', sub: '10 problems to find', grade: 'Senior', head: ['SwB#show running-config', 'IOS 15.0, 2960-style switch'],
-    intro: 'SwB serves Site B: Students on Fa0/1 to 0/8 (VLAN 10), Teachers on Fa0/9 to 0/16 (VLAN 20), and Principals on Fa0/17 to 0/20 (VLAN 30), with G0/1 trunking to RtrB G0/0 for router on a stick. VLAN 99 is the native VLAN, and VLAN 999 parks unused ports. Teachers doubles as the management VLAN: larger networks give management its own dedicated VLAN; this network keeps it on Teachers so the Teachers-only ACL and the management subnet are one and the same. Tap any line you think is a problem.',
+    intro: 'SwB serves Site B: Students on Fa0/1 to 0/8 (VLAN 10), Teachers on Fa0/9 to 0/16 (VLAN 20), and Principals on Fa0/17 to 0/20 (VLAN 30), with G0/1 trunking to RtrB G0/0 for router on a stick. VLAN 99 is native, VLAN 999 parks unused ports, and Teachers doubles as the management VLAN. Tap any line you think is a problem.',
     lines: [
       '!', 'version 15.0', 'no service pad', 'service timestamps debug datetime msec', 'service timestamps log datetime msec',
       'service password-encryption', '!', 'hostname SwB', '!', 'enable secret 5 $1$q7Lm$Vt3hR8wKpZ1eYc6NuD0sJ.', '!',
@@ -392,11 +408,11 @@ const SCEN = {
     ],
     findings: {
       bpdu: { sev: 'Medium', title: 'Students ports run PortFast without BPDU Guard',
-        why: 'PortFast sends a port straight to forwarding, which suits a PC. Without BPDU Guard, a small switch plugged into a Students jack forwards at once, so a loop runs until STP catches up, and its BPDUs can bid for root bridge and redraw the whole topology. Fa0/9 through 0/21 pair PortFast with BPDU Guard; Fa0/1 through 0/8 skip it.',
+        why: 'PortFast sends a port straight to forwarding, which suits a PC. Without BPDU Guard, a small switch on a Students jack forwards at once, so a loop runs until STP catches up, and its BPDUs can bid for root bridge and redraw the topology. Fa0/9 through 0/21 pair PortFast with BPDU Guard; Fa0/1 through 0/8 skip the guard.',
         opts: ['interface range fa0/1 - 8\nspanning-tree bpduguard enable', 'interface range fa0/1 - 8\nno spanning-tree portfast', 'interface range fa0/1 - 8\nspanning-tree guard root'],
         note: 'BPDU Guard err-disables the port the moment a BPDU arrives. Removing PortFast only slows PCs down, and root guard still lets a looped switch forward. In global config, spanning-tree portfast bpduguard default covers every PortFast port at once.', clue: 'Compare the Students ports with the Teachers and Principals ports.' },
       v1user: { sev: 'Medium', title: 'Fa0/21 is in use but sits in VLAN 1',
-        why: 'Without switchport access vlan, an access port stays in VLAN 1, the default VLAN every unconfigured port shares. The printer is up and passing traffic outside the Teachers subnet, next to any device plugged into a spare jack, and the management address on Vlan1 is right there with it.',
+        why: 'Without switchport access vlan, an access port stays in VLAN 1, the default VLAN every unconfigured port shares. The printer passes traffic outside the Teachers subnet, in the same VLAN as any device on a spare jack. The management address on Vlan1 sits in that VLAN too.',
         opts: ['interface fa0/21\nswitchport access vlan 20', 'interface fa0/21\nswitchport voice vlan 20', 'interface vlan 1\nshutdown'],
         note: 'Every access port in use names its VLAN. A voice VLAN carries tagged phone traffic and leaves the data VLAN at 1, and shutting the Vlan1 SVI leaves the port itself in VLAN 1.', clue: 'One port in use has a description and a mode, and something else is absent.' },
       nativeuser: { sev: 'High', title: 'The native VLAN is the Students VLAN',
@@ -408,7 +424,7 @@ const SCEN = {
         opts: ['interface g0/1\nswitchport trunk allowed vlan 10,20,30,99', 'interface g0/1\nswitchport trunk allowed vlan 30', 'interface g0/1\nswitchport trunk native vlan 30'],
         note: 'List every VLAN the trunk carries, the native VLAN 99 included. switchport trunk allowed vlan add 30 also works, while a bare switchport trunk allowed vlan 30 replaces the whole list and cuts off Students and Teachers.', clue: 'Count the VLANs the trunk is allowed to carry.' },
       pftrunk: { sev: 'Medium', title: 'PortFast is on the uplink',
-        why: 'PortFast skips the listening and learning states and forwards at once. If G0/1 is ever recabled to a switch, or a switch replaces the router, a loop forwards frames before STP blocks it. PortFast belongs on edge ports facing PCs and printers, and this network keeps its uplinks free of it.',
+        why: 'PortFast skips the listening and learning states and forwards at once. If G0/1 is ever recabled to a switch, or a switch replaces the router, a loop forwards frames before STP blocks it. PortFast belongs on edge ports facing PCs and printers; this network keeps its uplinks free of it.',
         opts: ['interface g0/1\nno spanning-tree portfast trunk', 'interface g0/1\nspanning-tree bpduguard enable', 'interface g0/1\nspanning-tree portfast'],
         note: 'IOS does allow portfast trunk toward a single router or server, and it prints a warning when you set it. Removing it costs about 30 seconds of listening and learning after a link change. Plain spanning-tree portfast applies only while a port is in access mode, and BPDU Guard on the uplink would err-disable it the moment a switch answers.', clue: 'Which PortFast line sits on a trunk?' },
       mgmt1: { sev: 'Medium', title: 'Switch management lives on VLAN 1',
@@ -459,9 +475,9 @@ const SCEN = {
       enpw: { sev: 'High', title: 'Privileged EXEC uses enable password, stored as type 7',
         why: 'enable password keeps a reversible copy of the password, and service password-encryption only scrambles it as type 7. This one decodes to: ' + dec7('13370300294121242A262436') + '. Anyone with a copy of the config, a backup, or a screenshot gets privileged EXEC.',
         opts: ['no enable password\nenable secret En@ble-B2', 'service password-encryption', 'enable password 7 13370300294121242A262436'],
-        note: 'enable secret stores a one-way hash, and it wins whenever both exist; removing the old enable password keeps it out of backups. On current IOS, enable algorithm-type scrypt secret stores type 9 (scrypt). En@ble-B2 is a placeholder: use a unique passphrase for each device and line.', clue: 'How is privileged EXEC protected?' },
+        note: 'enable secret stores a one-way hash, and it wins whenever both exist; removing the old enable password keeps it out of backups. On current IOS, enable algorithm-type scrypt secret stores type 9 (scrypt). Use a unique passphrase for each device and line.', clue: 'How is privileged EXEC protected?' },
       nativetag: { sev: 'Medium', title: 'The native subinterface is missing the native keyword',
-        why: 'Both ends of a trunk need the same native VLAN. The design has SwB send VLAN 99 untagged (switchport trunk native vlan 99), while encapsulation dot1Q 99 without native makes RtrB expect VLAN 99 tagged and treat untagged frames as VLAN 1. The mismatch stays quiet while VLAN 99 carries no hosts, and it surfaces as dropped frames and confusing trunk output the moment anything relies on the native VLAN.',
+        why: 'Both ends of a trunk need the same native VLAN. SwB sends VLAN 99 untagged (switchport trunk native vlan 99), while encapsulation dot1Q 99 without native makes RtrB expect VLAN 99 tagged and file untagged frames under VLAN 1. The mismatch stays quiet while VLAN 99 is free of hosts, and it surfaces as dropped frames and confusing trunk output the moment anything relies on the native VLAN.',
         opts: ['interface g0/0.99\nencapsulation dot1Q 99 native', 'interface g0/0.99\nip address 10.2.99.1 255.255.255.0', 'interface g0/0\nswitchport trunk native vlan 99'],
         note: 'The native keyword makes the router send and accept VLAN 99 untagged, matching switchport trunk native vlan 99 on SwB. The native VLAN carries no IP, and switchport commands belong to switches; a 2911 rejects them.', clue: 'Compare the four subinterfaces. One should match the switch\'s native VLAN.' },
       subnets: { sev: 'Medium', title: 'OSPF redistributes static routes classfully',
@@ -481,7 +497,7 @@ const SCEN = {
       { t: 'A login banner (banner login)', present: false, why: 'Absent: RtrB sets only banner motd. banner login shows its warning right before the username prompt, and SSH clients display it before they authenticate.' },
       { t: 'Brute-force protection (login block-for)', present: false, why: 'Absent: the VTY lines accept unlimited password guesses from any permitted host.' },
       { t: 'Minimum password length (security passwords min-length)', present: false, why: 'Absent: nothing enforces a minimum length on new passwords.' },
-      { t: 'OSPF hellos kept off the user subnets (passive-interface on g0/0.10, g0/0.20, and g0/0.30)', present: false, why: 'Absent: router ospf 1 runs without passive-interface, so RtrB sends OSPF hellos to every host in Students, Teachers, and Principals, and a rogue device there could answer and form an adjacency. passive-interface keeps advertising those subnets while it stops the hellos. passive-interface default, then no passive-interface g0/2, does the same and leaves only the link to RtrA talking OSPF.', learn: ['senior/se6', 'Learn it: Defense Ladder se6, Share the route through OSPF and its OSPF behind the scenes detail panel.'] }
+      { t: 'OSPF hellos kept off the user subnets (passive-interface on g0/0.10, g0/0.20, and g0/0.30)', present: false, why: 'Absent: router ospf 1 runs without passive-interface, so RtrB sends OSPF hellos into Students, Teachers, and Principals. A rogue device there could answer and form an adjacency. passive-interface keeps advertising those subnets and stops the hellos. passive-interface default, then no passive-interface g0/2, does the same and leaves only the link to RtrA talking OSPF.', learn: ['senior/se6', 'Learn it: Defense Ladder se6, Share the route through OSPF and its OSPF behind the scenes detail panel.'] }
     ]
   }
 };
@@ -505,7 +521,7 @@ const BENIGN = [
   [/^no service pad$/, 'Good: the legacy X.25 PAD service is off.'],
   [/^service timestamps /, 'Good: messages carry timestamps.'],
   [/^service password-encryption$/, 'Better than plain text, but type 7 is reversible. Look for any password still stored as type 7.'],
-  [/^enable secret 5 /, 'Good: the enable secret is stored as a hash (type 5, MD5). Current IOS releases also offer type 8 (PBKDF2-SHA-256) and type 9 (scrypt), which Cisco recommends over type 5: enable algorithm-type scrypt secret <password>.'],
+  [/^enable secret 5 /, 'Good: the enable secret is a hash (type 5, MD5). Current IOS releases also offer type 8 (PBKDF2-SHA-256) and type 9 (scrypt), which Cisco recommends over type 5: enable algorithm-type scrypt secret <password>.'],
   [/^spanning-tree /, 'Normal spanning-tree setting.'],
   [/^ switchport mode access$/, 'Good: this port cannot negotiate a trunk.'],
   [/^ switchport access vlan /, 'Puts the port in the user VLAN. Fine.'],
@@ -793,6 +809,90 @@ $('#b-reveal').addEventListener('click', () => {
 $('#b-restart').addEventListener('click', () => { closeCard(); load(key); });
 $('#b-miss').addEventListener('click', checkMissing);
 load('r1');
+})();
+</script>
+<div id="termsbox" class="termsbox" hidden role="dialog" aria-label="Terms on this page"><h2>Terms on this page</h2><div class="trow"><input id="termsQ" type="search" placeholder="Filter terms" aria-label="Filter terms"><button type="button" id="termsDefine">Define selection</button><button type="button" id="termsClose">Close</button></div><p class="tdef" id="termsDef" role="status">Select a word on the page and press Define selection, or browse the list. Definitions come from the Defense Ladder glossary.</p><dl id="termsList"></dl></div>
+<script>
+/* Reading support (panel review, UDL): text size, read aloud, terms, and (Drills) a shared-computer banner. Same code in every practice page. */
+(function(){
+  const C={"key": "netdrills.config-audit", "read": ["#intro", ".phase", "#summary"], "gloss": [["Access port", "A switch port in one VLAN that passes untagged frames to one end device."], ["access-class", "The line command that filters which source addresses may open a session to the device itself."], ["Attack surface", "Every account, service, port, and program an attacker could reach on a system."], ["Backup", "An independent copy on separate media that survives the loss of the original and earns trust after a test restore."], ["BPDU", "The message switches exchange to run spanning tree."], ["BPDU guard", "A setting that err-disables an edge port the moment a BPDU arrives."], ["Change log", "One line per change: the time, the machine, what changed, and how to undo it."], ["Classful network", "An address block sized by its first octet: class A /8, class B /16, or class C /24."], ["CVE", "A public identifier for one known vulnerability, used to say which flaw a patch closes."], ["Default gateway", "The router a host sends traffic to when the destination sits on another network."], ["Default route", "The 0.0.0.0/0 route that catches every destination missing from the routing table."], ["DHCP", "The service that hands hosts an address, mask, gateway, and DNS server automatically."], ["DHCP snooping", "A switch feature that lets DHCP server replies in only on trusted ports."], ["DTP", "Dynamic Trunking Protocol, which lets a switch port negotiate becoming a trunk."], ["enable secret", "The IOS line that guards privileged mode with a hashed password; enable password keeps it in clear text."], ["Encapsulation", "Wrapping data from the layer above in each layer’s own header on the way down the stack."], ["Encryption", "Scrambling data so that only holders of the key can read it."], ["Host route", "A /32 route that matches exactly one address."], ["HTTP", "The request-and-response language of the web, sent as readable text on port 80."], ["HTTPS", "HTTP inside TLS on port 443: private and protected against tampering."], ["JSON", "A data format of braces, brackets, and quoted keys, used in API answers, cloud policies, and audit events."], ["LAN", "Local area network: devices in one building or campus, joined by links the owner controls."], ["Local account", "An account stored on one computer and usable only there."], ["Loop", "Code that repeats the same lines for each item, such as each line of a file."], ["Native VLAN", "The one VLAN that crosses a trunk untagged; both ends must agree on it."], ["NTP", "The protocol that synchronizes device clocks so logs line up."], ["O E2", "An OSPF external type 2 route, whose cost stays at its starting metric (20 by default)."], ["OSPF", "A link-state routing protocol in which neighbors share routes inside areas; area 0 is the backbone."], ["Passphrase", "A password made of several random words: long, easy to type, and hard to guess."], ["Port security", "A switch feature that limits which, and how many, MAC addresses may use an access port."], ["PortFast", "A setting that moves an edge port straight to forwarding, for ports with one end device."], ["Process", "A running program with its own memory, PID, and security identity; its threads share its rights."], ["RADIUS", "The server that answers 802.1X and VPN sign-in requests, assigns a VLAN, and logs each decision."], ["Risk", "How likely a harmful event is, combined with how bad it would be."], ["Rogue DHCP server", "An unauthorized DHCP server that hands clients its own gateway or DNS server to put itself on-path; DHCP snooping blocks it."], ["root", "The Linux superuser, UID 0, with full control of the system."], ["Root guard", "A switch-port setting that blocks the port while a switch behind it claims to be the root bridge, and lets it forward again once the claims stop."], ["Script", "A text file of commands that an interpreter reads and runs. Read every line before you run one."], ["Spoofing", "Forging an identity field, such as a source IP, a MAC address, a DNS answer, or an email sender."], ["SSH", "Secure Shell, the encrypted remote-login service on TCP port 22."], ["Subinterface", "A logical slice of a router port (such as g0/0.10) bound to one VLAN by encapsulation dot1Q."], ["Syslog", "The standard for sending log messages to a central log server."], ["Trunk", "A link that carries many VLANs, tagging each frame with its VLAN ID."], ["Type 7", "A reversible IOS password encoding that service password-encryption produces."], ["VLAN", "A group of switch ports that forms its own broadcast domain, usually with its own IP subnet."], ["Voice VLAN", "A separate VLAN for IP phones on an access port: the phone’s traffic crosses tagged in it while the PC behind the phone stays in the access VLAN."], ["VTP", "VLAN Trunking Protocol, which copies VLAN lists between switches in server and client modes."], ["VTY line", "A virtual terminal line that a remote Telnet or SSH session signs in through."], ["WAN", "Wide area network: links that join distant sites, rented from a provider or run over the internet."]]};
+  const $=s=>document.querySelector(s);
+  const lsGet=k=>{try{return localStorage.getItem(k);}catch(e){return null;}};
+  const lsSet=(k,v)=>{try{localStorage.setItem(k,v);}catch(e){}};
+  const lsDel=k=>{try{localStorage.removeItem(k);}catch(e){}};
+  /* theme (pages without their own button) */
+  const themeBtn=$('#sbTheme');
+  if(themeBtn){
+    const apply=t=>{if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);else document.documentElement.removeAttribute('data-theme');themeBtn.textContent='Theme: '+(t||'auto');};
+    let t=lsGet(C.key+'-theme');if(t!=='light'&&t!=='dark')t='';apply(t);
+    themeBtn.addEventListener('click',()=>{t=t===''?'light':t==='light'?'dark':'';if(t)lsSet(C.key+'-theme',t);else lsDel(C.key+'-theme');apply(t);});
+  }
+  /* text size: Default, Large, Larger; the root font size scales rem text, and the body rule scales px text */
+  const textBtn=$('#sbText');
+  if(textBtn){
+    const SIZES=[['default','Default'],['large','Large'],['larger','Larger']];
+    const apply=v=>{const s=SIZES.find(x=>x[0]===v)||SIZES[0];if(s[0]==='default')document.documentElement.removeAttribute('data-text');else document.documentElement.setAttribute('data-text',s[0]);textBtn.textContent='Text: '+s[1];textBtn.title='Text size: '+s[1]+'. Press for the next size.';};
+    let v=lsGet(C.key+'-text');if(!SIZES.some(s=>s[0]===v))v='default';apply(v);
+    textBtn.addEventListener('click',()=>{const i=SIZES.findIndex(s=>s[0]===v);v=SIZES[(i+1)%SIZES.length][0];lsSet(C.key+'-text',v);apply(v);});
+  }
+  /* read aloud: the selection when there is one, else the first visible main region */
+  const readBtn=$('#sbRead');
+  if(readBtn){
+    if(!('speechSynthesis' in window)){readBtn.hidden=true;}
+    else{
+      const visible=el=>!!(el&&el.offsetParent!==null&&!el.hidden);
+      const region=()=>{for(const sel of C.read){const el=document.querySelector(sel);if(visible(el)&&el.textContent.trim())return el;}return document.body;};
+      let speaking=false;
+      const stop=()=>{speechSynthesis.cancel();speaking=false;readBtn.textContent='Read aloud';readBtn.setAttribute('aria-pressed','false');};
+      readBtn.setAttribute('aria-pressed','false');
+      readBtn.addEventListener('click',()=>{
+        if(speaking){stop();return;}
+        const sel=String(window.getSelection&&window.getSelection()||'').trim();
+        const text=(sel||region().innerText||'').replace(/\s+/g,' ').trim().slice(0,6000);
+        if(!text)return;
+        const u=new SpeechSynthesisUtterance(text);u.lang=document.documentElement.lang||'en';u.rate=1;
+        u.onend=stop;u.onerror=stop;
+        speechSynthesis.cancel();speechSynthesis.speak(u);speaking=true;readBtn.textContent='Stop reading';readBtn.setAttribute('aria-pressed','true');
+      });
+      window.addEventListener('pagehide',()=>{if(speaking)speechSynthesis.cancel();});
+    }
+  }
+  /* terms: the Defense Ladder glossary terms this page uses, plus Define selection */
+  const termsBtn=$('#sbTerms'),box=$('#termsbox');
+  if(termsBtn&&box){
+    const list=$('#termsList'),q=$('#termsQ'),def=$('#termsDef'),defBtn=$('#termsDefine'),close=$('#termsClose');
+    const G=C.gloss;
+    const norm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9 .\-\/+]/g,' ').replace(/\s+/g,' ').trim();
+    const draw=f=>{list.textContent='';const ff=norm(f);let n=0;for(const [t,d] of G){if(ff&&norm(t).indexOf(ff)<0&&norm(d).indexOf(ff)<0)continue;const dt=document.createElement('dt');dt.textContent=t;const dd=document.createElement('dd');dd.textContent=d;list.append(dt,dd);n++;}if(!n){const dd=document.createElement('dd');dd.textContent='No term matches. Try a shorter word.';list.append(dd);}};
+    const open=o=>{box.hidden=!o;termsBtn.setAttribute('aria-expanded',o?'true':'false');termsBtn.textContent=o?'Close terms':'Terms';if(o){draw(q.value);q.focus();}else termsBtn.focus();};
+    termsBtn.setAttribute('aria-expanded','false');
+    termsBtn.addEventListener('click',()=>open(box.hidden));
+    close.addEventListener('click',()=>open(false));
+    q.addEventListener('input',()=>draw(q.value));
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!box.hidden)open(false);});
+    defBtn.addEventListener('click',()=>{
+      const sel=norm(String(window.getSelection&&window.getSelection()||'')).replace(/[.,;:!?]+$/,'');
+      if(!sel){def.textContent='Select a word or phrase on the page first, then press Define selection.';return;}
+      const hit=G.find(([t])=>norm(t)===sel)||G.find(([t])=>norm(t)===sel.replace(/s$/,''))||G.find(([t])=>norm(t).indexOf(sel)===0)||G.find(([t])=>sel.indexOf(norm(t))>=0&&norm(t).length>3);
+      def.textContent=hit?hit[0]+': '+hit[1]:'"'+sel+'" is outside this page\u2019s glossary. The Defense Ladder glossary holds every course term.';
+    });
+    draw('');
+  }
+  /* Drills: a return after 30 minutes or more on a browser that holds progress */
+  if(C.progressKey){
+    const seenKey=C.progressKey+'-seen';const now=Date.now();const last=parseInt(lsGet(seenKey)||'0',10)||0;
+    let has=false;try{const o=JSON.parse(lsGet(C.progressKey)||'null');has=!!(o&&((o.learned&&Object.keys(o.learned).length)||(o.drilled&&Object.keys(o.drilled).length)||(o.best&&Object.keys(o.best).length)||(o.run&&o.run.done&&Object.keys(o.run.done).length)));}catch(e){}
+    if(has&&last&&now-last>=30*60*1000){
+      const mins=Math.round((now-last)/60000);const when=mins<120?mins+' minutes':Math.round(mins/60)+' hours';
+      const bar=document.createElement('div');bar.className='sharebar';bar.setAttribute('role','region');bar.setAttribute('aria-label','Saved progress');
+      const span=document.createElement('span');span.textContent='This browser last showed this trainer '+when+' ago and holds saved progress. On a shared computer it may be someone else\u2019s.';
+      const keep=document.createElement('button');keep.type='button';keep.textContent='Keep my progress';keep.addEventListener('click',()=>bar.remove());
+      const fresh=document.createElement('button');fresh.type='button';fresh.textContent='Start fresh';fresh.addEventListener('click',()=>{lsDel(C.progressKey);lsSet(seenKey,String(Date.now()));location.reload();});
+      bar.append(span,keep,fresh);document.body.insertBefore(bar,document.body.firstChild);
+    }
+    const stamp=()=>lsSet(seenKey,String(Date.now()));stamp();setInterval(stamp,60000);
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')stamp();});window.addEventListener('pagehide',stamp);
+  }
 })();
 </script>
 <!-- tool4that:foot --><p style="text-align:center;margin:28px 0 22px;font:14px/1.4 system-ui,-apple-system,Segoe UI,Arial,sans-serif"><a href="../../">More free tools at Tool4That</a></p><!-- /tool4that:foot -->

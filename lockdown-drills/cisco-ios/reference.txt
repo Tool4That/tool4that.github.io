@@ -3,8 +3,9 @@
      Cisco IOS 15.x routers and switches (Packet Tracer compatible)
  Training reference for lab devices you own or are authorized to change.
  Three levels: L1 Doorman, L2 Watchman, L3 Hunter. Every item = COMMAND, WHY,
- NOTE, and the hardening AREA it belongs to. No scripts by design: type it,
- read it, explain it. Item IDs match the Lockdown Drills trainer for this OS.
+ NOTE, and the hardening AREA it belongs to; ALSO adds a second caution when
+ an item needs one. No scripts by design: type it, read it, explain it. Item
+ IDs match the Lockdown Drills trainer for this OS.
  Unofficial practice; not affiliated with or endorsed by Cisco.
 
  HARDENING AREAS
@@ -34,12 +35,25 @@
   Router> enable
   Router# configure terminal
   Router(config)# hostname RtrA
+  RtrA(config)# no ip domain-lookup
   RtrA(config)# enable secret Str0ng-Enable-2026!
+  RtrA(config)# no enable password
+  RtrA(config)# do show running-config | include enable
+  RtrA(config)# end
+  RtrA# disable
+  RtrA> enable
   WHY: enable secret stores a hash. enable password stores plaintext or Type 7,
        which reverses in seconds, so enable secret is the one to use.
-  NOTE: On older IOS releases enable secret stores an MD5 (Type 5) hash. Where
-        the release supports it, enable algorithm-type scrypt secret stores a
-        Type 9 hash, which the Cisco hardening guide recommends.
+  NOTE: Plain enable secret yields an MD5 (Type 5) hash on older IOS releases.
+        Where supported, enable algorithm-type scrypt secret stores a Type 9
+        hash, which the Cisco hardening guide recommends.
+  ALSO: no ip domain-lookup keeps a mistyped command from hanging while IOS
+        tries to resolve it as a hostname. no enable password clears a leftover
+        enable password: the secret wins while both exist, yet the old password
+        still sits in the config and in every backup of it. do runs a privileged
+        EXEC command, such as show running-config, without leaving configuration
+        mode. disable drops back to user EXEC (RtrA>), and the next enable asks
+        for the new secret.
 
 [B-02] Console and VTY lines: require login, time out idle sessions
   AREA: Access control
@@ -54,15 +68,19 @@
   RtrA(config-line)# login
   RtrA(config-line)# exec-timeout 5 0
   RtrA(config-line)# exit
-  WHY: login is what makes a line ask for its password; a line without it lets
-       anyone straight in. exec-timeout 5 0 logs out an unattended console after
-       five idle minutes. logging synchronous keeps log lines from mangling what
-       you type.
-  NOTE: Watchman replaces line passwords with local usernames and SSH. Switches
-        with 16 VTY lines use line vty 0 15. The passwords here are
-        placeholders; give every line and secret its own unique passphrase.
-        exec-timeout 5 sets the same five minutes; the second number adds
-        seconds.
+  RtrA(config)# line aux 0
+  RtrA(config-line)# no exec
+  RtrA(config-line)# exit
+  WHY: login enforces each line's password; without it, anyone walks in.
+       exec-timeout 5 0 ends any session idle for five minutes. logging
+       synchronous keeps log output separate from your typing.
+  NOTE: These passwords are placeholders: give every line and secret a unique
+        passphrase. Switches with 16 VTY lines use line vty 0 15. exec-timeout 5
+        equals 5 0: minutes, then seconds. A 2911 router also has an AUX port.
+        When it sits unused, no exec under line aux 0 stops it from starting a
+        session; when it is in use, secure it like the console.
+  ALSO: At the Watchman level, local usernames and SSH replace these line
+        passwords.
 
 [B-03] Hide passwords in the config
   AREA: Secure configuration
@@ -75,25 +93,32 @@
   AREA: Secure configuration
   RtrA(config)# banner motd #Unauthorized access is prohibited and monitored.#
   RtrA(config)# banner login #Authorized users only. Activity is logged.#
-  WHY: A legal notice that access is restricted and monitored. Have the wording
-       reviewed by legal counsel, and leave out the device name, model,
-       software, and owner. Skip Welcome, which reads as an invitation.
-  NOTE: Pick a delimiter character that stays out of the text itself. On the
-        console the MOTD shows first, then the login banner, then the login
-        prompt. Over SSH version 2 the login banner appears before
-        authentication, so it carries the legal notice too.
+  WHY: The banner tells anyone connecting that access is restricted and
+       monitored, with wording legal counsel has reviewed. Leave out device
+       name, model, software, and owner; Welcome reads as an invitation.
+  NOTE: Pick a delimiter the text lacks; its next use ends the banner. Console
+        order: MOTD, login banner, login prompt. SSH version 2's
+        pre-authentication login banner carries the notice too.
 
 [B-05] Save the config
   AREA: Secure configuration
   RtrA# copy running-config startup-config
   RtrA# write memory
+  RtrA# show startup-config
   RtrA# show running-config | include enable|password|hostname|banner|exec-timeout
+  RtrA# copy running-config flash:pre-audit.cfg
   WHY: A reload discards every unsaved fix. Save after every block.
+  NOTE: show running-config is what runs now; show startup-config is what
+        survives a reload. Before an audit, copy running-config
+        flash:pre-audit.cfg keeps the starting config as a file in flash (press
+        Enter at the Destination filename prompt), so every later change has a
+        copy to compare against.
 
 ------------------------------ WATCHMAN ----------------------------------------
  Check the windows. Local user accounts, SSH version 2 only, unneeded services
  off, port security, user VLANs and a hardened trunk, VLAN versus SVI, login
- attack protection, logging, and time.
+ attack protection, logging and time, and reading a switch's ports, neighbors,
+ and MAC table.
  Learn it first: Defense Ladder, Junior j4, Cisco: VLANs, routing, and ACLs.
    https://freeapp4that.store/defense-ladder/#junior/j4
 --------------------------------------------------------------------------------
@@ -121,6 +146,7 @@
   RtrA(config)# ip ssh authentication-retries 3
   RtrA(config)# line vty 0 4
   RtrA(config-line)# transport input ssh
+  RtrA(config-line)# transport output ssh
   RtrA(config-line)# exit
   RtrA# show ip ssh
   RtrA# show crypto key mypubkey rsa
@@ -128,6 +154,8 @@
        requires a hostname and domain name first, the classic lab trap.
   NOTE: Order matters: hostname, then ip domain-name, then the RSA key (2048
         bits here; SSH version 2 needs at least 768), then ip ssh version 2.
+        transport output ssh limits the sessions a user opens from a VTY session
+        to SSH; sessions arriving here follow transport input.
 
 [I-03] Disable unneeded services
   AREA: Secure configuration
@@ -140,11 +168,30 @@
   RtrA(config)# no ip source-route
   RtrA(config)# no ip finger
   RtrA(config)# no ip bootp server
+  RtrA(config)# no service pad
+  RtrA(config)# end
+  RtrA# show cdp
+  RtrA# show lldp neighbors
+      When the brief keeps CDP and LLDP on links to your own devices, skip no cdp run and no lldp run, and quiet the ISP port instead:
+  RtrA(config)# interface gigabitEthernet 0/1
+  RtrA(config-if)# no cdp enable
+  RtrA(config-if)# no lldp transmit
+  RtrA(config-if)# no lldp receive
+  RtrA(config-if)# exit
+      When the brief needs browser management, keep HTTPS only, with sign-ins checked against the local usernames:
+  RtrA(config)# ip http secure-server
+  RtrA(config)# ip http authentication local
   WHY: Each one is a listening service or an information leak. CDP tells an
        attacker the IOS version and IP of every neighbor.
   NOTE: Packet Tracer support for these varies by version; real IOS takes them
         all, so know them anyway. Keep ip http secure-server only if the brief
         needs web management.
+  ALSO: With CDP and LLDP off, show cdp answers % CDP is not enabled and show
+        lldp neighbors answers % LLDP is not enabled. no service pad turns off
+        PAD, a leftover from X.25 networks. no cdp enable, no lldp transmit, and
+        no lldp receive work on one port, for a brief that keeps discovery on
+        links between your own devices. ip http authentication local makes web
+        sign-ins check the local usernames.
 
 [I-04] Switch port security and shut unused ports
   AREA: Secure configuration
@@ -161,10 +208,17 @@
   SwA(config-if)# switchport port-security violation shutdown
   SwA(config-if)# exit
   SwA# show port-security interface fastEthernet 0/1
+  SwA# show interfaces status err-disabled
+      After an approved PC swap, forget the old MAC address:
+  SwA# clear port-security sticky interface fastEthernet 0/1
   WHY: An open port means plug in and you are on the LAN. Port security pins MAC
        addresses; shutting unused ports is the cheapest control there is.
   NOTE: VLAN 999 is PARKING: unused ports wait there, shut down, in a VLAN
-        separate from the native VLAN (99).
+        separate from the native VLAN (99). show interfaces status err-disabled
+        lists each port a violation shut down, with its reason. After an
+        approved PC swap, clear port-security sticky interface fastEthernet 0/1
+        forgets the old PC's MAC address, and shutdown then no shutdown on the
+        port brings it back.
 
 [I-05] User VLANs above 1 and a hardened trunk
   AREA: Secure configuration
@@ -179,28 +233,54 @@
   SwA(config-vlan)# vlan 999
   SwA(config-vlan)# name PARKING
   SwA(config-vlan)# exit
+  SwA(config)# vtp mode transparent
+  SwA(config)# vtp domain school.lan
   SwA(config)# interface gigabitEthernet 0/1
+  SwA(config-if)# description Trunk to RtrA G0/0
   SwA(config-if)# switchport mode trunk
   SwA(config-if)# switchport trunk native vlan 99
   SwA(config-if)# switchport trunk allowed vlan 10,20,30,99
   SwA(config-if)# switchport nonegotiate
   SwA(config-if)# end
   SwA# show vlan brief
+  SwA# show vtp status
   SwA# show interfaces trunk
-  WHY: User VLANs use numbers above 1, which keeps people apart from the default
-       VLAN every unconfigured port joins. Double tagging works when an
-       attacker's access VLAN equals the trunk's native VLAN; VLAN 1 is only the
-       default case, so a host-free native VLAN closes it. DTP lets an attacker
-       negotiate a trunk; switchport nonegotiate turns it off.
+      If the school adds IP phones, give them VLAN 40 on the trunk and on each phone port:
+  SwA(config)# vlan 40
+  SwA(config-vlan)# name VOICE
+  SwA(config-vlan)# exit
+  SwA(config)# interface gigabitEthernet 0/1
+  SwA(config-if)# switchport trunk allowed vlan add 40
+  SwA(config-if)# interface fastEthernet 0/4
+  SwA(config-if)# switchport voice vlan 40
+  SwA(config-if)# end
+  WHY: User VLANs above 1 keep hosts off the default VLAN unconfigured ports
+       join. Double tagging works when an attacker's access VLAN equals the
+       trunk's native VLAN; VLAN 1 is only the default case, so a host-free
+       native VLAN closes it. DTP lets an attacker negotiate a trunk;
+       switchport nonegotiate turns it off, and show interfaces trunk
+       confirms.
   NOTE: The router end uses encapsulation dot1Q 99 native (Hunter A-08), so both
-        ends agree on native 99. Between two switches a mismatch logs
+        ends agree on native 99. Between switches a mismatch logs
         %CDP-4-NATIVE_VLAN_MISMATCH; toward the router, a mismatch that lands on
-        a host VLAN shows up as that VLAN's hosts losing their gateway, so
-        compare show interfaces trunk on SwA with the g0/0.99 subinterface in
-        RtrA's running config. VLAN 99 carries no hosts and no IP, and VLAN 999
-        PARKING stays separate for shut ports. A multilayer switch such as a
-        3560 needs switchport trunk encapsulation dot1q before switchport mode
-        trunk; a 2960 speaks 802.1Q only and goes without that line.
+        a host VLAN shows as that VLAN's hosts losing their gateway, so compare
+        show interfaces trunk on SwA with the g0/0.99 subinterface in RtrA's
+        running config. VLAN 99 runs without hosts or an IP; VLAN 999 PARKING
+        holds shut ports. A multilayer switch such as a 3560 needs switchport
+        trunk encapsulation dot1q before switchport mode trunk; a 2960 speaks
+        802.1Q only and goes without that line.
+  ALSO: vtp mode transparent keeps this switch's own VLAN list: it ignores the
+        VLAN changes in advertisements and passes them along, and show vtp
+        status then reads Transparent with Configuration Revision 0. vtp mode
+        off also stops passing them, on images with VTP version 3. description
+        names the far end of a link, and show interfaces status lists it under
+        Name. A bare allowed list replaces the whole list; switchport trunk
+        allowed vlan add 40 appends one VLAN, and remove takes one away. On the
+        phone port, the phone tags VLAN 40 and the PC behind it stays untagged
+        in the port's access VLAN. On a switch whose show vtp status reads
+        Client, set vtp mode transparent before the vlan lines: a client refuses
+        local VLAN changes. The phones reach their gateway through a g0/0.40
+        subinterface on RtrA.
 
 [I-06] Login attack protection and minimum password length
   AREA: Account management
@@ -217,11 +297,33 @@
   RtrA(config)# logging host 10.1.20.50
   RtrA(config)# ntp server 10.1.20.50
   RtrA(config)# clock timezone UTC 0
+  RtrA# show clock
+  RtrA# show ntp associations
+  RtrA# show ntp status
   RtrA# show logging
+      On a busy device, keep log messages off the console line:
+  RtrA(config)# no logging console
+      To feed a traffic sensor, copy the SwA uplink to Fa0/24 (a SPAN session):
+  SwA(config)# no monitor session 1
+  SwA(config)# interface fastEthernet 0/24
+  SwA(config-if)# no shutdown
+  SwA(config-if)# exit
+  SwA(config)# monitor session 1 source interface gigabitEthernet 0/1 both
+  SwA(config)# monitor session 1 destination interface fastEthernet 0/24
+  SwA(config)# end
+  SwA# show monitor session 1
   WHY: Correct, synchronized time is what lets logs from every device line up in
        an investigation.
   NOTE: 10.1.20.50 stands for a log and time server on the Teachers (management)
         VLAN. UTC keeps Site A and Site B on one clock.
+  ALSO: show clock puts a * before the time until the clock syncs; show ntp
+        associations marks the server in use with a *, and show ntp status reads
+        Clock is synchronized once it locks on. Log messages reach the console
+        by default; no logging console keeps them off a busy console line while
+        logging buffered and logging host keep copies. For the SPAN session,
+        Fa0/24 leaves the parked set: no shutdown brings it up, and as the
+        destination it only sends copies to the sensor. One session takes ports
+        or VLANs, so no monitor session 1 clears any old session first.
 
 [I-08] Give the switch an SVI in VLAN 20 (a VLAN and an SVI differ)
   AREA: Secure configuration
@@ -238,25 +340,50 @@
   SwA(config-if)# end
   SwA# show ip interface brief
   SwA# show vlan brief
-  WHY: A VLAN is a layer-2 broadcast domain: a number and a name in the VLAN
-       database that ports join. An SVI (interface vlan 20) is a layer-3
-       interface inside that VLAN that gives the switch its own management
-       address. ip default-gateway lets the layer-2 switch reply to hosts on
-       other subnets, such as Teachers at Site B.
-  NOTE: Vlan20 shows down/down while VLAN 20 is missing from the VLAN database,
-        then up/down until at least one port in VLAN 20 (an access port, or a
-        trunk that allows it) is up and forwarding in STP; that rule is called
-        autostate. Larger networks give management its own dedicated VLAN; this
-        network keeps it on Teachers so the Teachers-only ACL and the management
-        subnet are one and the same. Shutting interface vlan 1 leaves the
-        default VLAN devoid of an address.
+  WHY: Ports join VLANs, layer-2 broadcast domains; the SVI (interface vlan
+       20) is the switch's layer-3 management interface. ip default-gateway
+       lets the layer-2 switch reply across subnets, like Site B Teachers.
+  NOTE: Vlan20 is down/down until VLAN 20 exists in the VLAN database.
+        Autostate then holds it up/down until any VLAN 20 port (access, or a
+        trunk allowing it) forwards in STP.
+  ALSO: Larger networks give management its own VLAN; here management shares
+        the Teachers subnet and its Teachers-only ACL. Shutting interface vlan
+        1 leaves the default VLAN devoid of an address.
   LEARN IT: Defense Ladder, Freshman f7, A VLAN and an SVI.
             https://freeapp4that.store/defense-ladder/#freshman/f7
+
+[I-09] Read the switch: port status, neighbors, and learned MACs
+  AREA: Secure configuration
+  SwA# show interfaces status
+  SwA# show interfaces status err-disabled
+  SwA# show mac address-table
+  SwA# show mac address-table interface fastEthernet 0/3
+  SwA# show cdp neighbors
+  SwA# show cdp neighbors detail
+      Fa0/3 reads a-half because its PC is set by hand to 100 Mb/s full duplex, so match it:
+  SwA(config)# interface fastEthernet 0/3
+  SwA(config-if)# speed 100
+  SwA(config-if)# duplex full
+  SwA(config-if)# end
+  WHY: show interfaces status lists every port with its state, VLAN, duplex, and
+       speed on one screen, so a port left up or a half-duplex link stands out.
+       show mac address-table shows which MAC address each port has learned, and
+       show cdp neighbors names the device at the far end of each link.
+  NOTE: Give both ends of a link the same speed and duplex, or leave both on
+        auto; speed auto and duplex auto are the defaults. Set speed first, then
+        duplex. In show interfaces status, a-full and a-100 are negotiated
+        values, and plain full and 100 were set by hand. show cdp neighbors
+        lists only devices that still run CDP, so RtrA drops off the list after
+        its no cdp run in I-03.
+  LEARN IT: Defense Ladder, Sophomore s5, Cisco: configure a switch and a
+            router.
+            https://freeapp4that.store/defense-ladder/#sophomore/s5
 
 ------------------------------ HUNTER ------------------------------------------
  Hunt and harden. A Teachers-only VTY ACL, edge ACLs, interface hardening,
  layer-2 attack defenses, SNMP and AAA, protecting the config itself, auditing a
- config fast, router-on-a-stick, and a host route shared through OSPF.
+ config fast, router-on-a-stick, a host route shared through OSPF, and DHCP on
+ the gateway.
  Learn it first: Defense Ladder, Senior se6, Cisco: audit and extend the
  two-site network.
    https://freeapp4that.store/defense-ladder/#senior/se6
@@ -277,18 +404,24 @@
   SwA(config)# line vty 0 15
   SwA(config-line)# access-class 20 in
   SwA(config-line)# exit
-  WHY: Even with SSH, anyone on any subnet could try to log in. access-class
-       limits who reaches the prompt at all: here, the Teachers subnets at Site
-       A and Site B. A standard ACL matches the source address, which is all a
-       VTY filter needs, and the wildcard mask is the inverse of the subnet
-       mask.
-  NOTE: Apply it to every VTY range the device lists (show running-config |
-        section line vty). A 2960 lists line vty 0 4 and line vty 5 15;
-        line vty 0 15 configures both at once. A 2911 lists line vty 0 4 by
-        default, both in Packet Tracer and on real IOS 15; line vty 5 15 appears
-        once someone creates it, so the example adds that range with the ACL
-        already applied. SSH from a Students PC then ends with % Connection
-        refused by remote host.
+  RtrA# show access-lists 20
+  RtrA(config)# ip access-list standard 20
+  RtrA(config-std-nacl)# no 20
+  RtrA(config-std-nacl)# 20 permit 10.2.20.0 0.0.0.255
+  WHY: SSH encrypts; access-class admits only Teachers subnets (Site A and
+       Site B); a standard (source-only) ACL suffices. Confirm: SSH from
+       Students PCs ends with % Connection refused by remote host.
+  NOTE: Apply access-class to every VTY range listed (show running-config |
+        section line vty). A 2960's line vty 0 15 covers both 0 4 and 5 15.
+        Wildcards invert subnet masks.
+  ALSO: A 2911 (Packet Tracer and IOS 15) lists only line vty 0 4 until someone
+        creates line vty 5 15. The example adds that range with the ACL already
+        applied. Edit one entry and keep the rest: show access-lists 20 numbers
+        the entries 10, 20, and 30, ip access-list standard 20 opens the list by
+        those numbers, no 20 removes the Site B line, and 20 permit puts it back
+        in the same place. A named list works the same way: ip access-list
+        standard MGMT-ONLY, a permit line for the one admin address, then
+        access-class MGMT-ONLY in.
 
 [A-02] Extended ACL on an interface: allow only what the scenario needs
   AREA: Secure configuration
@@ -304,18 +437,17 @@
   RtrA(config-if)# ip access-group OUTSIDE-IN in
   RtrA(config-if)# exit
   RtrA# show access-lists
-  WHY: Default deny at the edge. The implicit deny exists anyway, but an
-       explicit deny with log gives visibility. Direction is relative to the
-       router: in on G0/1 means traffic arriving from the ISP.
-  NOTE: 203.0.113.2 is RtrA's ISP-facing address; static NAT port forwarding (ip
-        nat inside source static tcp <server> 443 203.0.113.2 443, and the same
-        for 80) carries web traffic to the server. An inbound ACL on the outside
-        interface sees that public address, because IOS checks the ACL before it
-        translates. An interface ACL is stateless, so return traffic for
-        sessions started inside needs its own permits: established matches TCP
-        replies (ACK or RST set), and the domain line admits DNS replies from
-        8.8.8.8. A stateful firewall, such as the IOS zone-based policy
-        firewall, tracks sessions and does this job more precisely.
+  WHY: The ACL drops traffic arriving from the ISP on G0/1 unless a line
+       permits it. The deny log line records what the implicit deny hides;
+       confirm with show access-lists counters.
+  NOTE: Permit 203.0.113.2, RtrA's public ISP-facing address: IOS checks
+        inbound ACLs before translating. Static NAT forwards web traffic: ip
+        nat inside source static tcp <server> 443 203.0.113.2 443, same for
+        80.
+  ALSO: Stateless interface ACLs need reply permits: established matches TCP
+        replies (ACK or RST set); the domain line admits 8.8.8.8 DNS replies.
+        Stateful IOS zone-based policy firewalls track sessions more
+        precisely.
 
 [A-03] Interface-level hardening
   AREA: Secure configuration
@@ -348,19 +480,37 @@
   SwA(config-if-range)# storm-control broadcast level 20
   SwA(config-if-range)# exit
   SwA(config)# spanning-tree portfast bpduguard default
-  WHY: Rogue DHCP servers (snooping), ARP poisoning (dynamic ARP inspection,
-       which checks ARP against the snooping table), rogue switches taking over
-       the STP root (BPDU guard), and broadcast storms (storm control). G0/1
-       trusts DHCP and ARP because DHCP replies and the router-on-a-stick
-       gateway ARP arrive there. PortFast skips about 30 s of listening and
-       learning, so it belongs on edge ports only; on a trunk or switch link a
-       temporary loop forwards before STP blocks it.
+  SwA(config)# spanning-tree mode rapid-pvst
+  SwA(config)# spanning-tree vlan 10,20,30,99 root primary
+  SwA(config)# interface gigabitEthernet 0/2
+  SwA(config-if)# no shutdown
+  SwA(config-if)# spanning-tree guard root
+  SwA(config-if)# end
+  SwA# show ip dhcp snooping
+  SwA# show ip dhcp snooping binding
+  SwA# show spanning-tree inconsistentports
+  WHY: Snooping stops rogue DHCP servers; dynamic ARP inspection checks ARP
+       against the snooping table and stops poisoning; BPDU guard stops a rogue
+       switch taking the STP root; storm control caps broadcast storms. G0/1 is
+       trusted because DHCP replies and the router-on-a-stick gateway ARP arrive
+       there. PortFast skips about 30 s of listening and learning, so it belongs
+       on edge ports only; on a trunk or switch link a temporary loop forwards
+       before STP blocks it.
   NOTE: Packet Tracer support for DAI and storm control varies by version. A
         host with a static address in VLAN 10 needs a static binding or an ARP
         ACL, because DAI drops ARP it cannot match. When the router serves or
         relays DHCP, add no ip dhcp snooping information option on the switch;
         the router drops requests that carry the switch's option 82 with an
         empty relay address.
+  ALSO: Rapid PVST+ (spanning-tree mode rapid-pvst) recovers from a failed link
+        in a few seconds, where PVST+, the 2960 default, takes 30 to 50.
+        spanning-tree vlan 10,20,30,99 root primary makes SwA the root bridge on
+        purpose. On a downlink to a second classroom switch (here G0/2, brought
+        up for that switch), spanning-tree guard root keeps SwA the root: a
+        superior BPDU there blocks the port, and show spanning-tree
+        inconsistentports lists it. show ip dhcp snooping lists the snooped
+        VLANs and the trusted ports, and show ip dhcp snooping binding lists the
+        leases snooping has recorded.
 
 [A-05] SNMP and AAA
   AREA: Access control
@@ -388,11 +538,19 @@
   RtrA(config-archive)# log config
   RtrA(config-archive-log-cfg)# logging enable
   RtrA(config-archive-log-cfg)# hidekeys
+  RtrA(config-archive-log-cfg)# end
+  RtrA# show version | include image|register
+  RtrA(config)# config-register 0x2102
   WHY: Keepalives drop dead sessions and free VTY lines. Resilient configuration
        stops an attacker from erasing the IOS image or startup config. The
        archive log records who changed what.
   NOTE: Several of these run on real devices only, outside Packet Tracer; know
         them anyway.
+  ALSO: show version | include image|register shows the boot image and the
+        configuration register. 0x2102 boots IOS from flash with the saved
+        startup-config. A router left at 0x2142, the password-recovery setting,
+        skips the startup-config at its next reload and comes up with an empty
+        config.
 
 [A-07] Audit a given config fast
   RtrA# show running-config | include password|secret
@@ -403,17 +561,18 @@
   SwA# show vlan brief
   SwA# show interfaces trunk
   SwA# show interfaces switchport
+  SwA# show interfaces fa0/1 switchport
   RtrA# show access-lists
   RtrA# show ip ssh
   RtrA# show ip route
   RtrA# ping 10.2.20.1 source 10.1.20.1
   RtrA# show users
-  WHY: The common config faults are nearly always visible in these outputs:
-       plaintext passwords, VTY lines without login local or SSH, services still
-       on, unused ports up, VLAN 1 in use, a trunk on native VLAN 1 or missing a
-       VLAN, and a missing route. The ping to 10.2.20.1, the Site B Teachers
-       gateway, sourced from the Site A Teachers gateway, proves both sites
-       route to each other's Teachers subnet.
+  WHY: Flag plaintext passwords, VTY lacking login local or SSH, open
+       services, and missing routes. Ping 10.2.20.1 source 10.1.20.1 (Site B's
+       Teachers gateway from Site A's); success proves two-way Teachers
+       routing.
+  NOTE: Flag VLAN 1 anywhere, including a trunk's native VLAN, and any trunk
+        missing a VLAN. Flag unused ports left up as well.
 
 [A-08] Router-on-a-stick with a native subinterface
   AREA: Secure configuration
@@ -429,40 +588,46 @@
   RtrA(config-subif)# interface gigabitEthernet 0/0.99
   RtrA(config-subif)# encapsulation dot1Q 99 native
   RtrA(config-subif)# interface gigabitEthernet 0/0
+  RtrA(config-if)# description Trunk to SwA G0/1
   RtrA(config-if)# no shutdown
   RtrA(config-if)# end
   RtrA# show ip interface brief
-  WHY: One trunk carries Students, Teachers, and Principals to the router. Each
-       subinterface takes one tag and becomes that VLAN's gateway (.1), so the
-       three VLANs route to each other through RtrA. encapsulation dot1Q 99
-       native matches the switch's native VLAN 99, so untagged frames land on a
-       subinterface that carries no IP and no hosts.
-  NOTE: Subinterfaces follow the physical port, so no shutdown goes on G0/0
-        itself, and G0/0 stays without an IP address. The switch end is the
-        trunk from Watchman I-05. On an ISR 4000 running IOS XE the port is
-        GigabitEthernet0/0/0; the subinterface commands are the same.
+  WHY: One trunk carries Students, Teachers, and Principals to RtrA. Each
+       subinterface takes one tag and becomes that VLAN's .1 gateway, so the
+       three VLANs route to each other through RtrA.
+  NOTE: Subinterfaces follow the physical port: no shutdown goes on G0/0,
+        which stays unaddressed. An ISR 4000 (IOS XE) names it
+        GigabitEthernet0/0/0; subinterface commands match.
+  ALSO: encapsulation dot1Q 99 native matches the switch's native VLAN 99, so
+        untagged frames land on a subinterface without an IP or hosts. Watchman
+        I-05 builds the switch-side trunk. A multilayer switch replaces
+        router-on-a-stick: ip routing, then one SVI per VLAN as its gateway
+        (interface vlan 10, ip address 10.1.10.1 255.255.255.0).
 
 [A-09] Host route to 8.8.8.8, shared through OSPF (concept)
   AREA: Secure configuration
   RtrA(config)# ip route 8.8.8.8 255.255.255.255 203.0.113.1
   RtrA(config)# router ospf 1
+  RtrA(config-router)# router-id 1.1.1.1
   RtrA(config-router)# network 10.0.0.0 0.0.0.3 area 0
   RtrA(config-router)# network 10.1.0.0 0.0.255.255 area 0
   RtrA(config-router)# passive-interface default
   RtrA(config-router)# no passive-interface gigabitEthernet 0/2
   RtrA(config-router)# redistribute static subnets
   RtrA(config-router)# end
+  RtrA# clear ip ospf process
+  RtrA# show ip ospf neighbor
+  RtrA# show ip protocols
   RtrA# show ip route 8.8.8.8
   RtrA# show ip route ospf
-  WHY: The /32 host route sends only 8.8.8.8 to this site's ISP. redistribute
+  WHY: The /32 host route sends only 8.8.8.8 to this site's ISP; redistribute
        static subnets shares it with RtrB as an OSPF external route (O E2,
        metric 20). Each router prefers its own static route (administrative
-       distance 1) over its neighbor's O E2 copy (110), so the neighbor's route
+       distance 1) over the neighbor's O E2 copy (110), so the neighbor's route
        takes over when the local uplink fails. On classic IOS the subnets
-       keyword is what lets a /32 through; without it, IOS redistributes
-       classful networks only. passive-interface keeps OSPF hellos off the user
-       VLANs and still advertises their subnets; only the inter-site link G0/2
-       forms a neighbor.
+       keyword lets a /32 through; without it, IOS redistributes classful
+       networks only. passive-interface keeps hellos off the user VLANs and
+       still advertises their subnets; only G0/2 forms a neighbor.
   NOTE: OSPF stays at concept level here. show ip route 8.8.8.8 on RtrA reports
         Known via "static", distance 1, metric 0; with RtrA's uplink down it
         reports Known via "ospf 1", distance 110, metric 20, type extern 2, with
@@ -471,6 +636,44 @@
         via 10.0.0.2, under the header 8.0.0.0/32 is subnetted, 1 subnets. RtrB
         runs the same commands with 198.51.100.1 and 10.2.0.0. IOS XE 16 and
         later adds subnets automatically.
+  ALSO: router-id 1.1.1.1 names RtrA in OSPF (RtrB uses 2.2.2.2). When OSPF
+        already runs, IOS applies a new ID only after clear ip ospf process:
+        answer yes at Reset ALL OSPF processes?, and each neighbor drops for a
+        moment. show ip ospf neighbor then lists 2.2.2.2 in state FULL on
+        GigabitEthernet0/2, and show ip protocols shows the router ID, networks,
+        passive interfaces, and redistribution in one view. default-information
+        originate, under router ospf, shares a default route (0.0.0.0/0) once
+        the router holds one; this RtrA holds the /32 host route in place of a
+        default route.
+
+[A-10] DHCP on the gateway, or a relay to a central server
+  AREA: Secure configuration
+  RtrA(config)# ip dhcp excluded-address 10.1.10.1 10.1.10.9
+  RtrA(config)# ip dhcp pool STUDENTS
+  RtrA(dhcp-config)# network 10.1.10.0 255.255.255.0
+  RtrA(dhcp-config)# default-router 10.1.10.1
+  RtrA(dhcp-config)# dns-server 10.1.20.50
+  RtrA(dhcp-config)# exit
+  SwA(config)# no ip dhcp snooping information option
+  RtrA# show ip dhcp binding
+      With a central DHCP server instead, the Students gateway relays each request to it:
+  RtrA(config)# interface gigabitEthernet 0/0.10
+  RtrA(config-subif)# ip helper-address 10.1.20.50
+  RtrA(config-subif)# exit
+  WHY: Excluded addresses keep the gateway and fixed hosts out of the pool, so
+       every lease DHCP hands out is a free address; a relay lets one central
+       server answer every VLAN.
+  NOTE: Each pool line becomes one setting on the client: network sets the
+        subnet, default-router the gateway, and dns-server the name server. With
+        DHCP snooping on SwA (A-04), the switch adds option 82 to each request,
+        which can make RtrA ignore the requests; no ip dhcp snooping information
+        option on SwA fixes that. show ip dhcp binding then lists each lease by
+        IP address and MAC address.
+  ALSO: ip helper-address goes on the client-facing gateway, here g0/0.10, and
+        names the server's address. The central server then holds one pool for
+        each subnet it serves.
+  LEARN IT: Defense Ladder, Junior j4, Cisco: VLANs, routing, and ACLs.
+            https://freeapp4that.store/defense-ladder/#junior/j4
 
 ------------------------------ FIX OR BREAK? (practice cards) ------------------
   Brief: Authorized network admin accounts: netadmin, techlead. Management over
@@ -540,6 +743,15 @@
   Call: BREAKS IT. vty 0 4 alone leaves lines 5 to 15 reachable from every
                    subnet, which breaks 'Only Teachers at either site may manage
                    SwA'. Apply access-class 20 in to line vty 0 15.
+
+  Brief: Management over SSH only.
+  Action: Keep ip http server and add ip http port 8080 so scanners miss the
+          page.
+  Call: BREAKS IT. The web page still answers on port 8080, a port that scans of
+                   common ports check, so it stays reachable and breaks SSH
+                   only. no ip http server and no ip http secure-server turn the
+                   web server off. ip http secure-port moves HTTPS the same way,
+                   with the same result.
 
 ------------------------------ SPOT THE FINDING (output snippets) --------------
   Lines from show running-config. Tap the finding.
@@ -633,7 +845,7 @@
     https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst2960/software/release/12-2_55_se/configuration/guide/scg_2960/swtrafc.html
   Catalyst 2960 configuration guide: VLANs and trunks
     https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst2960/software/release/12-2_55_se/configuration/guide/scg_2960/swvlan.html
-  CIS Critical Security Controls v8
+  CIS Critical Security Controls v8.1
     https://www.cisecurity.org/controls/v8
   CIS Benchmarks
     https://www.cisecurity.org/cis-benchmarks
