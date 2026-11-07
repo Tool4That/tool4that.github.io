@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-EtJI7oKrZU6wyOBIl5boMqeO6UkaHt8dt26REL2LFME=' 'sha256-eRyzXa7mwZp7JkI4L5RG4yB106JzuyK2RvoTErF3ESs=' 'sha256-ltkjnw66bIy7opiUE9KThzttAvGthjR29/4l9KdBAjs=' 'wasm-unsafe-eval' https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/ https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/ https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/; connect-src data: https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int/; worker-src blob:; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-9Ca1QZyR5uMS2LTyieb5RDIMc7IZSdl4PD9ukBgOfsE=' 'sha256-eRyzXa7mwZp7JkI4L5RG4yB106JzuyK2RvoTErF3ESs=' 'sha256-ltkjnw66bIy7opiUE9KThzttAvGthjR29/4l9KdBAjs=' 'wasm-unsafe-eval' https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/ https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/ https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/; connect-src data: https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int/; worker-src blob:; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="See where your money goes. Add transactions by hand, paste text, or import bank, card, and investment statements (CSV, PDF, scanned PDFs, and screenshots, read on your device), then get a money-in, money-out Home summary, a paycheck plan, a 30-day look ahead, and a plain-language checkup. Everything stays on your device.">
 <link rel="canonical" href="https://freeapp4that.store/spend-lens/">
@@ -5851,7 +5851,7 @@ function renderBatch() {
   const pv = $('#preview'); if (pv && el.contains(pv)) el.parentNode.insertBefore(pv, el.nextSibling);
   if (!batch) { el.hidden = true; el.innerHTML = ''; return; }
   let h = '<h2>Review together</h2><p class="muted small">Read top to bottom, in name order. Open a file to check it; Import all brings in every file as it stands.</p>' +
-    '<div class="actions"><button class="btn primary" data-batch="all" id="batchAll"></button><button class="btn" data-batch="stop" id="batchStop" hidden>Stop reading</button><button class="btn" data-batch="go" id="batchGo" hidden>Go on reading</button><button class="btn" data-batch="discard">Discard all</button></div>' +
+    '<div class="actions"><button class="btn primary" data-batch="all" id="batchAll"></button><button class="btn" data-batch="fix" id="batchFix" hidden></button><button class="btn" data-batch="stop" id="batchStop" hidden>Stop reading</button><button class="btn" data-batch="go" id="batchGo" hidden>Go on reading</button><button class="btn" data-batch="discard">Discard all</button></div>' +
     '<p class="batch-sum" id="batchSum" role="status"></p><div class="batch-list">';
   batch.items.forEach((x, i) => { h += '<details class="bpane" data-bi="' + i + '"' + (batch.open === i ? ' open' : '') + '><summary><span class="bname">' + esc(x.name) + '</span><span class="bstat" id="bstat' + i + '"></span></summary><div class="bbody" id="bbody' + i + '"></div></details>'; });
   h += '</div><div class="actions"><button class="btn primary" data-batch="all" id="batchAllB"></button><button class="btn" data-batch="discard">Discard all</button></div>';
@@ -5874,6 +5874,8 @@ function paintBatch(only) {
   const a = $('#batchAll'), b = $('#batchAllB');
   if (a) { a.textContent = label; a.disabled = busy || !ready.length; }
   if (b) { b.textContent = busy ? label : 'Import all ' + ready.length + (ready.length === 1 ? ' file' : ' files') + (changes ? ', with ' + changes + (changes === 1 ? ' change' : ' changes') + ' you made' : ' as read'); b.disabled = busy || !ready.length; }
+  const fx = $('#batchFix'), nf = batchFixable().length;
+  if (fx) { fx.hidden = !nf; fx.textContent = 'Apply the suggested fixes to ' + nf + (nf === 1 ? ' file' : ' files') + ' (their totals then match)'; }
   const st = $('#batchStop'), go = $('#batchGo');
   if (st) st.hidden = !batchRunning || batch.stop; if (go) go.hidden = batchRunning || !xs.some(x => x.state === 'wait');
   const sum = $('#batchSum');
@@ -5921,6 +5923,17 @@ function batchRepeats(x, added) {
     if (seen.has(slDedupeKey({ date: t.date, amount: amt, desc: String(t.desc + (t.desc2 ? ' ' + t.desc2 : '')).trim() }))) { p.include[t._i] = false; n++; }
   }
   return n;
+}
+// Statements whose suggested readings (the one-click fixes) make them add up to their own totals
+function batchFixable() { return batch ? batch.items.filter(x => x.state === 'ready' && !x.done && !x.skip && x.p && x.p.kind === 'text' && !x.p.applyFixes && x.p.suggest && x.p.suggest.n > 0 && x.p.fixVerdict === 'match') : []; }
+// The member's one click for the whole list: each such file gets its suggested readings, as its own button would do
+function batchApplyFixes() {
+  const xs = batchFixable(); if (!xs.length) return;
+  const keep = pending;
+  for (const x of xs) { pending = x.p; x.p.applyFixes = true; try { reparse(); } finally { pending = keep; } }
+  if (pending && pending._batch && xs.includes(pending._batch)) renderPreview();
+  paintBatch();
+  toast('Suggested fixes applied to ' + xs.length + (xs.length === 1 ? ' file' : ' files') + '; ' + (xs.length === 1 ? 'its totals match' : 'their totals match') + ' now');
 }
 function batchImportAll() {
   if (!batch || batchRunning) return;
@@ -7910,6 +7923,7 @@ function bind() {
     const b = e.target.closest('[data-batch]'); if (!b || !batch) return;
     const k = b.dataset.batch;
     if (k === 'all') batchImportAll();
+    else if (k === 'fix') batchApplyFixes();
     else if (k === 'discard') { batch.stop = true; ocrCancel = true; batch = null; pending = null; renderBatch(); renderPreview(); toast('The list is cleared; nothing from it was imported'); }
     else if (k === 'stop') { batch.stop = true; ocrCancel = true; paintBatch(); }
     else if (k === 'go') { batch.stop = false; processBatch(); paintBatch(); }
