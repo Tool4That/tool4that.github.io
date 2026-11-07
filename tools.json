@@ -48,7 +48,7 @@
       "title": "Net Drills",
       "category": "cyber",
       "section": "practice",
-      "description": "Four networking drills: subnetting and IPv6, Cisco IOS configuration, config audits, and troubleshooting from real device output. They pair well with Cisco networking courses such as the NetAcad Network Technician path.",
+      "description": "Four networking drills: subnetting and IPv6, Cisco IOS configuration, config audits, and troubleshooting from real device output.",
       "note": "Unofficial practice; not affiliated with or endorsed by Cisco. Progress stays in your browser."
     },
     {

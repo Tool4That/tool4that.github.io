@@ -27,7 +27,7 @@ Live at https://freeapp4that.store/ (primary) and https://tool4that.github.io/ (
 | [Cisco Range](https://freeapp4that.store/lockdown-range/cisco-ios/) | Lockdown Range: a Packet Tracer-style topology with IOS consoles, PC prompts and a live Progress Check, with a solution walkthrough (.txt). |
 | [Chop Lab](https://freeapp4that.store/chop-lab/) | Imagination Land: a music studio in the browser with 16 pads, a step sequencer, 63 genre kits across 17 families (hip-hop, R&B, house, techno, drum & bass, pop, reggae, rock, metal, jazz, country, and more), a sample chopper, a Screw control (slow and deepen everything), two DJ decks with scratching, and recording to WAV. |
 
-Defense Ladder, Net Drills, Lockdown Drills, and Lockdown Range are unofficial, general cybersecurity study and practice, not affiliated with or endorsed by Microsoft, Canonical, Linux Mint, the FreeBSD Project, or Cisco. They teach defensive skills only. Lockdown Range machines are simulations that run entirely in the page. Net Drills pair well with Cisco networking courses such as the NetAcad Network Technician path. Try hardening commands on a practice VM, not a computer you depend on.
+Defense Ladder, Net Drills, Lockdown Drills, and Lockdown Range are unofficial, general cybersecurity study and practice, not affiliated with or endorsed by Microsoft, Canonical, Linux Mint, the FreeBSD Project, or Cisco. They teach defensive skills only. Lockdown Range machines are simulations that run entirely in the page. Try hardening commands on a practice VM, not a computer you depend on.
 
 ## Add or update tools
 
