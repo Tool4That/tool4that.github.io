@@ -1,7 +1,7 @@
 {
   "site": "https://freeapp4that.store",
   "name": "Tool4That",
-  "description": "Need a tool for that? Free single-file tools that run in your browser, with no sign-up and no tracking: personal finance calculators, a cybersecurity course with practice drills, and hardening labs that need no virtual machine.",
+  "description": "Need a tool for that? Free single-file tools that run in your browser without sign-ups or tracking: personal finance calculators, a cybersecurity course with practice drills, hardening labs that run without a virtual machine, and creative experiments like a beat-making studio.",
   "categories": [
     {
       "slug": "finance",
@@ -18,6 +18,14 @@
       "icon": "terminal",
       "description": "Two ways in. Learning builds the concepts, from your first command to confident defender. Practice is hands-on reps: Net Drills for subnetting and Cisco IOS, Lockdown Drills for hardening Windows, Linux, FreeBSD, and Cisco IOS, and Lockdown Range for full hardening labs in your browser.",
       "note": "Unofficial practice; not affiliated with or endorsed by Microsoft, Canonical, Linux Mint, the FreeBSD Project, or Cisco. Defensive skills only: practice on machines you own or are authorized to use. Progress stays in your browser."
+    },
+    {
+      "slug": "imagination-land",
+      "title": "Imagination Land",
+      "tagline": "Creative side projects and experiments.",
+      "icon": "sparkle",
+      "description": "Creative tools and one-off experiments that live outside the other categories. They gather here until there are enough of a kind to earn a category of their own.",
+      "note": "Everything runs in your browser, and what you make stays on your device."
     }
   ],
   "sections": [
@@ -454,6 +462,25 @@
       "section": "learning",
       "sha256": "e14172de21b2c600d11df68ac6ea13b2db4d675f764c1de8f9e534c3eae94560",
       "updated": "2026-11-04"
+    },
+    {
+      "slug": "chop-lab",
+      "name": "Chop Lab",
+      "tagline": "Make beats. Chop samples. Scratch.",
+      "description": "A music studio in your browser: 16 pads, a step sequencer, a sample chopper, a Screw control that slows and deepens everything, two DJ decks with scratching, and recording to WAV. Bring your own sounds or start from the built-in kit.",
+      "badges": [
+        "Music",
+        "Beat making",
+        "DJ",
+        "Runs offline",
+        "Private"
+      ],
+      "file": "chop-lab/index.html",
+      "download_as": "chop-lab.html",
+      "icon": "vinyl",
+      "category": "imagination-land",
+      "sha256": "1f6a7644289215f2ee9a8570dd248b65ebd23318e2929a7e999f60c74b855a64",
+      "updated": "2026-11-06"
     }
   ]
 }

@@ -17,3 +17,9 @@
 /spend-lens/pfat-offline
   ! Cache-Control
   Cache-Control: public, max-age=0, must-revalidate, no-transform
+
+# Chop Lab records from the microphone when the user presses Mic (the audio stays on the device), so its pages
+# allow the microphone for this site only. Every other page keeps it switched off.
+/chop-lab/*
+  ! Permissions-Policy
+  Permissions-Policy: camera=(), microphone=(self), geolocation=(), payment=(), usb=(), serial=(), bluetooth=()

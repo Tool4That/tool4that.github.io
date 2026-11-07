@@ -1,0 +1,30 @@
+{
+  "category": "imagination-land",
+  "tools": [
+    {
+      "slug": "chop-lab",
+      "name": "Chop Lab",
+      "tagline": "Make beats. Chop samples. Scratch.",
+      "description": "A music studio in your browser: 16 pads, a step sequencer, a sample chopper, a Screw control that slows and deepens everything, two DJ decks with scratching, and recording to WAV. Bring your own sounds or start from the built-in kit.",
+      "badges": [
+        "Music",
+        "Beat making",
+        "DJ",
+        "Runs offline",
+        "Private"
+      ],
+      "icon": "vinyl",
+      "download_as": "chop-lab.html",
+      "match": [
+        "chop[ _-]?lab"
+      ],
+      "emoji": "🎛️",
+      "prep": {
+        "allow_script_blob": true,
+        "pin_blocks": [
+          "65206faa071257b80a15aadb146c627bf977d38eaff8aa1acc1abaef00e5e0d7"
+        ]
+      }
+    }
+  ]
+}

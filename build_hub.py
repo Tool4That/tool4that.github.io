@@ -29,6 +29,8 @@ ICONS = {
     "path": '<path d="M6 25h5.5v-6h5.5v-6H23V7" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>',
     "screen": '<rect x="6.5" y="8" width="19" height="13" rx="1.6" fill="none" stroke="#fff" stroke-width="2.6"/><path d="M12.5 25h7M16 21v4" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>',
     "map": '<path d="M6.5 9.5l6.3-2.5 6.4 2.5 6.3-2.5v15.5l-6.3 2.5-6.4-2.5-6.3 2.5z" fill="none" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"/><path d="M12.8 7v15.5M19.2 9.5V25" stroke="#fff" stroke-width="2.4"/>',
+    "sparkle": '<path d="M14.5 5.5c.9 5.6 3.4 8.1 9 9-5.6.9-8.1 3.4-9 9-.9-5.6-3.4-8.1-9-9 5.6-.9 8.1-3.4 9-9z" fill="#fff"/><path d="M24.5 20.5c.35 2.2 1.3 3.15 3.5 3.5-2.2.35-3.15 1.3-3.5 3.5-.35-2.2-1.3-3.15-3.5-3.5 2.2-.35 3.15-1.3 3.5-3.5z" fill="#fff"/>',
+    "vinyl": '<circle cx="16" cy="16" r="10" fill="none" stroke="#fff" stroke-width="2.6"/><circle cx="16" cy="16" r="3.2" fill="#fff"/><path d="M16 9.6a6.4 6.4 0 0 1 6.4 6.4" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>',
 }
 def mark(icon="four", size=32):
     glyph = ICONS.get(icon) or '<text x="16" y="23.5" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="21" fill="#fff">4</text>'
@@ -55,7 +57,7 @@ footer a { color: inherit; }
 .points li::before { content: "\\2713  "; color: var(--go-2); font-weight: 700; }
 main { padding: 34px 0 20px; }
 h2 { font-size: 22px; margin: 0 0 14px; }
-.tiles { list-style: none; margin: 0 0 10px; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.tiles { list-style: none; margin: 0 0 10px; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
 .tile a { display: flex; gap: 16px; align-items: center; padding: 22px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 10px; text-decoration: none; color: var(--ink); min-height: 100%; }
 .tile a:hover { border-color: var(--go); box-shadow: 0 6px 24px rgba(0,0,0,.08); }
 .tile svg { flex: none; }

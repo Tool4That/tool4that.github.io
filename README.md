@@ -4,7 +4,7 @@
 
 Free, single-file tools that run in your browser: no sign-ups, no tracking, nothing uploaded.
 
-Live at https://freeapp4that.store/ (primary) and https://tool4that.github.io/ (backup copy). The home page is a category chooser; each category has its own page (`/finance/`, `/cyber/`), each series has its own page (`/net-drills/`, `/lockdown-drills/`, `/lockdown-range/`), and `/all/` lists everything. The Cybersecurity page is split into two in-page sections: **Learning** (concepts) and **Practice** (hands-on drills and hardening labs).
+Live at https://freeapp4that.store/ (primary) and https://tool4that.github.io/ (backup copy). The home page is a category chooser; each category has its own page (`/finance/`, `/cyber/`, `/imagination-land/`), each series has its own page (`/net-drills/`, `/lockdown-drills/`, `/lockdown-range/`), and `/all/` lists everything. The Cybersecurity page is split into two in-page sections: **Learning** (concepts) and **Practice** (hands-on drills and hardening labs). **Imagination Land** collects creative side projects until there are enough of a kind for a category of their own.
 
 | Tool | What it does |
 |---|---|
@@ -25,6 +25,7 @@ Live at https://freeapp4that.store/ (primary) and https://tool4that.github.io/ (
 | [Windows Range](https://freeapp4that.store/lockdown-range/windows/) | Lockdown Range: a Windows 11 / Server 2025 hardening lab in the browser (real panels, cmd and PowerShell, live Progress Check), with a solution walkthrough (.txt). |
 | [Linux Range](https://freeapp4that.store/lockdown-range/linux/) | Lockdown Range: Ubuntu, Linux Mint and Ubuntu Server hardening labs with a bash terminal and live Progress Check, with a solution walkthrough (.txt). |
 | [Cisco Range](https://freeapp4that.store/lockdown-range/cisco-ios/) | Lockdown Range: a Packet Tracer-style topology with IOS consoles, PC prompts and a live Progress Check, with a solution walkthrough (.txt). |
+| [Chop Lab](https://freeapp4that.store/chop-lab/) | Imagination Land: a music studio in the browser with 16 pads, a step sequencer, a sample chopper, a Screw control (slow and deepen everything), two DJ decks with scratching, and recording to WAV. |
 
 Defense Ladder, Net Drills, Lockdown Drills, and Lockdown Range are unofficial, general cybersecurity study and practice, not affiliated with or endorsed by Microsoft, Canonical, Linux Mint, the FreeBSD Project, or Cisco. They teach defensive skills only. Lockdown Range machines are simulations that run entirely in the page. Net Drills pair well with Cisco networking courses such as the NetAcad Network Technician path. Try hardening commands on a practice VM, not a computer you depend on.
 
