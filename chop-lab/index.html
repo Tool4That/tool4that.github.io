@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Tsrrf1z+houIT2+A6rAY3iIGV/ivNhVUPr5Fc3woEeU=' blob:; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-74ECuUifvS6mavhJWSWXWYKdf4KHNAOmfYCt6xbRPc0=' blob:; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/chop-lab/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Tool4That">
 <meta property="og:title" content="Chop Lab">
-<meta property="og:description" content="A music studio in your browser: 16 pads, a step sequencer, a sample chopper, a Screw control that slows and deepens everything, two DJ decks with scratching, and recording to WAV. Bring your own sounds or start from the built-in kit.">
+<meta property="og:description" content="A music studio in your browser: 16 pads, a step sequencer, 63 genre kits from boom bap and house to jazz, reggae, country, and metal, a sample chopper, a Screw control that slows and deepens everything, two DJ decks with scratching, and recording to WAV.">
 <meta property="og:url" content="https://freeapp4that.store/chop-lab/">
 <meta property="og:image" content="https://freeapp4that.store/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -129,7 +129,11 @@ main { min-width: 0; overflow: auto; padding: 0 14px 14px; }
 .lib-btns { display: flex; align-items: center; gap: 6px; }
 .lib-head input { width: 100%; }
 #lib-list { overflow: auto; padding: 4px 8px 20px; flex: 1; }
-.lib-group { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 14px 4px 4px; }
+.lib-group { display: flex; align-items: center; gap: 6px; width: calc(100% - 8px); background: none; border: 0; padding: 2px 0; text-align: left;
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 12px 4px 4px; }
+.lib-group:hover { color: var(--text); }
+.lib-group .caret { width: 10px; }
+.lib-count { margin-left: auto; font-size: 10px; letter-spacing: 0; opacity: .8; }
 .lib-empty { font-size: 12px; color: var(--muted); padding: 8px; border: 1px dashed var(--line2); border-radius: 8px; }
 .lib-item { display: grid; grid-template-columns: 30px 1fr; gap: 6px; align-items: center; padding: 4px 6px; border-radius: 8px; cursor: grab; }
 .lib-item:hover { background: #ffffff0a; }
@@ -293,6 +297,29 @@ dialog h2 { margin: 0 0 8px; }
 #loading { position: fixed; inset: 0; background: var(--bg); display: grid; place-content: center; justify-items: center; gap: 10px; z-index: 100; }
 #loading-msg { color: var(--muted); }
 
+/* ---------- genres ---------- */
+#genre-fams { display: grid; gap: 8px; margin-bottom: 14px; }
+.fam-group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.fam-cluster { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); min-width: 150px; }
+.fam-tab { display: inline-flex; align-items: center; gap: 6px; background: var(--bg2); border: 1px solid var(--line2); border-radius: 999px; padding: 5px 12px; font-size: 13px; }
+.fam-tab:hover { border-color: #ffffff4a; }
+.fam-tab.on { background: var(--accent); color: #12091f; border-color: transparent; font-weight: 600; }
+.fam-count { font-size: 11px; opacity: .7; }
+.genre-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 10px; border-top: 1px solid var(--line); padding-top: 12px; margin-bottom: 12px; }
+.genre-head h3 { margin: 0 0 4px; font-size: 18px; }
+.genre-head p { margin: 0; max-width: 70ch; }
+.kit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 12px; }
+.kit-card { background: var(--bg2); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+.kit-card.loaded { border-color: #c46bff88; box-shadow: 0 0 0 1px #c46bff44 inset; }
+.kit-title { display: flex; align-items: center; gap: 8px; }
+.kit-card h4 { margin: 0; font-size: 15px; }
+.kit-badge { font-size: 11px; background: var(--accent); color: #12091f; border-radius: 999px; padding: 1px 8px; font-weight: 600; }
+.kit-meta { font-size: 12px; color: var(--accent2); font-variant-numeric: tabular-nums; }
+.kit-card p { margin: 0; font-size: 13px; color: var(--muted); flex: 1; }
+.kit-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.kit-sounds { display: flex; flex-wrap: wrap; gap: 5px; padding-top: 6px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+.kit-sounds .chip { cursor: pointer; }
+
 /* ---------- smaller screens ---------- */
 @media (max-width: 1250px) {
   .decks-layout { grid-template-columns: 1fr 1fr; }
@@ -372,6 +399,7 @@ dialog h2 { margin: 0 0 8px; }
   <main>
     <nav id="tabs" role="tablist" aria-label="Workspaces">
       <button role="tab" data-tab="beats">Beats</button>
+      <button role="tab" data-tab="genres">Genres</button>
       <button role="tab" data-tab="chop">Chop</button>
       <button role="tab" data-tab="decks">Decks</button>
     </nav>
@@ -394,9 +422,13 @@ dialog h2 { margin: 0 0 8px; }
               <option value="16">1 bar</option>
               <option value="32">2 bars</option>
             </select>
-            <label class="inline" title="Pushes every second 16th note later for a bouncier groove">Swing
+            <label class="inline" title="Pushes the off-beat notes later for a bouncier groove">Swing
               <input id="seq-swing" type="range" min="50" max="75" step="1" value="54">
               <span id="seq-swing-val">54%</span></label>
+            <select id="seq-feel" aria-label="What swing moves" title="16ths: a bounce. 8ths: a shuffle, as in blues, swing jazz, and rock ’n’ roll">
+              <option value="16">on 16ths</option>
+              <option value="8">on 8ths (shuffle)</option>
+            </select>
             <button id="seq-rec" class="btn small rec" aria-pressed="false" title="Record pad hits into the pattern while it plays">● Record hits</button>
             <button id="seq-metro" class="btn small" aria-pressed="false" title="Click on every beat">Metronome</button>
             <button id="seq-copy" class="btn small" title="Copy this pattern into the next letter">Copy → next</button>
@@ -406,6 +438,14 @@ dialog h2 { margin: 0 0 8px; }
           <div id="seq-grid"></div>
           <p class="hint">Click squares to add hits · drag to paint · Shift-click or right-click for a soft hit · switch patterns while playing and the change lands on the next bar.</p>
         </div>
+      </div>
+    </section>
+
+    <section id="tab-genres" class="tab-panel" role="tabpanel" aria-label="Genres" hidden>
+      <div class="panel genres">
+        <div id="genre-fams" role="tablist" aria-label="Genre families"></div>
+        <div id="genre-pane" role="tabpanel"></div>
+        <p class="hint">Every kit is 16 sounds made right here in your browser, free to use in anything you make. Load kit puts them on the pads with a starter beat at the style’s tempo and swing; Undo brings back what you had.</p>
       </div>
     </section>
 
@@ -473,6 +513,7 @@ dialog h2 { margin: 0 0 8px; }
   <ol class="steps">
     <li><b>Hear the starter beat.</b> Press <kbd>Space</kbd> or Play. Click squares in the grid to add or remove hits.</li>
     <li><b>Play the pads</b> with your keyboard: <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> · <kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd> · <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><kbd>F</kbd> · <kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd><kbd>V</kbd>. Turn on <i>Record hits</i> to finger-drum straight into the pattern.</li>
+    <li><b>Pick a genre.</b> The Genres tab holds 63 kits across 17 families, from boom bap, trap, and house to jazz, reggae, country, and metal. Press <i>Hear it</i>, then <i>Load kit</i> to put its sounds and a starter beat on the pads.</li>
     <li><b>Bring your own sounds.</b> Drop MP3, WAV, M4A, OGG, or FLAC files anywhere, or record with the mic. Drag any sound onto a pad or a deck.</li>
     <li><b>Chop.</b> Open a sound in the Chop tab, chop it evenly, on hits, or by beats (or tap <kbd>Enter</kbd> while it plays), then press <i>Send chops to pads</i>.</li>
     <li><b>Screw.</b> Slide <i>Screw</i> down to slow and deepen everything together. For a whole track, pick it in Sounds and press <i>Screw</i> for a chopped &amp; screwed version.</li>
@@ -881,7 +922,8 @@ CL.defaultState = () => {
   A[8][0] = 1; A[8][10] = 1; A[9][16] = 1; A[9][26] = 1;
   return {
     version: 1,
-    seq: { bpm: 90, swing: 54, length: 32, pattern: 0, metro: false },
+    seq: { bpm: 90, swing: 54, feel: '16', length: 32, pattern: 0, metro: false },
+    genre: { fam: 'hiphop', kit: null },
     patterns,
     pads,
     fx: { filter: 0, echoMix: 0, echoFb: 0.35, echoTime: 0.75, revMix: 0, revSize: 'hall', lofi: 0, crackle: 0, volume: 0.85 },
@@ -1267,10 +1309,10 @@ CL.playBuffer = (buffer, o = {}) => {
   v.stop = (at, rel = 0.012) => {
     const t = Math.max(at || ac.currentTime, ac.currentTime);
     try {
-      g.gain.cancelScheduledValues(t);
-      g.gain.setValueAtTime(g.gain.value, t);
-      g.gain.linearRampToValueAtTime(0, t + rel);
-      src.stop(t + rel + 0.01);
+      // fade from whatever level the voice has at time t (it may start later than now)
+      if (g.gain.cancelAndHoldAtTime) g.gain.cancelAndHoldAtTime(t); else g.gain.cancelScheduledValues(t);
+      g.gain.setTargetAtTime(0, t, rel / 3);
+      src.stop(t + rel * 2 + 0.01);
     } catch (e) { /* already stopped */ }
   };
   if (v.live) {
@@ -1341,6 +1383,9 @@ const softClip = (oc, amt) => {
   for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; c[i] = Math.tanh(x * amt) / Math.tanh(amt); }
   w.curve = c; return w;
 };
+
+// Shared with the genre sound library (synth.js). seed() makes the next sounds' noise repeatable.
+CL.H = { render, noiseBuf, noise, env, filt, osc, chain, softClip, seed: (n) => { nseed = (n >>> 0) & 0x7fffffff || 99; } };
 
 // Each voice function draws one hit at time t into dest (also used by the demo beat).
 CL.SYNTH = {
@@ -1538,6 +1583,1425 @@ CL.renderKit = async () => {
   return out;
 };
 
+/* ---- js/synth-drums.js ---- */
+// Chop Lab — genre sound library, part 1: helpers, notes and chords, drums, percussion, and effects.
+// Every sound is synthesized here (original and royalty-free). Voices register in CL.GV:
+//   name -> { kind: 'drum' | 'fx' | 'bass' | 'keys', fn(oc, dest, t, params), sec(params), level, wide }
+'use strict';
+(() => {
+  const { noise, env, filt, osc, chain, softClip } = CL.H;
+  const pick = (v, d) => (v == null ? d : v);
+  const gainOf = (oc, v) => { const g = oc.createGain(); g.gain.value = v; return g; };
+  const panOf = (oc, p) => { const s = oc.createStereoPanner(); s.pan.value = p; return s; };
+  // attack, hold until `hold`, then release
+  const ahr = (oc, t, a, peak, hold, rel) => {
+    const g = oc.createGain(), h = Math.max(a, hold);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(peak, t + a);
+    g.gain.setValueAtTime(peak, t + h);
+    g.gain.linearRampToValueAtTime(0, t + h + rel);
+    return g;
+  };
+  const lfo = (oc, type, rate, depth, target, t, stop) => {
+    const o = osc(oc, type, rate, t, stop);
+    const g = gainOf(oc, depth);
+    o.connect(g); g.connect(target);
+    return o;
+  };
+  CL.GH = { pick, gainOf, panOf, ahr, lfo };
+
+  // ---------- notes and chords ----------
+  const STEP = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+  const midiOf = (name) => {
+    const m = /^([A-G])([#b]?)(-?\d)$/.exec(name);
+    if (!m) throw new Error('Unknown note ' + name);
+    return 12 * (+m[3] + 1) + STEP[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0);
+  };
+  const hz = (midi) => 440 * Math.pow(2, (midi - 69) / 12);
+  const QUAL = {
+    '': [0, 4, 7], m: [0, 3, 7], 7: [0, 4, 7, 10], m7: [0, 3, 7, 10], maj7: [0, 4, 7, 11], m9: [0, 3, 7, 10, 14],
+    9: [0, 4, 7, 10, 14], maj9: [0, 4, 7, 11, 14], 5: [0, 7, 12], sus2: [0, 2, 7], sus4: [0, 5, 7], dim: [0, 3, 6],
+    6: [0, 4, 7, 9], m6: [0, 3, 7, 9], add9: [0, 4, 7, 14], m11: [0, 3, 7, 10, 14, 17], 13: [0, 4, 10, 14, 21],
+    '7#9': [0, 4, 10, 15], m7b5: [0, 3, 6, 10], 69: [0, 4, 7, 9, 14], '7sus4': [0, 5, 7, 10],
+  };
+  CL.noteHz = (name) => hz(midiOf(name));
+  // 'Am9' or 'F6' (root octave 3), 'E5@2' (power chord from E2), or a single note at octave 0-5 such as 'C5'.
+  // Chords whose names end in a digit (A7, E9, F6) read as chords; a power chord always names its octave with @.
+  CL.chordHz = (sym) => {
+    if (/^[A-G][#b]?[0-5]$/.test(sym)) return [CL.noteHz(sym)];
+    const [body, oct] = sym.split('@');
+    const m = /^([A-G][#b]?)(.*)$/.exec(body);
+    if (!m || !(m[2] in QUAL)) throw new Error('Unknown chord ' + sym);
+    const root = midiOf(m[1] + (oct || '3'));
+    return QUAL[m[2]].map((iv) => hz(root + iv));
+  };
+  CL.chordName = (sym) => sym.split('@')[0];
+
+  const GV = CL.GV = {};
+  const reg = (name, kind, fn, sec, level, wide) => { GV[name] = { kind, fn, sec, level, wide: !!wide }; };
+
+  // ---------- drums ----------
+  reg('kick', 'drum', (oc, d, t, p) => {
+    const dec = pick(p.dec, 0.45);
+    const o = osc(oc, 'sine', pick(p.f0, 160), t, t + dec + 0.3);
+    o.frequency.exponentialRampToValueAtTime(pick(p.f1, 50), t + pick(p.pd, 0.09));
+    if (p.f2) o.frequency.exponentialRampToValueAtTime(p.f2, t + dec);
+    const body = chain(o, softClip(oc, pick(p.drive, 1.5)), env(oc, t, 0.002, 1, dec));
+    if (p.post) chain(body, softClip(oc, p.post), filt(oc, 'lowpass', pick(p.lp, 9000)), d);
+    else chain(body, filt(oc, 'lowpass', pick(p.lp, 12000)), d);
+    const click = pick(p.click, 0.25);
+    if (click) chain(noise(oc, 0.03, t), filt(oc, 'highpass', pick(p.clickF, 2500)), env(oc, t, 0.0008, click, 0.012), d);
+    if (p.thump) chain(noise(oc, 0.2, t), filt(oc, 'lowpass', 700), env(oc, t, 0.001, p.thump, 0.07), d);
+  }, (p) => pick(p.dec, 0.45) + 0.35, 0.95);
+
+  reg('snare', 'drum', (oc, d, t, p) => {
+    const nd = pick(p.ndec, 0.2), na = pick(p.namt, 0.85);
+    if (p.gate) { // big room, cut short (the 1980s gated sound)
+      const g = oc.createGain();
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(na, t + 0.002);
+      g.gain.linearRampToValueAtTime(na * 0.55, t + p.gate); g.gain.linearRampToValueAtTime(0, t + p.gate + 0.015);
+      chain(noise(oc, p.gate + 0.1, t), filt(oc, 'bandpass', pick(p.nf, 1800), 0.5), g, d);
+    } else {
+      chain(noise(oc, nd + 0.1, t), filt(oc, 'bandpass', pick(p.nf, 1900), pick(p.nq, 0.7)), env(oc, t, 0.001, na, nd), d);
+    }
+    const hi = pick(p.hi, 0.3);
+    if (hi) chain(noise(oc, 0.25, t), filt(oc, 'highpass', 6000), env(oc, t, 0.001, hi, nd * 0.6), d);
+    const tn = pick(p.tone, 190);
+    if (tn) {
+      const o = osc(oc, 'triangle', tn * 1.25, t, t + 0.3);
+      o.frequency.exponentialRampToValueAtTime(tn, t + 0.04);
+      chain(o, env(oc, t, 0.001, pick(p.tamt, 0.6), pick(p.tdec, 0.09)), d);
+    }
+    if (p.tone2) chain(osc(oc, 'sine', p.tone2, t, t + 0.2), env(oc, t, 0.001, 0.35, 0.06), d);
+    if (p.ring) chain(osc(oc, 'sine', p.ring, t, t + 0.6), env(oc, t, 0.001, 0.08, 0.4), d);
+    if (p.crush) chain(noise(oc, 0.15, t), filt(oc, 'bandpass', 900, 1.5), softClip(oc, 6), env(oc, t, 0.001, p.crush, 0.1), d);
+  }, (p) => (p.gate ? p.gate + 0.25 : pick(p.ndec, 0.2) + 0.45), 0.85);
+
+  reg('brush', 'drum', (oc, d, t, p) => {
+    chain(noise(oc, 0.6, t), filt(oc, 'bandpass', pick(p.f, 3500), 0.5), filt(oc, 'lowpass', 7000), env(oc, t, pick(p.att, 0.012), pick(p.amt, 0.7), pick(p.dec, 0.22)), d);
+    chain(osc(oc, 'triangle', 200, t, t + 0.2), env(oc, t, 0.002, 0.15, 0.06), d);
+  }, () => 0.7, 0.7);
+
+  reg('clap', 'drum', (oc, d, t, p) => {
+    const g = gainOf(oc, 0);
+    const n = pick(p.bursts, 3), sp = pick(p.spread, 0.011);
+    for (let k = 0; k < n; k++) {
+      g.gain.setValueAtTime(0.9, t + k * sp);
+      g.gain.exponentialRampToValueAtTime(0.08, t + k * sp + 0.009);
+    }
+    g.gain.setValueAtTime(0.75, t + n * sp);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + n * sp + pick(p.tail, 0.22));
+    chain(noise(oc, 0.6, t), filt(oc, 'bandpass', pick(p.f, 1250), pick(p.q, 1.1)), g, d);
+  }, (p) => pick(p.tail, 0.22) + 0.3, 0.8);
+
+  reg('snap', 'drum', (oc, d, t) => {
+    chain(noise(oc, 0.1, t), filt(oc, 'bandpass', 2600, 3), env(oc, t, 0.0008, 0.9, 0.035), d);
+    chain(osc(oc, 'sine', 1600, t, t + 0.05), env(oc, t, 0.0005, 0.3, 0.015), d);
+  }, () => 0.25, 0.7);
+
+  reg('hat', 'drum', (oc, d, t, p) => {
+    const dec = pick(p.dec, 0.055), base = pick(p.base, 40);
+    const sum = gainOf(oc, 0.18 * pick(p.metal, 1));
+    [2, 3, 4.16, 5.43, 6.79, 8.21].forEach((r) => osc(oc, 'square', base * r * 1.7, t, t + dec + 0.4).connect(sum));
+    chain(sum, filt(oc, 'bandpass', pick(p.f, 10000), 0.8), filt(oc, 'highpass', pick(p.hp, 7000), 0.7), env(oc, t, 0.001, 0.6, dec), d);
+    chain(noise(oc, dec + 0.4, t), filt(oc, 'highpass', pick(p.nf, 9000)), env(oc, t, 0.001, pick(p.noise, 0.3), dec * 0.8), d);
+  }, (p) => pick(p.dec, 0.055) + 0.3, 0.5);
+
+  reg('ride', 'drum', (oc, d, t, p) => {
+    const dec = pick(p.dec, 1.6);
+    const sum = gainOf(oc, 0.12);
+    [1, 1.34, 1.61, 2.11, 2.53, 3.07].forEach((r) => osc(oc, 'square', pick(p.base, 340) * r, t, t + dec + 0.3).connect(sum));
+    chain(sum, filt(oc, 'bandpass', 7500, 0.5), filt(oc, 'highpass', 4000), env(oc, t, 0.001, 0.5, dec), d);
+    chain(noise(oc, 0.3, t), filt(oc, 'highpass', 8000), env(oc, t, 0.001, 0.25, 0.05), d);
+    if (p.bell) {
+      chain(osc(oc, 'sine', 980, t, t + 1.4), env(oc, t, 0.001, p.bell, 0.9), d);
+      chain(osc(oc, 'sine', 1470, t, t + 1.4), env(oc, t, 0.001, p.bell * 0.6, 0.7), d);
+    }
+  }, (p) => pick(p.dec, 1.6) + 0.3, 0.5);
+
+  reg('crash', 'drum', (oc, d, t, p) => {
+    const dec = pick(p.dec, 1.7);
+    chain(noise(oc, dec + 0.4, t), filt(oc, 'highpass', pick(p.hp, 4200), 0.6), env(oc, t, 0.002, 0.55, dec), d);
+    const sum = gainOf(oc, 0.08);
+    [1, 1.47, 1.97, 2.53, 3.11].forEach((r) => osc(oc, 'square', 330 * r, t, t + dec + 0.4).connect(sum));
+    chain(sum, filt(oc, 'highpass', 3000), env(oc, t, 0.002, 0.6, dec * 0.8), d);
+  }, (p) => pick(p.dec, 1.7) + 0.4, 0.55);
+
+  reg('tom', 'drum', (oc, d, t, p) => {
+    const dec = pick(p.dec, 0.4);
+    const o = osc(oc, 'sine', pick(p.f0, 190), t, t + dec + 0.2);
+    o.frequency.exponentialRampToValueAtTime(pick(p.f1, 95), t + dec * 0.8);
+    chain(o, softClip(oc, pick(p.drive, 1.2)), env(oc, t, 0.002, 0.9, dec), d);
+    chain(noise(oc, 0.05, t), filt(oc, 'lowpass', 3000), env(oc, t, 0.001, pick(p.stick, 0.15), 0.02), d);
+  }, (p) => pick(p.dec, 0.4) + 0.3, 0.8);
+
+  reg('conga', 'drum', (oc, d, t, p) => {
+    const f = pick(p.f, 330);
+    const o = osc(oc, 'sine', f * 1.25, t, t + 0.5);
+    o.frequency.exponentialRampToValueAtTime(f, t + 0.04);
+    chain(o, env(oc, t, 0.001, 0.85, pick(p.dec, 0.22)), d);
+    if (p.slap) chain(noise(oc, 0.05, t), filt(oc, 'bandpass', 2500, 1.2), env(oc, t, 0.0008, p.slap, 0.025), d);
+  }, (p) => pick(p.dec, 0.22) + 0.25, 0.7);
+
+  reg('timbale', 'drum', (oc, d, t, p) => {
+    const f = pick(p.f, 620);
+    chain(osc(oc, 'triangle', f, t, t + 0.6), env(oc, t, 0.001, 0.7, 0.25), d);
+    chain(osc(oc, 'sine', f * 1.51, t, t + 0.6), env(oc, t, 0.001, 0.35, 0.18), d);
+    chain(noise(oc, 0.4, t), filt(oc, 'bandpass', 5000, 0.8), env(oc, t, 0.001, 0.3, 0.2), d);
+  }, () => 0.6, 0.7);
+
+  reg('block', 'drum', (oc, d, t, p) => {
+    const f = pick(p.f, 1000);
+    chain(osc(oc, 'sine', f, t, t + 0.15), env(oc, t, 0.0005, 0.9, pick(p.dec, 0.05)), d);
+    chain(osc(oc, 'sine', f * 1.72, t, t + 0.1), env(oc, t, 0.0005, 0.3, 0.025), d);
+  }, () => 0.25, 0.7);
+
+  reg('cowbell', 'drum', (oc, d, t, p) => {
+    const sum = gainOf(oc, 0.4);
+    osc(oc, 'square', pick(p.f, 540), t, t + 0.6).connect(sum);
+    osc(oc, 'square', pick(p.f, 540) * 1.48, t, t + 0.6).connect(sum);
+    chain(sum, filt(oc, 'bandpass', 900, 2), env(oc, t, 0.001, 0.8, pick(p.dec, 0.32)), d);
+  }, () => 0.6, 0.6);
+
+  reg('shaker', 'drum', (oc, d, t, p) => {
+    chain(noise(oc, 0.3, t), filt(oc, 'bandpass', pick(p.f, 6500), 1.4), env(oc, t, pick(p.att, 0.018), 0.5, pick(p.dec, 0.08), 'lin'), d);
+  }, () => 0.3, 0.45);
+
+  reg('tamb', 'drum', (oc, d, t, p) => {
+    const g = gainOf(oc, 0);
+    for (let k = 0; k < 5; k++) { // jingles ring a little apart
+      g.gain.setValueAtTime(0.8 - k * 0.12, t + k * 0.012);
+      g.gain.exponentialRampToValueAtTime(0.1, t + k * 0.012 + 0.01);
+    }
+    g.gain.setValueAtTime(0.35, t + 0.06);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + pick(p.dec, 0.25));
+    chain(noise(oc, 0.4, t), filt(oc, 'highpass', 6500), filt(oc, 'peaking', 9500), g, d);
+    const sum = gainOf(oc, 0.05);
+    [5200, 6900, 8300].forEach((f) => osc(oc, 'square', f, t, t + 0.3).connect(sum));
+    chain(sum, filt(oc, 'highpass', 5000), env(oc, t, 0.001, 0.6, pick(p.dec, 0.25) * 0.7), d);
+  }, (p) => pick(p.dec, 0.25) + 0.15, 0.5);
+
+  reg('guiro', 'drum', (oc, d, t) => {
+    const scrape = gainOf(oc, 0.5);
+    lfo(oc, 'square', 42, 0.5, scrape.gain, t, t + 0.4);
+    chain(noise(oc, 0.4, t), filt(oc, 'bandpass', 3200, 2), scrape, env(oc, t, 0.01, 0.8, 0.22, 'lin'), d);
+  }, () => 0.4, 0.55);
+
+  reg('triangle', 'drum', (oc, d, t, p) => {
+    [[1, 0.6], [2.76, 0.25], [5.4, 0.12]].forEach(([r, a]) => chain(osc(oc, 'sine', 1900 * r, t, t + 1.6), env(oc, t, 0.001, a, pick(p.dec, 1.2)), d));
+  }, (p) => pick(p.dec, 1.2) + 0.3, 0.4);
+
+  reg('rim', 'drum', (oc, d, t, p) => {
+    chain(osc(oc, 'triangle', pick(p.f, 1700), t, t + 0.06), filt(oc, 'bandpass', pick(p.f, 1700), 3), env(oc, t, 0.0005, 0.9, 0.03), d);
+    chain(osc(oc, 'square', pick(p.f, 1700) * 0.28, t, t + 0.06), env(oc, t, 0.0005, 0.25, 0.02), d);
+  }, () => 0.2, 0.65);
+
+  reg('perc', 'drum', (oc, d, t, p) => { // short tuned blip
+    const f = pick(p.f, 800);
+    const o = osc(oc, pick(p.wave, 'sine'), f, t, t + 0.3);
+    o.frequency.exponentialRampToValueAtTime(f * 0.7, t + 0.05);
+    chain(o, env(oc, t, 0.0008, 0.9, pick(p.dec, 0.1)), d);
+    chain(noise(oc, 0.02, t), filt(oc, 'highpass', 3000), env(oc, t, 0.0005, 0.2, 0.006), d);
+  }, () => 0.3, 0.6);
+
+  reg('metal', 'drum', (oc, d, t, p) => { // anvil-like industrial hit
+    const sum = gainOf(oc, 0.25);
+    [1, 1.48, 2.13, 2.71, 3.62].forEach((r) => osc(oc, 'square', pick(p.f, 220) * r, t, t + 0.9).connect(sum));
+    chain(sum, filt(oc, 'bandpass', 3000, 1.5), env(oc, t, 0.001, 0.8, pick(p.dec, 0.45)), d);
+    chain(noise(oc, 0.1, t), filt(oc, 'highpass', 2000), env(oc, t, 0.0008, 0.5, 0.03), d);
+  }, (p) => pick(p.dec, 0.45) + 0.3, 0.6);
+
+  reg('slam', 'drum', (oc, d, t) => { // noisy industrial impact
+    chain(noise(oc, 0.5, t), filt(oc, 'lowpass', 3000), softClip(oc, 4), env(oc, t, 0.001, 0.8, 0.28), d);
+    const o = osc(oc, 'sine', 120, t, t + 0.5); o.frequency.exponentialRampToValueAtTime(55, t + 0.2);
+    chain(o, env(oc, t, 0.001, 0.8, 0.3), d);
+  }, () => 0.7, 0.75);
+
+  // ---------- effects ----------
+  reg('riser', 'fx', (oc, d, t) => CL.SYNTH.riser(oc, d, t), () => 2.5, 0.6);
+  reg('horn', 'fx', (oc, d, t) => CL.SYNTH.horn(oc, d, t), () => 1.5, 0.6);
+  reg('laser', 'fx', (oc, d, t) => CL.SYNTH.laser(oc, d, t), () => 0.5, 0.5);
+  reg('subdrop', 'fx', (oc, d, t) => CL.SYNTH.subdrop(oc, d, t), () => 2.1, 0.85);
+  reg('down', 'fx', (oc, d, t) => {
+    const bp = filt(oc, 'bandpass', 7000, 3);
+    bp.frequency.setValueAtTime(7000, t); bp.frequency.exponentialRampToValueAtTime(200, t + 1.8);
+    const g = oc.createGain(); g.gain.setValueAtTime(0.9, t); g.gain.exponentialRampToValueAtTime(0.01, t + 1.9);
+    chain(noise(oc, 2, t), bp, g, d);
+  }, () => 2, 0.6);
+  reg('impact', 'fx', (oc, d, t) => {
+    const o = osc(oc, 'sine', 70, t, t + 2); o.frequency.exponentialRampToValueAtTime(32, t + 1.4);
+    chain(o, softClip(oc, 2), env(oc, t, 0.002, 1, 1.5), d);
+    chain(noise(oc, 2, t), filt(oc, 'lowpass', 1200), env(oc, t, 0.002, 0.6, 1.1), d);
+    chain(noise(oc, 2, t), filt(oc, 'highpass', 5000), env(oc, t, 0.002, 0.25, 1.4), d);
+  }, () => 2.2, 0.85);
+  reg('siren', 'fx', (oc, d, t) => { // the classic dub siren: a wobbling square that climbs
+    const o = osc(oc, 'square', 500, t, t + 2.2);
+    o.frequency.linearRampToValueAtTime(900, t + 1.8);
+    lfo(oc, 'sine', 5, 120, o.frequency, t, t + 2.2);
+    chain(o, filt(oc, 'lowpass', 2800), ahr(oc, t, 0.01, 0.6, 1.8, 0.3), d);
+  }, () => 2.3, 0.55);
+  reg('zap', 'fx', (oc, d, t) => {
+    const o = osc(oc, 'sawtooth', 3000, t, t + 0.25); o.frequency.exponentialRampToValueAtTime(150, t + 0.18);
+    chain(o, filt(oc, 'lowpass', 6000), env(oc, t, 0.001, 0.5, 0.18), d);
+  }, () => 0.3, 0.5);
+  reg('vox', 'fx', (oc, d, t, p) => { // sung "oh" blip
+    const o = osc(oc, 'sawtooth', pick(p.f, 220), t, t + 0.5);
+    lfo(oc, 'sine', 5.5, 6, o.detune, t, t + 0.5);
+    const g = gainOf(oc, 1);
+    [[500, 6, 1], [900, 8, 0.5], [2400, 10, 0.2]].forEach(([f, q, a]) => chain(o, filt(oc, 'bandpass', f, q), gainOf(oc, a * 3), g));
+    chain(g, ahr(oc, t, 0.02, 0.8, 0.22, 0.12), d);
+  }, () => 0.5, 0.6);
+  reg('hoover', 'fx', (oc, d, t, p) => { // detuned saws with a pitch dip (rave stab)
+    const f = pick(p.f, 110);
+    [-25, -9, 0, 9, 25].forEach((c) => {
+      const o = osc(oc, 'sawtooth', f * 1.5, t, t + 1);
+      o.detune.value = c;
+      o.frequency.exponentialRampToValueAtTime(f, t + 0.12);
+      o.frequency.linearRampToValueAtTime(f * 0.98, t + 0.8);
+      chain(o, filt(oc, 'lowpass', 3000), gainOf(oc, 0.2), ahr(oc, t, 0.01, 1, 0.6, 0.25), d);
+    });
+  }, () => 1, 0.6);
+  reg('whoosh', 'fx', (oc, d, t) => {
+    const bp = filt(oc, 'bandpass', 400, 2);
+    bp.frequency.setValueAtTime(400, t); bp.frequency.exponentialRampToValueAtTime(6000, t + 0.6); bp.frequency.exponentialRampToValueAtTime(800, t + 1.2);
+    chain(noise(oc, 1.3, t), bp, ahr(oc, t, 0.5, 0.8, 0.6, 0.6), d);
+  }, () => 1.3, 0.5);
+  reg('whistle', 'fx', (oc, d, t, p) => { // sine lead with a slide and vibrato (west-coast style)
+    const f = pick(p.f, 1400);
+    const o = osc(oc, 'sine', f * 0.9, t, t + 1.3);
+    o.frequency.exponentialRampToValueAtTime(f, t + 0.08);
+    o.frequency.setValueAtTime(f, t + 0.6); o.frequency.exponentialRampToValueAtTime(f * 0.84, t + 0.9);
+    lfo(oc, 'sine', 6, 18, o.detune, t, t + 1.3);
+    chain(o, ahr(oc, t, 0.04, 0.6, 0.95, 0.2), d);
+  }, () => 1.3, 0.5);
+  reg('screech', 'fx', (oc, d, t) => { // hard-dance screech
+    const o = osc(oc, 'sawtooth', 880, t, t + 0.7);
+    o.frequency.exponentialRampToValueAtTime(1760, t + 0.35);
+    const bp = filt(oc, 'bandpass', 1800, 6); bp.frequency.exponentialRampToValueAtTime(4500, t + 0.4);
+    chain(o, softClip(oc, 6), bp, ahr(oc, t, 0.01, 0.6, 0.5, 0.15), d);
+  }, () => 0.7, 0.5);
+
+  // ---------- presets (label, voice, params, level) ----------
+  CL.GPRE = {
+    k808: ['808 kick', 'kick', { f0: 120, f1: 45, pd: 0.08, dec: 0.9, click: 0.12, drive: 1.4 }],
+    kPunch: ['Kick', 'kick', { f0: 210, f1: 52, pd: 0.07, dec: 0.38, click: 0.45, drive: 1.8 }],
+    kDeep: ['Kick', 'kick', { f0: 140, f1: 46, pd: 0.09, dec: 0.55, click: 0.15 }],
+    kTech: ['Kick', 'kick', { f0: 190, f1: 47, pd: 0.06, dec: 0.5, click: 0.35, drive: 3 }],
+    kAcoustic: ['Kick', 'kick', { f0: 115, f1: 58, pd: 0.05, dec: 0.3, click: 0.35, thump: 0.5, drive: 1.3 }],
+    kRock: ['Kick', 'kick', { f0: 125, f1: 55, pd: 0.05, dec: 0.32, click: 0.55, clickF: 3000, thump: 0.55, drive: 1.6 }],
+    kJazz: ['Kick', 'kick', { f0: 95, f1: 62, pd: 0.05, dec: 0.25, click: 0.12, thump: 0.35, drive: 1 }],
+    kMetal: ['Kick', 'kick', { f0: 140, f1: 60, pd: 0.035, dec: 0.2, click: 0.9, clickF: 3500, thump: 0.4, drive: 1.6 }],
+    kHard: ['Kick', 'kick', { f0: 320, f1: 62, pd: 0.045, f2: 44, dec: 0.5, click: 0.4, drive: 9, post: 3 }],
+    kGabber: ['Kick', 'kick', { f0: 280, f1: 55, pd: 0.05, dec: 0.38, click: 0.3, drive: 14, post: 6, lp: 6000 }],
+    kBoomBap: ['Kick', 'kick', { f0: 135, f1: 50, pd: 0.07, dec: 0.42, click: 0.3, thump: 0.3, drive: 2, lp: 5000 }],
+    kLofi: ['Kick', 'kick', { f0: 120, f1: 48, pd: 0.08, dec: 0.45, click: 0.1, drive: 1.3, lp: 2500 }],
+    kTight: ['Kick', 'kick', { f0: 170, f1: 55, pd: 0.05, dec: 0.25, click: 0.4, drive: 1.5 }],
+    kDisco: ['Kick', 'kick', { f0: 130, f1: 52, pd: 0.07, dec: 0.4, click: 0.2, thump: 0.35 }],
+    kSoft: ['Soft kick', 'kick', { f0: 100, f1: 45, pd: 0.1, dec: 0.5, click: 0.05, drive: 1, lp: 1800 }],
+    s808: ['Snare', 'snare', { tone: 180, tone2: 330, ndec: 0.18, nf: 3000, namt: 0.7 }],
+    sPunch: ['Snare', 'snare', { tone: 185, ndec: 0.17, nf: 2600, hi: 0.45 }],
+    sRock: ['Snare', 'snare', { tone: 190, tamt: 0.7, ndec: 0.24, nf: 2100, hi: 0.35, ring: 340 }],
+    sTrap: ['Snare', 'snare', { tone: 210, tdec: 0.06, ndec: 0.12, nf: 3200, hi: 0.5 }],
+    sDnB: ['Snare', 'snare', { tone: 240, tdec: 0.06, ndec: 0.14, nf: 3600, hi: 0.6, namt: 0.95 }],
+    sJungle: ['Snare', 'snare', { tone: 280, tdec: 0.07, ndec: 0.16, nf: 4000, hi: 0.55, ring: 520 }],
+    sGated: ['Big snare', 'snare', { tone: 180, gate: 0.32, nf: 1600, hi: 0.4 }],
+    sLofi: ['Snare', 'snare', { tone: 170, ndec: 0.18, nf: 1500, hi: 0.1, namt: 0.6 }],
+    sBoomBap: ['Snare', 'snare', { tone: 175, ndec: 0.2, nf: 1700, hi: 0.25, crush: 0.4 }],
+    sMetal: ['Snare', 'snare', { tone: 220, tamt: 0.8, ndec: 0.18, nf: 2800, hi: 0.5, ring: 420 }],
+    sSoul: ['Snare', 'snare', { tone: 195, ndec: 0.2, nf: 1800, hi: 0.2, ring: 300 }],
+    sCross: ['Cross-stick', 'rim', { f: 1250 }],
+    sRim: ['Rimshot', 'snare', { tone: 380, tamt: 0.8, tdec: 0.05, ndec: 0.08, nf: 3500, hi: 0.4 }],
+    sBrush: ['Brush', 'brush', {}],
+    clap: ['Clap', 'clap', {}],
+    clapBig: ['Big clap', 'clap', { bursts: 4, spread: 0.013, tail: 0.4, f: 1100 }],
+    clap808: ['Clap', 'clap', { f: 1350, tail: 0.18 }],
+    snap: ['Snap', 'snap', {}],
+    hClosed: ['Hi-hat', 'hat', {}],
+    hTight: ['Hi-hat', 'hat', { dec: 0.03, f: 11000 }],
+    hOpen: ['Open hat', 'hat', { dec: 0.38 }],
+    hPedal: ['Pedal hat', 'hat', { dec: 0.07, f: 8000, noise: 0.15 }],
+    hLofi: ['Hi-hat', 'hat', { dec: 0.05, f: 7000, hp: 5000, noise: 0.2 }],
+    hAcoustic: ['Hi-hat', 'hat', { dec: 0.07, metal: 0.5, noise: 0.45, nf: 7000 }],
+    hAcOpen: ['Open hat', 'hat', { dec: 0.45, metal: 0.5, noise: 0.45, nf: 7000 }],
+    hDisco: ['Open hat', 'hat', { dec: 0.25, f: 9000 }],
+    ride: ['Ride', 'ride', {}],
+    rideBell: ['Ride bell', 'ride', { dec: 1.2, bell: 0.5 }],
+    crash: ['Crash', 'crash', {}],
+    splash: ['Splash', 'crash', { dec: 0.6, hp: 5500 }],
+    china: ['China', 'crash', { dec: 1, hp: 2500 }],
+    tomHi: ['High tom', 'tom', { f0: 260, f1: 150, dec: 0.3 }],
+    tomLo: ['Low tom', 'tom', { f0: 170, f1: 95, dec: 0.4 }],
+    floorTom: ['Floor tom', 'tom', { f0: 120, f1: 70, dec: 0.5 }],
+    tom808: ['808 tom', 'tom', { f0: 160, f1: 85, dec: 0.6, stick: 0.05 }],
+    conga: ['Conga', 'conga', { f: 330, slap: 0.3 }],
+    congaLo: ['Low conga', 'conga', { f: 220, dec: 0.3 }],
+    bongo: ['Bongo', 'conga', { f: 520, dec: 0.12, slap: 0.4 }],
+    timbale: ['Timbale', 'timbale', {}],
+    clave: ['Clave', 'block', { f: 2500, dec: 0.04 }],
+    block: ['Woodblock', 'block', { f: 1000 }],
+    cowbell: ['Cowbell', 'cowbell', {}],
+    shaker: ['Shaker', 'shaker', {}],
+    tamb: ['Tambourine', 'tamb', {}],
+    guiro: ['Guiro', 'guiro', {}],
+    triangle: ['Triangle', 'triangle', {}],
+    rim: ['Rim', 'rim', {}],
+    perc: ['Perc', 'perc', {}],
+    percHi: ['Perc', 'perc', { f: 1400, dec: 0.06 }],
+    metal: ['Metal hit', 'metal', {}],
+    slam: ['Slam', 'slam', {}],
+    riser: ['Riser', 'riser', {}], down: ['Downlifter', 'down', {}], impact: ['Impact', 'impact', {}],
+    siren: ['Siren', 'siren', {}], horn: ['Air horn', 'horn', {}], laser: ['Laser', 'laser', {}],
+    zap: ['Zap', 'zap', {}], vox: ['Vox', 'vox', {}], hoover: ['Hoover', 'hoover', {}],
+    whoosh: ['Whoosh', 'whoosh', {}], whistle: ['Whistle lead', 'whistle', {}], screech: ['Screech', 'screech', {}],
+    subdrop: ['Sub drop', 'subdrop', {}],
+  };
+})();
+
+/* ---- js/synth-tonal.js ---- */
+// Chop Lab — genre sound library, part 2: plucked strings, basses, keys and other instruments, and kit rendering.
+'use strict';
+(() => {
+  const { noiseBuf, noise, env, filt, osc, chain, softClip } = CL.H;
+  const { pick, gainOf, panOf, ahr, lfo } = CL.GH;
+  const GV = CL.GV;
+  const reg = (name, kind, fn, sec, level, wide) => { GV[name] = { kind, fn, sec, level, wide: !!wide }; };
+
+  // Karplus-Strong plucked string, computed sample by sample (tuned with a fractional delay).
+  const ks = (oc, f, sec, o = {}) => {
+    const sr = oc.sampleRate, n = Math.max(1, Math.ceil(sec * sr));
+    const b = oc.createBuffer(1, n, sr), y = b.getChannelData(0);
+    const dl = sr / f - 0.5, N0 = Math.max(2, Math.floor(dl)), fr = dl - N0;
+    const ex = noiseBuf(oc, (N0 + 2) / sr).getChannelData(0);
+    const bright = pick(o.bright, 0.7), damp = Math.pow(0.001, 1 / (f * pick(o.sus, 2)));
+    let lp = 0, zPrev = 0;
+    for (let i = 0; i < n; i++) {
+      let x = 0;
+      if (i <= N0) { lp += (ex[i] - lp) * bright; x = lp; }
+      const a = i >= N0 ? y[i - N0] : 0, c = i > N0 ? y[i - N0 - 1] : 0;
+      const z = (1 - fr) * a + fr * c;
+      y[i] = x + damp * 0.5 * (z + zPrev);
+      zPrev = z;
+    }
+    return b;
+  };
+  const strum = (oc, dest, t, fs, o) => {
+    const order = o.up ? fs.slice().reverse() : fs;
+    order.forEach((f, i) => {
+      const s = oc.createBufferSource();
+      s.buffer = ks(oc, f, o.sec, o);
+      s.start(t + i * pick(o.gap, 0.012));
+      chain(s, gainOf(oc, pick(o.vel, 0.5)), dest);
+    });
+  };
+
+  // ---------- basses (params: f, dur, optional to = glide target) ----------
+  const bass = (name, fn, extra = 0.3, level = 0.85) => reg(name, 'bass', fn, (p) => pick(p.dur, 0.6) + extra, level);
+  bass('sub808', (oc, d, t, p) => {
+    const len = pick(p.dur, 1.4);
+    const o = osc(oc, 'sine', p.f * 2.2, t, t + len + 0.3);
+    o.frequency.exponentialRampToValueAtTime(p.f, t + 0.05);
+    if (p.to) { o.frequency.setValueAtTime(p.f, t + len * 0.3); o.frequency.exponentialRampToValueAtTime(p.to, t + len * 0.55); }
+    chain(o, softClip(oc, pick(p.drive, 2.4)), env(oc, t, 0.003, 0.95, len), d);
+  });
+  bass('sub', (oc, d, t, p) => chain(osc(oc, 'sine', p.f, t, t + pick(p.dur, 0.6) + 0.2), softClip(oc, 1.3), ahr(oc, t, 0.005, 0.9, pick(p.dur, 0.6), 0.06), d));
+  bass('acid', (oc, d, t, p) => {
+    const lp = filt(oc, 'lowpass', 300, pick(p.res, 14));
+    lp.frequency.setValueAtTime(300, t);
+    lp.frequency.linearRampToValueAtTime(pick(p.cut, 2600), t + 0.01);
+    lp.frequency.exponentialRampToValueAtTime(260, t + pick(p.fdec, 0.18));
+    chain(osc(oc, pick(p.wave, 'sawtooth'), p.f, t, t + pick(p.dur, 0.2) + 0.2), lp, softClip(oc, 1.8), ahr(oc, t, 0.003, 0.7, pick(p.dur, 0.2), 0.03), d);
+  });
+  bass('reese', (oc, d, t, p) => {
+    const dur = pick(p.dur, 0.8), bus = gainOf(oc, 1);
+    [-14, 14].forEach((c) => { const o = osc(oc, 'sawtooth', p.f, t, t + dur + 0.3); o.detune.value = c; chain(o, gainOf(oc, 0.35), bus); });
+    const lp = filt(oc, 'lowpass', 750, 1.2);
+    lfo(oc, 'sine', 0.35, 250, lp.frequency, t, t + dur + 0.3);
+    chain(bus, lp, softClip(oc, 1.5), ahr(oc, t, 0.01, 0.8, dur, 0.1), d);
+    chain(osc(oc, 'sine', p.f, t, t + dur + 0.3), ahr(oc, t, 0.01, 0.5, dur, 0.1), d);
+  });
+  bass('wobble', (oc, d, t, p) => {
+    const dur = pick(p.dur, 1), bus = gainOf(oc, 1);
+    chain(osc(oc, 'sawtooth', p.f, t, t + dur + 0.3), gainOf(oc, 0.4), bus);
+    chain(osc(oc, 'square', p.f * 0.5, t, t + dur + 0.3), gainOf(oc, 0.3), bus);
+    const lp = filt(oc, 'lowpass', 900, 7);
+    lfo(oc, 'sine', pick(p.rate, 4), 800, lp.frequency, t, t + dur + 0.3);
+    chain(bus, lp, softClip(oc, 3), ahr(oc, t, 0.01, 0.8, dur, 0.08), d);
+    chain(osc(oc, 'sine', p.f, t, t + dur + 0.3), ahr(oc, t, 0.01, 0.45, dur, 0.08), d);
+  });
+  bass('pluckbass', (oc, d, t, p) => {
+    const lp = filt(oc, 'lowpass', 1600, 2); lp.frequency.exponentialRampToValueAtTime(220, t + 0.15);
+    chain(osc(oc, 'sawtooth', p.f, t, t + pick(p.dur, 0.3) + 0.2), lp, env(oc, t, 0.003, 0.7, pick(p.dur, 0.3)), d);
+    chain(osc(oc, 'sine', p.f, t, t + pick(p.dur, 0.3) + 0.2), env(oc, t, 0.003, 0.6, pick(p.dur, 0.3)), d);
+  });
+  const finger = (oc, d, t, p, detune = 0) => {
+    const dur = pick(p.dur, 0.6), bus = gainOf(oc, 1);
+    const tri = osc(oc, 'triangle', p.f, t, t + dur + 0.4); tri.detune.value = detune;
+    const saw = osc(oc, 'sawtooth', p.f, t, t + dur + 0.4); saw.detune.value = detune;
+    chain(tri, bus); chain(saw, gainOf(oc, 0.35), bus);
+    const lp = filt(oc, 'lowpass', 2200, 0.8); lp.frequency.exponentialRampToValueAtTime(800, t + 0.08);
+    chain(bus, lp, env(oc, t, 0.004, 0.9, dur), d);
+    chain(noise(oc, 0.03, t), filt(oc, 'lowpass', 1500), env(oc, t, 0.0008, 0.2, 0.012), d);
+  };
+  bass('finger', finger);
+  bass('chorus', (oc, d, t, p) => { finger(oc, d, t, p, -9); finger(oc, d, t, p, 9); });
+  bass('slap', (oc, d, t, p) => {
+    finger(oc, d, t, p);
+    chain(osc(oc, 'sawtooth', p.f * 2, t, t + 0.1), filt(oc, 'highpass', 1200), env(oc, t, 0.001, 0.5, 0.05), d);
+    chain(noise(oc, 0.04, t), filt(oc, 'bandpass', 3000, 1.5), env(oc, t, 0.0005, 0.35, 0.015), d);
+  });
+  bass('upright', (oc, d, t, p) => {
+    const dur = pick(p.dur, 0.8), bus = gainOf(oc, 1);
+    chain(osc(oc, 'sine', p.f, t, t + dur + 0.4), bus);
+    chain(osc(oc, 'triangle', p.f * 2, t, t + dur + 0.4), gainOf(oc, 0.25), bus);
+    chain(bus, filt(oc, 'lowpass', 800), env(oc, t, 0.004, 0.9, dur), d);
+    chain(noise(oc, 0.06, t), filt(oc, 'lowpass', 250), env(oc, t, 0.001, 0.4, 0.04), d);
+  });
+  bass('synth', (oc, d, t, p) => {
+    const lp = filt(oc, 'lowpass', 2500, 2); lp.frequency.exponentialRampToValueAtTime(500, t + 0.12);
+    chain(osc(oc, 'square', p.f, t, t + pick(p.dur, 0.35) + 0.2), lp, env(oc, t, 0.003, 0.8, pick(p.dur, 0.35)), d);
+  });
+  bass('dist', (oc, d, t, p) => {
+    const dur = pick(p.dur, 0.4), bus = gainOf(oc, 1);
+    [0, 12].forEach((c) => { const o = osc(oc, 'sawtooth', p.f, t, t + dur + 0.2); o.detune.value = c; chain(o, gainOf(oc, 0.4), bus); });
+    chain(bus, softClip(oc, 5), filt(oc, 'lowpass', 2600), ahr(oc, t, 0.005, 0.8, dur, 0.06), d);
+  });
+  bass('dub', (oc, d, t, p) => {
+    const dur = pick(p.dur, 0.7), bus = gainOf(oc, 1);
+    chain(osc(oc, 'sine', p.f, t, t + dur + 0.4), bus);
+    chain(osc(oc, 'sine', p.f * 2, t, t + dur + 0.4), gainOf(oc, 0.18), bus);
+    chain(bus, filt(oc, 'lowpass', 380), ahr(oc, t, 0.012, 0.9, dur, 0.15), d);
+  });
+  bass('fm', (oc, d, t, p) => {
+    const dur = pick(p.dur, 0.3);
+    const car = osc(oc, 'sine', p.f, t, t + dur + 0.2);
+    const mod = osc(oc, 'sine', p.f * pick(p.ratio, 1), t, t + dur + 0.2);
+    const idx = oc.createGain();
+    idx.gain.setValueAtTime(p.f * pick(p.idx, 4), t); idx.gain.exponentialRampToValueAtTime(p.f * 0.4, t + dur);
+    mod.connect(idx); idx.connect(car.frequency);
+    chain(car, ahr(oc, t, 0.003, 0.8, dur, 0.04), d);
+  });
+
+  // ---------- keys and other instruments (params: fs = frequencies, dur) ----------
+  const keys = (name, fn, sec, level = 0.55, wide = false) => reg(name, 'keys', fn, sec, level, wide);
+  keys('epiano', (oc, d, t, p) => CL.SYNTH.keys(oc, d, t, p.fs, pick(p.dur, 1), 0.5), (p) => pick(p.dur, 1) + 0.8);
+  keys('piano', (oc, d, t, p) => {
+    const dur = pick(p.dur, 1.2);
+    p.fs.forEach((f) => {
+      const dk = f < 200 ? 2.6 : f < 500 ? 1.9 : 1.3, bus = gainOf(oc, 1);
+      for (let k = 1; k <= 6; k++) {
+        const fk = f * k * (1 + 0.0004 * k * k);
+        if (fk > 9000) break;
+        chain(osc(oc, 'sine', fk, t, t + dk + 0.6), env(oc, t, 0.002, 0.5 / Math.pow(k, 1.4), dk / (1 + 0.5 * (k - 1))), bus);
+      }
+      chain(bus, ahr(oc, t, 0.001, 1, dur, 0.3), d);
+    });
+    chain(noise(oc, 0.05, t), filt(oc, 'bandpass', 2500, 1), env(oc, t, 0.0008, 0.12, 0.02), d);
+  }, (p) => pick(p.dur, 1.2) + 0.5);
+  keys('organ', (oc, d, t, p) => {
+    const dur = pick(p.dur, 0.8), bus = gainOf(oc, 1);
+    p.fs.forEach((f) => [[0.5, 0.45], [1, 1], [2, 0.6], [3, 0.3], [4, 0.35], [6, 0.12]]
+      .forEach(([r, a]) => chain(osc(oc, 'sine', f * r, t, t + dur + 0.3), gainOf(oc, a * 0.25), bus)));
+    const trem = gainOf(oc, 1);
+    lfo(oc, 'sine', pick(p.rate, 6.4), 0.18, trem.gain, t, t + dur + 0.3);
+    chain(bus, trem, softClip(oc, pick(p.drive, 1.6)), ahr(oc, t, 0.008, 1, dur, 0.08), d);
+    chain(noise(oc, 0.02, t), filt(oc, 'bandpass', 2500, 1), env(oc, t, 0.0005, 0.15, 0.008), d);
+  }, (p) => pick(p.dur, 0.8) + 0.3);
+  keys('clav', (oc, d, t, p) => {
+    p.fs.forEach((f) => {
+      const bp = filt(oc, 'bandpass', f * 4, 1.2); bp.frequency.exponentialRampToValueAtTime(f * 2, t + 0.15);
+      chain(osc(oc, 'square', f, t, t + 0.6), filt(oc, 'highpass', 250), bp, env(oc, t, 0.002, 0.6, pick(p.dur, 0.25)), d);
+    });
+  }, (p) => pick(p.dur, 0.25) + 0.3);
+  keys('stab', (oc, d, t, p) => {
+    const dur = pick(p.dur, 0.35), bus = gainOf(oc, 1);
+    p.fs.forEach((f) => [-8, 8].forEach((c) => { const o = osc(oc, 'sawtooth', f, t, t + dur + 0.4); o.detune.value = c; chain(o, gainOf(oc, 0.2), bus); }));
+    const lp = filt(oc, 'lowpass', pick(p.cut, 6000), pick(p.res, 2)); lp.frequency.exponentialRampToValueAtTime(pick(p.cutEnd, 700), t + dur * 0.7);
+    chain(bus, lp, env(oc, t, 0.003, 1, dur), d);
+  }, (p) => pick(p.dur, 0.35) + 0.35);
+  keys('pad', (oc, d, t, p) => {
+    const dur = pick(p.dur, 2), bus = gainOf(oc, 1), L = panOf(oc, -0.5), R = panOf(oc, 0.5);
+    L.connect(bus); R.connect(bus);
+    p.fs.forEach((f) => [[-10, L], [0, bus], [10, R]].forEach(([c, out]) => {
+      const o = osc(oc, pick(p.wave, 'sawtooth'), f, t, t + dur + 2); o.detune.value = c; chain(o, gainOf(oc, 0.12), out);
+    }));
+    chain(bus, filt(oc, 'lowpass', pick(p.cut, 1800), 0.7), ahr(oc, t, pick(p.att, 0.4), 1, dur, pick(p.rel, 1)), d);
+  }, (p) => pick(p.dur, 2) + pick(p.rel, 1) + 0.2, 0.5, true);
+  keys('supersaw', (oc, d, t, p) => {
+    const dur = pick(p.dur, 0.8), bus = gainOf(oc, 1);
+    p.fs.forEach((f) => [[-22, -0.7], [-11, -0.35], [0, 0], [11, 0.35], [22, 0.7]].forEach(([c, pn]) => {
+      const o = osc(oc, 'sawtooth', f, t, t + dur + 0.6); o.detune.value = c; chain(o, gainOf(oc, 0.09), panOf(oc, pn), bus);
+    }));
+    chain(bus, filt(oc, 'highpass', 150), filt(oc, 'lowpass', pick(p.cut, 9000)), ahr(oc, t, 0.01, 1, dur, 0.3), d);
+  }, (p) => pick(p.dur, 0.8) + 0.4, 0.5, true);
+  keys('pluck', (oc, d, t, p) => {
+    p.fs.forEach((f) => {
+      const lp = filt(oc, 'lowpass', 7000, 1.5); lp.frequency.exponentialRampToValueAtTime(300, t + 0.2);
+      const bus = gainOf(oc, 1);
+      chain(osc(oc, 'sawtooth', f, t, t + 0.8), bus); chain(osc(oc, 'square', f, t, t + 0.8), gainOf(oc, 0.5), bus);
+      chain(bus, lp, env(oc, t, 0.002, 0.4, pick(p.dur, 0.4)), d);
+    });
+  }, (p) => pick(p.dur, 0.4) + 0.4);
+  keys('strings', (oc, d, t, p) => {
+    const dur = pick(p.dur, 1.5), bus = gainOf(oc, 1);
+    p.fs.forEach((f, i) => [-7, 0, 7].forEach((c, k) => {
+      const o = osc(oc, 'sawtooth', f, t, t + dur + 1); o.detune.value = c;
+      lfo(oc, 'sine', 5.5 + k * 0.3, 8, o.detune, t, t + dur + 1);
+      chain(o, gainOf(oc, 0.1), panOf(oc, ((i + k) % 3 - 1) * 0.5), bus);
+    }));
+    chain(bus, filt(oc, 'lowpass', pick(p.cut, 3800)), ahr(oc, t, pick(p.att, 0.3), 1, dur, 0.6), d);
+  }, (p) => pick(p.dur, 1.5) + 0.8, 0.5, true);
+  keys('brass', (oc, d, t, p) => {
+    const dur = pick(p.dur, 0.3), bus = gainOf(oc, 1);
+    p.fs.forEach((f) => [-6, 6].forEach((c) => {
+      const o = osc(oc, 'sawtooth', f, t, t + dur + 0.4);
+      o.detune.setValueAtTime(c - 60, t); o.detune.linearRampToValueAtTime(c, t + 0.06);
+      chain(o, gainOf(oc, 0.18), bus);
+    }));
+    const lp = filt(oc, 'lowpass', 600, 1);
+    lp.frequency.setValueAtTime(600, t); lp.frequency.linearRampToValueAtTime(3500, t + 0.05); lp.frequency.linearRampToValueAtTime(2200, t + 0.2);
+    chain(bus, lp, ahr(oc, t, 0.03, 1, dur, 0.12), d);
+  }, (p) => pick(p.dur, 0.3) + 0.3);
+  keys('choir', (oc, d, t, p) => {
+    const dur = pick(p.dur, 1.6), bus = gainOf(oc, 1);
+    p.fs.forEach((f, i) => {
+      const o = osc(oc, 'sawtooth', f, t, t + dur + 1);
+      lfo(oc, 'sine', 5 + i * 0.4, 10, o.detune, t, t + dur + 1);
+      const v = gainOf(oc, 1);
+      [[700, 6, 1], [1220, 8, 0.5], [2600, 10, 0.25]].forEach(([ff, q, a]) => chain(o, filt(oc, 'bandpass', ff, q), gainOf(oc, a * 1.6), v));
+      chain(v, panOf(oc, (i % 2 ? 0.4 : -0.4)), bus);
+    });
+    chain(bus, ahr(oc, t, 0.25, 1, dur, 0.5), d);
+  }, (p) => pick(p.dur, 1.6) + 0.7, 0.5, true);
+  keys('guitar', (oc, d, t, p) => {
+    const dur = pick(p.dur, 0.8), bus = gainOf(oc, 1);
+    strum(oc, bus, t, p.fs, { sec: dur + 0.6, bright: 0.6, sus: 2.5, gap: 0.012, up: p.up });
+    chain(bus, filt(oc, 'highpass', 80), filt(oc, 'lowpass', 5000), softClip(oc, pick(p.drive, 1.2)), ahr(oc, t, 0.001, 1, dur, 0.15), d);
+  }, (p) => pick(p.dur, 0.8) + 0.4);
+  keys('acoustic', (oc, d, t, p) => {
+    const dur = pick(p.dur, 1), bus = gainOf(oc, 1);
+    strum(oc, bus, t, p.fs, { sec: dur + 0.8, bright: 0.9, sus: 3, gap: 0.018, up: p.up });
+    chain(bus, filt(oc, 'highpass', 90), filt(oc, 'lowpass', 7000), ahr(oc, t, 0.001, 1, dur, 0.25), d);
+  }, (p) => pick(p.dur, 1) + 0.5);
+  keys('power', (oc, d, t, p) => {
+    const dur = pick(p.dur, 0.9), bus = gainOf(oc, 1);
+    strum(oc, bus, t, p.fs, { sec: dur + 0.4, bright: 0.95, sus: 4, gap: 0.006 });
+    chain(bus, filt(oc, 'highpass', 90), softClip(oc, 14), filt(oc, 'lowpass', 4200), ahr(oc, t, 0.002, 1, dur, 0.12), d);
+  }, (p) => pick(p.dur, 0.9) + 0.3);
+  keys('chug', (oc, d, t, p) => { // palm-muted, distorted
+    const dur = pick(p.dur, 0.15), bus = gainOf(oc, 1);
+    strum(oc, bus, t, p.fs, { sec: dur + 0.2, bright: 0.5, sus: 0.3, gap: 0.004 });
+    chain(bus, filt(oc, 'highpass', 80), softClip(oc, 16), filt(oc, 'lowpass', 3000), ahr(oc, t, 0.001, 1, dur, 0.05), d);
+  }, (p) => pick(p.dur, 0.15) + 0.2);
+  keys('skank', (oc, d, t, p) => { // short, bright upstroke on the offbeat
+    const dur = pick(p.dur, 0.12), bus = gainOf(oc, 1);
+    strum(oc, bus, t, p.fs, { sec: dur + 0.2, bright: 0.8, sus: 0.6, gap: 0.005, up: true });
+    chain(bus, filt(oc, 'highpass', 500), ahr(oc, t, 0.001, 1, dur, 0.04), d);
+  }, (p) => pick(p.dur, 0.12) + 0.2);
+  keys('banjo', (oc, d, t, p) => {
+    const bus = gainOf(oc, 1);
+    strum(oc, bus, t, p.fs, { sec: 1, bright: 1, sus: 0.7, gap: 0.03, vel: 0.6 });
+    const twang = filt(oc, 'peaking', 2500, 1.2); twang.gain.value = 6;
+    chain(bus, filt(oc, 'highpass', 200), twang, env(oc, t, 0.001, 1, pick(p.dur, 0.6)), d);
+  }, (p) => pick(p.dur, 0.6) + 0.3);
+  keys('vibes', (oc, d, t, p) => {
+    const trem = gainOf(oc, 1), dur = pick(p.dur, 1.5);
+    lfo(oc, 'sine', 5, 0.25, trem.gain, t, t + dur + 0.5);
+    p.fs.forEach((f) => {
+      chain(osc(oc, 'sine', f, t, t + dur + 0.5), env(oc, t, 0.001, 0.5, dur), trem);
+      chain(osc(oc, 'sine', f * 4, t, t + 0.6), env(oc, t, 0.001, 0.08, 0.4), trem);
+    });
+    chain(trem, d);
+  }, (p) => pick(p.dur, 1.5) + 0.4);
+  keys('marimba', (oc, d, t, p) => {
+    p.fs.forEach((f) => {
+      chain(osc(oc, 'sine', f, t, t + 0.9), env(oc, t, 0.001, 0.6, pick(p.dur, 0.5)), d);
+      chain(osc(oc, 'sine', f * 3.93, t, t + 0.2), env(oc, t, 0.001, 0.18, 0.08), d);
+    });
+    chain(noise(oc, 0.02, t), filt(oc, 'bandpass', 1200, 1), env(oc, t, 0.0005, 0.1, 0.01), d);
+  }, (p) => pick(p.dur, 0.5) + 0.4);
+  keys('steel', (oc, d, t, p) => {
+    p.fs.forEach((f) => [[1, 0.6], [2, 0.25], [3, 0.1]].forEach(([r, a]) => {
+      const o = osc(oc, 'sine', f * r, t, t + 1.4); o.detune.setValueAtTime(10, t); o.detune.linearRampToValueAtTime(0, t + 0.08);
+      chain(o, env(oc, t, 0.002, a, pick(p.dur, 0.9) / r), d);
+    }));
+  }, (p) => pick(p.dur, 0.9) + 0.4);
+  keys('bell', (oc, d, t, p) => {
+    p.fs.forEach((f) => {
+      const car = osc(oc, 'sine', f, t, t + 2.4), mod = osc(oc, 'sine', f * 3.5, t, t + 2.4), idx = oc.createGain();
+      idx.gain.setValueAtTime(f * 5, t); idx.gain.exponentialRampToValueAtTime(f * 0.05, t + 1.5);
+      mod.connect(idx); idx.connect(car.frequency);
+      chain(car, env(oc, t, 0.001, 0.5, pick(p.dur, 1.6)), d);
+    });
+  }, (p) => pick(p.dur, 1.6) + 0.4);
+  const reed = (oc, d, t, p, o) => { // harmonica, sax, fiddle, and lead share this shape
+    const dur = pick(p.dur, 0.6), bus = gainOf(oc, 1);
+    p.fs.forEach((f) => o.waves.forEach(([w, a, c]) => {
+      const x = osc(oc, w, f, t, t + dur + 0.5);
+      x.detune.setValueAtTime((c || 0) - (o.scoop || 0), t); x.detune.linearRampToValueAtTime(c || 0, t + 0.08);
+      lfo(oc, 'sine', o.vib, o.depth, x.detune, t + (o.vibDelay || 0), t + dur + 0.5);
+      chain(x, gainOf(oc, a), bus);
+    }));
+    const out = gainOf(oc, 1);
+    (o.formants || [[o.bp, o.q || 1, 1]]).forEach(([ff, q, a]) => chain(bus, filt(oc, 'bandpass', ff, q), gainOf(oc, a * (o.formants ? 2 : 1.4)), out));
+    chain(out, softClip(oc, pick(o.drive, 1.2)), ahr(oc, t, o.att, 1, dur, o.rel), d);
+    if (o.breath) chain(noise(oc, dur + 0.3, t), filt(oc, 'bandpass', 2000, 2), ahr(oc, t, o.att, o.breath, dur, o.rel), d);
+  };
+  keys('harmonica', (oc, d, t, p) => reed(oc, d, t, p, { waves: [['square', 0.3], ['sawtooth', 0.3]], bp: 1500, q: 1.2, vib: 5.5, depth: 12, att: 0.05, rel: 0.1, breath: 0.04 }), (p) => pick(p.dur, 0.6) + 0.3);
+  keys('sax', (oc, d, t, p) => reed(oc, d, t, p, { waves: [['sawtooth', 0.5]], formants: [[500, 4, 1], [1500, 5, 0.5]], vib: 5, depth: 14, vibDelay: 0.15, scoop: 80, att: 0.04, rel: 0.1, breath: 0.05 }), (p) => pick(p.dur, 0.6) + 0.3);
+  keys('fiddle', (oc, d, t, p) => reed(oc, d, t, p, { waves: [['sawtooth', 0.5]], formants: [[1200, 0.8, 1], [2800, 2, 0.4]], vib: 6, depth: 15, att: 0.08, rel: 0.15 }), (p) => pick(p.dur, 0.6) + 0.3);
+  keys('lead', (oc, d, t, p) => reed(oc, d, t, p, { waves: [['square', 0.3], ['sawtooth', 0.3, 6]], bp: 2000, q: 0.5, vib: 5.5, depth: 10, vibDelay: 0.2, att: 0.01, rel: 0.1 }), (p) => pick(p.dur, 0.6) + 0.3);
+  keys('pedal', (oc, d, t, p) => { // pedal steel guitar: slides up into the note
+    const dur = pick(p.dur, 1.2);
+    p.fs.forEach((f) => {
+      const o = osc(oc, 'sine', f, t, t + dur + 0.6);
+      o.detune.setValueAtTime(-200, t); o.detune.linearRampToValueAtTime(0, t + 0.25);
+      lfo(oc, 'sine', 4.5, 8, o.detune, t + 0.3, t + dur + 0.6);
+      chain(o, ahr(oc, t, 0.03, 0.5, dur, 0.5), d);
+      chain(osc(oc, 'triangle', f * 2, t, t + dur + 0.6), ahr(oc, t, 0.03, 0.1, dur, 0.4), d);
+    });
+  }, (p) => pick(p.dur, 1.2) + 0.6);
+
+  // ---------- kits ----------
+  const hash = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+
+  // A kit: drums (up to 8 sounds), bass [voice, 4 notes, opts], keys [voice, 4 chords or notes, opts].
+  CL.compileKit = (kit) => {
+    const specs = [];
+    const one = (entry) => {
+      let label, name, over = {};
+      if (typeof entry === 'string') name = entry; else [label, name, over = {}] = entry;
+      const pre = CL.GPRE[name];
+      let voice, params;
+      if (pre) { voice = pre[1]; params = Object.assign({}, pre[2], over); label = label || pre[0]; }
+      else if (GV[name]) { voice = name; params = Object.assign({}, over); }
+      else throw new Error(kit.id + ': unknown sound ' + name);
+      if (GV[voice].kind === 'keys') params.fs = CL.chordHz(params.chord);
+      if (GV[voice].kind === 'bass') params.f = CL.noteHz(params.note);
+      return { label: label || name, voice, params, cut: voice === 'hat' ? 2 : GV[voice].kind === 'bass' ? 3 : 0 };
+    };
+    kit.drums.forEach((e) => specs.push(one(e)));
+    while (specs.length < 8) specs.push(null);
+    const [bv, notes, bo = {}] = kit.bass;
+    if (!GV[bv] || GV[bv].kind !== 'bass') throw new Error(kit.id + ': unknown bass ' + bv);
+    notes.forEach((n) => {
+      const [a, b] = n.split('>');
+      specs.push({ label: 'Bass ' + a + (b ? '→' + b : ''), voice: bv, params: Object.assign({}, bo, { f: CL.noteHz(a), to: b ? CL.noteHz(b) : undefined }), cut: 3 });
+    });
+    while (specs.length < 12) specs.push(null);
+    const [kv, chords, ko = {}] = kit.keys;
+    if (!GV[kv] || GV[kv].kind !== 'keys') throw new Error(kit.id + ': unknown instrument ' + kv);
+    chords.forEach((c) => specs.push({ label: CL.chordName(c), voice: kv, params: Object.assign({}, ko, { fs: CL.chordHz(c) }), cut: 0 }));
+    while (specs.length < 16) specs.push(null);
+    return specs;
+  };
+
+  // Pattern strings: drums use x (hit) and o (soft); bass and keys use digits 1-4 for their four pads.
+  const twoBars = (s) => (s.length === 16 ? s + s : s);
+  CL.kitRows = (kit) => {
+    const rows = Array.from({ length: 16 }, () => new Array(32).fill(0));
+    kit.beat.forEach((s, r) => { const x = twoBars(s); for (let i = 0; i < 32; i++) rows[r][i] = x[i] === 'x' ? 1 : x[i] === 'o' ? 2 : 0; });
+    [[kit.b, 8], [kit.k, 12]].forEach(([s, base]) => {
+      if (!s) return;
+      const x = twoBars(s);
+      for (let i = 0; i < 32; i++) if (x[i] >= '1' && x[i] <= '4') rows[base + (+x[i] - 1)][i] = 1;
+    });
+    return rows;
+  };
+
+  CL.checkKit = (kit) => {
+    const out = [];
+    const specs = CL.compileKit(kit);
+    (kit.beat || []).forEach((s, r) => {
+      if (!s) return;
+      if (s.length !== 16 && s.length !== 32) out.push(`row ${r + 1} has ${s.length} steps`);
+      if (/[^.xo]/.test(s)) out.push(`row ${r + 1} uses characters other than . x o`);
+      if (/[xo]/.test(s) && !specs[r]) out.push(`row ${r + 1} plays an empty pad`);
+    });
+    [['b', 8], ['k', 12]].forEach(([key, base]) => {
+      const s = kit[key];
+      if (!s) return;
+      if (s.length !== 16 && s.length !== 32) out.push(`${key} has ${s.length} steps`);
+      if (/[^.1-4]/.test(s)) out.push(`${key} uses characters other than . 1-4`);
+      for (const c of s.replace(/\./g, '')) if (!specs[base + (+c - 1)]) out.push(`${key} plays empty pad ${c}`);
+    });
+    if (!(kit.bpm >= 40 && kit.bpm <= 220)) out.push('tempo outside 40-220');
+    return out;
+  };
+
+  CL.renderSpec = async (spec, key) => {
+    const v = GV[spec.voice];
+    const sec = Math.min(6, Math.max(0.15, v.sec(spec.params)));
+    const oc = new OfflineAudioContext(v.wide ? 2 : 1, Math.ceil(sec * CL.KIT_SR), CL.KIT_SR);
+    CL.H.seed(hash(key));
+    v.fn(oc, oc.destination, 0.004, spec.params);
+    let buf = await oc.startRendering();
+    if (spec.params.reverse) buf = CL.reversedSection(CL.ac, buf, 0, buf.duration);
+    buf = CL.trimSilence(CL.ac, buf, 0.0003);
+    return CL.normalize(buf, pick(spec.params.level, v.level));
+  };
+
+  CL.kitCache = new Map();
+  CL.ensureKit = (kit) => {
+    if (!CL.kitCache.has(kit.id)) {
+      CL.kitCache.set(kit.id, (async () => {
+        const specs = CL.compileKit(kit);
+        const bufs = await Promise.all(specs.map((s, i) => (s ? CL.renderSpec(s, kit.id + ':' + i) : null)));
+        specs.forEach((s, i) => {
+          const id = 'g-' + kit.id + '-' + i;
+          if (s && !CL.samples.has(id)) CL.addSample({ id, name: kit.name + ': ' + s.label, group: kit.name + ' kit', buffer: bufs[i], builtin: true, bpm: 0 }, { select: false, save: false });
+        });
+        return { specs, bufs };
+      })());
+    }
+    return CL.kitCache.get(kit.id);
+  };
+
+  // The starter beat, rendered with the kit's tempo, swing, and suggested effects. Three passes are rendered and the
+  // middle one kept, so the loop carries the echoes of the pass before it and repeats without a seam.
+  CL.ensureGroove = (kit) => {
+    const key = kit.id + ':groove';
+    if (!CL.kitCache.has(key)) {
+      CL.kitCache.set(key, (async () => {
+        const { specs, bufs } = await CL.ensureKit(kit);
+        const rows = CL.kitRows(kit);
+        const sr = CL.KIT_SR, stepSec = 60 / kit.bpm / 4, loopLen = 32 * stepSec, lead = 0.05;
+        const oc = new OfflineAudioContext(2, Math.ceil((3 * loopLen + 2) * sr), sr);
+        const fx = CL.buildFx(oc, Object.assign({}, CL.defaultState().fx, kit.fx || {}, { volume: 0.9 }), () => 4 * stepSec);
+        fx.output.connect(oc.destination);
+        const mono = {}, cut = {};
+        for (let n = 0; n < 96; n++) {
+          const s = n % 32;
+          for (let r = 0; r < 16; r++) {
+            const v = rows[r][s];
+            if (!v || !bufs[r]) continue;
+            const when = lead + n * stepSec + CL.swingOffsetFor(s, kit.sw || 50, kit.feel, stepSec);
+            if (mono[r]) mono[r].stop(when, 0.006);
+            const g = specs[r].cut;
+            if (g && cut[g] && cut[g] !== mono[r]) cut[g].stop(when, 0.006);
+            const voice = CL.playBuffer(bufs[r], { ac: oc, dest: fx.input, when, gain: v === 2 ? 0.45 : 0.9, screw: 1 });
+            mono[r] = voice;
+            if (g) cut[g] = voice;
+          }
+        }
+        const all = await oc.startRendering();
+        const a = Math.round((lead + loopLen) * sr), len = Math.round(loopLen * sr);
+        const out = CL.ac.createBuffer(2, len, sr);
+        for (let c = 0; c < 2; c++) out.getChannelData(c).set(all.getChannelData(c).subarray(a, a + len));
+        CL.normalize(out, 0.85);
+        const id = 'g-' + kit.id + '-groove';
+        if (!CL.samples.has(id)) CL.addSample({ id, name: kit.name + ' groove (' + kit.bpm + ' BPM)', group: kit.name + ' kit', buffer: out, builtin: true, bpm: kit.bpm }, { select: false, save: false });
+        return CL.samples.get(id);
+      })());
+    }
+    return CL.kitCache.get(key);
+  };
+})();
+
+/* ---- js/genres-a.js ---- */
+// Chop Lab — genre families and kits, part 1: hip-hop, R&B and soul, gospel and blues, jazz, country.
+// Kit pattern strings: 16 steps (repeated) or 32 (two bars); spaces and | are for reading only.
+// Drum rows use x (hit) and o (soft hit). Bass (b) and keys (k) use the digits 1-4 to pick their four pads.
+'use strict';
+
+CL.GENRE_FAMS = [
+  { id: 'hiphop', cluster: 'Hip-hop & R&B', name: 'Hip-hop', blurb: 'Beats built for rapping: hard drums, deep bass, and loops, from dusty boom bap to sliding 808s.' },
+  { id: 'soul', cluster: 'Hip-hop & R&B', name: 'R&B & soul', blurb: 'From 1960s soul and funk to disco and slow modern R&B: grooves led by bass, keys, and backbeat.' },
+  { id: 'house', cluster: 'Electronic & dance', name: 'House', blurb: 'Four-on-the-floor club music: a steady kick, offbeat hats, and soulful chords.' },
+  { id: 'techno', cluster: 'Electronic & dance', name: 'Techno', blurb: 'Machine-driven and hypnotic: relentless kicks, steely hats, and evolving sequences.' },
+  { id: 'trance', cluster: 'Electronic & dance', name: 'Trance', blurb: 'Euphoric builds and soaring melodies: a driving offbeat bass and wide saw chords.' },
+  { id: 'breaks', cluster: 'Electronic & dance', name: 'Breakbeat & UK bass', blurb: 'Broken, syncopated drums in place of a straight four: big beat, UK garage, dubstep, and grime.' },
+  { id: 'dnb', cluster: 'Electronic & dance', name: 'Drum & bass', blurb: 'Fast breakbeats around 170 BPM over deep, heavy bass, from raw jungle to smooth liquid.' },
+  { id: 'hardcore', cluster: 'Electronic & dance', name: 'Hardcore & hardstyle', blurb: 'The hard end of dance music at 150 BPM and up: distorted kicks, rave stabs, and euphoric hooks.' },
+  { id: 'downtempo', cluster: 'Electronic & dance', name: 'Downtempo & ambient', blurb: 'Slow, atmospheric, and textured: trip-hop, chillout, and ambient, made for headphones.' },
+  { id: 'pop', cluster: 'Pop & Caribbean', name: 'Pop', blurb: 'Catchy and polished: synth-pop, modern pop, dance-pop, and retro synthwave.' },
+  { id: 'reggae', cluster: 'Pop & Caribbean', name: 'Reggae & Caribbean', blurb: 'Jamaica’s ska, reggae, dub, and dancehall, plus their Caribbean cousin reggaeton.' },
+  { id: 'rock', cluster: 'Rock & heavy', name: 'Rock', blurb: 'Guitar-driven music, from 1950s rock ’n’ roll to classic rock, punk, and indie.' },
+  { id: 'metal', cluster: 'Rock & heavy', name: 'Metal', blurb: 'Heavy distortion, palm-muted riffs, and thundering kicks: heavy metal, thrash, doom, and nu metal.' },
+  { id: 'industrial', cluster: 'Rock & heavy', name: 'Industrial & gothic', blurb: 'Dark, mechanical, and moody: industrial machine noise and gothic rock’s chorused bass.' },
+  { id: 'blues', cluster: 'Roots', name: 'Gospel & blues', blurb: 'Church organ and handclaps, the twelve-bar shuffle, and the slow burn of the blues.' },
+  { id: 'jazz', cluster: 'Roots', name: 'Jazz', blurb: 'Swing rhythm, walking bass, and rich chords: swing, bossa nova, ballads, and jazz-funk.' },
+  { id: 'country', cluster: 'Roots', name: 'Country & bluegrass', blurb: 'Twangy guitars, boom-chick bass, and the train beat, plus banjo-and-fiddle bluegrass.' },
+];
+
+CL.KITS = [];
+CL.kit = (k) => {
+  const clean = (s) => (s || '').replace(/[\s|]/g, '');
+  k.beat = (k.beat || []).map(clean);
+  k.b = clean(k.b);
+  k.k = clean(k.k);
+  k.sw = k.sw || 50;
+  k.feel = k.feel || '16';
+  CL.KITS.push(k);
+};
+
+// ---------------- Hip-hop ----------------
+CL.kit({ id: 'boombap', fam: 'hiphop', name: 'Boom bap', bpm: 90, sw: 58,
+  about: 'Dusty kick and snare on 2 and 4, swung hats, and jazzy minor chords over a round bass.',
+  drums: ['kBoomBap', 'sBoomBap', 'hLofi', 'hOpen', 'rim', 'shaker', 'crash', 'horn'],
+  bass: ['finger', ['D2', 'G1', 'Bb1', 'A1'], { dur: 0.5 }],
+  keys: ['epiano', ['Dm9', 'Gm7', 'Bbmaj7', 'A7'], { dur: 1.4 }],
+  beat: ['x... .... ..x. .... | x... ..x. ..x. .x..', '.... x... .... x...', 'x.o. x.o. x.o. x.oo', '.... .... .... .... | .... .... .... ..x.',
+    '', '..o. ..o. ..o. ..o.', 'x... .... .... .... | .... .... .... ....'],
+  b: '1... .... 1.1. .... | 2... ..2. ..2. .2..', k: '1... .... 1... .... | 2... .... 2... ....' });
+
+CL.kit({ id: 'trap', fam: 'hiphop', name: 'Trap', bpm: 140,
+  about: 'A half-time feel at a fast tempo: sliding 808s, a snare on beat 3, and rapid-fire hi-hats.',
+  drums: ['kPunch', 'sTrap', 'clap808', 'hTight', 'hOpen', 'perc', 'rim', 'riser'],
+  bass: ['sub808', ['C2', 'G1', 'Ab1', 'C2>G1'], { dur: 1.2 }],
+  keys: ['bell', ['C5', 'Eb5', 'G5', 'Bb4'], { dur: 1 }],
+  beat: ['x... ...x ..x. .... | x... .... x.x. ..x.', '.... .... x... ....', '.... .... x... ....', 'x.x. x.x. x.x. xxxx | x.x. x.xx x.x. xx.x',
+    '.... .... .... .... | .... .... .... ...x', '.... ..x. .... .... | .... ..x. .... .x..'],
+  b: '1... ...1 ..1. .... | 3... .... 3.3. ..4.', k: '1... 2... 3... 2... | 1... 2... 4... 3...', fx: { revMix: 0.15 } });
+
+CL.kit({ id: 'drill', fam: 'hiphop', name: 'Drill', bpm: 142,
+  about: 'Dark and bouncy: gliding 808 bass, a stuttering hi-hat in threes, and snares that land late.',
+  drums: ['kPunch', ['Snare', 'sTrap', { tone: 230 }], 'hTight', 'hOpen', 'perc', 'clap', 'rim', 'crash'],
+  bass: ['sub808', ['F#1', 'D2', 'C#2', 'A1>F#1'], { dur: 1 }],
+  keys: ['strings', ['F#m', 'Dmaj7', 'C#m', 'Bm'], { dur: 1.7, cut: 3000 }],
+  beat: ['x... .... .... .... | x... ...x ..x. ....', '.... .... x... .... | .... .... x... ..x.', 'x..x ..x. x..x ..x.', '',
+    '.... ..x. .... ...x', '.... .... x... ....', '', 'x... .... .... .... | .... .... .... ....'],
+  b: '1... .... .... ..1. | 2... ...3 ..4. ....', k: '1... .... .... .... | 2... .... .... ....' });
+
+CL.kit({ id: 'lofi', fam: 'hiphop', name: 'Lo-fi hip-hop', bpm: 80, sw: 60,
+  about: 'Relaxed and hazy: soft drums, warm electric-piano seventh chords, upright bass, and vinyl crackle.',
+  drums: ['kLofi', 'sLofi', 'hLofi', 'hOpen', 'shaker', 'rim', 'snap', ['Marimba', 'marimba', { chord: 'C5', dur: 0.5 }]],
+  bass: ['upright', ['F1', 'E1', 'D2', 'C2'], { dur: 0.9 }],
+  keys: ['epiano', ['Fmaj9', 'Em7', 'Dm9', 'Cmaj7'], { dur: 1.6 }],
+  beat: ['x... .... ..x. .... | x... ..x. .... ....', '.... x... .... x...', 'x.o. x.o. x.o. x.o.', '', '..o. ..o. ..o. ..o.', '.... .... .... ..x.'],
+  b: '1... .... ..1. .... | 2... ..2. .... ....', k: '1... .... 1... .... | 2... .... 2... ....', fx: { lofi: 0.35, crackle: 0.4 } });
+
+CL.kit({ id: 'gfunk', fam: 'hiphop', name: 'G-funk', bpm: 94, sw: 56,
+  about: 'A laid-back West Coast bounce: deep synth bass, a high whistle lead, claps, and smooth minor chords.',
+  drums: [['Kick', 'kPunch', { dec: 0.5 }], 's808', 'clap', 'hClosed', 'hOpen', 'tamb', 'rim', 'whistle'],
+  bass: ['synth', ['C2', 'F1', 'G1', 'Ab1'], { dur: 0.5 }],
+  keys: ['epiano', ['Cm9', 'Fm9', 'Gm7', 'Abmaj7'], { dur: 1.5 }],
+  beat: ['x... ..x. ..x. .... | x.x. ..x. .... x...', '.... x... .... x...', '.... x... .... x...', 'x.x. x.x. x.x. x.x.', '.... .... .... ..x.',
+    '..o. ..o. ..o. ..o.', '', '.... .... .... .... | x... .... .... ....'],
+  b: '1... ..1. 1... .... | 2.2. ..2. .... 2...', k: '1... .... 1... .... | 2... .... 2... ....' });
+
+CL.kit({ id: 'oldschool', fam: 'hiphop', name: 'Old school', bpm: 108, sw: 52,
+  about: 'Early drum-machine hip-hop: a booming 808 kick, a sharp clap, cowbell, and punchy synth stabs.',
+  drums: ['k808', 's808', 'clap808', 'hClosed', 'hOpen', 'cowbell', 'tom808', 'zap'],
+  bass: ['sub808', ['E1', 'G1', 'A1', 'D2'], { dur: 0.6 }],
+  keys: ['stab', ['Em', 'G', 'Am', 'D'], { dur: 0.3 }],
+  beat: ['x... ...x ..x. .... | x... ...x .... ..x.', '.... x... .... x...', '.... x... .... x...', 'x.x. x.x. x.x. x.x.', '',
+    '.... .... ..x. .... | .... .... .... x...', '.... .... .... .... | .... .... .xx. ....', '.... .... .... .... | .... .... .... ...x'],
+  b: '1... ...1 ..1. .... | 2... ...2 .... ..2.', k: '.... .... .... ..1. | .... ..2. .... ....' });
+
+// ---------------- R&B & soul ----------------
+CL.kit({ id: 'soul', fam: 'soul', name: 'Soul', bpm: 100, sw: 54,
+  about: 'A backbeat with tambourine, a busy finger bass, warm organ chords, and horn stabs.',
+  drums: ['kAcoustic', 'sSoul', 'hAcoustic', 'hAcOpen', 'tamb', 'crash', 'rim', ['Horns', 'brass', { chord: 'C@4', dur: 0.25 }]],
+  bass: ['finger', ['C2', 'F1', 'G1', 'A1'], { dur: 0.4 }],
+  keys: ['organ', ['C', 'F', 'G', 'Am'], { dur: 1.2 }],
+  beat: ['x... ..x. x... .... | x... ..x. x.x. ....', '.... x... .... x...', 'x.x. x.x. x.x. x.x.', '', '.... x... .... x...',
+    'x... .... .... .... | .... .... .... ....', '', '.... .... .... ..x. | .... .... .... ....'],
+  b: '1..1 ..1. 1... .1.. | 2..2 ..2. 2... 3...', k: '1... .... 1... .... | 2... .... 2... ....' });
+
+CL.kit({ id: 'funk', fam: 'soul', name: 'Funk', bpm: 106, sw: 54,
+  about: 'Everything on the one: syncopated kick, ghost-note snare, slap bass, choppy clavinet, and tight horns.',
+  drums: ['kAcoustic', 'sSoul', 'hAcoustic', 'hAcOpen', 'conga', 'cowbell', 'tamb', ['Horns', 'brass', { chord: 'E9', dur: 0.15 }]],
+  bass: ['slap', ['E1', 'E2', 'G1', 'A1'], { dur: 0.25 }],
+  keys: ['clav', ['E9', 'A9', 'E7#9', 'D9'], { dur: 0.18 }],
+  beat: ['x... ..x. ..x. .x.. | x..x ..x. .... x...', '.... x..o .o.. x..o', 'xoxo xoxo xoxo xoxo', '.... .... .... ..x.', '..x. .... x.x. ....',
+    '', '', '.... .... .... ..x. | .... ..x. .... ....'],
+  b: '1..2 ..1. 1.2. .1.. | 1..2 ..1. 3... 4...', k: '.1.1 ..1. .1.. 1.1. | .1.1 ..1. .2.. 2.2.' });
+
+CL.kit({ id: 'disco', fam: 'soul', name: 'Disco', bpm: 118,
+  about: 'A four-on-the-floor kick, open hi-hats on the offbeat, octave-jumping bass, and lush strings.',
+  drums: ['kDisco', 'sSoul', 'hClosed', 'hDisco', 'clap', 'tamb', 'timbale', ['String stab', 'strings', { chord: 'A@4', dur: 0.5 }]],
+  bass: ['finger', ['A1', 'A2', 'D2', 'D3'], { dur: 0.2 }],
+  keys: ['strings', ['Am7', 'Dm7', 'G', 'Cmaj7'], { dur: 1.8 }],
+  beat: ['x... x... x... x...', '.... x... .... x...', 'xo.o xo.o xo.o xo.o', '..x. ..x. ..x. ..x.', '.... x... .... x...', '', '',
+    '.... .... .... .... | .... .... .... x...'],
+  b: '1.2. 1.2. 1.2. 1.2. | 3.4. 3.4. 3.4. 3.4.', k: '1... .... .... .... | 2... .... .... ....' });
+
+CL.kit({ id: 'rnb', fam: 'soul', name: 'Modern R&B', bpm: 70, sw: 56,
+  about: 'Slow and smooth: a booming 808, finger snaps, crisp hi-hats with rolls, and silky ninth chords.',
+  drums: [['808 kick', 'k808', { dec: 0.7 }], 'snap', 'clap', 'hTight', 'hOpen', 'rim', 'shaker', 'riser'],
+  bass: ['sub808', ['Db2', 'Bb1', 'Gb1', 'Ab1'], { dur: 1.3 }],
+  keys: ['epiano', ['Dbmaj9', 'Bbm9', 'Gbmaj7', 'Ab9'], { dur: 2.2 }],
+  beat: ['x... .... ..x. .... | x... ..x. .... ..x.', '.... x... .... x...', '', 'x.x. x.x. x.xx x.x. | x.x. x.x. x.x. xxxx'],
+  b: '1... .... ..1. .... | 2... ..2. .... ..2.', k: '1... .... .... .... | 2... .... .... ....', fx: { revMix: 0.2 } });
+
+CL.kit({ id: 'neosoul', fam: 'soul', name: 'Neo soul', bpm: 84, sw: 63,
+  about: 'A loose swing that sits behind the beat, rich electric-piano chords, a melodic finger bass, and rim clicks.',
+  drums: ['kLofi', 'sSoul', 'hAcoustic', 'hAcOpen', 'rim', 'shaker', 'snap', 'crash'],
+  bass: ['finger', ['Eb2', 'D2', 'C2', 'F1'], { dur: 0.5 }],
+  keys: ['epiano', ['Ebmaj9', 'Dm7', 'Cm9', 'F13'], { dur: 1.6 }],
+  beat: ['x... ..x. .x.. .... | x... .... ..x. ..x.', '.... x... .... x...', 'x.x. x.x. x.x. x.x.', '', '.... .... .... ..o.', '.o.o .o.o .o.o .o.o'],
+  b: '1... ..1. .1.. ..3. | 2... .... ..2. 4...', k: '1... .... ...1 .... | 2... .... .... ....' });
+
+// ---------------- Gospel & blues ----------------
+CL.kit({ id: 'gospel', fam: 'blues', name: 'Gospel', bpm: 96, sw: 66, feel: '8',
+  about: 'A shuffled, rolling groove with handclaps and tambourine, church organ, piano, and a choir.',
+  drums: ['kAcoustic', 'sSoul', 'clapBig', 'tamb', 'hAcoustic', 'crash', ['Choir', 'choir', { chord: 'Ab', dur: 1.4 }], ['Piano', 'piano', { chord: 'Ab@4', dur: 0.8 }]],
+  bass: ['finger', ['Ab1', 'Db2', 'Eb2', 'F1'], { dur: 0.5 }],
+  keys: ['organ', ['Ab', 'Db', 'Eb', 'Fm7'], { dur: 1.2 }],
+  beat: ['x... ..x. x... .... | x... ..x. x.x. ....', '.... x... .... x...', '.... x... .... x...', '..x. ..x. ..x. ..x.', 'x.x. x.x. x.x. x.x.',
+    'x... .... .... .... | .... .... .... ....'],
+  b: '1... ..1. 1... ..1. | 2... ..2. 3... ..3.', k: '1... .... 1... .... | 2... .... 3... ....' });
+
+CL.kit({ id: 'shuffle', fam: 'blues', name: 'Blues shuffle', bpm: 104, sw: 66, feel: '8',
+  about: 'The classic boogie: a walking shuffle bass line, dominant seventh chords, a swung ride, and harmonica.',
+  drums: ['kAcoustic', 'sSoul', 'ride', 'hPedal', 'hAcoustic', 'crash', ['Harmonica', 'harmonica', { chord: 'A4', dur: 0.5 }], ['Harmonica high', 'harmonica', { chord: 'C5', dur: 0.5 }]],
+  bass: ['finger', ['A1', 'C#2', 'E2', 'F#2'], { dur: 0.3 }],
+  keys: ['guitar', ['A7', 'D7', 'E7', 'E9'], { dur: 0.25, drive: 2 }],
+  beat: ['x... .... x... ....', '.... x... .... x...', 'x.x. x.x. x.x. x.x.', '.... x... .... x...', '', '', '.... .... .... .... | x... .... .... ....'],
+  b: '1.2. 3.4. 3.2. 1.2.', k: '.... 1... .... 1...' });
+
+CL.kit({ id: 'slowblues', fam: 'blues', name: 'Slow blues', bpm: 62, sw: 70, feel: '8',
+  about: 'A slow, heavy sway with a triplet feel, a crying guitar, organ chords, and a walking upright bass.',
+  drums: ['kAcoustic', 'sSoul', 'hAcoustic', 'ride', 'crash', 'rim', ['Guitar', 'guitar', { chord: 'A7', dur: 1.2, drive: 2.5 }], ['Harmonica', 'harmonica', { chord: 'E4', dur: 0.9 }]],
+  bass: ['upright', ['A1', 'C#2', 'D2', 'E2'], { dur: 0.7 }],
+  keys: ['organ', ['A7', 'D9', 'E9', 'A13'], { dur: 2 }],
+  beat: ['x... .... x... ....', '.... x... .... x...', 'x.x. x.x. x.x. x.x.', '', 'x... .... .... .... | .... .... .... ....', '',
+    '.... .... .... .... | .... .... x... ....', '.... .... x... .... | .... .... .... ....'],
+  b: '1... 2... 3... 4... | 3... 2... 1... 4...', k: '1... .... .... .... | 2... .... .... ....' });
+
+// ---------------- Jazz ----------------
+CL.kit({ id: 'swing', fam: 'jazz', name: 'Swing', bpm: 150, sw: 66, feel: '8',
+  about: 'The ride cymbal’s ding, ding-a-ding, hi-hat on 2 and 4, a walking upright bass, and piano comping.',
+  drums: ['kJazz', ['Snare', 'sSoul', { namt: 0.5 }], 'ride', 'hPedal', 'rideBell', 'crash', 'rim', 'tomLo'],
+  bass: ['upright', ['F1', 'A1', 'C2', 'D2'], { dur: 0.45 }],
+  keys: ['piano', ['F6', 'Bb7', 'Gm7', 'C7'], { dur: 0.3 }],
+  beat: ['o... o... o... o...', '.... .... .... ..o. | .... ..o. .... ....', 'x... x.x. x... x.x.', '.... x... .... x...'],
+  b: '1... 2... 3... 4... | 3... 2... 1... 4...', k: '1... ..1. .... ....' });
+
+CL.kit({ id: 'bossa', fam: 'jazz', name: 'Bossa nova', bpm: 132,
+  about: 'A gentle Brazilian groove: a cross-stick clave pattern, steady shaker, nylon-style guitar chords, and a root-and-fifth bass.',
+  drums: [['Kick', 'kJazz'], 'sCross', 'hAcoustic', 'shaker', 'rideBell', 'conga', 'triangle', 'clave'],
+  bass: ['upright', ['A1', 'E2', 'D2', 'G1'], { dur: 0.5 }],
+  keys: ['acoustic', ['Am7', 'D9', 'Gmaj7', 'Cmaj7'], { dur: 0.5 }],
+  beat: ['x..x x..x x..x x..x', 'x..x ..x. ..x. .x.. | ..x. .x.. x... x...', 'o.o. o.o. o.o. o.o.', 'xooo xooo xooo xooo'],
+  b: '1... .... 2... .... | 3... .... 1... ....', k: '1..1 ..1. .1.. 1... | 2..2 ..2. .2.. 2...' });
+
+CL.kit({ id: 'ballad', fam: 'jazz', name: 'Jazz ballad', bpm: 66, sw: 62, feel: '8',
+  about: 'Slow and intimate: brushes on the snare, a soft ride, warm upright bass, and lush piano voicings.',
+  drums: [['Kick', 'kJazz'], 'sBrush', ['Brush swirl', 'brush', { amt: 0.35, dec: 0.12 }], 'ride', 'hPedal', 'rideBell', 'crash', ['Vibes', 'vibes', { chord: 'Dbmaj7@4', dur: 1.5 }]],
+  bass: ['upright', ['Db2', 'Bb1', 'Eb2', 'Ab1'], { dur: 1 }],
+  keys: ['piano', ['Dbmaj9', 'Bbm9', 'Ebm9', 'Ab13'], { dur: 2.4 }],
+  beat: ['o... .... o... ....', '.... x... .... x...', 'o.o. o.o. o.o. o.o.', 'o... o.o. o... o.o.', '.... x... .... x...'],
+  b: '1... .... 1... .... | 2... .... 2... ....', k: '1... .... .... .... | 2... .... .... ....' });
+
+CL.kit({ id: 'jazzfunk', fam: 'jazz', name: 'Jazz-funk', bpm: 100, sw: 56,
+  about: 'Fusion grooves: tight 16th-note hi-hats, a syncopated finger bass, electric piano, and horn hits.',
+  drums: ['kTight', 'sSoul', 'hAcoustic', 'hAcOpen', 'rim', 'conga', ['Horns', 'brass', { chord: 'G9', dur: 0.18 }], 'ride'],
+  bass: ['finger', ['G1', 'G2', 'C2', 'D2'], { dur: 0.3 }],
+  keys: ['epiano', ['Gm9', 'C9', 'Ebmaj7', 'D7#9'], { dur: 0.9 }],
+  beat: ['x... ..x. ..x. .... | x..x .... ..x. ....', '.... x..o .... x...', 'xoxo xoxo xoxo xoxo', '.... .... .... ..x.', '', '..x. .... .x.. ....',
+    '.... .... .... .... | .... ..x. .... .x..'],
+  b: '1..1 ..2. .1.. 1... | 3..3 ..3. 4... ....', k: '1... ..1. ...1 .... | 2... ..2. ...2 ....' });
+
+// ---------------- Country & bluegrass ----------------
+CL.kit({ id: 'country', fam: 'country', name: 'Country', bpm: 112, sw: 52,
+  about: 'A train-beat snare, boom-chick bass that alternates root and fifth, strummed acoustic guitar, and pedal steel.',
+  drums: ['kAcoustic', ['Snare', 'sBrush'], 'hAcoustic', 'tamb', 'shaker', 'crash', ['Pedal steel', 'pedal', { chord: 'B4', dur: 1.4 }], ['Fiddle', 'fiddle', { chord: 'D5', dur: 0.8 }]],
+  bass: ['upright', ['G1', 'D2', 'C2', 'G2'], { dur: 0.4 }],
+  keys: ['acoustic', ['G', 'C', 'D', 'Em'], { dur: 0.4 }],
+  beat: ['x... .... x... ....', 'oooo xooo oooo xooo', '', '.... x... .... x...', '', 'x... .... .... .... | .... .... .... ....',
+    '.... .... .... .... | .... .... x... ....'],
+  b: '1... .... 2... .... | 3... .... 4... ....', k: '.... 1... .... 1... | .... 2... .... 2...' });
+
+CL.kit({ id: 'bluegrass', fam: 'country', name: 'Bluegrass', bpm: 120,
+  about: 'Fast acoustic picking: banjo rolls, mandolin chops on the backbeat, a walking upright bass, and fiddle.',
+  drums: [['Mandolin chop', 'skank', { chord: 'G@4', dur: 0.07 }], ['Guitar G', 'acoustic', { chord: 'G', dur: 0.35 }], ['Guitar C', 'acoustic', { chord: 'C', dur: 0.35 }],
+    ['Guitar D', 'acoustic', { chord: 'D', dur: 0.35 }], ['Fiddle', 'fiddle', { chord: 'G5', dur: 0.5 }], ['Fiddle high', 'fiddle', { chord: 'B5', dur: 0.5 }], ['Stomp', 'kSoft'], 'clap'],
+  bass: ['upright', ['G1', 'D2', 'C2', 'A1'], { dur: 0.35 }],
+  keys: ['banjo', ['G4', 'B4', 'D5', 'G3'], { dur: 0.5 }],
+  beat: ['.... x... .... x...', '.... x... .... x... | .... .... .... ....', '.... .... .... .... | .... x... .... x...', '', '', '', 'x... .... x... ....'],
+  b: '1... .... 2... .... | 3... .... 1... ....', k: '4231 4231 4231 4231' });
+
+/* ---- js/genres-b.js ---- */
+// Chop Lab — genre kits, part 2: house, techno, trance, breakbeat and UK bass, drum and bass, hardcore, downtempo.
+'use strict';
+
+// ---------------- House ----------------
+CL.kit({ id: 'classichouse', fam: 'house', name: 'Classic house', bpm: 124, sw: 54,
+  about: 'A kick on every beat, claps on 2 and 4, open hats on the offbeat, and bright piano stabs.',
+  drums: ['kPunch', 'clap', 'hClosed', 'hOpen', 'shaker', 'cowbell', 'rim', 'crash'],
+  bass: ['pluckbass', ['A1', 'F1', 'C2', 'G1'], { dur: 0.25 }],
+  keys: ['piano', ['Am7@4', 'Fmaj7@3', 'Cmaj7@4', 'G@3'], { dur: 0.3 }],
+  beat: ['x... x... x... x...', '.... x... .... x...', 'xx.x xx.x xx.x xx.x', '..x. ..x. ..x. ..x.', '', '', '.... .... ..x. ....',
+    'x... .... .... .... | .... .... .... ....'],
+  b: '..1. ..1. ..1. .11. | ..2. ..2. ..2. .22.', k: '1... ..1. ..1. .... | 2... ..2. ..2. ....' });
+
+CL.kit({ id: 'deephouse', fam: 'house', name: 'Deep house', bpm: 122, sw: 56,
+  about: 'Warm and late-night: a softer kick, conga and rim clicks, jazzy electric-piano chords, and a round sub bass.',
+  drums: ['kDeep', 'clap', 'hClosed', 'hOpen', 'shaker', 'conga', 'rim', 'vox'],
+  bass: ['sub', ['A1', 'D2', 'F1', 'E1'], { dur: 0.3 }],
+  keys: ['epiano', ['Am9', 'Dm9', 'Fmaj9', 'Em7'], { dur: 1 }],
+  beat: ['x... x... x... x...', '.... x... .... x...', '.o.o .o.o .o.o .o.o', '..x. ..x. ..x. ..x.', '', '.... ..x. .... x.x.', '...x .... ..x. ....',
+    '.... .... .... .... | .... .... .... ..x.'],
+  b: '..1. ..1. 1... ..1. | ..2. ..2. 2... ..2.', k: '...1 .... ..1. .... | ...2 .... ..2. ....', fx: { revMix: 0.15 } });
+
+CL.kit({ id: 'techhouse', fam: 'house', name: 'Tech house', bpm: 126, sw: 55,
+  about: 'Rolling and percussive: a tight kick, a busy bass groove, clicky percussion, and short vocal chops.',
+  drums: ['kTight', 'clap', 'hTight', 'hOpen', 'percHi', 'rim', 'conga', 'vox'],
+  bass: ['acid', ['G1', 'G2', 'Bb1', 'F1'], { dur: 0.15, res: 4, cut: 1400 }],
+  keys: ['stab', ['Gm7', 'Gm7@4', 'Cm7', 'F'], { dur: 0.15 }],
+  beat: ['x... x... x... x...', '.... x... .... x...', 'x.xx x.xx x.xx x.xx', '..x. ..x. ..x. ..x.', '.x.. ...x .x.. ....', '...x .... .... ..x.', '',
+    '.... .... .... .... | .... .... ..x. ....'],
+  b: '..11 .1.2 ..11 .1.1 | ..11 .1.2 ..33 .3.4', k: '.... .... .... ..1. | .... .... .... ..3.' });
+
+CL.kit({ id: 'bigroom', fam: 'house', name: 'Electro & big room', bpm: 128,
+  about: 'Festival energy: a huge punchy kick, big claps, a riser and impact for the drop, and wide saw chords.',
+  drums: [['Kick', 'kPunch', { drive: 3, dec: 0.45 }], 'clapBig', 'hClosed', 'hOpen', 'riser', 'impact', 'crash', 'subdrop'],
+  bass: ['pluckbass', ['F1', 'D2', 'Bb1', 'C2'], { dur: 0.2 }],
+  keys: ['supersaw', ['F', 'Dm', 'Bb', 'C'], { dur: 0.25 }],
+  beat: ['x... x... x... x...', '.... x... .... x...', '', '..x. ..x. ..x. ..x.', '', 'x... .... .... .... | .... .... .... ....'],
+  b: '..1. ..1. ..1. ..1. | ..2. ..2. ..2. ..2.', k: '..1. ..1. ..1. ..1. | ..2. ..2. ..2. ..2.', fx: { revMix: 0.15 } });
+
+// ---------------- Techno ----------------
+CL.kit({ id: 'detroit', fam: 'techno', name: 'Detroit techno', bpm: 128, sw: 52,
+  about: 'Soulful machines: a steady kick, crisp hats, handclaps, and lush string chords over a pulsing bass.',
+  drums: ['kPunch', 'clap', 'hClosed', 'hOpen', 'rim', 'cowbell', 'tom808', 'crash'],
+  bass: ['synth', ['A1', 'A2', 'F1', 'G1'], { dur: 0.15 }],
+  keys: ['strings', ['Am9', 'Fmaj9', 'Cmaj7', 'Em7'], { dur: 1.8 }],
+  beat: ['x... x... x... x...', '.... x... .... x...', 'oo.o oo.o oo.o oo.o', '..x. ..x. ..x. ..x.', '.... .... .... ..x.', '', '',
+    'x... .... .... .... | .... .... .... ....'],
+  b: '1.12 1.12 1.12 1.12 | 3.32 3.32 4.42 4.42', k: '1... .... .... .... | 2... .... .... ....' });
+
+CL.kit({ id: 'minimal', fam: 'techno', name: 'Minimal techno', bpm: 126, sw: 54,
+  about: 'Stripped to the essentials: a dry kick, clicks and rim shots, tiny blips, and a deep sub bass.',
+  drums: ['kTight', 'rim', 'hTight', 'percHi', 'perc', 'clap', 'shaker', 'block'],
+  bass: ['sub', ['D2', 'F2', 'A1', 'C2'], { dur: 0.12 }],
+  keys: ['bell', ['D5', 'F5', 'A5', 'C5'], { dur: 0.25 }],
+  beat: ['x... x... x... x...', '..x. .... .x.. ..x.', '.x.x .x.x .x.x .x.x', '.... ...x .... x...', '.... .... ..x. ...x', '.... .... .... x...', '',
+    '...x .... .... ....'],
+  b: '..1. ..1. ..1. ..1. | ..1. ..1. ..3. ..4.', k: '.... ..1. .... ...2 | .... ..3. .... ...4' });
+
+CL.kit({ id: 'acid', fam: 'techno', name: 'Acid techno', bpm: 136, sw: 52,
+  about: 'A squelchy, resonant bass line that bends and bubbles over a pounding kick and crashing hats.',
+  drums: [['Kick', 'kTech'], 'clap', 'hClosed', 'hOpen', 'rim', 'crash', 'laser', 'zap'],
+  bass: ['acid', ['A1', 'A2', 'C2', 'G1'], { dur: 0.12, res: 16 }],
+  keys: ['stab', ['Am', 'Am@4', 'C', 'G'], { dur: 0.2 }],
+  beat: ['x... x... x... x...', '.... x... .... x...', 'oo.o oo.o oo.o oo.o', '..x. ..x. ..x. ..x.', '', 'x... .... .... .... | .... .... .... ....'],
+  b: '1.2. 1.31 .12. 1.4. | 1.2. 1.31 .32. 4.4.', k: '.... .... .... .... | .... .... .... ..1.' });
+
+CL.kit({ id: 'hardtechno', fam: 'techno', name: 'Hard techno', bpm: 145,
+  about: 'Pounding and industrial: a distorted kick, metallic hits, and a rolling offbeat bass.',
+  drums: [['Kick', 'kTech', { drive: 5, dec: 0.6 }], 'clap', 'hTight', 'hOpen', 'metal', 'slam', 'rim', 'crash'],
+  bass: ['sub', ['F1', 'F2', 'Ab1', 'C2'], { dur: 0.08 }],
+  keys: ['stab', ['Fm', 'Fm@4', 'Abmaj7', 'C'], { dur: 0.15, cutEnd: 400 }],
+  beat: ['x... x... x... x...', '.... x... .... x...', 'xxxx xxxx xxxx xxxx', '..x. ..x. ..x. ..x.', '.... .... ..x. .... | .... ...x .... ..x.', '', '',
+    'x... .... .... .... | .... .... .... ....'],
+  b: '.111 .111 .111 .111 | .111 .111 .333 .444', k: '.... .... .... .... | .... .... ..1. ....' });
+
+// ---------------- Trance ----------------
+CL.kit({ id: 'uplifting', fam: 'trance', name: 'Uplifting trance', bpm: 138,
+  about: 'A driving kick, a rolling offbeat bass, shimmering hats, and wide supersaw chords that soar.',
+  drums: ['kPunch', 'clap', 'hClosed', 'hOpen', 'riser', 'crash', 'down', 'impact'],
+  bass: ['pluckbass', ['A1', 'F1', 'C2', 'G1'], { dur: 0.12 }],
+  keys: ['supersaw', ['Am', 'F', 'C', 'G'], { dur: 1.6 }],
+  beat: ['x... x... x... x...', '.... x... .... x...', 'xx.x xx.x xx.x xx.x', '..x. ..x. ..x. ..x.', '', 'x... .... .... .... | .... .... .... ....'],
+  b: '.111 .111 .111 .111 | .222 .222 .222 .222', k: '1... .... .... .... | 2... .... .... ....', fx: { revMix: 0.25, echoMix: 0.15 } });
+
+CL.kit({ id: 'progtrance', fam: 'trance', name: 'Progressive trance', bpm: 132,
+  about: 'Deep and gradual: a rolling bass, soft plucks, airy pads, and subtle percussion that builds slowly.',
+  drums: ['kDeep', 'clap', 'hClosed', 'hOpen', 'shaker', 'rim', ['Pad', 'pad', { chord: 'Dm', dur: 3 }], 'whoosh'],
+  bass: ['pluckbass', ['D2', 'Bb1', 'F1', 'C2'], { dur: 0.18 }],
+  keys: ['pluck', ['Dm@4', 'Bb@3', 'F@4', 'C@4'], { dur: 0.3 }],
+  beat: ['x... x... x... x...', '.... x... .... x...', '', '..x. ..x. ..x. ..x.', 'o.o. o.o. o.o. o.o.', '.... ..x. .... ...x',
+    'x... .... .... .... | .... .... .... ....'],
+  b: '..1. ..1. ..1. ..1. | ..2. ..2. ..2. ..2.', k: '1..1 ..1. .1.. 1... | 2..2 ..2. .2.. 2...', fx: { revMix: 0.25, echoMix: 0.25 } });
+
+CL.kit({ id: 'psy', fam: 'trance', name: 'Psytrance', bpm: 145,
+  about: 'Hypnotic and fast: a tight kick with a galloping bass on the 16ths between, a squelchy lead, and zaps.',
+  drums: ['kTight', 'clap', 'hTight', 'hOpen', 'zap', 'laser', 'perc', 'crash'],
+  bass: ['fm', ['E1', 'E2', 'G1', 'D2'], { dur: 0.08, idx: 3 }],
+  keys: ['lead', ['E5', 'G5', 'B5', 'A5'], { dur: 0.12 }],
+  beat: ['x... x... x... x...', '.... x... .... x...', '..x. ..x. ..x. ..x.', '', '.... .... .... .... | .... .... .... ..x.', '', '.x.. .... .x.. ....'],
+  b: '.111 .111 .111 .111 | .111 .111 .333 .444', k: '.... .... .... .... | 1.2. 3.1. 4.3. 2.1.' });
+
+// ---------------- Breakbeat & UK bass ----------------
+CL.kit({ id: 'bigbeat', fam: 'breaks', name: 'Big beat', bpm: 126, sw: 52,
+  about: 'Chunky breakbeat drums, a distorted bass riff, squelchy stabs, and sirens: rock energy on a dance floor.',
+  drums: ['kRock', 'sRock', 'hAcoustic', 'hAcOpen', 'crash', 'siren', 'tamb', 'slam'],
+  bass: ['dist', ['E1', 'G1', 'A1', 'B1'], { dur: 0.2 }],
+  keys: ['stab', ['Em', 'G', 'A', 'B'], { dur: 0.2 }],
+  beat: ['x.x. .... ..x. .... | x.x. .... ..x. ...x', '.... x..o .o.. x..o', 'x.x. x.x. x.x. x.x.', '', 'x... .... .... .... | .... .... .... ....', '',
+    '.... x... .... x...'],
+  b: '1.1. .... .12. 3... | 1.1. .... .14. 3...', k: '.... .... .... ..1. | .... ..3. .... ..4.' });
+
+CL.kit({ id: 'ukgarage', fam: 'breaks', name: '2-step garage', bpm: 132, sw: 62,
+  about: 'Skippy and swung: a kick that skips beats, crisp snares on 2 and 4, shuffled hats, organ-style stabs, and a rubbery sub.',
+  drums: ['kPunch', 'sPunch', 'hClosed', 'hOpen', 'rim', 'shaker', ['Vocal chop', 'vox', { f: 330 }], 'clap'],
+  bass: ['sub', ['G1', 'Bb1', 'C2', 'D2'], { dur: 0.35 }],
+  keys: ['organ', ['Gm9', 'Cm9', 'Ebmaj7', 'D7'], { dur: 0.2 }],
+  beat: ['x... .... ..x. .... | x... ...x .... ..x.', '.... x... .... x...', 'x.x. x.xx x.x. xx.x', '', '...x .... .x.. ....', '',
+    '.... .... .... .... | .... .... x... ....'],
+  b: '1... .... ..1. ..2. | 1... ...3 .... ..4.', k: '..1. .1.. ...1 .... | ..2. .2.. ...2 ....' });
+
+CL.kit({ id: 'dubstep', fam: 'breaks', name: 'Dubstep', bpm: 140,
+  about: 'Half-time weight: a kick on 1, a cracking snare on beat 3, a wobbling bass, and a deep sub underneath.',
+  drums: [['Kick', 'kPunch', { dec: 0.5 }], ['Snare', 'sDnB'], 'hClosed', 'hOpen', 'impact', 'riser', 'laser', 'crash'],
+  bass: ['wobble', ['F1', 'Ab1', 'C2', 'Eb2'], { dur: 0.9, rate: 4.67 }],
+  keys: ['pad', ['Fm', 'Dbmaj7', 'Ab', 'Eb'], { dur: 2.5, cut: 1400 }],
+  beat: ['x... .... .... .... | x... .... ..x. ....', '.... .... x... ....', 'x.x. x.x. x.x. x.x.', '', 'x... .... .... .... | .... .... .... ....'],
+  b: '1... ..1. .... 1.1. | 2... .... 3... 4...', k: '1... .... .... .... | 2... .... .... ....', fx: { revMix: 0.15 } });
+
+CL.kit({ id: 'grime', fam: 'breaks', name: 'Grime', bpm: 140,
+  about: 'Raw and cold: sparse kicks, a snare on beat 3, square-wave bass blips, and icy string stabs.',
+  drums: ['kTight', ['Snare', 'sTrap'], 'hTight', 'perc', 'percHi', ['String stab', 'strings', { chord: 'Ebm@4', dur: 0.25 }], 'zap', 'clap'],
+  bass: ['synth', ['Eb1', 'Eb2', 'Gb1', 'Bb1'], { dur: 0.12 }],
+  keys: ['strings', ['Ebm', 'B', 'Bbm', 'Gb'], { dur: 0.3 }],
+  beat: ['x... .... .... ..x. | .... ..x. .... ....', '.... .... x... ....', 'x.x. x.x. x.x. x.x.', '...x .... .x.. ....', '',
+    '.... .... .... .... | x... .... .... ..x.'],
+  b: '1... ...2 ..1. ...1 | 3... ..1. ..4. ....', k: '' });
+
+// ---------------- Drum & bass ----------------
+CL.kit({ id: 'jungle', fam: 'dnb', name: 'Jungle', bpm: 165, sw: 52,
+  about: 'Chopped, rolling breakbeats with ghost notes, a deep sub bass, and dub-style echoes.',
+  drums: ['kAcoustic', 'sJungle', 'hAcoustic', 'ride', 'hAcOpen', 'crash', 'siren', ['Vox', 'vox', { f: 200 }]],
+  bass: ['dub', ['G1', 'Bb1', 'C2', 'D2'], { dur: 1 }],
+  keys: ['strings', ['Gm', 'Ebmaj7', 'Cm', 'D'], { dur: 2 }],
+  beat: ['x.x. .... ..x. .... | x... .... .x.. ....', '.... x..o .o.x ..x. | .... x..o .ox. x..o', 'x.x. x.x. x.x. x.x.', '', '',
+    'x... .... .... .... | .... .... .... ....'],
+  b: '1... .... .... .... | 2... .... ..3. ....', k: '1... .... .... .... | 2... .... .... ....', fx: { echoMix: 0.15, revMix: 0.1 } });
+
+CL.kit({ id: 'liquid', fam: 'dnb', name: 'Liquid drum & bass', bpm: 174,
+  about: 'Smooth and rolling: a two-step beat, airy hats, warm electric-piano chords, and a round sub.',
+  drums: ['kTight', 'sDnB', 'hClosed', 'shaker', 'ride', 'hOpen', 'rim', 'crash'],
+  bass: ['sub', ['F1', 'D2', 'Bb1', 'C2'], { dur: 0.6 }],
+  keys: ['epiano', ['Fmaj9', 'Dm9', 'Bbmaj7', 'C9'], { dur: 1.4 }],
+  beat: ['x... .... ..x. .... | x... .... ..x. ..x.', '.... x... .... x...', 'x.x. x.x. x.x. x.x.', '.o.o .o.o .o.o .o.o', '', '', '',
+    'x... .... .... .... | .... .... .... ....'],
+  b: '1... .... .... .... | 2... .... .... 3...', k: '1... .... .... .... | 2... .... .... ....', fx: { revMix: 0.2 } });
+
+CL.kit({ id: 'neuro', fam: 'dnb', name: 'Neurofunk', bpm: 174,
+  about: 'Dark and technical: a tight two-step beat, a snapping snare, and a growling, phasing reese bass.',
+  drums: ['kTight', ['Snare', 'sDnB', { namt: 1 }], 'hTight', 'hOpen', 'zap', 'metal', 'impact', 'crash'],
+  bass: ['reese', ['F1', 'F#1', 'Ab1', 'C2'], { dur: 0.5 }],
+  keys: ['pad', ['Fm', 'Db', 'Ab', 'C'], { dur: 2, cut: 1200 }],
+  beat: ['x... .... ..x. .... | x... ..x. ..x. ....', '.... x... .... x...', 'x.x. x.xx x.x. x.x.', '', '.... .... .... .... | .... .... .... ...x'],
+  b: '1... ..1. .... 2... | 1... ..3. .... 4...', k: '1... .... .... .... | .... .... .... ....' });
+
+// ---------------- Hardcore & hardstyle ----------------
+CL.kit({ id: 'happyhc', fam: 'hardcore', name: 'Happy hardcore', bpm: 170,
+  about: 'Bouncy and bright: a fast four-on-the-floor kick, offbeat hats, piano stabs, and major-key saw chords.',
+  drums: [['Kick', 'kPunch', { drive: 4 }], 'clap', 'hClosed', 'hOpen', 'hoover', 'crash', 'riser', ['Piano stab', 'piano', { chord: 'C@4', dur: 0.3 }]],
+  bass: ['pluckbass', ['C2', 'G1', 'A1', 'F1'], { dur: 0.12 }],
+  keys: ['supersaw', ['C', 'G', 'Am', 'F'], { dur: 0.3 }],
+  beat: ['x... x... x... x...', '.... x... .... x...', '', '..x. ..x. ..x. ..x.', '', 'x... .... .... .... | .... .... .... ....', '',
+    '.... .... .... .... | x... ..x. ..x. ....'],
+  b: '..1. ..1. ..1. ..1. | ..2. ..2. ..2. ..2.', k: '..1. ..1. ..1. ..1. | ..2. ..2. ..2. ..2.' });
+
+CL.kit({ id: 'gabber', fam: 'hardcore', name: 'Gabber', bpm: 185,
+  about: 'Extreme and relentless: an overdriven, distorted kick on every beat, hoover stabs, and dark minor chords.',
+  drums: ['kGabber', 'clap', 'hClosed', 'hOpen', 'hoover', 'screech', 'crash', 'impact'],
+  bass: ['dist', ['A1', 'F1', 'G1', 'E1'], { dur: 0.1 }],
+  keys: ['stab', ['Am', 'F', 'G', 'Em'], { dur: 0.15 }],
+  beat: ['x... x... x... x...', '', '', '..x. ..x. ..x. ..x.', '.... .... .... .... | x... .... .... ....', '', 'x... .... .... .... | .... .... .... ....'],
+  b: '', k: '.... .... .... ..1. | .... ..2. .... ..3.' });
+
+CL.kit({ id: 'hardstyle', fam: 'hardcore', name: 'Hardstyle', bpm: 150,
+  about: 'A pitched, distorted kick with a long tail, offbeat bass, claps, screeches, and epic saw melodies.',
+  drums: ['kHard', 'clap', 'hClosed', 'hOpen', 'screech', 'riser', 'crash', 'impact'],
+  bass: ['dist', ['E1', 'C2', 'D2', 'B1'], { dur: 0.15 }],
+  keys: ['supersaw', ['Em', 'C', 'D', 'Bm'], { dur: 1.2 }],
+  beat: ['x... x... x... x...', '.... x... .... x...', '', '..x. ..x. ..x. ..x.', '.... .... .... .... | .... .... .... x...', '',
+    'x... .... .... .... | .... .... .... ....'],
+  b: '..1. ..1. ..1. ..1. | ..2. ..2. ..3. ..3.', k: '1... .... .... .... | 2... .... 3... ....', fx: { revMix: 0.2 } });
+
+// ---------------- Downtempo & ambient ----------------
+CL.kit({ id: 'triphop', fam: 'downtempo', name: 'Trip-hop', bpm: 86, sw: 54,
+  about: 'Heavy, slow breakbeats with vinyl hiss, a dark upright bass, haunting strings, and a hint of dub echo.',
+  drums: ['kBoomBap', 'sRock', 'hLofi', 'ride', 'hOpen', 'rim', 'crash', 'vox'],
+  bass: ['upright', ['C2', 'Ab1', 'G1', 'Eb2'], { dur: 1 }],
+  keys: ['strings', ['Cm', 'Abmaj7', 'G', 'Eb'], { dur: 2.5, cut: 2200 }],
+  beat: ['x... .... x.x. .... | x... ..x. .... ....', '.... x... .... x...', 'x.x. x.x. x.x. x.x.', '', '', '.... .... .... ..x.'],
+  b: '1... .... 1... .... | 2... .... 3... ....', k: '1... .... .... .... | 2... .... .... ....', fx: { crackle: 0.35, lofi: 0.15, revMix: 0.2, echoMix: 0.12 } });
+
+CL.kit({ id: 'chillout', fam: 'downtempo', name: 'Chillout', bpm: 96, sw: 54,
+  about: 'Easygoing and warm: a soft kick and rim, shaker, a mellow finger bass, and dreamy electric piano.',
+  drums: ['kSoft', 'rim', 'shaker', 'hClosed', 'conga', ['Steel drum', 'steel', { chord: 'C#5', dur: 0.8 }], ['Chime', 'bell', { chord: 'E5', dur: 1.5 }], 'whoosh'],
+  bass: ['finger', ['A1', 'F#1', 'D2', 'E2'], { dur: 0.6 }],
+  keys: ['epiano', ['Amaj9', 'F#m9', 'Dmaj9', 'E'], { dur: 1.8 }],
+  beat: ['x... .... x... ....', '.... x... .... x...', 'o.o. o.o. o.o. o.o.', '', '..x. .... .x.. ....', '', '.... .... .... .... | x... .... .... ....'],
+  b: '1... .... ..1. .... | 2... .... ..2. ....', k: '1... .... .... .... | 2... .... .... ....', fx: { revMix: 0.3 } });
+
+CL.kit({ id: 'ambient', fam: 'downtempo', name: 'Ambient', bpm: 70,
+  about: 'Space and texture over rhythm: long evolving pads, soft chimes, a deep drone, and a cavernous reverb.',
+  drums: [['Soft pulse', 'kSoft'], ['Chime', 'bell', { chord: 'A5', dur: 2 }], ['Chime low', 'bell', { chord: 'E5', dur: 2 }], ['Swell', 'pad', { chord: 'Amaj9', dur: 2, reverse: true }],
+    'whoosh', 'shaker', 'triangle', ['Drone', 'pad', { chord: 'A2', dur: 4, cut: 600 }]],
+  bass: ['dub', ['A1', 'E1', 'F#1', 'D2'], { dur: 2.5 }],
+  keys: ['pad', ['Amaj9', 'F#m9', 'Dmaj9', 'E6'], { dur: 4, att: 1.2, rel: 2 }],
+  beat: ['x... .... .... ....', '.... .... x... .... | .... .... .... ....', '.... .... .... .... | ..x. .... .... ....'],
+  b: '1... .... .... .... | 2... .... .... ....', k: '1... .... .... .... | 2... .... .... ....', fx: { revMix: 0.55, revSize: 'cave', echoMix: 0.25, echoTime: 1 } });
+
+/* ---- js/genres-c.js ---- */
+// Chop Lab — genre kits, part 3: pop, reggae and Caribbean, rock, metal, industrial and gothic.
+'use strict';
+
+// ---------------- Pop ----------------
+CL.kit({ id: 'synthpop', fam: 'pop', name: 'Synth-pop', bpm: 118,
+  about: '1980s drum machines with a big gated snare, a pulsing 8th-note synth bass, and bright synth-brass chords.',
+  drums: ['kPunch', 'sGated', 'hClosed', 'hOpen', 'clap', 'tomHi', 'tomLo', 'crash'],
+  bass: ['synth', ['A1', 'F1', 'C2', 'G1'], { dur: 0.15 }],
+  keys: ['brass', ['Am', 'F', 'C', 'G'], { dur: 0.4 }],
+  beat: ['x... ..x. x... ....', '.... x... .... x...', 'x.x. x.x. x.x. x.x.', '', '', '.... .... .... .... | .... .... .... x.x.',
+    '.... .... .... .... | .... .... .... .x.x', 'x... .... .... .... | .... .... .... ....'],
+  b: '1.1. 1.1. 1.1. 1.1. | 2.2. 2.2. 2.2. 2.2.', k: '1... .... ..1. .... | 2... .... ..2. ....', fx: { revMix: 0.2 } });
+
+CL.kit({ id: 'modernpop', fam: 'pop', name: 'Modern pop', bpm: 100, sw: 52,
+  about: 'Clean and punchy: finger snaps and claps, a warm 808, a sparse kick, and plucky synth chords.',
+  drums: ['kPunch', 'clap', 'snap', 'hTight', 'hOpen', 'shaker', 'riser', ['Vox', 'vox', { f: 262 }]],
+  bass: ['sub808', ['C2', 'G1', 'A1', 'F1'], { dur: 0.8 }],
+  keys: ['pluck', ['C@4', 'G@3', 'Am@3', 'F@3'], { dur: 0.4 }],
+  beat: ['x... .... ..x. .... | x... ..x. .... ....', '.... x... .... x...', '.... x... .... x...', '..x. ..x. ..x. ..xx'],
+  b: '1... .... ..1. .... | 2... ..2. .... ....', k: '1..1 ..1. 1..1 ..1. | 2..2 ..2. 2..2 ..2.' });
+
+CL.kit({ id: 'dancepop', fam: 'pop', name: 'Dance-pop', bpm: 124,
+  about: 'Made for the club and the radio: a four-on-the-floor kick, claps, an offbeat bass, and bright saw chords.',
+  drums: ['kPunch', 'clap', 'hClosed', 'hOpen', 'shaker', 'riser', 'crash', 'vox'],
+  bass: ['pluckbass', ['F1', 'C2', 'G1', 'A1'], { dur: 0.15 }],
+  keys: ['supersaw', ['F', 'C', 'G', 'Am'], { dur: 0.3 }],
+  beat: ['x... x... x... x...', '.... x... .... x...', 'xx.x xx.x xx.x xx.x', '..x. ..x. ..x. ..x.', '', '', 'x... .... .... .... | .... .... .... ....'],
+  b: '..1. ..1. ..1. ..1. | ..2. ..2. ..2. ..2.', k: '1... ..1. ..1. .... | 2... ..2. ..2. ....' });
+
+CL.kit({ id: 'synthwave', fam: 'pop', name: 'Synthwave', bpm: 100,
+  about: 'A retro-futuristic night drive: a big gated snare, an arpeggiated 16th-note bass, lush pads, and echoes.',
+  drums: ['kPunch', 'sGated', 'hClosed', 'hOpen', 'tom808', 'clap', 'crash', ['Lead', 'lead', { chord: 'E5', dur: 0.8 }]],
+  bass: ['synth', ['A1', 'A2', 'F1', 'F2'], { dur: 0.1 }],
+  keys: ['pad', ['Am', 'F', 'C', 'G'], { dur: 2.2, cut: 2500 }],
+  beat: ['x... .... x... ....', '.... x... .... x...', 'x.x. x.x. x.x. x.x.', '', '.... .... .... .... | .... .... .... .xx.', '',
+    'x... .... .... .... | .... .... .... ....', '.... .... .... .... | x... .... .... ....'],
+  b: '1212 1212 1212 1212 | 3434 3434 3434 3434', k: '1... .... .... .... | 2... .... .... ....', fx: { revMix: 0.3, echoMix: 0.2 } });
+
+// ---------------- Reggae & Caribbean ----------------
+const reggaeKick = ['Kick', 'kick', { f0: 110, f1: 50, dec: 0.4, click: 0.15, thump: 0.3 }];
+
+CL.kit({ id: 'ska', fam: 'reggae', name: 'Ska', bpm: 158,
+  about: 'Upbeat and fast: guitar chops on every offbeat, a walking bass, a crisp backbeat, and horn stabs.',
+  drums: ['kAcoustic', 'sSoul', 'hAcoustic', 'rim', 'hAcOpen', 'crash', ['Horns', 'brass', { chord: 'C@4', dur: 0.2 }], ['Organ', 'organ', { chord: 'C@4', dur: 0.1 }]],
+  bass: ['finger', ['C2', 'E2', 'F2', 'G2'], { dur: 0.3 }],
+  keys: ['skank', ['C', 'F', 'G', 'Am'], { dur: 0.1 }],
+  beat: ['x... .... x... ....', '.... x... .... x...', 'x.x. x.x. x.x. x.x.', '', '', 'x... .... .... .... | .... .... .... ....',
+    '.... .... .... .... | .... .... ..x. x...'],
+  b: '1... 2... 3... 4... | 3... 4... 3... 2...', k: '..1. ..1. ..1. ..1. | ..2. ..2. ..2. ..2.' });
+
+CL.kit({ id: 'reggae', fam: 'reggae', name: 'Reggae one drop', bpm: 76, sw: 56,
+  about: 'Kick and rim together on beat 3, guitar skanks on 2 and 4, an organ bubble, and a deep, melodic bass.',
+  drums: [reggaeKick, 'sCross', 'hAcoustic', 'hAcOpen', ['Organ bubble', 'organ', { chord: 'Am', dur: 0.1 }], ['Organ bubble 2', 'organ', { chord: 'Dm', dur: 0.1 }], 'tomLo', 'crash'],
+  bass: ['dub', ['A1', 'C2', 'D2', 'E2'], { dur: 0.5 }],
+  keys: ['skank', ['Am', 'Dm', 'Em', 'G'], { dur: 0.12 }],
+  beat: ['.... .... x... ....', '.... .... x... ....', 'x.x. x.x. x.x. x.x.', '', '..x. ..x. ..x. ..x. | .... .... .... ....', '.... .... .... .... | ..x. ..x. ..x. ..x.'],
+  b: '1... .... 1.2. 4... | 3... .... 3.2. 1...', k: '.... 1... .... 1... | .... 2... .... 2...' });
+
+CL.kit({ id: 'dub', fam: 'reggae', name: 'Dub', bpm: 70, sw: 56,
+  about: 'Reggae stripped down to drums and bass, drenched in echo and reverb, with sirens and dropouts.',
+  drums: [reggaeKick, 'sCross', 'hAcoustic', 'siren', ['Echo snare', 'sRim'], 'tomLo', ['Skank', 'skank', { chord: 'Gm', dur: 0.12 }], 'crash'],
+  bass: ['dub', ['G1', 'Bb1', 'C2', 'D2'], { dur: 0.8 }],
+  keys: ['organ', ['Gm', 'Cm', 'Dm', 'Eb'], { dur: 0.2 }],
+  beat: ['.... .... x... ....', '.... .... x... ....', 'x.x. x.x. x.x. x.x.', '.... .... .... .... | x... .... .... ....', '.... .... .... .... | .... .... .... x...', '',
+    '.... x... .... x...'],
+  b: '1... .... 1.2. .... | 3... .... 4... ....', k: '', fx: { echoMix: 0.45, echoFb: 0.55, revMix: 0.35, revSize: 'cave' } });
+
+CL.kit({ id: 'dancehall', fam: 'reggae', name: 'Dancehall', bpm: 100, sw: 52,
+  about: 'Digital and bouncy: a punchy kick and snare, syncopated rim and percussion, and a deep synth bass.',
+  drums: ['kPunch', 'sRim', 'hClosed', 'rim', 'perc', 'clap', 'hOpen', 'horn'],
+  bass: ['synth', ['G1', 'Bb1', 'C2', 'D2'], { dur: 0.35 }],
+  keys: ['stab', ['Gm', 'Eb', 'Cm', 'D'], { dur: 0.2 }],
+  beat: ['x... ..x. x... ..x.', '.... x... .... x...', 'x.x. x.x. x.x. x.x.', '...x ..x. ...x ..x.', '.... .... .x.. ....'],
+  b: '1... ..1. 1... ..1. | 2... ..2. 3... ..4.', k: '...1 .... ...1 .... | ...2 .... ...3 ....' });
+
+CL.kit({ id: 'reggaeton', fam: 'reggae', name: 'Reggaeton', bpm: 94,
+  about: 'The dembow rhythm: a kick on every beat with snares between, a big 808, and plucked chords.',
+  drums: ['kPunch', ['Snare', 'sRim'], 'hClosed', 'rim', 'clap', 'hOpen', 'guiro', 'timbale'],
+  bass: ['sub808', ['A1', 'F1', 'C2', 'G1'], { dur: 0.5 }],
+  keys: ['pluck', ['Am@4', 'F@3', 'C@4', 'G@3'], { dur: 0.3 }],
+  beat: ['x... x... x... x...', '...x ..x. ...x ..x.', 'x.x. x.x. x.x. x.x.'],
+  b: '1... ..1. 1... ..1. | 2... ..2. 2... ..2.', k: '1..1 ..1. 1..1 ..1. | 2..2 ..2. 2..2 ..2.' });
+
+// ---------------- Rock ----------------
+CL.kit({ id: 'rocknroll', fam: 'rock', name: 'Rock ’n’ roll', bpm: 168, sw: 64, feel: '8',
+  about: 'Shuffling 1950s energy: a swung backbeat, slap-style upright bass on a boogie line, pounding piano, and sax.',
+  drums: ['kAcoustic', 'sSoul', 'hAcoustic', 'ride', 'crash', 'tamb', ['Guitar', 'guitar', { chord: 'E', dur: 0.25, drive: 1.8 }], ['Sax', 'sax', { chord: 'B4', dur: 0.4 }]],
+  bass: ['upright', ['E1', 'G#1', 'B1', 'C#2'], { dur: 0.25 }],
+  keys: ['piano', ['E7@4', 'A7@4', 'B7@4', 'E6@4'], { dur: 0.15 }],
+  beat: ['x... .... x... ....', '.... x... .... x...', 'x.x. x.x. x.x. x.x.', '', 'x... .... .... .... | .... .... .... ....', '', '',
+    '.... .... .... .... | .... .... x... ....'],
+  b: '1.2. 3.4. 3.2. 1.2.', k: '1.1. 1.1. 1.1. 1.1.' });
+
+CL.kit({ id: 'classicrock', fam: 'rock', name: 'Classic rock', bpm: 120,
+  about: 'Straight-ahead driving 8ths: a kick-and-snare backbeat, crash accents, power chords, and a steady finger bass.',
+  drums: ['kRock', 'sRock', 'hAcoustic', 'hAcOpen', 'crash', 'ride', 'tomHi', 'floorTom'],
+  bass: ['finger', ['E1', 'A1', 'D2', 'G1'], { dur: 0.25 }],
+  keys: ['power', ['E5@2', 'A5@2', 'D5@3', 'G5@2'], { dur: 0.9 }],
+  beat: ['x... ..x. x.x. ....', '.... x... .... x...', 'x.x. x.x. x.x. x.x.', '', 'x... .... .... .... | .... .... .... ....', '',
+    '.... .... .... .... | .... .... .... xx..', '.... .... .... .... | .... .... .... ..xx'],
+  b: '1.1. 1.1. 1.1. 1.1. | 2.2. 2.2. 3.3. 4.4.', k: '1... .... .... ..1. | 2... .... 3... 4...' });
+
+CL.kit({ id: 'punk', fam: 'rock', name: 'Punk', bpm: 180,
+  about: 'Fast, loud, and simple: a kick on the beat, a snare on every offbeat, crashing cymbals, and buzzing power chords.',
+  drums: ['kRock', 'sRock', 'crash', 'hAcoustic', 'ride', 'floorTom', 'tomHi', 'china'],
+  bass: ['dist', ['D2', 'A1', 'G1', 'B1'], { dur: 0.15 }],
+  keys: ['power', ['D5@3', 'A5@2', 'G5@2', 'B5@2'], { dur: 0.2 }],
+  beat: ['x... x... x... x...', '..x. ..x. ..x. ..x.', 'x... .... .... .... | .... .... .... ....', 'x.x. x.x. x.x. x.x.'],
+  b: '1.1. 1.1. 2.2. 2.2. | 3.3. 3.3. 4.4. 2.2.', k: '1.1. 1.1. 2.2. 2.2. | 3.3. 3.3. 4.4. 2.2.' });
+
+CL.kit({ id: 'indie', fam: 'rock', name: 'Alternative & indie', bpm: 124,
+  about: 'Jangly and driving: open hats, a tambourine backbeat, clean chorus-style guitar chords, and a melodic bass.',
+  drums: ['kRock', 'sRock', 'hAcoustic', 'hAcOpen', 'floorTom', 'tamb', 'crash', 'ride'],
+  bass: ['chorus', ['C2', 'G1', 'E2', 'D2'], { dur: 0.3 }],
+  keys: ['guitar', ['Cadd9', 'G', 'Em7', 'Dsus4'], { dur: 0.4 }],
+  beat: ['x... ..x. x... ....', '.... x... .... x...', 'x.x. x.x. x.x. x.x.', '.... .... .... ..x.', '', '.... x... .... x...',
+    'x... .... .... .... | .... .... .... ....'],
+  b: '1... ..1. 1.1. ..3. | 2... ..2. 2.2. ..4.', k: '1.1. .1.1 ..1. 1.1. | 2.2. .2.2 ..2. 2.2.' });
+
+// ---------------- Metal ----------------
+CL.kit({ id: 'heavymetal', fam: 'metal', name: 'Heavy metal', bpm: 140,
+  about: 'The gallop: an 8th and two 16ths on palm-muted power chords, double kick, and a crashing backbeat.',
+  drums: ['kMetal', 'sMetal', 'hAcoustic', 'crash', 'ride', 'china', 'floorTom', ['Power chord', 'power', { chord: 'E5@2', dur: 1.2 }]],
+  bass: ['dist', ['E1', 'G1', 'A1', 'C2'], { dur: 0.1 }],
+  keys: ['chug', ['E5@2', 'G5@2', 'A5@2', 'C5@3'], { dur: 0.12 }],
+  beat: ['x.xx x.xx x.xx x.xx', '.... x... .... x...', '', 'x... .... .... .... | .... .... .... ....', 'x.x. x.x. x.x. x.x.'],
+  b: '1.11 1.11 1.11 1.11 | 2.22 2.22 3.33 3.33', k: '1.11 1.11 1.11 1.11 | 2.22 2.22 3.33 3.33' });
+
+CL.kit({ id: 'thrash', fam: 'metal', name: 'Thrash metal', bpm: 190,
+  about: 'Fast and aggressive: a pounding offbeat-snare beat, rapid palm-muted chugs, and chromatic riffs with a tritone bite.',
+  drums: ['kMetal', 'sMetal', 'crash', 'hAcoustic', 'china', 'ride', 'floorTom', 'tomHi'],
+  bass: ['dist', ['E1', 'F1', 'G1', 'Bb1'], { dur: 0.08 }],
+  keys: ['chug', ['E5@2', 'F5@2', 'G5@2', 'Bb5@2'], { dur: 0.08 }],
+  beat: ['x... x... x... x...', '..x. ..x. ..x. ..x.', 'x... .... .... .... | .... .... .... ....', 'x.x. x.x. x.x. x.x.'],
+  b: '1111 1111 1111 2.3. | 1111 1111 4.4. 3.2.', k: '1111 1111 1111 2.3. | 1111 1111 4.4. 3.2.' });
+
+CL.kit({ id: 'doom', fam: 'metal', name: 'Doom metal', bpm: 62,
+  about: 'Slow, heavy, and crushing: half-time drums, long sustained power chords, and a booming bass.',
+  drums: ['kRock', 'sRock', 'crash', 'ride', 'floorTom', 'china', 'hAcoustic', 'impact'],
+  bass: ['dist', ['D1', 'F1', 'G1', 'Ab1'], { dur: 1.5 }],
+  keys: ['power', ['D5@2', 'F5@2', 'G5@2', 'Ab5@2'], { dur: 2 }],
+  beat: ['x... .... .... .... | x... .... x... ....', '.... .... x... ....', 'x... .... .... .... | x... .... .... ....', 'x... x... x... x...'],
+  b: '1... .... .... .... | 2... .... 3... 4...', k: '1... .... .... .... | 2... .... 3... 4...', fx: { revMix: 0.25 } });
+
+CL.kit({ id: 'numetal', fam: 'metal', name: 'Nu metal', bpm: 100, sw: 52,
+  about: 'Down-tuned and groovy: syncopated low chugs with gaps, a hip-hop-style backbeat, and scratch-like zaps.',
+  drums: ['kMetal', 'sRock', 'hAcoustic', 'hAcOpen', 'crash', 'zap', 'floorTom', 'china'],
+  bass: ['dist', ['C#1', 'C#2', 'E1', 'D1'], { dur: 0.15 }],
+  keys: ['chug', ['C#5@2', 'E5@2', 'D5@2', 'G5@2'], { dur: 0.15 }],
+  beat: ['x..x ..x. ..x. .... | x..x ..x. x... x...', '.... x... .... x...', 'x.x. x.x. x.x. x.x.', '', 'x... .... .... .... | .... .... .... ....',
+    '.... .... .... .... | .... .... .... ..x.'],
+  b: '1..1 ..1. ..1. .... | 1..1 ..1. 2... 3...', k: '1..1 ..1. ..1. .... | 1..1 ..1. 2... 3...' });
+
+// ---------------- Industrial & gothic ----------------
+CL.kit({ id: 'industrial', fam: 'industrial', name: 'Industrial', bpm: 124,
+  about: 'Mechanical and abrasive: a distorted kick, metallic hits, a sequenced 16th-note bass, and cold pads.',
+  drums: [['Kick', 'kTech', { drive: 4 }], 'sGated', 'hClosed', 'metal', 'slam', 'clap', 'impact', 'crash'],
+  bass: ['dist', ['E1', 'E2', 'G1', 'A1'], { dur: 0.08 }],
+  keys: ['pad', ['Em', 'Cmaj7', 'Am7', 'B7'], { dur: 2, cut: 1400 }],
+  beat: ['x... x... x... x...', '.... x... .... x...', 'x.x. x.x. x.x. x.x.', '..x. .... .x.. ..x.', '.... .... .... .... | .... .... .... x...'],
+  b: '1112 1112 1112 1113 | 1112 1112 4442 4443', k: '1... .... .... .... | 2... .... .... ....', fx: { lofi: 0.15 } });
+
+CL.kit({ id: 'goth', fam: 'industrial', name: 'Gothic & post-punk', bpm: 140,
+  about: 'A driving drum-machine beat, a high, melodic chorused bass, shimmering guitar, and a dark, echoing atmosphere.',
+  drums: ['kPunch', 'sGated', 'hClosed', 'hOpen', 'tomHi', 'tomLo', 'crash', 'clap'],
+  bass: ['chorus', ['E2', 'G2', 'A2', 'B2'], { dur: 0.25 }],
+  keys: ['guitar', ['Em@4', 'C@4', 'D@4', 'Bm'], { dur: 0.5 }],
+  beat: ['x... ..x. x... ....', '.... x... .... x...', 'xoxo xoxo xoxo xoxo', '', '.... .... .... .... | .... .... .... xx..', '.... .... .... .... | .... .... .... ..xx',
+    'x... .... .... .... | .... .... .... ....'],
+  b: '1.1. 2.1. 3.3. 4.3. | 1.1. 2.1. 3.2. 1...', k: '1... .... 1... .... | 2... .... 3... ....', fx: { revMix: 0.3, echoMix: 0.15 } });
+
 /* ---- js/library.js ---- */
 // Chop Lab — sound library: built-ins, imports, recordings; preview, drag, rename, export.
 'use strict';
@@ -1620,16 +3084,44 @@ CL.renderLibrary = () => {
     if (q && !s.name.toLowerCase().includes(q)) continue;
     (groups[s.group] = groups[s.group] || []).push(s);
   }
-  for (const g of CL.GROUP_ORDER) {
+  // genre kits sit between Loops and the built-in drums, in the order you opened them
+  const kitGroups = Object.keys(groups).filter((g) => !CL.GROUP_ORDER.includes(g));
+  const order = CL.GROUP_ORDER.slice(0, 2).concat(kitGroups, CL.GROUP_ORDER.slice(2));
+  for (const g of order) {
     const items = groups[g];
     if (!items && g !== 'Your sounds') continue;
-    list.append(CL.el('div', { class: 'lib-group' }, g));
+    // genre kit groups start folded (they add up fast while you browse); the built-in groups start open
+    const isKit = kitGroups.includes(g);
+    const closed = !q && (isKit ? !CL.libOpen.has(g) : CL.libClosed.has(g));
+    list.append(CL.el('button', {
+      class: 'lib-group', 'aria-expanded': closed ? 'false' : 'true',
+      onclick: () => {
+        const set = isKit ? CL.libOpen : CL.libClosed;
+        set.has(g) ? set.delete(g) : set.add(g);
+        CL.saveLibClosed(); CL.renderLibrary();
+      },
+    }, CL.el('span', { class: 'caret', 'aria-hidden': 'true' }, closed ? '▸' : '▾'), g, items ? CL.el('span', { class: 'lib-count' }, String(items.length)) : null));
+    if (closed) continue;
     if (!items) {
       list.append(CL.el('div', { class: 'lib-empty' }, 'Drop audio files here, use Add sounds, or record with the mic.'));
       continue;
     }
     for (const s of items) list.append(CL.libItem(s));
   }
+};
+
+// Folded library groups are remembered per browser.
+CL.libClosed = new Set();
+CL.libOpen = new Set();
+try {
+  CL.libClosed = new Set(JSON.parse(localStorage.getItem('chop-lab-lib-closed') || '[]'));
+  CL.libOpen = new Set(JSON.parse(localStorage.getItem('chop-lab-lib-open') || '[]'));
+} catch (e) { /* storage off */ }
+CL.saveLibClosed = () => {
+  try {
+    localStorage.setItem('chop-lab-lib-closed', JSON.stringify([...CL.libClosed]));
+    localStorage.setItem('chop-lab-lib-open', JSON.stringify([...CL.libOpen]));
+  } catch (e) { /* storage off */ }
 };
 
 CL.libItem = (s) => {
@@ -1915,7 +3407,13 @@ CL.renderPadEditor = () => {
 CL.seq = { playing: false, step: 0, nextTime: 0, timer: null, queued: null, queue: [], rec: false, skip: null, lastDrawn: -1 };
 
 CL.stepSec = (screw = CL.screw) => 60 / (CL.state.seq.bpm * screw) / 4;
-CL.swingOffset = (step, stepSec) => (step % 2 ? (CL.state.seq.swing - 50) / 50 * stepSec : 0);
+// Swing pushes off-beat notes late: every second 16th, or with the 8ths feel every second 8th (a shuffle).
+CL.swingOffsetFor = (step, swing, feel, stepSec) => {
+  const amt = (swing - 50) / 50;
+  if (feel === '8') return step % 4 === 2 ? amt * 2 * stepSec : 0;
+  return step % 2 ? amt * stepSec : 0;
+};
+CL.swingOffset = (step, stepSec) => CL.swingOffsetFor(step, CL.state.seq.swing, CL.state.seq.feel, stepSec);
 
 CL.scheduleStep = (pat, step, t, cs, stepSec) => {
   const pads = CL.state.pads;
@@ -2125,6 +3623,7 @@ CL.initSeq = () => {
   CL.$('#seq-len').addEventListener('change', (e) => { CL.state.seq.length = +e.target.value; if (CL.seq.step >= CL.state.seq.length) CL.seq.step = 0; CL.renderSeq(); CL.changed(); });
   const swing = CL.$('#seq-swing');
   swing.addEventListener('input', () => { CL.state.seq.swing = +swing.value; CL.$('#seq-swing-val').textContent = swing.value + '%'; CL.changed(); });
+  CL.$('#seq-feel').addEventListener('change', (e) => { CL.state.seq.feel = e.target.value; CL.changed(); });
   CL.$('#seq-rec').addEventListener('click', (e) => {
     CL.seq.rec = !CL.seq.rec;
     e.currentTarget.classList.toggle('on', CL.seq.rec);
@@ -3211,6 +4710,199 @@ CL.openScrewDialog = (id) => {
   dlg.showModal();
 };
 
+/* ---- js/genre-ui.js ---- */
+// Chop Lab — Genres tab: family tabs, kit cards, hearing a kit's groove, and loading a kit onto the pads.
+'use strict';
+
+CL.genrePreview = null;
+CL.kitById = (id) => CL.KITS.find((k) => k.id === id);
+
+CL.updateKitButtons = () => CL.$$('[data-hear]').forEach((b) => {
+  const on = !!(CL.genrePreview && CL.genrePreview.kit === b.dataset.hear);
+  b.textContent = on ? '■ Stop' : '▶ Hear it';
+  b.classList.toggle('on', on);
+  b.setAttribute('aria-pressed', on ? 'true' : 'false');
+});
+
+CL.stopGenrePreview = () => {
+  if (!CL.genrePreview) return;
+  CL.genrePreview.voice.stop();
+  CL.genrePreview = null;
+  CL.updateKitButtons();
+};
+
+CL.hearKit = async (kit, btn) => {
+  if (CL.genrePreview && CL.genrePreview.kit === kit.id) { CL.stopGenrePreview(); return; }
+  CL.stopGenrePreview();
+  CL.stopPreview();
+  if (CL.seq.playing) CL.seqStop();
+  CL.ac.resume();
+  btn.disabled = true;
+  btn.textContent = 'Building…';
+  try {
+    const s = await CL.ensureGroove(kit);
+    CL.genrePreview = { kit: kit.id, voice: CL.playBuffer(s.buffer, { loop: true, offset: 0, duration: s.buffer.duration, gain: 0.9 }) };
+  } catch (e) {
+    CL.toast('That kit stopped while building (' + e.message + ').');
+  }
+  btn.disabled = false;
+  CL.updateKitButtons();
+  CL.renderLibrary();
+};
+
+// Refresh every control that shows project settings (after loading a kit or undoing it).
+CL.applyProjectUI = () => {
+  const st = CL.state.seq;
+  CL.$('#bpm').value = st.bpm;
+  CL.$('#seq-swing').value = st.swing;
+  CL.$('#seq-swing-val').textContent = st.swing + '%';
+  CL.$('#seq-feel').value = st.feel || '16';
+  CL.$('#seq-len').value = st.length;
+  CL.fx.update(CL.state.fx);
+  CL.refreshFxUI();
+  CL.updateScrewUI();
+  CL.renderPads();
+  CL.renderPadEditor();
+  CL.renderSeq();
+  CL.renderGenres();
+};
+
+// Put a kit's 16 sounds on the pads and its starter beat in one pattern, with its tempo, swing, and effects.
+CL.loadKit = async (kit, slot) => {
+  CL.stopGenrePreview();
+  const { specs } = await CL.ensureKit(kit);
+  const S = CL.state, pat = S.patterns[slot];
+  const before = JSON.stringify({ pads: S.pads, steps: pat.steps, mutes: pat.mutes, seq: S.seq, fx: S.fx, kit: S.genre.kit });
+  S.pads = specs.map((s, i) => (s ? Object.assign(CL.blankPad(), { sampleId: 'g-' + kit.id + '-' + i, name: s.label, cut: s.cut }) : CL.blankPad()));
+  pat.steps = CL.kitRows(kit);
+  pat.mutes = new Array(16).fill(false);
+  Object.assign(S.seq, { bpm: kit.bpm, swing: kit.sw, feel: kit.feel, length: 32, pattern: slot });
+  Object.assign(S.fx, CL.defaultState().fx, kit.fx || {}, { volume: S.fx.volume });
+  S.genre.kit = kit.id;
+  S.selectedPad = 0;
+  CL.seq.queued = null;
+  CL.applyProjectUI();
+  CL.changed();
+  CL.toast(kit.name + ' is on the pads and in pattern ' + 'ABCD'[slot] + '. Press Space to play.', {
+    label: 'Undo',
+    fn: () => {
+      const b = JSON.parse(before);
+      S.pads = b.pads; pat.steps = b.steps; pat.mutes = b.mutes;
+      Object.assign(S.seq, b.seq);
+      Object.assign(S.fx, b.fx);
+      S.genre.kit = b.kit;
+      CL.applyProjectUI();
+      CL.changed();
+    },
+  });
+};
+
+CL.kitCard = (k) => {
+  const meta = k.bpm + ' BPM' + (k.sw > 50 ? ' · swing ' + k.sw + '%' : '') + (k.feel === '8' ? ' · shuffle' : '');
+  const hear = CL.el('button', { class: 'btn small', 'data-hear': k.id, 'aria-pressed': 'false', onclick: (e) => CL.hearKit(k, e.currentTarget) }, '▶ Hear it');
+  const load = CL.el('button', {
+    class: 'btn small accent', title: 'Put this kit on the pads and its starter beat in the chosen pattern',
+    onclick: async (e) => {
+      const b = e.currentTarget;
+      b.disabled = true; b.textContent = 'Loading…';
+      try { await CL.loadKit(k, +CL.$('#kit-slot').value); CL.showTab('beats'); }
+      finally { b.disabled = false; b.textContent = 'Load kit'; }
+    },
+  }, 'Load kit');
+  const box = CL.el('div', { class: 'kit-sounds', hidden: true });
+  const sounds = CL.el('button', {
+    class: 'btn small', 'aria-expanded': 'false', title: 'Hear each of the 16 sounds',
+    onclick: async (e) => {
+      const b = e.currentTarget, open = box.hidden;
+      box.hidden = !open;
+      b.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (!open || box.children.length) return;
+      box.textContent = 'Building sounds…';
+      const { specs } = await CL.ensureKit(k);
+      box.textContent = '';
+      specs.forEach((s, i) => {
+        if (!s) return;
+        const chip = CL.el('button', { class: 'chip', title: 'Pad ' + CL.PAD_LABELS[i] + ' · click to hear' }, s.label);
+        chip.style.setProperty('--c', CL.COLORS[i]);
+        chip.addEventListener('click', () => CL.preview(CL.samples.get('g-' + k.id + '-' + i)));
+        box.append(chip);
+      });
+      CL.renderLibrary();
+    },
+  }, 'Sounds');
+  const loaded = CL.state.genre.kit === k.id;
+  return CL.el('article', { class: 'kit-card' + (loaded ? ' loaded' : '') },
+    CL.el('div', { class: 'kit-title' }, CL.el('h4', {}, k.name), loaded ? CL.el('span', { class: 'kit-badge' }, 'On your pads') : null),
+    CL.el('div', { class: 'kit-meta' }, meta),
+    CL.el('p', {}, k.about),
+    CL.el('div', { class: 'kit-btns' }, hear, load, sounds),
+    box);
+};
+
+CL.renderGenres = () => {
+  const tabs = CL.$('#genre-fams'), pane = CL.$('#genre-pane');
+  if (!tabs) return;
+  if (!tabs.children.length) {
+    const clusters = [...new Set(CL.GENRE_FAMS.map((f) => f.cluster))];
+    clusters.forEach((cl) => {
+      const row = CL.el('div', { class: 'fam-group', role: 'presentation' }, CL.el('span', { class: 'fam-cluster', 'aria-hidden': 'true' }, cl));
+      CL.GENRE_FAMS.filter((f) => f.cluster === cl).forEach((f) => {
+        const n = CL.KITS.filter((k) => k.fam === f.id).length;
+        row.append(CL.el('button', {
+          class: 'fam-tab', role: 'tab', id: 'fam-' + f.id, 'data-fam': f.id, 'aria-controls': 'genre-pane',
+          onclick: () => { CL.state.genre.fam = f.id; CL.renderGenres(); CL.changed(); },
+        }, f.name, CL.el('span', { class: 'fam-count', 'aria-label': n + ' kits' }, String(n))));
+      });
+      tabs.append(row);
+    });
+  }
+  const fam = CL.GENRE_FAMS.find((f) => f.id === CL.state.genre.fam) || CL.GENRE_FAMS[0];
+  CL.$$('.fam-tab', tabs).forEach((b) => {
+    const on = b.dataset.fam === fam.id;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+    b.tabIndex = on ? 0 : -1;
+  });
+  pane.setAttribute('aria-labelledby', 'fam-' + fam.id);
+  pane.textContent = '';
+  const slot = CL.el('select', { id: 'kit-slot', 'aria-label': 'Pattern the starter beat goes into' },
+    ...'ABCD'.split('').map((l, i) => CL.el('option', { value: i, selected: i === CL.state.seq.pattern }, 'pattern ' + l)));
+  pane.append(
+    CL.el('div', { class: 'genre-head' },
+      CL.el('div', {}, CL.el('h3', {}, fam.name), CL.el('p', { class: 'muted' }, fam.blurb)),
+      CL.el('label', { class: 'inline' }, 'Load kits into', slot)),
+    CL.el('div', { class: 'kit-grid' }, ...CL.KITS.filter((k) => k.fam === fam.id).map(CL.kitCard)));
+  CL.updateKitButtons();
+};
+
+// Rebuild the genre sounds a saved project uses (they are synthesized, so only their names are stored).
+CL.restoreGenreSounds = async () => {
+  const S = CL.state;
+  const ids = [...S.pads.map((p) => p.sampleId), ...S.decks.map((d) => d.sampleId), S.chopSample].filter((id) => id && id.startsWith('g-'));
+  const need = new Map();
+  ids.forEach((id) => {
+    const kid = id.slice(2, id.lastIndexOf('-'));
+    if (CL.kitById(kid)) need.set(kid, need.get(kid) || id.endsWith('-groove'));
+  });
+  await Promise.all([...need].map(([kid, groove]) => (groove ? CL.ensureGroove(CL.kitById(kid)) : CL.ensureKit(CL.kitById(kid)))));
+};
+
+CL.initGenres = () => {
+  const tabs = CL.$('#genre-fams');
+  tabs.addEventListener('keydown', (e) => {
+    if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)) return;
+    const all = CL.$$('.fam-tab', tabs), i = all.indexOf(document.activeElement);
+    if (i < 0) return;
+    e.preventDefault();
+    const n = e.key === 'Home' ? 0 : e.key === 'End' ? all.length - 1 : (i + (e.key === 'ArrowRight' ? 1 : -1) + all.length) % all.length;
+    all[n].click();
+    all[n].focus();
+  });
+  CL.bus.on('transport', () => { if (CL.seq.playing) CL.stopGenrePreview(); });
+  CL.bus.on('panic', CL.stopGenrePreview);
+  CL.renderGenres();
+};
+
 /* ---- js/store.js ---- */
 // Chop Lab — autosave (IndexedDB) and project files (.choplab) for backups.
 'use strict';
@@ -3399,6 +5091,7 @@ CL.mergeState = (saved) => {
   });
   st.decks = [0, 1].map((i) => Object.assign({ sampleId: null, pitch: 0, range: 16 }, (saved.decks || [])[i] || {}));
   st.meta = saved.meta || {};
+  st.genre = Object.assign(CL.defaultState().genre, saved.genre || {});
   return st;
 };
 
@@ -3459,11 +5152,14 @@ CL.boot = async () => {
       catch (e) { /* skip a damaged entry */ }
     });
   }
+  status.textContent = 'Building your genre sounds…';
+  await CL.restoreGenreSounds();
   CL.libSel = null;
   CL.initLibrary();
   CL.initTransport();
   CL.initFxStrip();
   CL.initSeq();
+  CL.initGenres();
   CL.initChop();
   CL.initRec();
   CL.initStore();
@@ -3471,6 +5167,7 @@ CL.boot = async () => {
   CL.$('#seq-len').value = CL.state.seq.length;
   CL.$('#seq-swing').value = CL.state.seq.swing;
   CL.$('#seq-swing-val').textContent = CL.state.seq.swing + '%';
+  CL.$('#seq-feel').value = CL.state.seq.feel || '16';
   CL.$('#seq-metro').classList.toggle('on', CL.state.seq.metro);
   CL.$$('#tabs [data-tab]').forEach((b) => b.addEventListener('click', () => CL.showTab(b.dataset.tab)));
   CL.$('#btn-help').addEventListener('click', () => CL.$('#help-dialog').showModal());
@@ -3489,7 +5186,7 @@ CL.boot = async () => {
   CL.renderChopUI();
   let tab = 'beats';
   try { tab = localStorage.getItem('chop-lab-tab') || 'beats'; } catch (e) { /* storage off */ }
-  CL.showTab(['beats', 'chop', 'decks'].includes(tab) ? tab : 'beats');
+  CL.showTab(['beats', 'genres', 'chop', 'decks'].includes(tab) ? tab : 'beats');
   CL.updateScrewUI();
   CL.$('#loading').remove();
   if (!CL.store.ok) CL.toast('This browser keeps storage switched off here. Use Save project to keep your work as a file.');
