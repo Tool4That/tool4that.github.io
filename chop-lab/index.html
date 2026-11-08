@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-BJ+cj/2p6GsJ3vTEzuwdccDnb5Tp8hI7eRSVaJFHYFw=' blob:; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-hriPrGlfAZYwpuK7wSqhg8ZaL8D0b+2ZTLKPabwcybQ=' blob:; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/chop-lab/">
 <meta property="og:type" content="website">
@@ -2887,7 +2887,7 @@ CL.renderKit = async () => {
   });
 
   // Classic monosynth bass: saw + square into a 24 dB/oct resonant low-pass with a plucky envelope; to glides (glAt, glT).
-  bass('moog', (oc, d, t, p) => {
+  bass('ladderbass', (oc, d, t, p) => {
     const dur = pick(p.dur, 0.5), bus = gainOf(oc, 1);
     [['sawtooth', 0.5, 0], ['square', 0.35, 7]].forEach(([w, a, c]) => {
       const o = osc(oc, w, p.f, t, t + dur + 0.3); o.detune.value = c;
@@ -3117,7 +3117,7 @@ CL.renderKit = async () => {
   // at dur, and stereo auto-pan (pan depth at rate Hz). lp: the tone control; drive: a little preamp warmth.
   // growl: the hard-struck pickup bark of a tine close to its pickup, more 3rd to 5th harmonics (700 Hz-1.5 kHz on
   // mid-register chords) that fade faster than the fundamental, so the bark settles into the bell tone.
-  keys('rhodes', (oc, d, t, p) => {
+  keys('tinepiano', (oc, d, t, p) => {
     const dur = pick(p.dur, 1.2), rel = pick(p.rel, 0.25), end = t + dur + rel + 0.1;
     const bus = gainOf(oc, 1), pan = oc.createStereoPanner();
     lfo(oc, 'sine', pick(p.rate, 4.5), pick(p.pan, 0.35), pan.pan, t, end);
@@ -3197,11 +3197,11 @@ CL.renderKit = async () => {
   // Tonewheel organ through a rotating speaker. bars: a 9-digit drawbar registration (16' to 1', default '888000000')
   // or a [ratio, amp] list; perc (3rd-harmonic percussion, percDec); click (key click); drive (preamp); att (an
   // expression swell from 35%); then the horn (above 800 Hz) and drum (below) rotors, each heard by two mics a quarter
-  // turn apart: delay modulation (doppler) and level modulation. leslie: 'slow' (chorale), 'fast' (tremolo), or 'ramp'
+  // turn apart: delay modulation (doppler) and level modulation. rotor: 'slow' (chorale), 'fast' (tremolo), or 'ramp'
   // (slow, then speeding up from rampAt: the horn in about 1 s, the drum in about 3.5 s). hornDop/drumDop (s),
   // hornAm/drumAm, hornPan/drumPan tune the rotors.
   const RAT = [0.5, 1.5, 1, 2, 3, 4, 5, 6, 8];
-  keys('hammond', (oc, d, t, p) => {
+  keys('drawbar', (oc, d, t, p) => {
     const dur = pick(p.dur, 1.2), end = t + dur + 0.7, tone = gainOf(oc, 1), n = p.fs.length;
     const bars = Array.isArray(p.bars) ? p.bars : String(pick(p.bars, '888000000')).split('').map((b, i) => [RAT[i], +b ? 0.72 * Math.pow(10, (+b - 8) * 3 / 20) : 0]);
     p.fs.forEach((f) => bars.forEach(([r, a]) => {
@@ -3215,7 +3215,7 @@ CL.renderKit = async () => {
     chain(tone, softClip(oc, pick(p.drive, 1.8)), sw, ahr(oc, t, 0.004, 1, dur, pick(p.rel, 0.1)), pre);
     const click = pick(p.click, 1);
     if (click) p.fs.forEach((f, i) => chain(noise(oc, 0.02, t + i * 0.002), filt(oc, 'bandpass', 2200 + 400 * i, 0.5), env(oc, t + i * 0.002, 0.0003, click / Math.sqrt(n), 0.007), pre));
-    const mode = pick(p.leslie, 'slow'), fast = mode === 'fast', ramp = mode === 'ramp', rAt = pick(p.rampAt, 0.3);
+    const mode = pick(p.rotor, 'slow'), fast = mode === 'fast', ramp = mode === 'ramp', rAt = pick(p.rampAt, 0.3);
     const cosW = oc.createPeriodicWave(new Float32Array([0, 1]), new Float32Array([0, 0]));
     const out = gainOf(oc, 1);
     const rotor = (src, r0, r1, up, dop, am, pan) => [0, 1].forEach((m) => {
@@ -4061,7 +4061,7 @@ CL.kit({ id: 'boombap', fam: 'hiphop', name: 'Boom bap', bpm: 90, sw: 58,
   drums: ['kBoomBap2', 'sBoomBap2', ['Hi-hat', 'hDusty', { level: 0.3 }], ['Open hat', 'hat', { dec: 0.5, f: 8000, hp: 5000, noise: 0.35, nf: 6000, lp: 10000 }], 'rim',
     ['Shaker', 'shaker', { lp: 9000 }], ['Scratch', 'scratch', { level: 0.6 }], ['Horn stab', 'brass', { chord: 'Dm7@4', dur: 0.22 }]],
   bass: ['finger', ['D2', 'G2', 'Bb1', 'A1'], { dur: 1.1, level: 0.45 }],
-  keys: ['rhodes', ['Dm9', 'Gm7@4', 'Bbmaj7', 'A7'], { dur: 1.4, level: 0.28 }],
+  keys: ['tinepiano', ['Dm9', 'Gm7@4', 'Bbmaj7', 'A7'], { dur: 1.4, level: 0.28 }],
   beat: ['x... .... ..x. .... | x... ..x. ..x. .x..', '.... x... .... x... | .... x... .... x..o', 'xoxo xoxo xoxo xoxo | xoxo xoxo xoxo xo..',
     '.... .... .... .... | .... .... .... ..x.', '', '', '.... .... .... .... | .... .... .... x...'],
   b: '1... .... 1.1. .... | 2... ..2. ..2. .2..', k: '1... .... 1... .... | 2... .... 2... ....', fx: { lofi: 0.35 } });
@@ -4092,7 +4092,7 @@ CL.kit({ id: 'lofi', fam: 'hiphop', name: 'Lo-fi hip-hop', bpm: 80, sw: 60,
     ['Hi-hat', 'hat', { dec: 0.14, f: 7000, hp: 4500, noise: 0.3, nf: 5500, lp: 8000, level: 0.38 }], ['Open hat', 'hat', { dec: 0.45, f: 7000, hp: 4500, noise: 0.3, nf: 5500, lp: 8000 }],
     ['Shaker', 'shaker', { level: 0.26 }], 'rim', 'snap', ['Marimba', 'marimba', { chord: 'C5', dur: 0.5 }]],
   bass: ['upright', ['F2', 'E2', 'D2', 'C2'], { dur: 0.9, harm: 1, level: 0.55 }],
-  keys: ['rhodes', ['Fmaj9', 'Em7', 'Dm9', 'Cmaj7'], { dur: 3, bark: 0.6, tine: 0.2 }],
+  keys: ['tinepiano', ['Fmaj9', 'Em7', 'Dm9', 'Cmaj7'], { dur: 3, bark: 0.6, tine: 0.2 }],
   beat: ['x... .... ..x. .... | x... .... .x.. ....', '.... x... .... x... | .... x..o .... x...', 'x.o. x.o. x.o. x.o.', '', '...o ...o ...o ...o', '.... .... .... ..x.'],
   b: '1... .... ..1. .... | 2... .... .2.. ....', k: '1... .... .... ...2 | .... .... .... ....', fx: { lofi: 0.35, crackle: 0.4, filter: -0.18 } });
 
@@ -4100,8 +4100,8 @@ CL.kit({ id: 'gfunk', fam: 'hiphop', name: 'G-funk', bpm: 94, sw: 56,
   about: 'A laid-back West Coast bounce: a sliding synth bass with octave pops, high whistle leads, roomy claps, and smooth minor chords.',
   drums: [['Kick', 'kPunch', { dec: 0.5 }], ['Snare', 'snare', { tone: 185, tamt: 1.3, tdec: 0.16, tone2: 330, ndec: 0.5, nf: 3000, namt: 0.6, hi: 0.3 }],
     ['Clap', 'clap', { bursts: 4, spread: 0.01, tail: 0.5, level: 0.95 }], ['Hi-hat', 'hClosed', { level: 0.9 }], 'hOpen', ['Tambourine', 'tamb', { level: 0.9 }], ['Whistle C6', 'whistle', { f: 1046.5, level: 0.15 }], ['Whistle F6', 'whistle', { f: 1396.9, level: 0.15 }]],
-  bass: ['moog', ['C2', 'F1', 'C3', 'Bb1>C2'], { dur: 0.45, level: 0.5 }],
-  keys: ['rhodes', ['Cm9@4', 'F9', 'Gm7', 'Abmaj7'], { dur: 1.5, bark: 0.8 }],
+  bass: ['ladderbass', ['C2', 'F1', 'C3', 'Bb1>C2'], { dur: 0.45, level: 0.5 }],
+  keys: ['tinepiano', ['Cm9@4', 'F9', 'Gm7', 'Abmaj7'], { dur: 1.5, bark: 0.8 }],
   beat: ['x... ..x. ..x. .... | x... ..x. ..x. ....', '.... x... .... x...', '.... x... .... x...', 'xoxo xoxo xoxo xoxo | xoxo xoxo xoxo xo..',
     '.... .... .... .... | .... .... .... ..x.', '.... o... .... o...', 'x... .... .... .... | .... .... .... ....', '.... .... .... .... | x... .... .... ....'],
   b: '1..3 ..1. ..1. 3... | 2..3 ..2. ..2. 4...', k: '1... .... 1... .... | 2... .... 2... ....', fx: { revMix: 0.15, revSize: 'room' } });
@@ -4122,14 +4122,14 @@ CL.kit({ id: 'soul', fam: 'soul', name: 'Soul', bpm: 100, sw: 54,
   drums: ['kSoul', 'sSoulRoom', 'hSoul', 'hSoulOpen', 'tamb', 'crash', ['Guitar', 'chank', { chord: 'C5@4', dur: 0.14, pick: 0.2, level: 0.22 }],
     ['Horns', 'horns', { chord: 'C@4', dur: 0.25, level: 0.65 }]],
   bass: ['ebass', ['C2', 'F1', 'G1', 'A1'], { dur: 0.4, tilt: 4, ring: 2.4, hslope: 0.9, thump: 0.45 }],
-  keys: ['hammond', ['C', 'F', 'G', 'Am'], { dur: 1.2, perc: 0.5, leslie: 'fast', hornDop: 0.0005, hornPan: 0.9, drumPan: 0.75, click: 2.5,
+  keys: ['drawbar', ['C', 'F', 'G', 'Am'], { dur: 1.2, perc: 0.5, rotor: 'fast', hornDop: 0.0005, hornPan: 0.9, drumPan: 0.75, click: 2.5,
     bars: [[1, 1], [2, 0.6], [3, 0.3], [4, 0.35], [6, 0.12]], level: 0.26 }],
   beat: ['x... ..x. x... .... | x... ..x. x.x. ....', '.... x... .... x... | .... x... .... x..o', 'x.x. x.x. x.x. x.x.', '', '.... x... .... x...',
     'x... .... .... .... | .... .... .... ....', '.... x... .... x...', '.... .... .... ..x. | .... .... .... ....'],
   b: '1..1 ..3. 1... .3.. | 2..2 ..1. 2... 3.4.', k: '1... .... 1... .... | 2... .... 2... ....', fx: { revMix: 0.15, revSize: 'room' } });
 
 CL.kit({ id: 'funk', fam: 'soul', name: 'Funk', bpm: 106, sw: 54,
-  about: 'Everything on the one: syncopated kick, ghost-note snare, slap bass with dead notes, scratch guitar, choppy clavinet, and tight horns.',
+  about: 'Everything on the one: syncopated kick, ghost-note snare, slap bass with dead notes, scratch guitar, choppy clav, and tight horns.',
   drums: [['Kick', 'kFunk', { click: 1.8 }], ['Snare', 'sFunk', { level: 1 }], 'hAcoustic', 'hAcOpen', ['Conga', 'conga', { f: 330, slap: 0.3, level: 0.26 }], ['Dead note', 'slap', { note: 'E2', dead: 1, dur: 0.05, level: 0.6 }],
     ['Guitar', 'chank', { chord: 'E9', dur: 0.07, level: 0.12 }], ['Horns', 'horns', { chord: 'E9@4', dur: 0.15, level: 0.45 }]],
   bass: ['slap', ['E1', ['E2', { level: 0.34 }], 'G1', 'A1'], { dur: 0.22, popAbove: 70, level: 0.62 }],
@@ -4154,7 +4154,7 @@ CL.kit({ id: 'rnb', fam: 'soul', name: 'Modern R&B', bpm: 70, sw: 56,
   drums: ['kRnb', ['Snap', 'fsnap', { room: 0.3, level: 0.85 }], 'clap', ['Hi-hat', 'hTight', { level: 0.9 }], ['Open hat', 'hOpen', { level: 0.6 }], ['Rim', 'rim', { level: 0.85 }], 'shaker',
     ['Hat roll', 'roll', { n: 6, gap: 0.1429, rise: 2, v0: 0.65, v1: 1, dec: 0.03, f: 11000, level: 0.9 }]],
   bass: ['sub808', ['Db2', 'Bb1', 'Gb1', 'Db2>Bb1'], { dur: 2.2, sustainDb: 10, glAt: 0.05, glT: 0.1, level: 0.5 }],
-  keys: ['rhodes', ['Dbmaj9', 'Bbm9', 'Gbmaj7', 'Ab9'], { dur: 2.2, bark: 0.4, tine: 0.45, lp: 6000 }],
+  keys: ['tinepiano', ['Dbmaj9', 'Bbm9', 'Gbmaj7', 'Ab9'], { dur: 2.2, bark: 0.4, tine: 0.45, lp: 6000 }],
   beat: ['x... .... ..x. .... | x... ..x. .... ..x.', '.... x... .... x...', '', 'x.x. x.x. x.xx x.x. | x.x. x.x. x... ....', '.... .... .... .... | .... .... ..x. ....',
     '.... ...o .... .o.. | .... ...o .... .o..', '', '.... .... .... .... | .... .... .... x...'],
   b: '1... .... ..1. .... | 4... ..2. .... ..2.', k: '1... .... .... .... | 2... .... .... ....', fx: { revMix: 0.2 } });
@@ -4163,7 +4163,7 @@ CL.kit({ id: 'neosoul', fam: 'soul', name: 'Neo soul', bpm: 84, sw: 63,
   about: 'A loose swing with the snare behind the beat, ghost notes, rich electric-piano chords, a melodic finger bass, and cross-stick clicks.',
   drums: ['kNeo', ['Snare', 'sNeo', { lag: 0.022 }], ['Hi-hat', 'hNeo', { level: 0.38 }], 'hNeoOpen', ['Cross-stick', 'sXstick'], ['Shaker', 'shaker', { level: 0.22 }], 'snap', 'crash'],
   bass: ['ebass', ['Eb2', 'D2', 'C2', 'F1'], { dur: 0.5, tilt: 4.5, ring: 3, hslope: 1, thump: 0.5, rel: 0.12, lag: 0.015 }],
-  keys: ['rhodes', ['Ebmaj9', 'Dm9', 'Cm9', 'F13'], { dur: 1.6, bark: 0.5, tine: 0.45, pan: 0.3, rate: 3.5, level: 0.4 }],
+  keys: ['tinepiano', ['Ebmaj9', 'Dm9', 'Cm9', 'F13'], { dur: 1.6, bark: 0.5, tine: 0.45, pan: 0.3, rate: 3.5, level: 0.4 }],
   beat: ['x... ..x. .x.. .... | x... .... ..x. ..x.', '.o.. x..o ..o. x... | .o.. x..o .o.. x.o.', 'x.x. x.x. x.x. x.x.', '', '.... .... .... ..o.', '.o.o .o.o .o.o .o.o'],
   b: '1... ..3. ...2 ..1. | 2... .3.. 4..2 ...1', k: '1... .... ...1 .... | 2... .... .... ....', fx: { filter: -0.14 } });
 
@@ -4171,10 +4171,10 @@ CL.kit({ id: 'neosoul', fam: 'soul', name: 'Neo soul', bpm: 84, sw: 63,
 CL.kit({ id: 'gospel', fam: 'blues', name: 'Gospel', bpm: 96, sw: 66, feel: '8',
   about: 'A swung church groove: handclaps and tambourine on 2 and 4, organ and bass that walk up chromatically, piano, and a choir that answers.',
   drums: ['kFelt', 'sBlues', ['Claps', 'crowdclap', { level: 1 }], ['Tambourine', 'tamb', { level: 0.7 }], ['Hi-hat', 'hBlues', { level: 0.6 }],
-    ['Organ build', 'hammond', { chord: 'Abadd9', dur: 3, leslie: 'ramp', bars: '888800000', drive: 2.5, level: 0.14 }], ['Choir', 'choir', { chord: 'Abadd9', dur: 1.4, level: 0.38 }],
+    ['Organ build', 'drawbar', { chord: 'Abadd9', dur: 3, rotor: 'ramp', bars: '888800000', drive: 2.5, level: 0.14 }], ['Choir', 'choir', { chord: 'Abadd9', dur: 1.4, level: 0.38 }],
     ['Piano run', 'piano', { chord: 'Ab69@4', down: true, arp: 0.05, dur: 0.9, partials: 12, tilt: 0.85, comb: true, uni: 0.8, pdec: 0.9, level: 0.25 }]],
   bass: ['walk', ['Ab1', 'Db2', 'D2', 'Eb2'], { dur: 0.6, levels: [0, -3, -7, -12, -16, -20, -24, -28], ring: 2.2, att: 0.006 }],
-  keys: ['hammond', ['Ab69', 'Db69', 'Ddim7', 'Eb9sus4'], { dur: 1.2, bars: '888000000', leslie: 'slow', perc: 1, drive: 2.5, level: 0.18 }],
+  keys: ['drawbar', ['Ab69', 'Db69', 'Ddim7', 'Eb9sus4'], { dur: 1.2, bars: '888000000', rotor: 'slow', perc: 1, drive: 2.5, level: 0.18 }],
   beat: ['x... ..x. x... ..x.', '.... x... .... x... | .... x... ..o. x...', '.... x... .... x...', 'o.o. x.o. o.o. x.o.', 'x.o. x.o. x.o. x.o.',
     'x... .... .... .... | .... .... .... ....', '.... .... x... .... | .... .... .... ....', 'x... ..x. .... .... | x... .... .... ....'],
   b: '1... ..4. 1... ..4. | 2... ..1. 3... ..4.', k: '1... .... 1... .... | 2... .... 3... ....', fx: { revMix: 0.22, revSize: 'room' } });
@@ -4198,7 +4198,7 @@ CL.kit({ id: 'slowblues', fam: 'blues', name: 'Slow blues', bpm: 62, sw: 70, fee
     'sBluesFat', 'hBlues', 'rideJazz', 'crash', ['Cross-stick', 'xstick', {}], ['Guitar bend', 'bendgtr', { chord: 'D5', bend: 200, dur: 1.8, level: 0.4 }],
     ['Guitar curl', 'bendgtr', { chord: 'C5', bend: 40, bendAt: 0.12, bendTime: 0.25, dur: 1.4, pos: 0.12, presence: 7, level: 0.4 }]],
   bass: ['walk', ['A1', 'C#2', 'D2', 'E2'], { dur: 0.9, levels: [-3, 0, -5, -10, -14, -19, -23, -28], ring: 3.2, att: 0.012 }],
-  keys: ['hammond', ['A9', 'D9', 'E9', 'A13'], { dur: 3.7, leslie: 'slow', bars: '888000000', att: 0.35, drive: 2.2, level: 0.4 }],
+  keys: ['drawbar', ['A9', 'D9', 'E9', 'A13'], { dur: 3.7, rotor: 'slow', bars: '888000000', att: 0.35, drive: 2.2, level: 0.4 }],
   beat: ['x... .... x... ..o.', '..o. x... ..o. x...', 'x.o. x.o. x.o. x.o.', '', 'x... .... .... .... | .... .... .... ....', '',
     '.... .... .... ..x. | .... .... .... ....', '.... .... .... .... | .... .... x... ..x.'],
   b: '1... ..2. 4... ..3. | 3... ..1. 3... ..4.', k: '1... .... .... .... | 2... .... .... ....', fx: { revMix: 0.2, revSize: 'hall' } });
@@ -4240,7 +4240,7 @@ CL.kit({ id: 'jazzfunk', fam: 'jazz', name: 'Jazz-funk', bpm: 100, sw: 56,
   drums: ['kJazzFunk', 'sDead', 'hAcoustic', 'hAcOpen', ['Ghost snare', 'snare', { tone: 195, ndec: 0.12, nf: 1800, hi: 0.15, level: 0.14 }], ['Conga', 'congaOpen', { level: 0.55 }],
     ['Horns', 'horns', { chord: 'Em7b5@4', dur: 0.18, level: 0.5 }], ['Dead note', 'finger', { note: 'G2', dead: true, level: 0.3 }]],
   bass: ['finger', ['G1', 'G2', 'C2', 'D2'], { dur: 0.9, saw: 1, tri: 0.2, lpEnd: 1100 }],
-  keys: ['rhodes', ['Gm9', 'C9', 'Ebmaj7', 'D7#9'], { dur: 0.9, bark: 1, tine: 0.8, tineDec: 0.4, growl: 1.5, barkDec: 5 }],
+  keys: ['tinepiano', ['Gm9', 'C9', 'Ebmaj7', 'D7#9'], { dur: 0.9, bark: 1, tine: 0.8, tineDec: 0.4, growl: 1.5, barkDec: 5 }],
   beat: ['x... ..x. ..x. .... | x..x .... ..x. ....', '.... x... .... x...', 'xoxo xoxo xoxo xo..', '.... .... .... ..x.', '.... ...x .x.. ...x', '..x. .... .x.. ....',
     '.... .... .... .... | .... ..x. .... .x..', '.... .... x... ..x. | .... ..x. .... x...'],
   b: '1..2 ..1. ..1. .4.. | 3..3 ...1 ..3. ..4.', k: '1... ..1. ...1 .... | 2... ..2. ...2 ....' });
@@ -4287,7 +4287,7 @@ CL.kit({ id: 'deephouse', fam: 'house', name: 'Deep house', bpm: 122, sw: 56,
   drums: ['kDeepH', ['Clap', 'clap', { f: 900, q: 0.9, tail: 0.32, level: 0.5 }], 'hClosed', ['Open hat', 'hOpen', { dec: 0.22, level: 0.4 }], ['Shaker', 'shaker', { level: 0.3 }],
     ['Conga', 'conga', { f: 330, slap: 2.5, ov: 0.6 }], 'rim', 'vox'],
   bass: ['sub', ['A1', 'D2', 'F1', 'E1'], { dur: 0.35, h2: 0.35, drive: 1, level: 0.4 }],
-  keys: ['rhodes', ['Am9', 'Dm9', 'Fmaj9', 'Em7'], { dur: 1, bark: 0.35, tine: 0.45 }],
+  keys: ['tinepiano', ['Am9', 'Dm9', 'Fmaj9', 'Em7'], { dur: 1, bark: 0.35, tine: 0.45 }],
   beat: ['x... x... x... x...', '.... x... .... x...', '', '..x. ..x. ..x. ..x.', 'ooxo ooxo ooxo ooxo', '.... ..x. .... x.x.', '...x .... ..x. ....',
     '.... .... .... .... | .... .... .... ..o.'],
   b: '1... ..1. .... .4.. | 2... ..2. ..3. ....', k: '...1 .... ..1. .... | ...2 .... ..2. ....', fx: { revMix: 0.15 } });
@@ -4441,7 +4441,7 @@ CL.kit({ id: 'liquid', fam: 'dnb', name: 'Liquid drum & bass', bpm: 174, sw: 54,
   about: 'Smooth and rolling: a swung two-step beat with ghost snares, airy hats, warm electric-piano chords, a soul vocal tag, and a round sub.',
   drums: [['Kick', 'kick', { f0: 140, f1: 56, pd: 0.025, dec: 0.32, click: 0.5, clickF: 4000, drive: 1.8 }], 'sLiquid', 'hClosed', ['Shaker', 'shaker', { f: 9000, level: 0.25 }], 'rBreak', 'hOpen', ['Vox', 'vox', { f: 523.25, level: 0.3 }], 'crash'],
   bass: ['sub', ['F1', 'D2', 'Bb1', 'C2'], { dur: 1.35, h2: 0.12, drive: 1, level: 0.5 }],
-  keys: ['rhodes', ['Fmaj9', 'Dm9', 'Bbmaj7', 'C9@4'], { dur: 1.4, bark: 0.8, tine: 0.6, growl: 1.5, barkDec: 5, level: 0.55 }],
+  keys: ['tinepiano', ['Fmaj9', 'Dm9', 'Bbmaj7', 'C9@4'], { dur: 1.4, bark: 0.8, tine: 0.6, growl: 1.5, barkDec: 5, level: 0.55 }],
   beat: ['x... .... ..x. .... | x... .... ..x. ..x.', '.... x..o .... x... | .... x... .o.. x..o', 'x.x. x.x. x.x. x.x.', '.o.o .o.o .o.o .o.o', '', '..o. .... ..o. ....'],
   b: '1... .... ..1. .... | 2... .... .... 3...', k: '1... .... .... .... | 2... .... .... ....', fx: { revMix: 0.2 } });
 
@@ -4503,7 +4503,7 @@ CL.kit({ id: 'chillout', fam: 'downtempo', name: 'Chillout', bpm: 96, sw: 54,
     ['Steel drum', 'steel', { chord: 'C#5', dur: 0.8, parts: [[1, 0.5, 1], [2, 0.5, 0.9], [3, 0.15, 0.5], [4, 0.1, 0.35]] }],
     ['Chime', 'bell', { chord: 'E5', dur: 1.5, idx: 3.5, att: 0.003, level: 0.13 }], 'whoosh'],
   bass: ['finger', ['A1', 'F#1', 'D2', 'E2'], { dur: 1.6, tone: 2, lpEnd: 600, sus: 0.4, level: 0.6 }],
-  keys: ['rhodes', ['Amaj9', 'F#m9', 'Dmaj9', 'E69'], { dur: 1.8, bark: 0.8, barkDec: 2, tine: 0.6, level: 0.75 }],
+  keys: ['tinepiano', ['Amaj9', 'F#m9', 'Dmaj9', 'E69'], { dur: 1.8, bark: 0.8, barkDec: 2, tine: 0.6, level: 0.75 }],
   beat: ['x... .... x... ....', '.... x... .... x...', 'ooxo ooxo ooxo ooxo', '', '..x. .... .x.. ....', '', '.... .... .... .... | x... .... .... ....'],
   b: '1... .... ..4. .... | 2... .... ..3. ....', k: '1... .... .... .... | 2... .... .... ....', fx: { revMix: 0.3, echoMix: 0.1 } });
 
