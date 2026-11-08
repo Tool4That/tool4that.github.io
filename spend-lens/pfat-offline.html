@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-LM2J+nRUyoKmqN5AF4xI4jEJIl1S2THxp9syfKIplcA=' 'sha256-eRyzXa7mwZp7JkI4L5RG4yB106JzuyK2RvoTErF3ESs=' 'sha256-ltkjnw66bIy7opiUE9KThzttAvGthjR29/4l9KdBAjs=' 'wasm-unsafe-eval' blob:; connect-src data:; worker-src blob:; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-eRyzXa7mwZp7JkI4L5RG4yB106JzuyK2RvoTErF3ESs=' 'sha256-jPU3wW12ZnLEyqsIfSHDeOrrPY9nC0PjnhZu9y99BF4=' 'sha256-ltkjnw66bIy7opiUE9KThzttAvGthjR29/4l9KdBAjs=' 'wasm-unsafe-eval' blob:; connect-src data:; worker-src blob:; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="See where your money goes. Add transactions by hand, paste text, or import bank, card, and investment statements (CSV, PDF, scanned PDFs, and screenshots, read on your device), then get a money-in, money-out Home summary, a paycheck plan, a 30-day look ahead, and a plain-language checkup. Everything stays on your device.">
 <link rel="canonical" href="https://freeapp4that.store/spend-lens/">
@@ -183,7 +183,10 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
 .segment button.is-active { background: var(--accent); color: var(--accent-ink); }
 .mode { display: none; }
 .mode.is-active { display: block; }
-.drop { border: 2px dashed var(--line); border-radius: 12px; padding: 26px 16px; text-align: center; color: var(--ink-2); background: var(--surface); }
+.startover { margin: 10px 0 0; }
+.startover .btn.link { padding: 0 2px; min-height: 0; }
+footer .btn.link { color: inherit; text-decoration: underline; padding: 0 2px; min-height: 0; font: inherit; }
+.drop { display: block; border: 2px dashed var(--line); border-radius: 12px; padding: 26px 16px; text-align: center; color: var(--ink-2); background: var(--surface); }
 .drop.over { border-color: var(--accent); background: var(--accent-soft); }
 .drop input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
 .drop { position: relative; cursor: pointer; }
@@ -507,6 +510,7 @@ footer { margin-top: 40px; color: var(--ink-3); font-size: 0.8rem; }
         <button data-mode="paste" role="tab" id="modebtn-paste" aria-controls="mode-paste" aria-selected="false" tabindex="-1">Paste text</button>
         <button data-mode="file" role="tab" id="modebtn-file" aria-controls="mode-file" aria-selected="false" tabindex="-1">From a file</button>
       </div>
+      <p class="hint startover" id="startOverAdd" data-startover hidden>Bringing in a fresh set? <button class="btn link" type="button" data-act="startover">Back up or start over</button> first.</p>
 
       <div id="mode-manual" class="mode is-active" role="tabpanel" aria-labelledby="modebtn-manual">
         <form id="manualForm" class="form" autocomplete="off">
@@ -540,8 +544,8 @@ footer { margin-top: 40px; color: var(--ink-3); font-size: 0.8rem; }
           <strong>Choose files</strong> or drop them here (a folder works too)
           <div class="formats"><span>PDF statements, incl. scanned</span><span>Screenshots &amp; photos</span><span>CSV</span><span>TSV</span><span>OFX / QFX</span><span>QIF</span><span>JSON backup</span></div>
         </label>
-        <p class="hint" id="fileHint" style="margin-top:10px">Files are read in your browser and stay on this device. Bank, card, and investment statements all work: PDFs use pdf.js (fetched from cdnjs), and screenshots or scanned PDFs use Tesseract, the open-source OCR engine (fetched once from jsDelivr, with your OK first). The <a href="https://freeapp4that.store/finance/" target="_blank" rel="noopener">offline download</a> builds both in.</p>
         <div class="actions" id="folderRow" hidden><button class="btn" type="button" id="folderBtn">Choose a folder</button><input type="file" id="folderInput" webkitdirectory multiple hidden></div>
+        <p class="hint" id="fileHint" style="margin-top:10px">Files are read in your browser and stay on this device. Bank, card, and investment statements all work: PDFs use pdf.js (fetched from cdnjs), and screenshots or scanned PDFs use Tesseract, the open-source OCR engine (fetched once from jsDelivr, with your OK first). The <a href="https://freeapp4that.store/finance/" target="_blank" rel="noopener">offline download</a> builds both in.</p>
         <div class="busy" id="busy" hidden></div>
       </div>
 
@@ -556,7 +560,7 @@ footer { margin-top: 40px; color: var(--ink-3); font-size: 0.8rem; }
       <div id="dataBody" class="morebody" hidden></div>
     </section>
   </main>
-  <footer>PFAT, the Personal Finance Advisor Tool, runs entirely in your browser, without accounts, a PFAT server, or tracking.</footer>
+  <footer>PFAT, the Personal Finance Advisor Tool, runs entirely in your browser, without accounts, a PFAT server, or tracking.<span data-startover hidden> · <button class="btn link" type="button" data-act="startover">Back up or start over</button></span></footer>
 </div>
 <datalist id="accountList"></datalist>
 <datalist id="whoList"></datalist>
@@ -6334,7 +6338,7 @@ function renderData() {
   const hasSample = state.txns.some(t => t.source === 'sample');
   let h = '<section class="section" style="margin-top:4px"><h2>Your data</h2><dl class="kv"><dt>Transactions</dt><dd>' + state.txns.length + (b.min ? ' (' + esc(slFmtDate(b.min)) + ' – ' + esc(slFmtDate(b.max)) + ')' : '') + '</dd><dt>Accounts</dt><dd>' + (esc(accounts().join(', ')) || '—') + '</dd><dt>Saved in this browser</dt><dd>' + (bytes ? (bytes / 1024).toFixed(1) + ' KB' : 'nothing yet') + '</dd></dl>' +
     '<label class="check" style="margin-top:10px"><input type="checkbox" id="autosave"' + (state.settings.autosave ? ' checked' : '') + '> Keep my data in this browser between visits</label>' +
-    '<div class="actions"><button class="btn" id="saveNow">Save now</button><button class="btn danger" id="clearAll">Delete everything</button></div></section>';
+    '<div class="actions"><button class="btn" id="saveNow">Save now</button><button class="btn danger" id="clearAll">Back up or start over…</button></div></section>';
   h += '<section class="section"><h2>Export</h2><p class="sub">A CSV opens in any spreadsheet. The backup file restores transactions, rules, categories, budgets, and display settings on another device, via Add → From a file. It holds your data as plain text unless you lock it, so keep it somewhere private.</p>' +
     (canLock() ? '<label class="check"><input type="checkbox" id="expLock"> Lock the backup with a passphrase</label><div class="form" id="expLockBox" hidden><div class="grid2"><label>Passphrase (8 or more characters) <input type="password" id="expPass" autocomplete="new-password"></label><label>Passphrase again <input type="password" id="expPass2" autocomplete="new-password"></label></div><p class="hint">A locked backup opens only with this passphrase, here or on another device. Keep it somewhere safe: it is the only way to open the file.</p></div>' : '') +
     '<div class="actions"><button class="btn primary" id="expCsv">Download CSV</button><button class="btn" id="expJson">Download backup</button><button class="btn" id="copyCsv">Copy CSV to clipboard</button></div></section>';
@@ -7833,7 +7837,8 @@ function setMode(mode, quiet) {
   $$('.mode').forEach(m => m.classList.toggle('is-active', m.id === 'mode-' + mode));
   if (!quiet && mode === 'manual') $('#mDesc').focus();
 }
-function renderAll() { refreshCats(); compileRules(); renderScope(); renderHud(); renderPlan(); if (state.ui.tab === 'ahead') renderAhead(); if (state.ui.tab === 'check') renderCheckup(); renderOverview(); renderTransactions(); renderRecent(); if (state.ui.tab === 'more') renderMore(); }
+function syncStartOver() { const has = state.txns.length > 0 || (state.imports || []).length > 0; $$('[data-startover]').forEach(el => { el.hidden = !has; }); }
+function renderAll() { syncStartOver(); refreshCats(); compileRules(); renderScope(); renderHud(); renderPlan(); if (state.ui.tab === 'ahead') renderAhead(); if (state.ui.tab === 'check') renderCheckup(); renderOverview(); renderTransactions(); renderRecent(); if (state.ui.tab === 'more') renderMore(); }
 
 /* ---------- events ---------- */
 function bind() {
@@ -7849,7 +7854,7 @@ function bind() {
     const chip = e.target.closest('[data-secfor]');
     if (chip) { const f = chip.dataset.secfor, sec = chip.dataset.sec; openSetups.clear(); if (f === 'ahead') { state.ui.aheadSec = sec; renderAhead(); } else if (f === 'check') { state.ui.checkSec = sec; renderCheckup(); } else if (f === 'more') { state.ui.moreSec = sec; renderMore(); } save(); window.scrollTo({ top: 0 }); const again = $('[data-secfor="' + f + '"][data-sec="' + sec + '"]'); if (again) again.focus({ preventScroll: true }); return; }
     const go = e.target.closest('[data-go]'); if (go) { const [tab, mode] = go.dataset.go.split(':'); if (tab === 'ahead' && mode) { state.ui.aheadSec = mode; showTab('ahead'); return; } if (tab === 'check' && mode) { state.ui.checkSec = mode; showTab('check'); return; } showTab(tab); if (mode) setMode(mode); return; }
-    const act = e.target.closest('[data-act]'); if (act) { if (act.dataset.act === 'toggleCats') { state.ui.allCats = !state.ui.allCats; renderOverview(); return; } if (act.dataset.act === 'sample') loadSample(); if (act.dataset.act === 'removeSample') { state.txns = state.txns.filter(t => t.source !== 'sample'); save(); renderAll(); toast('Sample data removed'); } return; }
+    const act = e.target.closest('[data-act]'); if (act) { if (act.dataset.act === 'toggleCats') { state.ui.allCats = !state.ui.allCats; renderOverview(); return; } if (act.dataset.act === 'startover') { openDeleteSheet(); return; } if (act.dataset.act === 'sample') loadSample(); if (act.dataset.act === 'removeSample') { state.txns = state.txns.filter(t => t.source !== 'sample'); save(); renderAll(); toast('Sample data removed'); } return; }
     const crow = e.target.closest('[data-cat]'); if (crow && !crow.closest('.catrow')) { state.ui.cat = crow.dataset.cat; state.ui.q = ''; state.ui.shown = 150; showTab('transactions'); renderTransactions(); return; }
     const row = e.target.closest('.ledger .row[data-id]'); if (row) { openEdit(row.dataset.id); return; }
   });
@@ -8029,13 +8034,14 @@ function bind() {
     if (state.rules.length) what.push(state.rules.length + (state.rules.length === 1 ? ' rule' : ' rules'));
     what.push('your bills, balances, plan numbers, goals, accounts, and snapshots');
     const sheet = $('#sheet');
-    sheet.innerHTML = '<div class="card" role="dialog" aria-modal="true" aria-labelledby="delTitle"><h2 id="delTitle">Delete everything?</h2><p>This removes ' + andList(what) + ' from this browser. Download a backup first to bring it all back later.</p><div class="actions"><button type="button" class="btn primary" id="delBackup">Download a backup first</button><button type="button" class="btn danger" id="delGo">Delete everything</button><button type="button" class="btn" id="delCancel">Cancel</button></div></div>';
+    sheet.innerHTML = '<div class="card" role="dialog" aria-modal="true" aria-labelledby="delTitle"><h2 id="delTitle">Back up or start over</h2><p>Starting over removes ' + andList(what) + ' from this browser' + (batch ? ', and clears the open list of files' : '') + '. Download a backup first to bring it all back later.</p><p class="hint">Testing again and again? Untick “Keep my data in this browser between visits” under More → Data: each reload then starts empty, and this tab keeps working.</p><div class="actions"><button type="button" class="btn primary" id="delBackup">Download a backup first</button><button type="button" class="btn danger" id="delGo">Delete everything and start over</button><button type="button" class="btn" id="delCancel">Cancel</button></div></div>';
     sheet.hidden = false; trapSheet(); $('#delBackup').focus();
     $('#delCancel').onclick = closeSheet;
     $('#delBackup').onclick = () => { saveFile('pfat-backup.json', backupJSON(), 'application/json'); $('#delBackup').textContent = 'Backup downloaded'; };
     $('#delGo').onclick = () => { if (performance.now() - sheetOpened < 600) return; closeSheet(); deleteEverything(); };
   }
-  function deleteEverything() { state.imports = []; state.settings.ocrOk = false; state.settings.countCardPayments = false; delete state.settings.cardPayAsked; state.txns = []; state.rules = []; state.customCats = []; state.catOverrides = {}; state.budgets = {}; recentAdds = []; state.bills = null; state.balances = {}; state.plan = null; state.goals = null; state.accounts = null; state.cash = null; state.paycheck = null; state.snapshots = null; state.insurance = null; state.limits = null; state.ui.lastAccount = ''; state.ui.accountKinds = {}; ensureBills(); ensurePlan(); ensureAhead(); ensureCheckup(); try { localStorage.removeItem(STORE_KEY); localStorage.removeItem(OLD_STORE_KEY); } catch (e2) { /* ignore */ } saveWarn(false); renderAll(); renderData(); toast('Everything deleted'); }
+  // (a list of files read against the old records clears too: its "already here" checks no longer hold)
+  function deleteEverything() { if (batch) { batch.stop = true; ocrCancel = true; batch = null; pending = null; renderBatch(); renderPreview(); } else if (pending) { pending = null; renderPreview(); } state.imports = []; state.settings.ocrOk = false; state.settings.countCardPayments = false; delete state.settings.cardPayAsked; state.txns = []; state.rules = []; state.customCats = []; state.catOverrides = {}; state.budgets = {}; recentAdds = []; state.bills = null; state.balances = {}; state.plan = null; state.goals = null; state.accounts = null; state.cash = null; state.paycheck = null; state.snapshots = null; state.insurance = null; state.limits = null; state.ui.lastAccount = ''; state.ui.accountKinds = {}; ensureBills(); ensurePlan(); ensureAhead(); ensureCheckup(); try { localStorage.removeItem(STORE_KEY); localStorage.removeItem(OLD_STORE_KEY); } catch (e2) { /* ignore */ } saveWarn(false); renderAll(); renderData(); toast('Everything deleted'); }
   db.addEventListener('click', e => {
     const id = e.target.id;
     if (id === 'expCsv') saveFile('pfat-transactions.csv', slToCSV([...state.txns].sort((a, b) => a.date < b.date ? -1 : 1)), 'text/csv');
