@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-eRyzXa7mwZp7JkI4L5RG4yB106JzuyK2RvoTErF3ESs=' 'sha256-jPU3wW12ZnLEyqsIfSHDeOrrPY9nC0PjnhZu9y99BF4=' 'sha256-ltkjnw66bIy7opiUE9KThzttAvGthjR29/4l9KdBAjs=' 'wasm-unsafe-eval' blob:; connect-src data:; worker-src blob:; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-eRyzXa7mwZp7JkI4L5RG4yB106JzuyK2RvoTErF3ESs=' 'sha256-ltkjnw66bIy7opiUE9KThzttAvGthjR29/4l9KdBAjs=' 'sha256-tjVhO9qYnGbREA5GQtCsX+keN6Lat1gmfH77R7/HKeo=' 'wasm-unsafe-eval' blob:; connect-src data:; worker-src blob:; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="See where your money goes. Add transactions by hand, paste text, or import bank, card, and investment statements (CSV, PDF, scanned PDFs, and screenshots, read on your device), then get a money-in, money-out Home summary, a paycheck plan, a 30-day look ahead, and a plain-language checkup. Everything stays on your device.">
 <link rel="canonical" href="https://freeapp4that.store/spend-lens/">
@@ -5428,7 +5428,7 @@ function toast(msg, isErr) {
   const sr = $('#srStatus'); if (sr) { sr.textContent = ''; setTimeout(() => { sr.textContent = msg; }, 60); }
   clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.hidden = true; }, isErr ? 6000 : 3000);
 }
-function setBusy(msg, cancellable) { if (batchTarget) { batchTarget.msg = msg || ''; paintBatch(batchTarget); return; } const b = $('#busy'); b.innerHTML = msg ? esc(msg) + (cancellable ? ' <button class="btn small" id="ocrCancel">Cancel</button>' : '') : ''; b.hidden = !msg; }
+function setBusy(msg, cancellable) { const b = $('#busy'); b.innerHTML = msg ? esc(msg) + (cancellable ? ' <button class="btn small" id="ocrCancel">Cancel</button>' : '') : ''; b.hidden = !msg; }
 function accounts() { const s = new Set(); for (const t of state.txns) if (t.account) s.add(t.account); return Array.from(s).sort(); }
 function catOptions(selected, includeAuto) {
   let h = includeAuto ? '<option value="">Pick automatically</option>' : '';
@@ -5763,10 +5763,11 @@ async function extractPdfText(pdf) {
   return { text, chars: text.replace(/\s/g, '').length };
 }
 /* ---------- Many files at once: one list, read top to bottom ---------- */
-// Two or more files (or a folder) open as one list in name order. Each file is read in turn; its pane says where it stands,
+// Two or more files (or a folder) open as one list in name order, read side by side (one file per text-recognition engine
+// the device allows, taken in list order); each pane says where its file stands,
 // and opening a read file shows its full check, one at a time. Import all brings in every file as it stands, in order; a
 // row that repeats one an earlier file in the list brought in stays out, unless the member ticked it.
-let batch = null, batchTarget = null, batchRunning = false;
+let batch = null, batchRunning = false;
 const IMPORTABLE = /\.(csv|tsv|txt|ofx|qfx|qif|pdf|json|png|jpe?g|webp|gif|bmp|heic|heif|tiff?)$/i;
 function importable(f) { const n = String(f.name || ''); return !n.startsWith('.') && (IMPORTABLE.test(n) || /^image\//.test(f.type || '')); }
 function batchName(f) { return String(f.webkitRelativePath || f.relPath || f.name || 'file'); }
@@ -5792,19 +5793,19 @@ function startBatch(files) {
 }
 async function processBatch() {
   if (batchRunning || !batch) return;
-  batchRunning = true; const list = batch;
-  try {
-    for (const x of list.items) {
-      if (batch !== list || list.stop) break;
-      if (x.state !== 'wait') continue;
+  batchRunning = true; ocrCancel = false; const list = batch;
+  const next = () => list.items.find(x => x.state === 'wait');
+  const lane = async () => {
+    for (let x = next(); x && batch === list && !list.stop; x = next()) {
       x.state = 'read'; x.msg = ''; paintBatch(x);
-      batchTarget = x; ocrCancel = false;
-      try { await loadFile(x.file); if (!x.p) throw new Error('nothing could be read from it'); x.state = 'ready'; }
+      const ctx = { item: x, say: (m) => { x.msg = m || ''; if (batch === list) paintBatch(x); } };
+      try { await loadFile(x.file, ctx); if (!x.p) throw new Error('nothing could be read from it'); x.state = 'ready'; }
       catch (e) { x.state = e && e.userStop ? 'stopped' : 'fail'; x.msg = batchFail(e); }
-      finally { batchTarget = null; }
       if (batch === list) { paintBatch(x); if (list.open === list.items.indexOf(x)) openBatchItem(list.open); }
     }
-  } finally { batchRunning = false; if (batch) paintBatch(); }
+  };
+  try { await Promise.all(Array.from({ length: Math.max(1, ocrPoolSize()) }, lane)); }
+  finally { batchRunning = false; if (batch) paintBatch(); }
 }
 function batchFail(e) {
   if (e && e.userStop) return 'left unread';
@@ -5980,45 +5981,45 @@ async function nextInQueue() {
 }
 function userStop() { const e = new Error('stopped'); e.userStop = true; return e; }
 function ocrFailure(e) { const x = e instanceof Error ? e : new Error(String(e)); x.ocrFail = true; return x; }
-async function loadFile(file) {
+async function loadFile(file, ctx) {
   const name = file.name || 'file';
   if (/\.pdf$/i.test(name) || file.type === 'application/pdf') {
-    setBusy('Reading ' + name + '…');
+    sayRead(ctx, 'Reading ' + name + '…');
     const pdf = await openPdf(await file.arrayBuffer());
     const { text, chars } = await extractPdfText(pdf);
-    setBusy('');
-    if (chars >= 30 * pdf.numPages) { startPreview('text', name, { text, fromPdf: true, numPages: pdf.numPages }); return; }
+    sayRead(ctx, '');
+    if (chars >= 30 * pdf.numPages) { startPreview('text', name, { text, fromPdf: true, numPages: pdf.numPages }, ctx); return; }
     if (!(await ensureOcrConsent(name))) throw userStop();
     let rows;
-    try { rows = await ocrPdf(pdf); } catch (e) { throw e && e.userStop ? e : e && e.ocrFail ? e : ocrFailure(e); }
-    startOcrPreview(name, rows, true, pdf.numPages);
+    try { rows = await ocrPdf(pdf, ctx); } catch (e) { throw e && e.userStop ? e : e && e.ocrFail ? e : ocrFailure(e); }
+    startOcrPreview(name, rows, true, pdf.numPages, ctx);
     return;
   }
   if (/^image\//.test(file.type) || /\.(png|jpe?g|webp|gif|bmp|heic|heif|tiff?)$/i.test(name)) {
     if (!(await ensureOcrConsent(name))) throw userStop();
     let rows;
-    try { rows = await ocrImageFile(file); } catch (e) { throw /format can't be opened/.test(e.message) || (e && (e.userStop || e.ocrFail)) ? e : ocrFailure(e); }
-    startOcrPreview(name, rows, false);
+    try { rows = await ocrImageFile(file, ctx); } catch (e) { throw /format can't be opened/.test(e.message) || (e && (e.userStop || e.ocrFail)) ? e : ocrFailure(e); }
+    startOcrPreview(name, rows, false, 1, ctx);
     return;
   }
   const text = await readTextFile(file);
-  startByText(text, name);
+  startByText(text, name, ctx);
 }
-function startByText(text, name) {
+function startByText(text, name, ctx) {
   const fmt = slSniffFormat(text, name);
   if (fmt === 'csv') {
     const rows = slParseDelimited(text, slDetectDelimiter(text));
     if (rows.length < 1) throw new Error('no rows found');
-    startPreview('csv', name, { rows, map: slDetectMapping(rows) });
-  } else if (fmt === 'ofx') startPreview('ofx', name, { text });
-  else if (fmt === 'qif') startPreview('qif', name, { text });
-  else if (fmt === 'json') startPreview('json', name, { text });
-  else startPreview('text', name, { text });
+    startPreview('csv', name, { rows, map: slDetectMapping(rows) }, ctx);
+  } else if (fmt === 'ofx') startPreview('ofx', name, { text }, ctx);
+  else if (fmt === 'qif') startPreview('qif', name, { text }, ctx);
+  else if (fmt === 'json') startPreview('json', name, { text }, ctx);
+  else startPreview('text', name, { text }, ctx);
 }
-function startPreview(kind, name, payload) {
+function startPreview(kind, name, payload, ctx) {
   const np = Object.assign({ kind, name, account: defaultAccount(name), opts: { dayFirst: state.settings.dayFirst, lastIsBalance: 'auto', defaultYear: '', flip: undefined, replace: false }, include: [], flipRow: {} }, payload);
   // a file read for the list keeps its check in its own pane; the one open on screen stays as it is
-  if (batchTarget) { const keep = pending; pending = np; try { reparse(true); } finally { pending = keep; } np._batch = batchTarget; batchTarget.p = np; batchTarget.init = batchSnap(np); return; }
+  if (ctx && ctx.item) { const keep = pending; pending = np; try { reparse(true); } finally { pending = keep; } np._batch = ctx.item; ctx.item.p = np; ctx.item.init = batchSnap(np); return; }
   pending = np;
   reparse(true);
   showTab('add');
@@ -7359,7 +7360,7 @@ const OCR_BASE = 'https://cdn.jsdelivr.net/npm/tesseract.js@' + OCR_VER + '/dist
 // exactly these; check_ocr_urls.py reads them from here. On a version change, update the manifest's allowances too.
 const OCR_CORE = 'https://cdn.jsdelivr.net/npm/tesseract.js-core@' + OCR_VER;
 const OCR_LANG = 'https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int';
-let ocrWorkerP = null, ocrProgress = null, sheetOnClose = null;
+let sheetOnClose = null;
 /* The offline edition's vendor files: build.py --offline appends each file in vendor.json as base64 in a data block
    (a script element of type application/octet-stream, id vendor-ID), byte-identical to the file the online page loads from its CDN
    (SHA-256 pinned). Each one becomes a Blob URL the first time it is needed. The loader takes a block only when it is the one
@@ -7404,31 +7405,66 @@ function withTimeout(p, ms, msg) {
   let t;
   return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => rej(new Error(msg)), ms); })]).then(v => { clearTimeout(t); return v; }, e => { clearTimeout(t); throw e; });
 }
-function stopOcrWorker() { const wp = ocrWorkerP; ocrWorkerP = null; if (wp) wp.then(w => { try { w && w.terminate && w.terminate(); } catch (e) { /* ignore */ } }, () => {}); }
-function getOcrWorker() {
-  if (!ocrWorkerP) {
-    const p = (window.Tesseract ? Promise.resolve() : PFAT_OFFLINE ? Promise.resolve().then(() => {
+/* ---------- Text recognition engines: one on a phone or a small device; more where cores and memory allow ---------- */
+// Each engine is a worker holding its own copy of the recognizer and its English model (tens of megabytes), so the count
+// follows the device: a touch screen or fewer than four cores reads with one; otherwise the memory the browser reports
+// decides (under 4 GB one, under 8 GB two, else up to four, one core left free); with memory unreported, two from eight cores.
+function ocrPoolSize() {
+  const cores = navigator.hardwareConcurrency || 2, mem = navigator.deviceMemory;
+  if (cores < 4 || (window.matchMedia && matchMedia('(pointer: coarse)').matches)) return 1;
+  if (mem != null) return mem < 4 ? 1 : mem < 8 ? 2 : Math.max(1, Math.min(4, cores - 1));
+  return cores >= 8 ? 2 : 1;
+}
+// gen: raised when every engine stops (Cancel), so an engine still starting is let go when it arrives
+const ocrPool = { all: [], idle: [], waiting: [], starting: [], gen: 0 };
+let ocrLibP = null;
+function ocrLib() {
+  if (!ocrLibP) {
+    ocrLibP = (window.Tesseract ? Promise.resolve() : PFAT_OFFLINE ? Promise.resolve().then(() => {
       if (!wasmSimd()) throw new Error('This browser lacks WebAssembly SIMD, which the built-in text reader uses.');
       return vendorVerify(['tesseract', 'core', 'worker', 'eng']).then(() => loadScript(vendorURL(['tesseract'])));
     }) : loadScript(OCR_BASE + 'tesseract.min.js', CDN_SRI.tesseract).catch(() => { throw new Error('The text reader loads from jsDelivr the first time.'); }))
-      .then(() => {
-        const T = window.Tesseract;
-        if (!T || typeof T.createWorker !== 'function') throw new Error('The text reader stopped while loading.');
-        const logger = (m) => { if (ocrProgress) { try { ocrProgress(m); } catch (e) { /* ignore */ } } };
-        if (PFAT_OFFLINE) return T.createWorker([ocrModel()], 1, { workerBlobURL: false, workerPath: vendorURL(['core', 'worker']), cacheMethod: 'none', logger });
-        return T.createWorker('eng', 1, {
-          workerPath: OCR_BASE + 'worker.min.js',
-          corePath: OCR_CORE,
-          langPath: OCR_LANG,
-          cacheMethod: location.protocol === 'file:' ? 'none' : 'write',
-          logger
-        });
-      })
-      .then(async (w) => { if (w && typeof w.setParameters === 'function') await w.setParameters({ tessedit_pageseg_mode: '11', preserve_interword_spaces: '1', user_defined_dpi: '300' }); return w; });
-    ocrWorkerP = withTimeout(p, 120000, 'The text reader took too long to load.');
-    ocrWorkerP.catch(() => { ocrWorkerP = null; });
+      .then(() => { const T = window.Tesseract; if (!T || typeof T.createWorker !== 'function') throw new Error('The text reader stopped while loading.'); return T; });
+    ocrLibP.catch(() => { ocrLibP = null; });
   }
-  return ocrWorkerP;
+  return ocrLibP;
+}
+// One engine; its progress goes to whichever read holds it (w.__holder.cb)
+function startOcrEngine() {
+  const gen = ocrPool.gen, holder = {};
+  const p = withTimeout(ocrLib().then(T => {
+    const logger = (m) => { if (holder.cb) { try { holder.cb(m); } catch (e) { /* ignore */ } } };
+    if (PFAT_OFFLINE) return T.createWorker([ocrModel()], 1, { workerBlobURL: false, workerPath: vendorURL(['core', 'worker']), cacheMethod: 'none', logger });
+    return T.createWorker('eng', 1, { workerPath: OCR_BASE + 'worker.min.js', corePath: OCR_CORE, langPath: OCR_LANG, cacheMethod: location.protocol === 'file:' ? 'none' : 'write', logger });
+  }).then(async (w) => { if (w && typeof w.setParameters === 'function') await w.setParameters({ tessedit_pageseg_mode: '11', preserve_interword_spaces: '1', user_defined_dpi: '300' }); w.__holder = holder; return w; }), 120000, 'The text reader took too long to load.');
+  ocrPool.starting.push(p);
+  const gone = () => { ocrPool.starting = ocrPool.starting.filter(x => x !== p); };
+  return p.then(w => { gone(); if (gen !== ocrPool.gen) { try { w.terminate(); } catch (e) { /* ignore */ } throw userStop(); } ocrPool.all.push(w); return w; }, e => { gone(); throw e; });
+}
+// An idle engine, a new one while the device allows more, or the next one freed (first come, first served)
+function takeOcrWorker() {
+  if (ocrPool.idle.length) return Promise.resolve(ocrPool.idle.shift());
+  if (ocrPool.all.length + ocrPool.starting.length < ocrPoolSize()) return startOcrEngine();
+  return new Promise((resolve, reject) => ocrPool.waiting.push({ resolve, reject }));
+}
+function giveOcrWorker(w) { if (!ocrPool.all.includes(w)) return; const n = ocrPool.waiting.shift(); if (n) n.resolve(w); else ocrPool.idle.push(w); }
+// A stalled or failed engine goes, so the next read starts clean; one waiting for an engine gets a fresh one
+function dropOcrWorker(w) {
+  ocrPool.all = ocrPool.all.filter(x => x !== w); ocrPool.idle = ocrPool.idle.filter(x => x !== w);
+  try { w.terminate(); } catch (e) { /* ignore */ }
+  const n = ocrPool.waiting.shift(); if (n) startOcrEngine().then(n.resolve, n.reject);
+}
+function stopOcrWorker() {
+  ocrPool.gen++;
+  const all = ocrPool.all; ocrPool.all = []; ocrPool.idle = [];
+  for (const w of all) { try { w.terminate(); } catch (e) { /* ignore */ } }
+  const ws = ocrPool.waiting; ocrPool.waiting = []; for (const n of ws) n.reject(userStop());
+}
+// Starts the engines a read will use, before its pages go out, so the pages start in order
+async function ensureOcrEngines(n) {
+  const want = Math.min(n, ocrPoolSize()), ps = [];
+  while (ocrPool.all.length + ocrPool.starting.length < want) ps.push(startOcrEngine().then(w => { giveOcrWorker(w); }));
+  await Promise.all(ps);
 }
 /* Crop to the content, turn dark screens light, stretch contrast, enlarge small text. */
 function prepForOcr(src) {
@@ -7471,23 +7507,27 @@ function prepForOcr(src) {
   const x2 = c2.getContext('2d'); x2.imageSmoothingEnabled = true; x2.imageSmoothingQuality = 'high'; x2.drawImage(c1, 0, 0, c2.width, c2.height);
   return c2;
 }
-async function ocrCanvas(canvas, label) {
-  ocrProgress = (m) => {
+function sayRead(ctx, msg, cancellable) { if (ctx) ctx.say(msg); else setBusy(msg, cancellable); }
+async function ocrCanvas(canvas, label, ctx) {
+  const say = (m) => sayRead(ctx, m, true);
+  say(ocrPool.all.length ? label : PFAT_OFFLINE ? 'Starting the text reader on this device…' : 'Loading the text reader (first time only)…');
+  let w;
+  try { w = await takeOcrWorker(); } catch (e) { if (e && e.userStop) throw e; const x = e instanceof Error ? e : new Error(String(e)); x.ocrFail = true; x.loadFail = true; throw x; }
+  const h = w.__holder || {};
+  h.cb = (m) => {
     if (!m) return;
-    if (m.status === 'recognizing text' && typeof m.progress === 'number') setBusy(label + ' ' + Math.round(m.progress * 100) + '%', true);
-    else if (m.status && /load|initializ/i.test(m.status)) setBusy(PFAT_OFFLINE ? 'Starting the text reader on this device\u2026' : 'Loading the text reader (first time only)\u2026', true);
+    if (m.status === 'recognizing text' && typeof m.progress === 'number') say(label + ' ' + Math.round(m.progress * 100) + '%');
+    else if (m.status && /load|initializ/i.test(m.status)) say(PFAT_OFFLINE ? 'Starting the text reader on this device…' : 'Loading the text reader (first time only)…');
   };
   try {
-    setBusy(label, true);
-    let w;
-    try { w = await getOcrWorker(); } catch (e) { const x = e instanceof Error ? e : new Error(String(e)); x.ocrFail = true; x.loadFail = true; throw x; }
+    say(label);
     if (ocrCancel) throw userStop();
     const blob = await new Promise((res, rej) => canvas.toBlob(b => b ? res(b) : rej(new Error('Could not prepare the image.')), 'image/png'));
     let r;
     try { r = await withTimeout(w.recognize(blob, {}, { text: true, tsv: true }), 180000, 'Reading the image took too long.'); }
     catch (e) {
-      // a stalled or failed read: stop the worker so the next read starts clean
-      stopOcrWorker();
+      // a stalled or failed read: that engine goes, so the next read starts clean
+      dropOcrWorker(w); w = null;
       if (ocrCancel) throw userStop();
       const x = e instanceof Error ? e : new Error(String(e)); x.ocrFail = true; x.readFail = true; throw x;
     }
@@ -7496,18 +7536,21 @@ async function ocrCanvas(canvas, label) {
     let rows = d.tsv ? slOcrRowsFromTSV(d.tsv) : [];
     if (!rows.length && d.text) rows = String(d.text).split(/\r?\n/).map(t => ({ t: t.trim(), conf: 100 })).filter(x => x.t);
     return rows;
-  } finally { ocrProgress = null; }
+  } finally { h.cb = null; if (w) giveOcrWorker(w); }
 }
-async function ocrImageFile(file) {
+async function ocrImageFile(file, ctx) {
   let bmp;
   try { bmp = await createImageBitmap(file); }
   catch (e) { throw new Error('this image format can\'t be opened here. Screenshots (PNG or JPG) work everywhere; iPhone HEIC photos open in Safari.'); }
   const c = prepForOcr(bmp);
   if (bmp.close) bmp.close();
-  return ocrCanvas(c, 'Reading the image…');
+  return ocrCanvas(c, 'Reading the image…', ctx);
 }
-async function ocrPdf(pdf) {
-  const n = pdf.numPages, rows = [];
+// A scanned PDF read on its own spreads its pages over the engines the device allows (pages go out in order, a few at a
+// time, so memory stays bounded); a file in a list reads its pages in turn, since the other files keep the other engines busy
+async function ocrPdf(pdf, ctx) {
+  const n = pdf.numPages, lanes = ctx ? 1 : Math.max(1, Math.min(n, ocrPoolSize())), out = new Array(n), running = [];
+  if (lanes > 1) { sayRead(ctx, PFAT_OFFLINE ? 'Starting the text reader on this device…' : 'Loading the text reader (first time only)…', true); try { await ensureOcrEngines(lanes); } catch (e) { if (e && e.userStop) throw e; const x = e instanceof Error ? e : new Error(String(e)); x.ocrFail = true; x.loadFail = true; throw x; } }
   for (let i = 1; i <= n; i++) {
     if (ocrCancel) throw userStop();
     const page = await pdf.getPage(i);
@@ -7515,20 +7558,26 @@ async function ocrPdf(pdf) {
     const scale = Math.min(300 / 72, Math.sqrt(20e6 / Math.max(1, base.width * base.height))); // about 300 dpi
     const vp = page.getViewport({ scale });
     const c = document.createElement('canvas'); c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height);
-    const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
-    setBusy('Preparing page ' + i + ' of ' + n + '\u2026', true);
-    await page.render({ canvasContext: ctx, viewport: vp }).promise;
-    rows.push(...await ocrCanvas(prepForOcr(c), 'Reading page ' + i + ' of ' + n + '\u2026'), { t: '', conf: 100 });
+    const cx = c.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, c.width, c.height);
+    sayRead(ctx, 'Preparing page ' + i + ' of ' + n + '…', true);
+    await page.render({ canvasContext: cx, viewport: vp }).promise;
+    const job = ocrCanvas(prepForOcr(c), 'Reading page ' + i + ' of ' + n + '…', ctx).then(rows => { out[i - 1] = rows; });
+    job.catch(() => {}); running.push(job);
+    if (running.length >= lanes) await running.shift();
   }
+  await Promise.all(running);
+  const rows = []; for (const r of out) rows.push(...r, { t: '', conf: 100 });
   return rows;
 }
+let consentP = null;
 function ensureOcrConsent(name) {
   if (PFAT_OFFLINE || state.settings.ocrOk) return Promise.resolve(true); // the offline edition reads on this device and downloads nothing
-  return new Promise(resolve => {
+  if (consentP) return consentP; // (files read side by side share the one question)
+  consentP = new Promise(resolve => {
     let settled = false; const finish = (ok) => { if (settled) return; settled = true; resolve(ok); };
     const sheet = $('#sheet');
     sheet.innerHTML = '<div class="card" role="dialog" aria-modal="true" aria-label="Read the text in this file"><h2>Read the text in this ' + (/\.pdf$/i.test(name) ? 'scanned PDF' : 'image') + '?</h2>' +
-      '<p><b>' + esc(name) + '</b> is a picture of a statement, so PFAT has to recognize its text first. It uses <b>Tesseract</b>, the open-source OCR engine first built at HP and developed for years at Google (Apache 2.0 license), running entirely in this browser.</p>' +
+      '<p><b>' + esc(name) + '</b> is a picture of a statement, so PFAT has to recognize its text first. It uses <b>Tesseract</b>, the open-source OCR engine (Apache 2.0 license), running entirely in this browser.</p>' +
       '<p class="muted small">The first time, the engine and its English model (a few megabytes) download from jsDelivr, the public CDN for open-source packages. Your file stays on this device.</p>' +
       '<div class="actions"><button class="btn primary" id="ocrYes">Read it</button><button class="btn" id="ocrNo">Not now</button></div>' +
       '<p class="muted small" style="margin-top:10px">Prefer to keep every step on this device? Copy the text with your phone or computer, then use Paste text, or use the <a href="' + PFAT_DOWNLOADS + '" target="_blank" rel="noopener">offline download</a>, which has the reader built in.</p></div>';
@@ -7538,6 +7587,8 @@ function ensureOcrConsent(name) {
     $('#ocrNo').onclick = () => { finish(false); closeSheet(); };
     $('#ocrYes').focus();
   });
+  consentP.then(() => { consentP = null; });
+  return consentP;
 }
 function showOcrHelp(reason, kind) {
   const sheet = $('#sheet'), pdf = kind === 'pdf', reader = pdf ? 'PDF reader' : 'text reader';
@@ -7558,12 +7609,12 @@ function showOcrHelp(reason, kind) {
   $('#ocrClose').onclick = () => { closeSheet(); };
   $('#ocrPaste').focus();
 }
-function startOcrPreview(name, rows, fromPdf, numPages) {
+function startOcrPreview(name, rows, fromPdf, numPages, ctx) {
   const text = rows.map(r => r.t).join('\n');
   if (!text.replace(/\s/g, '')) throw new Error('no text could be recognized in it');
   const lineConf = new Map(rows.filter(r => r.t).map(r => [r.t, r.conf]));
-  setBusy('');
-  startPreview('text', name, { text, fromPdf, fromOcr: true, lineConf, ocrRows: rows, ocrText: text, numPages: numPages || 1 });
+  sayRead(ctx, '');
+  startPreview('text', name, { text, fromPdf, fromOcr: true, lineConf, ocrRows: rows, ocrText: text, numPages: numPages || 1 }, ctx);
 }
 // One verdict line (brief 4.5): what kind of statement, how it prints signs, what that became in the member's view
 const SL_TAG_TIPS = { 'check': 'The text reader was unsure about this amount', 'check amount': 'The amount was rebuilt (a lost decimal point, or a running balance); check it against the statement', 'date fixed': 'The printed date was repaired; it is the only reading inside the statement period', 'date guessed': 'The date was missing or unreadable, so it comes from the rows around it', 'date outside statement': 'This date is outside the statement period (or after today); it is unticked', 'date check': 'This row is out of date order; its date may be misread', 'suggested': 'Another reading of this amount is suggested; nothing changes until you apply the suggested fixes', 'fixed': 'You applied the suggested reading' };
