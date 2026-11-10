@@ -79,6 +79,16 @@ section > .series-h:first-child { margin-top: 0; }
 .btn.primary { background: var(--ink); color: #fff; }
 .btn:hover { filter: brightness(1.08); }
 .meta { margin: 0; font-size: 12.5px; color: var(--muted); }
+.dlmenu[open] { flex-basis: 100%; }
+.dlmenu > summary { cursor: pointer; list-style: none; }
+.dlmenu > summary::-webkit-details-marker { display: none; }
+.dlmenu > summary::after { content: " ▾"; }
+.dlmenu[open] > summary::after { content: " ▴"; }
+.dlmenu ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.dlmenu li { display: grid; gap: 2px; }
+.dlmenu li a { font-weight: 700; color: var(--ink); }
+.dlmenu .dlm { font-size: 12.5px; color: var(--muted); }
+.dlmenu .dlm code { display: block; font: 11.5px/1.4 ui-monospace, "SF Mono", Consolas, "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; color: var(--ink-2); }
 .meta code { display: block; margin-top: 3px; font: 11.5px/1.4 ui-monospace, "SF Mono", Consolas, "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; color: var(--ink-2); }
 .soon { border-style: dashed; justify-content: center; align-items: center; text-align: center; color: var(--muted); min-height: 140px; }
 .how ul { margin: 0 0 28px; padding-left: 20px; max-width: 75ch; }
@@ -113,7 +123,7 @@ footer { border-top: 1px solid var(--rule); padding: 18px 0 30px; font-size: 13p
         <p class="desc">Windows 11 and Windows Server 2025 hardening scenarios in your browser. Sign in, read the scenario brief, answer the investigation questions, then fix each one with the real panels or the command line while a live Progress Check keeps count.</p>
         <ul class="badges" aria-label="Tags"><li>Windows</li><li>Hardening</li><li>No VM</li><li>Private</li></ul>
         <div class="actions"><a class="btn primary" href="../lockdown-range/windows/">Open</a><a class="btn" href="../lockdown-range/windows/index.html" download="windows-range.html">Download .html</a><a class="btn" href="../lockdown-range/windows/reference.txt" download="windows-range-walkthrough.txt">Walkthrough .txt</a></div>
-        <p class="meta">Updated 2026-11-04 &middot; 878 KB &middot; SHA-256<code>282b141c7ccabf452a4fca0ced987c1c283b71f099230773bcdb70730c5253ff</code></p>
+        <p class="meta">Updated 2026-11-09 &middot; 892 KB &middot; SHA-256<code>42a5502ffffb54a8fd74063fdad8c4aaa067cc79109584e4a45c49aea925fe21</code></p>
       </li>
       <li class="tool">
         <div class="tool-head"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="44" height="44" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0A7552"/><rect x="6.5" y="8" width="19" height="13" rx="1.6" fill="none" stroke="#fff" stroke-width="2.6"/><path d="M12.5 25h7M16 21v4" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/></svg><div><h2 class="tool-name"><a href="../lockdown-range/linux/">Linux Range</a></h2><p class="tagline">Harden the box from the shell.</p></div></div>

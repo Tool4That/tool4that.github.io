@@ -131,8 +131,41 @@
       "icon": "path",
       "category": "cyber",
       "section": "learning",
-      "sha256": "bff25992c0e06c0c4b9f62dbfbc63cb8942aa33d664bc459356ce5dd73171d83",
-      "updated": "2026-11-09"
+      "sha256": "e12d343ef7f697fdae6c162aa454a52eaca1e2cc44192b2bd19aeab7a8095b05",
+      "updated": "2026-11-09",
+      "download_menu": true,
+      "download_label": "Everything (all four grades)",
+      "extras": [
+        {
+          "label": "Freshman only",
+          "file": "defense-ladder/freshman.html",
+          "download_as": "defense-ladder-freshman.html",
+          "sha256": "7d03e777aba0ab39563c6fef267dd4b97f8c0634aca675b425ec5d46ab9cee53",
+          "updated": "2026-11-09"
+        },
+        {
+          "label": "Sophomore only",
+          "file": "defense-ladder/sophomore.html",
+          "download_as": "defense-ladder-sophomore.html",
+          "sha256": "95d38cce5962b6fbe6295cef8ac25281a91661850d05fdd26d650831d4056bc4",
+          "updated": "2026-11-09"
+        },
+        {
+          "label": "Junior only",
+          "file": "defense-ladder/junior.html",
+          "download_as": "defense-ladder-junior.html",
+          "sha256": "42f51630a332337b7e59aba83c55b5c21d000aa7e1f3b4eeda51d07b5cd79c29",
+          "updated": "2026-11-09"
+        },
+        {
+          "label": "Senior only",
+          "file": "defense-ladder/senior.html",
+          "download_as": "defense-ladder-senior.html",
+          "sha256": "4c07491608ac86c5f45d6bd65c269ab5235a9a92a62adc09fb89ce1dda5f6a9e",
+          "updated": "2026-11-09"
+        }
+      ],
+      "download_note": "Each grade also comes as its own smaller download for offline use; links to other grades open the online course."
     },
     {
       "slug": "net-drills/subnet-sprint",
@@ -233,8 +266,8 @@
           "download_as": "windows-11-lockdown-reference.txt"
         }
       ],
-      "sha256": "17dbc5fec948b075d6da4f5125562d33131d9f1374a241403472d7b611e9b065",
-      "updated": "2026-11-04"
+      "sha256": "aac1eea31b6bb59c7b99ca2c223f4d59e460033c0a0d6001ecbc198bdda399e7",
+      "updated": "2026-11-09"
     },
     {
       "slug": "lockdown-drills/windows-server",
@@ -259,8 +292,8 @@
           "download_as": "windows-server-lockdown-reference.txt"
         }
       ],
-      "sha256": "2538a54d437c0ad353ab831698c461bded7050dab3d81f90a183ca6ba204b384",
-      "updated": "2026-11-04"
+      "sha256": "13a1dd8b167081b72b23ed5f5480e147efaf619c450af9270c04f09708efb305",
+      "updated": "2026-11-09"
     },
     {
       "slug": "lockdown-drills/linux-mint",
@@ -389,8 +422,8 @@
           "download_as": "windows-range-walkthrough.txt"
         }
       ],
-      "sha256": "282b141c7ccabf452a4fca0ced987c1c283b71f099230773bcdb70730c5253ff",
-      "updated": "2026-11-04"
+      "sha256": "42a5502ffffb54a8fd74063fdad8c4aaa067cc79109584e4a45c49aea925fe21",
+      "updated": "2026-11-09"
     },
     {
       "slug": "lockdown-range/linux",
@@ -460,7 +493,7 @@
       "icon": "map",
       "category": "cyber",
       "section": "learning",
-      "sha256": "98b2cdf9436a120c1bfdcf0b36eeceeccf7f4a549fc5d8acdf6fa6d4643943d7",
+      "sha256": "8f371b1e2a65b31c5d7852d249797a75a4b3f741b6843753329ecf6e2fec3729",
       "updated": "2026-11-09"
     },
     {

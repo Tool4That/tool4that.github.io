@@ -98,6 +98,16 @@ section > .series-h:first-child { margin-top: 0; }
 .btn.primary { background: var(--ink); color: #fff; }
 .btn:hover { filter: brightness(1.08); }
 .meta { margin: 0; font-size: 12.5px; color: var(--muted); }
+.dlmenu[open] { flex-basis: 100%; }
+.dlmenu > summary { cursor: pointer; list-style: none; }
+.dlmenu > summary::-webkit-details-marker { display: none; }
+.dlmenu > summary::after { content: " ▾"; }
+.dlmenu[open] > summary::after { content: " ▴"; }
+.dlmenu ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.dlmenu li { display: grid; gap: 2px; }
+.dlmenu li a { font-weight: 700; color: var(--ink); }
+.dlmenu .dlm { font-size: 12.5px; color: var(--muted); }
+.dlmenu .dlm code { display: block; font: 11.5px/1.4 ui-monospace, "SF Mono", Consolas, "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; color: var(--ink-2); }
 .meta code { display: block; margin-top: 3px; font: 11.5px/1.4 ui-monospace, "SF Mono", Consolas, "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; color: var(--ink-2); }
 .soon { border-style: dashed; justify-content: center; align-items: center; text-align: center; color: var(--muted); min-height: 140px; }
 .how ul { margin: 0 0 28px; padding-left: 20px; max-width: 75ch; }
@@ -157,6 +167,20 @@ def tool_card(t, base, lvl=3):
     extras = "".join(f'<a class="btn" href="{base}{e(x["file"])}" download="{e(x.get("download_as") or Path(x["file"]).name)}">{e(x["label"])}</a>' for x in t.get("extras", []))
     label = t.get("download_label", "Download .html")
     note = f'        <p class="desc">{e(t["download_note"])}</p>\n' if t.get("download_note") else ""
+    if t.get("download_menu"):
+        # one Download menu: the main file first, then each .html extra, each with its size and SHA-256
+        items = [(t.get("download_label", "Everything"), t, t["file"], t["download_as"])] + [
+            (x["label"], x, x["file"], x.get("download_as") or Path(x["file"]).name) for x in html_extras(t)]
+        lis = "".join(f'<li><a href="{base}{e(f)}" download="{e(da)}">{e(lab)}</a><span class="dlm">{size(x["_kb"])} &middot; Updated {x["updated"]} &middot; SHA&#8209;256<code>{x["sha256"]}</code></span></li>'
+                      for lab, x, f, da in items)
+        menu = f'<details class="dlmenu"><summary class="btn">{e(t.get("download_menu_label", "Download"))}</summary><ul>{lis}</ul></details>'
+        return f"""      <li class="tool">
+        <div class="tool-head">{mark(t.get('icon', 'four'), 44)}<div><h{lvl} class="tool-name"><a href="{base}{e(t['slug'])}/">{e(t['name'])}</a></h{lvl}><p class="tagline">{e(t['tagline'])}</p></div></div>
+        <p class="desc">{e(t['description'])}</p>
+        <ul class="badges" aria-label="Tags">{badges}</ul>
+        <div class="actions"><a class="btn primary" href="{base}{e(t['slug'])}/">Open</a>{menu}</div>
+{note}      </li>
+"""
     if html_extras(t):
         meta = '</p>\n        <p class="meta">'.join(f'{e(lab)} &middot; Updated {x["updated"]} &middot; {size(x["_kb"])} &middot; SHA&#8209;256<code>{x["sha256"]}</code>'
                        for lab, x in [(label, t)] + [(x["label"], x) for x in html_extras(t)])

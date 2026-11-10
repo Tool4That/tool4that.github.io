@@ -184,6 +184,11 @@ details.ans>summary{cursor:pointer;font-size:var(--t-sm);color:var(--accent);tex
 details.ans[open]>summary{margin-bottom:.15rem}
 details.more>summary{cursor:pointer;margin:.4rem 0;font-size:var(--t-md);color:var(--accent)}
 .sup{margin:.2rem 0 0;padding-left:1.1rem;font-size:var(--t-md)}
+.cite{margin-left:.15rem;font:600 .7rem/0 var(--body);vertical-align:super}
+.cite a{display:inline-block;padding:.35rem .2rem;margin:-.35rem 0}
+.d h2 .cite{font-size:.75rem}
+.cites{margin:.2rem 0 0;padding-left:1.4rem;font-size:var(--t-md)}
+.cites li{margin:.15rem 0;overflow-wrap:anywhere}
 @media print{
   #app,.skip{display:none!important}
   #all{display:block!important}
@@ -594,7 +599,16 @@ details.more>summary{cursor:pointer;margin:.4rem 0;font-size:var(--t-md);color:v
   function trapChip() { return el('span', {cls: 'k k-trap', text: 'Wrong on purpose', title: 'This place uses the line as a wrong choice or a mistake to catch. Read why before you copy it.'}); }
   function cmdDetail(f) {
     var C = cliData(), d = el('div', {cls: 'd'});
-    d.appendChild(el('h2', null, [el('code', {text: f.name}), sysBubble(f.os)]));
+    // vendor documentation: one number per vendor page; an option with its own anchor links there under its page's number
+    var refs = [], doc = f.doc;
+    function page(u) { return u.split('#')[0]; }
+    function cite(u, t) {
+      var n = 0;
+      for (var i = 0; i < refs.length; i++) if (page(refs[i].u) === page(u)) n = i + 1;
+      if (!n) { refs.push({u: u, t: t}); n = refs.length; }
+      return el('sup', {cls: 'cite'}, [el('a', {href: u, target: '_blank', rel: 'noopener noreferrer', title: t + ' (opens the vendor’s page)', 'aria-label': 'Source ' + n + ': ' + t, text: String(n)})]);
+    }
+    d.appendChild(el('h2', null, [el('code', {text: f.name}), doc ? cite(doc.u, doc.t) : null, sysBubble(f.os)]));
     var meta = [f.cat, plural(f.n, 'use', 'uses') + ' in the apps'];
     d.appendChild(el('p', {cls: 'meta', text: meta.join(' · ')}));
     if (f.what) d.appendChild(el('p', {text: f.what}));
@@ -614,7 +628,8 @@ details.more>summary{cursor:pointer;margin:.4rem 0;font-size:var(--t-md);color:v
         tries.forEach(function (s) { used[s.p] = true; });
         var tryTools = [];
         tries.forEach(function (s) { s.t.forEach(function (t) { if (tryTools.indexOf(t) < 0) tryTools.push(t); }); });
-        dl.appendChild(el('dt', null, [el('code', {text: o.o})]));
+        var od = doc && doc.o && doc.o[o.o];
+        dl.appendChild(el('dt', null, [el('code', {text: o.o}), !od ? null : typeof od === 'string' ? cite(page(doc.u) + od, doc.t) : cite(od.u, od.t)]));
         dl.appendChild(el('dd', null, [o.w || '',
           exp ? el('span', {cls: 'k k-exp', text: 'Expected'}) : shown ? el('span', {cls: 'k', text: 'In a lesson'}) : null,
           tryTools.length && !exp ? el('span', {cls: 'k k-try', text: 'Try it: ' + tryTools.map(function (t) { return (C.tools[t] || {name: t}).name; }).join(', ')}) : null]));
@@ -651,6 +666,10 @@ details.more>summary{cursor:pointer;margin:.4rem 0;font-size:var(--t-md);color:v
     if (vf.length) { d.appendChild(el('h3', {text: 'Check your work with'})); d.appendChild(cmdChips(vf)); }
     var same = (f.same || []).filter(function (id) { return C.byId[id]; });
     if (same.length) { d.appendChild(el('h3', {text: 'Same job on other systems'})); d.appendChild(cmdChips(same)); }
+    if (refs.length) {
+      d.appendChild(el('h3', {text: 'Vendor documentation'}));
+      d.appendChild(el('ol', {cls: 'cites'}, refs.map(function (r) { return el('li', null, [el('a', {href: r.u, target: '_blank', rel: 'noopener noreferrer', text: r.t})]); })));
+    }
     d.appendChild(el('p', {cls: 'share'}, [el('button', {cls: 'chip', type: 'button', 'data-copycmd': f.id, text: 'Copy a link to this command'})]));
     return d;
   }

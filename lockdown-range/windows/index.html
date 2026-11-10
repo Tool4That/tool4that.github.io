@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-7EBxYsdETJs8vJu81k19CkrTWqJRiHchbPTl/w8hdXU='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-tD4YSqG9CCDMSnloEriUA2jvePsS+tnGNL++dCDu/SA='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/lockdown-range/windows/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%96%A5%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -6879,6 +6879,207 @@ Object.assign(PIPE_BIND, { 'remove-appxpackage': 'PackageFullName', 'set-netfire
 CMD_NAMES.push('findstr', 'tar', 'powercfg', 'runas', 'ssh', 'winrm');
 PS_NAMES.push('Set-NetFirewallRule', 'Get-Acl', 'Get-AppxPackage', 'Remove-AppxPackage', 'Export-ScheduledTask', 'Get-SmbShareAccess', 'Grant-SmbShareAccess', 'Revoke-SmbShareAccess', 'Import-Module', 'Update-Help', 'Read-Host', 'Backup-BitLockerKeyProtector', 'BackupToAAD-BitLockerKeyProtector', 'Remove-WindowsCapability', 'Add-WindowsCapability', 'ForEach-Object', 'Out-Null', 'New-Object', 'Get-LapsADPassword');
 
+/* ===== 76-cmds-sysinternals: the command-line Sysinternals tools the course teaches, run against the machine state =====
+   sigcheck (signatures), autorunsc (auto-start entries), accesschk (permissions), streams (alternate data streams),
+   and tcpvcon (connections with their owning process). Each is a single signed download the Range models as present;
+   -accepteula and -nobanner are accepted and ignored, and unknown switches are ignored so a taught line still runs. */
+
+/* split a tool's arguments into single-letter flags (so -uwcqv is five flags) and the remaining words */
+function sysArgs(a) {
+  const flags = new Set(), words = [];
+  a.forEach(t => {
+    if (/^[-/]accepteula$/i.test(t) || /^[-/]nobanner$/i.test(t)) return;
+    if (/^[-/][A-Za-z]+$/.test(t)) { t.slice(1).split('').forEach(c => flags.add(c.toLowerCase())); return; }
+    if (t === '*') { words._star = true; return; }   // a lone * means "everything"; keep it off the word list
+    words.push(t);
+  });
+  return { flags, words };
+}
+/* an entry's image file: expand %windir%/%systemroot%, take a quoted path whole, or keep words up to and including the
+   program file, so an unquoted path with spaces (C:\Program Files (x86)\...\prog.exe -c) stays in one piece */
+function sysImage(cmd) {
+  if (!cmd) return '';
+  let s = String(cmd).trim().replace(/%windir%|%systemroot%/ig, 'C:\\Windows');
+  if (s.charAt(0) === '"') { const j = s.indexOf('"', 1); return j > 0 ? s.slice(1, j) : s.slice(1); }
+  const toks = s.split(' '), parts = [];
+  for (const tk of toks) { if (/^[-/]/.test(tk)) break; parts.push(tk); if (/\.(exe|bat|cmd|ps1|dll|com|msc|vbs|scr|sys)$/i.test(tk)) break; }
+  return parts.join(' ') || toks[0];
+}
+// the Windows-owned locations a modeled-but-absent file still counts as Microsoft-signed from
+const SYS_DIR = /^c:\\(windows|program files( \(x86\))?)\\|^c:\\programdata\\microsoft\\|\\appdata\\(local|roaming)\\microsoft\\/i;
+/* the publisher and verification the Range models for a program: a file it holds uses the same rule as
+   Get-AuthenticodeSignature (Windows and Program Files are Microsoft-signed, a program in a user folder is unsigned);
+   a system path it does not model counts as Microsoft */
+function sysSig(cmd) {
+  const p = sysImage(cmd);
+  if (!p) return { verified: false, publisher: '', e: null, path: p };
+  const e = fsGet(fsResolve('C:\\Windows\\System32', p));
+  if (e && e.t === 'f') { const g = sigOf(e); const v = g.Status === 'Valid'; return { verified: v, publisher: v ? (/^c:\\windows/i.test(e.p) ? 'Microsoft Windows' : 'Microsoft Corporation') : '', e, path: e.p }; }
+  if (SYS_DIR.test(p)) return { verified: true, publisher: 'Microsoft Windows', e: null, path: p };
+  return { verified: false, publisher: '', e: null, path: p };
+}
+
+/* ---------- sigcheck: signatures and hashes for files (sigcheck -u -e <folder>) ---------- */
+function sigcheckCmd(ctx, a) {
+  const { flags, words } = sysArgs(a);
+  const raw = words[0];
+  if (!raw) return { text: 'sigcheck [-u][-e][-h][-s] <file or directory>\n    -u  show only files that are unsigned or fail verification\n    -e  scan executable images only (by header, not extension)\n    -h  show file hashes\n    -s  recurse subdirectories' };
+  const path = fsResolve(ctx.t.cwd, raw), e = fsGet(path);
+  let files;
+  if (e && e.t === 'd') files = (flags.has('s') ? fsDescendants(path) : fsChildren(path, true)).filter(x => x.t === 'f');
+  else if (e) files = [e];
+  else if (/[*?]/.test(raw)) files = fsGlob(ctx.t.cwd, raw).filter(x => x.t === 'f');
+  else return { text: path + ':\n\tThe system cannot find the file specified.', cls: 'err' };
+  if (flags.has('e')) files = files.filter(x => /\.(exe|dll|sys|scr|com|ocx|cpl|msi|ps1)$/i.test(x.n));
+  const out = [];
+  files.sort((x, y) => x.p.localeCompare(y.p)).forEach(x => {
+    const g = sigOf(x), verified = g.Status === 'Valid';
+    if (flags.has('u') && verified) return;   // -u: unsigned or unverified only
+    out.push(x.p + ':');
+    out.push('\tVerified:\t' + (verified ? 'Signed' : 'Unsigned'));
+    out.push('\tPublisher:\t' + (verified ? (/^c:\\windows/i.test(x.p) ? 'Microsoft Windows' : 'Microsoft Corporation') : 'n/a'));
+    if (flags.has('h')) { out.push('\tMD5:\t' + md5Hex(fileBytes(x)).toUpperCase()); out.push('\tSHA256:\t' + sha256Hex(fileBytes(x)).toUpperCase()); }
+    out.push('');
+  });
+  if (!out.length) return { text: flags.has('u') ? 'No unsigned files found.' : 'No matching files were found.' };
+  return { text: out.join('\n') };
+}
+
+/* ---------- autorunsc: every auto-start entry, with signatures (-s), hashes (-h), and Microsoft entries hidden (-m) ---------- */
+function autorunLogon() {
+  const out = [];
+  startupItems().filter(it => /\\Run$/i.test(it.Location)).forEach(it => out.push({ loc: it.Location, entry: it.Name, image: it.Command, cat: 'Logon' }));
+  const dirs = [['C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\StartUp', 'Startup (common)']];
+  Object.values(S.users).forEach(u => { if (u.home) dirs.push([u.home + '\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup', 'Startup (' + u.name + ')']); });
+  dirs.forEach(([dir, loc]) => fsChildren(dir, true).filter(x => x.t === 'f' && !/^desktop\.ini$/i.test(x.n)).forEach(x => out.push({ loc, entry: x.n.replace(/\.lnk$/i, ''), image: x.lnk || x.p, cat: 'Logon' })));
+  return out;
+}
+function autorunEntries() {
+  const out = autorunLogon();
+  S.tasks.forEach(t => out.push({ loc: 'Task Scheduler', entry: (t.folder === '\\' ? '\\' : t.folder + '\\') + t.name, image: t.action, cat: 'Scheduled Tasks' }));
+  serviceList().forEach(s => { if (/^Auto/i.test(s.start)) out.push({ loc: 'Services', entry: s.name, image: s.path, cat: 'Services', note: s.display }); });
+  return out;
+}
+function autorunscCmd(ctx, a) {
+  const { flags } = sysArgs(a);
+  const csv = flags.has('c'), wantSig = flags.has('s'), wantHash = flags.has('h'), hideMs = flags.has('m');
+  const rows = autorunEntries().map(it => {
+    const sig = sysSig(it.image);
+    return { loc: it.loc, entry: it.entry, cat: it.cat, image: sig.path || '', verified: sig.verified, publisher: sig.publisher, hash: wantHash && sig.e ? sha256Hex(fileBytes(sig.e)).toUpperCase() : '' };
+  }).filter(r => !(hideMs && r.verified));
+  if (!rows.length) return { text: hideMs ? 'No non-Microsoft auto-start entries found.' : 'No auto-start entries found.' };
+  if (csv) {
+    const head = ['Entry Location', 'Entry', 'Category', 'Enabled', 'Publisher', 'Image Path'].concat(wantHash ? ['SHA-256'] : []);
+    const line = r => [r.loc, r.entry, r.cat, 'enabled', (wantSig ? (r.verified ? '(Verified) ' : '(Not verified) ') : '') + (r.publisher || ''), r.image].concat(wantHash ? [r.hash] : []).map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',');
+    return { text: head.join(',') + '\n' + rows.map(line).join('\n') };
+  }
+  const out = []; let loc = null;
+  rows.forEach(r => {
+    if (r.loc !== loc) { loc = r.loc; out.push('', loc); }
+    out.push('  ' + r.entry);
+    if (wantSig) out.push('    ' + (r.verified ? '(Verified) ' + (r.publisher || 'Microsoft') : '(Not verified) ' + (r.publisher || '')));
+    if (r.image) out.push('    ' + r.image);
+    if (wantHash && r.hash) out.push('    SHA-256: ' + r.hash);
+  });
+  return { text: out.join('\n') };
+}
+
+/* ---------- accesschk: who may read or change a file, folder, or service (accesschk -w, -s, -c) ---------- */
+// does this permission string grant write? the simple-rights letters plus the specific write masks the model stores
+function aclCanWrite(perm) { return String(perm).split(',').some(r => ['F', 'M', 'W', 'WD', 'AD', 'WA', 'WEA', 'GA', 'GW'].includes(r.trim())); }
+function aclCanRead(perm) { return String(perm).split(',').some(r => ['F', 'M', 'RX', 'R', 'X', 'GR', 'GE'].includes(r.trim())) || /^GR/.test(perm); }
+// the account the user named, canonicalized; Everyone and Authenticated Users stand in for any ordinary account
+function accPrincipalMatch(who, principal) {
+  if (!principal) return true;
+  const want = aclWho(principal) || principal;
+  if (sameName(who, want)) return true;
+  return who === 'Everyone' || who === 'NT AUTHORITY\\Authenticated Users';
+}
+function accesschkCmd(ctx, a) {
+  const { flags, words } = sysArgs(a);
+  const svc = flags.has('c'), writeOnly = flags.has('w'), recurse = flags.has('s');
+  let principal = null, object = null;
+  if (words._star) { object = '*'; principal = words[0] || null; }
+  else if (words.length >= 2) { principal = words[0]; object = words[1]; }
+  else if (words.length === 1) object = words[0];
+  // service mode: the access the named account has to each service, read from the folder that holds its program
+  if (svc) {
+    const want = object && object !== '*' ? object : '*';
+    const list = serviceList().filter(s => globRe(want.replace(/\.exe$/i, '')).test(s.name) || globRe(want).test(s.display));
+    if (!list.length) return { text: 'No matching services were found.' };
+    const out = [];
+    list.forEach(s => {
+      const img = sysSig(s.path), e = img.e, dir = e ? aclOf(fsParent(e.p)) : [], own = e ? aclOf(e.p) : [];
+      const canWrite = own.concat(dir).some(x => !/\(IO\)/.test(x.fl) && accPrincipalMatch(x.who, principal) && aclCanWrite(x.perm));
+      if (writeOnly && !canWrite) return;
+      out.push((canWrite ? 'RW  ' : 'R   ') + s.name);
+    });
+    if (!out.length) return { text: writeOnly ? 'No services grant write access to ' + (principal || 'the account') + '.' : 'No matching services were found.' };
+    return { text: out.join('\n') };
+  }
+  // file/folder mode
+  if (!object) return { text: 'accesschk [-w][-s][-c] [user-or-group] <file, directory, or service>\n    -w  show only objects the account can write\n    -s  recurse subdirectories\n    -c  the name is a Windows service (* for all)' };
+  const base = fsGet(fsResolve(ctx.t.cwd, object));
+  if (!base && !/[*?]/.test(object)) return { text: 'No matching files were found.' };
+  let targets = [];
+  if (base && base.t === 'd') targets = [base].concat(recurse ? fsDescendants(fsResolve(ctx.t.cwd, object)) : fsChildren(fsResolve(ctx.t.cwd, object), true));
+  else if (base) targets = [base];
+  else targets = fsGlob(ctx.t.cwd, object);
+  const out = [];
+  targets.forEach(t => {
+    const entries = aclOf(t.p).filter(x => !/\(IO\)/.test(x.fl) && accPrincipalMatch(x.who, principal)).map(x => ({ who: x.who, w: aclCanWrite(x.perm), r: aclCanRead(x.perm) }));
+    const show = writeOnly ? entries.filter(x => x.w) : entries;
+    if (!show.length) return;
+    out.push(t.p);
+    show.forEach(x => out.push('  ' + (x.r ? 'R' : ' ') + (x.w ? 'W' : ' ') + ' ' + x.who));
+  });
+  if (!out.length) return { text: writeOnly ? (principal || 'The account') + ' has no write access to ' + object + '.' : 'No matching access was found.' };
+  return { text: out.join('\n') };
+}
+
+/* ---------- streams: the alternate data streams on a file or under a folder (streams -s, streams -d) ---------- */
+function streamsCmd(ctx, a) {
+  const { flags, words } = sysArgs(a);
+  const raw = words[0], recurse = flags.has('s'), del = flags.has('d');
+  if (!raw) return { text: 'streams [-s][-d] <file or directory>\n    -s  recurse subdirectories\n    -d  delete the streams' };
+  const path = fsResolve(ctx.t.cwd, raw), e = fsGet(path);
+  let files;
+  if (e && e.t === 'd') files = (recurse ? fsDescendants(path) : fsChildren(path, true)).filter(x => x.t === 'f');
+  else if (e) files = [e];
+  else if (/[*?]/.test(raw)) files = fsGlob(ctx.t.cwd, raw).filter(x => x.t === 'f');
+  else return { text: '\nNo matching files were found.' };
+  const out = [], hits = [];
+  files.sort((x, y) => x.p.localeCompare(y.p)).forEach(x => { const names = Object.keys(x.streams || {}); if (names.length) { hits.push(x); out.push(x.p + ':'); names.forEach(n => out.push('   :' + n + ':$DATA\t' + x.streams[n].length)); } });
+  if (!hits.length) return { text: '\nNo files with streams found.' };
+  if (del) {
+    const deleted = [];
+    hits.forEach(x => Object.keys(x.streams).forEach(n => deleted.push('Deleted ' + x.p + ':' + n + ':$DATA')));
+    mutate(() => hits.forEach(x => { delete x.streams; }));
+    return { text: '\n' + deleted.join('\n') };
+  }
+  return { text: '\n' + out.join('\n') };
+}
+
+/* ---------- tcpvcon: every TCP and UDP endpoint with the process that owns it (tcpvcon -a -c) ---------- */
+function tcpvconRows(all) {
+  const ip = S.network.ip, rows = [];
+  rows.push({ proto: 'TCP', proc: 'explorer.exe', pid: 3312, state: 'ESTABLISHED', local: ip + ':50122', remote: '203.0.113.40:443' });
+  if (all) listeningPorts().forEach(l => rows.push({ proto: l.udp ? 'UDP' : 'TCP', proc: l.proc, pid: l.pid, state: l.udp ? '' : 'LISTENING', local: '0.0.0.0:' + l.port, remote: l.udp ? '*:*' : '0.0.0.0:0' }));
+  return rows;
+}
+function tcpvconCmd(ctx, a) {
+  const { flags } = sysArgs(a);
+  const rows = tcpvconRows(flags.has('a'));
+  if (flags.has('c')) return { text: 'Protocol,Process,PID,State,Local Address,Remote Address\n' + rows.map(r => [r.proto, r.proc, r.pid, r.state, r.local, r.remote].join(',')).join('\n') };
+  const out = [];
+  rows.forEach(r => { out.push('[' + r.proto + '] ' + r.proc); out.push('    PID:     ' + r.pid); if (r.state) out.push('    State:   ' + r.state); out.push('    Local:   ' + r.local); out.push('    Remote:  ' + r.remote); out.push(''); });
+  return { text: out.join('\n') };
+}
+
+/* ---------- registration: the five tools reach both Command Prompt and PowerShell, like any program on the PATH ---------- */
+Object.assign(CMDS, { sigcheck: sigcheckCmd, autorunsc: autorunscCmd, accesschk: accesschkCmd, streams: streamsCmd, tcpvcon: tcpvconCmd });
+CMD_NAMES.push('accesschk', 'autorunsc', 'sigcheck', 'streams', 'tcpvcon');
+
 /* ===== 85-scenarios: the three practice labs (state builders, scenario brief, investigation questions, checks, availability checks) ===== */
 function investigationFile(n, q) { return 'Investigation ' + n + '\r\n\r\n' + q.text.replace(/(.{1,72})(\s+|$)/g, '$1\r\n') + '\r\n' + (q.hint ? ('(' + q.hint + ')').replace(/(.{1,72})(\s+|$)/g, '$1\r\n') + '\r\n' : '\r\n') + 'ANSWER: \r\n'; }
 function normAnswer(t) { return String(t || '').toLowerCase().replace(/[“”"']/g, '').replace(/\s+/g, ' ').trim(); }
@@ -7371,6 +7572,7 @@ function openHelp() {
   const sec = (t, items) => { body.appendChild(h('h3', { text: t })); const ul = h('ul'); items.forEach(i => ul.appendChild(h('li', { text: i }))); body.appendChild(ul); };
   sec('The routine', ['Pick a scenario (header pills) and let it boot. Sign in with the lab account shown under the password box (labuser / Easy!2026 on Recruit, Medium!2026 on Operator, and Hard!2026 on Captain).', 'Open Scenario Brief.txt on the Desktop. Write down the authorized administrators, users, and required services: you must keep those available.', 'The brief sets the password and lockout numbers, and the matching check titles repeat them: Recruit shows them as you work, and every level shows them in the Debrief.','Answer the investigation questions (open each Investigation N.txt on the Desktop in Notepad, type after ANSWER:, press Ctrl+S).', 'Start Windows Update early (Settings > Windows Update > Resume updates > Check for updates > Install all) and keep working while it installs; restart once near the end.', 'Work through the hardening areas (aligned with the CIS Critical Security Controls v8): account management, access control, secure configuration (services, firewall, features, software), patching, malware defenses, audit logging, and data protection (media files).', 'Watch the Progress Check. Finish / Debrief shows every miss with its fix and why it matters.']);
   sec('Getting to the tools', ['Start > Run (or Alt+R) and type: lusrmgr.msc, secpol.msc, gpedit.msc, services.msc, taskschd.msc, wf.msc, eventvwr.msc, appwiz.cpl, optionalfeatures, SystemPropertiesRemote (Remote Desktop and Remote Assistance), UserAccountControlSettings (the UAC slider), msinfo32, tpm.msc, winver, shell:startup, shell:common startup, control, ms-settings:', 'Start > type the name to search. Enter opens it; Ctrl+Shift+Enter runs it as administrator.', 'Right-click a taskbar or Start tile for "Run as administrator". Terminal commands that change the machine need an administrator window (net, sc.exe, schtasks, netsh, auditpol, icacls).', 'Windows+R cannot be captured by a web page; Alt+R opens Run here.']);
+  sec('Sysinternals from the command line', ['Five signed Sysinternals tools run in Command Prompt or PowerShell, each against this machine; pass -accepteula the first time.', 'sigcheck -u -e C:\\Windows\\System32 lists unsigned executables; add -h for hashes.', 'autorunsc -a * -s -h -m lists every auto-start entry with its signature, hiding the verified Microsoft ones; add -c for CSV.', 'accesschk -uwcqv "Authenticated Users" * shows the services a standard account can change; accesschk -s -w Users "C:\\Program Files" shows writable files and folders.', 'streams -s C:\\Users\\Public lists alternate data streams; -d deletes them.', 'tcpvcon -a -c lists every TCP and UDP endpoint with its owning process.']);
   sec('Keyboard', ['Windows: title bar focused + arrow keys moves, Shift+arrows resizes, Alt+F4 closes.', 'Terminal: Up/Down history, Tab completes, Ctrl+L clears, Ctrl+C cancels.', 'Desktop icons: arrows to move, Enter opens, Delete sends to the Recycle Bin.', 'Esc closes menus and dialogs.']);
   sec('What the simulation covers', ['A faithful subset of ' + VERSIONS.win11.family + ' (version ' + VERSIONS.win11.version + ') and ' + VERSIONS.server.family + ': the panels and commands an administrator uses to harden a standalone machine. Nothing touches your real computer.', 'Outside the simulation: Registry Editor, Task Manager, real program windows, the Microsoft Store, and networking beyond this machine.', 'Progress and the machine state save in this browser. Reset lab reverts to the original snapshot.', 'Setting names and commands follow Microsoft Learn (Windows security policy settings reference, Windows Commands reference) and the CIS Critical Security Controls v8.', 'Unofficial practice; not affiliated with or endorsed by Microsoft. Practice only on machines you own or are authorized to manage.']);
   sec('Coach and hints', ['Coach, at the top of the Progress Check, sets how much the panel shows. Pick the to-do list with hints, the remaining count per area, or passed checks only.', 'A hint opens in two steps: the hardening area and the principle, then the console path or command.','Your best score remembers how many hints it took. A pass with no hints on a fresh attempt is the one that counts.']);

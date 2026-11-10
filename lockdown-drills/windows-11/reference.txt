@@ -504,6 +504,7 @@
   PS> Stop-Process -Id <pid> -Force   (after you disable what starts it, so it stays stopped)
   CMD> tasklist /svc
   CMD> netsh http show servicestate   (names the program behind a port that netstat pins on PID 4, System)
+  CMD> tcpvcon -accepteula -a -c   (Sysinternals, public: every TCP and UDP endpoint with its owning process, as CSV)
   WHY: A port you cannot explain is a backdoor; nc.exe listeners are the
        classic. Map port to PID to binary path to the service or task that
        starts it.
@@ -805,6 +806,8 @@
   PS> Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree' -Recurse | Where-Object { -not $_.GetValue('SD') -and $_.GetValue('Id') } | Select-Object Name
   CMD> wevtutil sl Microsoft-Windows-TaskScheduler/Operational /e:true
   CMD> autorunsc.exe -accepteula -a * -c -nobanner   (Sysinternals, public)
+  CMD> sigcheck -accepteula -u -e -s C:\Users\Public   (Sysinternals, public: unsigned executable images under a folder; -h adds hashes)
+  CMD> streams -accepteula -s C:\Users\Public   (Sysinternals, public: alternate data streams a download or a hidden payload leaves; -d deletes them)
   WHY: WMI event subscriptions and PowerShell profiles are the persistence
        spots checklists miss; Autoruns shows every auto-start location at
        once. A task with SD deleted runs hidden from Get-ScheduledTask and
@@ -823,6 +826,8 @@
   CMD> icacls "C:\CompanyData" /inheritance:r /grant:r "Administrators:(OI)(CI)F" "Users:(OI)(CI)RX" /t
   CMD> icacls "C:\CompanyData" /remove:g Everyone /t
   PS> Get-Acl "C:\CompanyData" | Format-List
+  CMD> accesschk -accepteula -uwcqv "Authenticated Users" *   (Sysinternals, public: services a standard account can reconfigure)
+  CMD> accesschk -accepteula -s -w Users "C:\Program Files"   (Sysinternals, public: files and folders a standard account can write)
   WHY: Everyone with Full control on shares or Program Files lets anyone swap
        a binary a service runs as SYSTEM. (OI) object inherit, (CI) container
        inherit, /t recurse, /inheritance:r stop inheriting.
