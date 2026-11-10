@@ -22,7 +22,7 @@
 ------------------------------ DOORMAN -----------------------------------------
  Lock the doors. Users, admins, passwords, lockout, firewall, updates, snaps and
  junk software, obvious services, GDM auto-login and screen lock.
- Learn it first: Defense Ladder s3, Linux Mint and Ubuntu hardening.
+ Learn it first: Defense Ladder s3, Debian-family hardening.
    https://freeapp4that.store/defense-ladder/#sophomore/s3
 --------------------------------------------------------------------------------
 [B-00] Scenario brief and evidence first

@@ -131,8 +131,8 @@
       "icon": "path",
       "category": "cyber",
       "section": "learning",
-      "sha256": "808970b39babd4dd48534dd45cea41ce04b72e646102d3a8d132f734f2a91050",
-      "updated": "2026-11-04"
+      "sha256": "bff25992c0e06c0c4b9f62dbfbc63cb8942aa33d664bc459356ce5dd73171d83",
+      "updated": "2026-11-09"
     },
     {
       "slug": "net-drills/subnet-sprint",
@@ -285,8 +285,8 @@
           "download_as": "linux-mint-lockdown-reference.txt"
         }
       ],
-      "sha256": "acb81f94718209e8128ff31c57127c5560d44b80832d2f065bab957c54774cf9",
-      "updated": "2026-11-04"
+      "sha256": "a47378d768ca1539ab1e8b522694bc994b81cda1cee71190e8cb951547d4c878",
+      "updated": "2026-11-09"
     },
     {
       "slug": "lockdown-drills/ubuntu",
@@ -311,8 +311,8 @@
           "download_as": "ubuntu-lockdown-reference.txt"
         }
       ],
-      "sha256": "12426e5d40ba9b7d002c119e0368d48c1b21650f332d276aa62dae78c78b8527",
-      "updated": "2026-11-04"
+      "sha256": "dc0b88777ad87e30fd9f903813ec974769f822ade4fc3713f267883c5084a1ea",
+      "updated": "2026-11-09"
     },
     {
       "slug": "lockdown-drills/freebsd",
@@ -415,8 +415,8 @@
           "download_as": "linux-range-walkthrough.txt"
         }
       ],
-      "sha256": "db6a97831577e63fef82cb7ebbad227c4c017a89346affe0919c025a5ef4da64",
-      "updated": "2026-11-04"
+      "sha256": "41d3a2d68e0d3ee814504c87a4da7f2ef4dadca7c71872619520144f1db452a2",
+      "updated": "2026-11-09"
     },
     {
       "slug": "lockdown-range/cisco-ios",
@@ -460,8 +460,8 @@
       "icon": "map",
       "category": "cyber",
       "section": "learning",
-      "sha256": "e14172de21b2c600d11df68ac6ea13b2db4d675f764c1de8f9e534c3eae94560",
-      "updated": "2026-11-04"
+      "sha256": "98b2cdf9436a120c1bfdcf0b36eeceeccf7f4a549fc5d8acdf6fa6d4643943d7",
+      "updated": "2026-11-09"
     },
     {
       "slug": "chop-lab",

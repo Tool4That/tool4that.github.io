@@ -23,7 +23,7 @@
  Lock the doors. Users, admins, passwords, lockout, firewall, updates, junk
  software, obvious services, the Login Window. Mint is Ubuntu LTS underneath
  (see Version notes), with its own GUI tools on top.
- Learn it first: Defense Ladder s3, Linux Mint and Ubuntu hardening.
+ Learn it first: Defense Ladder s3, Debian-family hardening.
    https://freeapp4that.store/defense-ladder/#sophomore/s3
 --------------------------------------------------------------------------------
 [B-00] Scenario brief and evidence first
