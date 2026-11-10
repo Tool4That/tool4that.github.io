@@ -131,7 +131,7 @@
       "icon": "path",
       "category": "cyber",
       "section": "learning",
-      "sha256": "e12d343ef7f697fdae6c162aa454a52eaca1e2cc44192b2bd19aeab7a8095b05",
+      "sha256": "37b2a2f1a92678e46e046e4fd5ce8f617e6ac0803ad27db387e5c1b6a1a47b1e",
       "updated": "2026-11-09",
       "download_menu": true,
       "download_label": "Everything (all four grades)",
@@ -140,28 +140,28 @@
           "label": "Freshman only",
           "file": "defense-ladder/freshman.html",
           "download_as": "defense-ladder-freshman.html",
-          "sha256": "7d03e777aba0ab39563c6fef267dd4b97f8c0634aca675b425ec5d46ab9cee53",
+          "sha256": "49048dc9bd216f39da9f637f0f3bc059ac05d3162935f2dff54f63446faa1ff8",
           "updated": "2026-11-09"
         },
         {
           "label": "Sophomore only",
           "file": "defense-ladder/sophomore.html",
           "download_as": "defense-ladder-sophomore.html",
-          "sha256": "95d38cce5962b6fbe6295cef8ac25281a91661850d05fdd26d650831d4056bc4",
+          "sha256": "e1a78a7696648cc3d64d4cbbb2ee4a59fc5478121c0d80e296289636242eaac8",
           "updated": "2026-11-09"
         },
         {
           "label": "Junior only",
           "file": "defense-ladder/junior.html",
           "download_as": "defense-ladder-junior.html",
-          "sha256": "42f51630a332337b7e59aba83c55b5c21d000aa7e1f3b4eeda51d07b5cd79c29",
+          "sha256": "cdaf8396813a25802268b8d271ae1766a8fe7a45bbc79b46f9f2a65072262521",
           "updated": "2026-11-09"
         },
         {
           "label": "Senior only",
           "file": "defense-ladder/senior.html",
           "download_as": "defense-ladder-senior.html",
-          "sha256": "4c07491608ac86c5f45d6bd65c269ab5235a9a92a62adc09fb89ce1dda5f6a9e",
+          "sha256": "6a1f15d793eb75cd6bc5fbde8e408df64e20ddd81c58cd57fec5ab954bff761e",
           "updated": "2026-11-09"
         }
       ],
@@ -318,7 +318,7 @@
           "download_as": "linux-mint-lockdown-reference.txt"
         }
       ],
-      "sha256": "a47378d768ca1539ab1e8b522694bc994b81cda1cee71190e8cb951547d4c878",
+      "sha256": "00515774f239278529bebed61aa195d3440384d6221e40a18fe931b1e46c4741",
       "updated": "2026-11-09"
     },
     {
@@ -344,7 +344,7 @@
           "download_as": "ubuntu-lockdown-reference.txt"
         }
       ],
-      "sha256": "dc0b88777ad87e30fd9f903813ec974769f822ade4fc3713f267883c5084a1ea",
+      "sha256": "3b9e0c5fd95fb6f49e37c42f8e9cb479076fdaef746295fbdcbd825684318a61",
       "updated": "2026-11-09"
     },
     {
@@ -448,7 +448,7 @@
           "download_as": "linux-range-walkthrough.txt"
         }
       ],
-      "sha256": "41d3a2d68e0d3ee814504c87a4da7f2ef4dadca7c71872619520144f1db452a2",
+      "sha256": "c2b805ac6032bf77611d3dae4e8eafcac038edd51a405f31dfae79a563781fa4",
       "updated": "2026-11-09"
     },
     {
@@ -493,7 +493,7 @@
       "icon": "map",
       "category": "cyber",
       "section": "learning",
-      "sha256": "8f371b1e2a65b31c5d7852d249797a75a4b3f741b6843753329ecf6e2fec3729",
+      "sha256": "2d1dd4dbb90fee9352381ebd9a1173c991fe24c0c1f15a5c68a0c82136f2f2c6",
       "updated": "2026-11-09"
     },
     {

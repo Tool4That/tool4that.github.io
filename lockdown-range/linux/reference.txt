@@ -396,7 +396,9 @@ Scenario Brief summary (cat ~/Desktop/Scenario\ Brief.txt)
   IP forwarding off; no unauthorized software, repositories, setuid
   binaries, or scheduled jobs; install updates; firewall on; every system
   program matches its package, interpreters keep their normal privileges,
-  the web server hides its version, and every database account has a name.
+  the web server hides its version, and every database account has a name;
+  every running process comes from a package or from a program the brief
+  names.
 
 Investigation
   Q1  TCP port held by a program outside every installed package?
@@ -420,9 +422,37 @@ Investigation
       echo THE-STRING | base64 -d shows the command.)
   Q2  Setuid binary that gives a root shell?      ANSWER: /usr/local/bin/lsmon
       (find / -perm -4000 -type f 2>/dev/null)
+  Q3  IP address the fake kernel worker keeps trying to reach?
+                                                  ANSWER: 203.0.113.50
+      (203.0.113.50:8443 is accepted too. The changed /usr/bin/ps leaves
+      the process out, so ps aux | grep kworker shows only real kernel
+      threads. ls /proc lists every PID; sudo apt install -y unhide, then
+      sudo unhide proc reports it: Cmdline "[kworker/1:3]", Executable
+      /var/tmp/.font-unix/fcsync. A kernel thread lacks a program file, so
+      sudo ls -l /proc/PID/exe fails for the real ones; pstree -p and
+      sudo systemctl status fontcache-sync show the impostor's PID too.
+      sudo strace -p PID -e trace=network prints, every ten seconds:
+      connect(4, {sa_family=AF_INET, sin_port=htons(8443),
+      sin_addr=inet_addr("203.0.113.50")}, 16) = -1 EINPROGRESS
+      Ctrl+C detaches. Without sudo: "Operation not permitted", because
+      kernel.yama.ptrace_scope is 1.)
+  Q4  File that process keeps reading?           ANSWER: /etc/mysql/debian.cnf
+      (sudo ls -l /proc/PID/fd shows 3 -> /etc/mysql/debian.cnf; sudo
+      strace -p PID -e trace=file shows newfstatat() on it every pass, and
+      sudo strace -p PID -s 200 shows the pread64() of the password.
+      sudo fuser -v /etc/mysql/debian.cnf and sudo lsof -p PID name the
+      process; sudo inotifywait -m /etc/mysql prints ACCESS debian.cnf.)
+  Q5  Library that process preloads?
+                    ANSWER: /usr/lib/x86_64-linux-gnu/.fc/libfcsync.so.1
+      (/lib/x86_64-linux-gnu/.fc/libfcsync.so.1 is accepted too. sudo cat
+      /proc/PID/maps and sudo pmap PID list it beside libc;
+      sudo cat /proc/PID/environ | tr '\0' '\n' shows the LD_PRELOAD line.
+      ldd /var/tmp/.font-unix/fcsync lists libc alone, so the extra
+      library came from LD_PRELOAD. sudo ltrace -p PID shows
+      inet_addr("203.0.113.50") after apt install ltrace.)
 
 Checks (100 points)
-  [4]  System journal kept across reboots (journald Storage=persistent)
+  [3]  System journal kept across reboots (journald Storage=persistent)
                                                               (Audit logging)
        fix: sudo sed -i 's/^Storage=.*/Storage=persistent/' \
                 /etc/systemd/journald.conf && \
@@ -430,9 +460,9 @@ Checks (100 points)
        why: the intern set Storage=volatile; a journal in RAM vanishes at the
             first reboot, and the evidence goes with it
             (journalctl --list-boots lists only the current boot).
-  [4]  Unauthorized user vex removed                      (Account management)
+  [3]  Unauthorized user vex removed                      (Account management)
        fix: sudo userdel -r vex
-  [5]  Unauthorized sudo rule for bkup removed (/etc/sudoers.d)
+  [4]  Unauthorized sudo rule for bkup removed (/etc/sudoers.d)
                                                               (Access control)
        fix: sudo chattr -i /etc/sudoers.d/90-backup
             sudo rm /etc/sudoers.d/90-backup
@@ -446,12 +476,12 @@ Checks (100 points)
                 /etc/sudoers && sudo visudo -c)
        why: a quieter NOPASSWD: every sudoer runs root commands without a
             password.
-  [4]  Hidden root account ops removed (only root has UID 0)
+  [3]  Hidden root account ops removed (only root has UID 0)
                                                           (Account management)
        fix: getent passwd ops, then sudo userdel -r -f ops   (its home is
             /home/ops; plain userdel says "currently used by process 1",
             see scenario 2)
-  [5]  SSH root login disabled (PermitRootLogin no)           (Access control)
+  [4]  SSH root login disabled (PermitRootLogin no)           (Access control)
        fix: sudo sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' \
                 /etc/ssh/sshd_config && sudo systemctl restart ssh
   [4]  SSH empty passwords disabled (PermitEmptyPasswords no) (Access control)
@@ -467,22 +497,22 @@ Checks (100 points)
                                                         (Secure configuration)
        fix: sudo apt purge -y samba      (or: disable --now smbd nmbd)
        why: a guest-writable share of the website lets the LAN change it.
-  [5]  Firewall (ufw) enabled                           (Secure configuration)
+  [4]  Firewall (ufw) enabled                           (Secure configuration)
        fix: sudo ufw allow ssh
             sudo ufw allow 80/tcp
             sudo ufw enable
        why: both allows first, or the SSH and web availability checks fail.
-  [4]  IPv4 forwarding disabled at boot (sysctl files) (Secure configuration)
+  [3]  IPv4 forwarding disabled at boot (sysctl files) (Secure configuration)
        fix: sudo sed -i 's/^net.ipv4.ip_forward=1/net.ipv4.ip_forward=0/' \
                 /etc/sysctl.conf && sudo sysctl -p
             (or: put net.ipv4.ip_forward=0 in /etc/sysctl.d/99-hardening.conf,
             delete the sysctl.conf line, then sudo sysctl --system; Ubuntu
             26.04 ships without /etc/sysctl.conf, so the drop-in is its route)
        why: a forwarding server is a pivot into the rest of the network.
-  [5]  Setuid bit removed from /usr/local/bin/lsmon           (Access control)
+  [4]  Setuid bit removed from /usr/local/bin/lsmon           (Access control)
        fix: sudo rm /usr/local/bin/lsmon   (or: sudo chmod u-s it)
        why: a setuid copy of a shell is an instant root shell for anyone.
-  [5]  Persistence line removed from /etc/rc.local          (Malware defenses)
+  [4]  Persistence line removed from /etc/rc.local          (Malware defenses)
        fix: sudo sed -i '/sysupd/d' /etc/rc.local
             sudo rm -f /tmp/.sysupd && sudo pkill sysupd
        why: rc.local runs as root at boot; the 4444 listener returns after
@@ -493,7 +523,7 @@ Checks (100 points)
             echo L3RtcC8uc3lzdXBkIC1sIDQ0NDQgLWUgL2Jpbi9zaA== | base64 -d
             prints /tmp/.sysupd -l 4444 -e /bin/sh)
        why: cron restarts the backdoor every 10 minutes.
-  [4]  /etc/shadow permissions restored (640 root:shadow)     (Access control)
+  [3]  /etc/shadow permissions restored (640 root:shadow)     (Access control)
        fix: sudo setfacl -b /etc/shadow
             sudo chmod 640 /etc/shadow && sudo chown root:shadow /etc/shadow
             (ls -l shows -rw-rw-r--+: the + is an ACL entry. sudo getfacl
@@ -522,8 +552,9 @@ Checks (100 points)
             sudo apt install --reinstall -y procps
             (debsums -s reports /usr/bin/ps from procps; sudo dpkg --verify
             procps shows ??5?????? for it)
-       why: a changed ps can hide processes from the administrator; the
-            package archive holds the real one.
+       why: a changed ps can hide processes from the administrator (here it
+            leaves out the fake kworker); the package archive holds the
+            real one.
   [4]  cap_setuid removed from python3.12                     (Access control)
        fix: sudo setcap -r /usr/bin/python3.12
             (sudo getcap -r / 2>/dev/null lists file capabilities)
@@ -536,8 +567,24 @@ Checks (100 points)
             mysql.user;" shows the empty user name.)
        why: an anonymous account lets anyone on the server connect without
             a name.
-  [5]  Investigation 1 answered                4444            (Investigation)
-  [5]  Investigation 2 answered          /usr/local/bin/lsmon  (Investigation)
+  [5]  Disguised backdoor removed (the fake kworker, its program, its
+       preload library, and its unit)                     (Malware defenses)
+       fix: sudo systemctl disable --now fontcache-sync
+            sudo rm /etc/systemd/system/fontcache-sync.service
+            sudo systemctl daemon-reload
+            sudo rm -r /var/tmp/.font-unix /usr/lib/x86_64-linux-gnu/.fc
+            (systemctl status PID names the unit. Restart=always brings a
+            plain sudo kill PID back under a new PID, and so does
+            sudo fuser -k; stop the unit first.)
+       why: it sends the database maintenance password toward 203.0.113.50
+            every ten seconds and returns at every boot until its unit,
+            program, and library are all gone.
+  [3]  Investigation 1 answered                4444            (Investigation)
+  [3]  Investigation 2 answered          /usr/local/bin/lsmon  (Investigation)
+  [3]  Investigation 3 answered            203.0.113.50        (Investigation)
+  [3]  Investigation 4 answered        /etc/mysql/debian.cnf   (Investigation)
+  [3]  Investigation 5 answered
+                    /usr/lib/x86_64-linux-gnu/.fc/libfcsync.so.1 (Investigation)
 
 Availability checks (points lost while broken)
   -6  Authorized user removed
@@ -682,6 +729,27 @@ Audit logging
   sudo ausearch -k KEY -i; sudo aureport -x --summary    audit events
   timedatectl status                    clock and NTP sync
 
+Process investigation
+  ls /proc                        every process ID (a changed ps hides one)
+  sudo ls -l /proc/PID/exe        the program it runs; kernel threads lack one
+  tr '\0' ' ' < /proc/PID/cmdline       its command line (it can rewrite this)
+  cat /proc/PID/status            Name, PPid (2 for kernel threads), Uid
+  sudo cat /proc/PID/environ | tr '\0' '\n'   its environment (LD_PRELOAD)
+  sudo ls -l /proc/PID/fd         files and sockets it holds open
+  sudo cat /proc/PID/maps; sudo pmap PID       libraries mapped into it
+  ldd PROGRAM                     the libraries the program asks for
+  sudo strace -p PID -e trace=network   its system calls until Ctrl+C
+                                  (also trace=file, trace=process, -f,
+                                  -o FILE, -s 200); strace CMD traces a
+                                  command from its start
+  sudo ltrace -p PID -e connect   its library calls (apt install ltrace)
+  sudo fuser -v FILE; sudo fuser -v -n tcp PORT    who uses a file or port
+                                  (-k kills each one: read the -v list first)
+  sudo inotifywait -m -r -e modify,create,delete DIR    file events until
+                                  Ctrl+C (apt install inotify-tools)
+  sudo unhide proc; sudo unhide-tcp     processes and ports that ps and ss
+                                  leave out (apt install unhide)
+
 Editors
   nano FILE        Ctrl+O Enter = save, Ctrl+X = exit
                    Search: F6 (Ctrl+W can close the browser tab here).
@@ -758,6 +826,14 @@ Editors
     HWE kernel (Mint 22.3: 6.14).
   - Ubuntu 26.04 LTS uses sudo-rs as the default sudo (slightly different
     prompts and messages), chrony for time sync, and apt 3.
+  - strace and ltrace print the system and library calls each simulated
+    command makes from the files it really touches, with a short loader
+    sequence; ldd, /proc/PID/maps, and pmap list a short set of libraries
+    for most programs. strace -p, ltrace -p, and inotifywait wait for
+    Ctrl+C as the real tools do; inotifywait prints the events that
+    running programs and the commands in another terminal window cause
+    while it waits, and the planted program on the Captain server repeats
+    its calls every ten seconds while something watches it.
   - Only change machines you own or are authorized to administer. Practice
     VMs and this simulator are the places to experiment.
 

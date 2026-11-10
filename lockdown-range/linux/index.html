@@ -2,7 +2,7 @@
 <html lang="en">
 <head><meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-FC6WET6X6FGKBFizZfHRVGzEQOxTqVdD8wl8F3bFDsc='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-x7vwS0xALUxI+s4Jpwq6NQxI68ENVTLQUPq1NsjOwBw='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/lockdown-range/linux/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%96%A5%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -505,11 +505,13 @@ const FS = {
     let cur = '/';
     for (let i = 0; i < parts.length; i++) {
       const next = FS.join(cur, parts[i]);
-      let node = S.fs[next];
+      let node = S.fs[next] || (next.startsWith('/proc/') ? procVNode(next) : null);
       if (!node) { if (next === '/proc/sys' || next.startsWith('/proc/sys/')) { cur = next; continue; } return i === parts.length - 1 ? next : null; }
       if (node.t === 'l' && !(nofollow && i === parts.length - 1)) {
         let hops = 0, target = next;
-        while (node && node.t === 'l' && hops++ < 8) { target = FS.norm(node.ln, FS.parent(target)); node = S.fs[target]; }
+        // a /proc link whose target is gone (a deleted program, a socket) stays readable through the link itself, as the kernel keeps the open file
+        if (node.virt && node.pid) { const tn = node.ln[0] === '/' && (S.fs[node.ln] || null); if (!tn) { if (i === parts.length - 1) return next; return null; } }
+        while (node && node.t === 'l' && hops++ < 8) { target = FS.norm(node.ln, FS.parent(target)); node = S.fs[target] || (target.startsWith('/proc/') ? procVNode(target) : null); }
         if (!node) return null;
         cur = target;
       } else cur = next;
@@ -520,7 +522,7 @@ const FS = {
     const r = FS.real(p, nofollow);
     if (!r) return null;
     if (r.startsWith('/proc/sys/') || r === '/proc/sys') return FS.virt(r);
-    return S.fs[r] || null;
+    return S.fs[r] || (r.startsWith('/proc/') ? procVNode(r) : null);
   },
   virt(p) {
     if (p === '/proc/sys') return { t: 'd', m: 0o555, u: 0, g: 0, mt: S.boot || nowSec(), virt: true };
@@ -540,6 +542,7 @@ const FS = {
       if (k.length > pre.length && k.startsWith(pre) && k.indexOf('/', pre.length) < 0) out.push(k.slice(pre.length));
     }
     if (dir === '/proc') out.push('sys');
+    if (dir === '/proc' || dir.startsWith('/proc/')) { const v = procVList(dir); if (v) { if (dir !== '/proc') return v; out.push(...v); } }
     return out.sort(cmpStr);
   },
   walk(dir, fn) {
@@ -585,11 +588,11 @@ const FS = {
     return { ok: true, node: n, path: FS.real(p) };
   },
   readText(p, ctx) {
-    const st = FS.stat(p, ctx); if (!st.ok) return st;
+    const st = FS.stat(p, ctx); if (!st.ok) { fsNote({ op: 'open', path: FS.norm(p), err: st.err }); return st; }
     const n = st.node;
-    if (n.t === 'd') return { ok: false, err: 'Is a directory' };
-    if (!FS.canRead(n, ctx)) return { ok: false, err: 'Permission denied' };
-    auditFile(st.path, 'r');
+    if (n.t === 'd') { fsNote({ op: 'open', path: st.path, dir: true }); return { ok: false, err: 'Is a directory' }; }
+    if (!FS.canRead(n, ctx) || (n.ptrace && ctx && ctx.uid !== 0 && ctx.uid !== n.u)) { fsNote({ op: 'open', path: st.path, err: 'Permission denied' }); return { ok: false, err: 'Permission denied' }; }
+    auditFile(st.path, 'r'); fsNote({ op: 'read', path: st.path, size: FS.size(n) });
     if (n.t === 'c' || n.t === 'b') return { ok: true, text: '' };
     if (n.bin) return { ok: true, text: FS.binText(n), bin: true };
     return { ok: true, text: n.c || '' };
@@ -606,7 +609,7 @@ const FS = {
       if (!FS.canWrite(n, ctx)) return { ok: false, err: 'Permission denied' };
       if (n.virt) { if (!ctx || ctx.uid === 0) { S.sysctl[n.key] = String(text).trim(); return { ok: true }; } return { ok: false, err: 'Permission denied' }; }
       if (n.t === 'c' || n.t === 'b') return { ok: true };
-      n.c = opts.append ? (n.c || '') + text : text; n.bin = 0; delete n.sz; n.mt = nowSec(); auditFile(rp, 'w');
+      n.c = opts.append ? (n.c || '') + text : text; n.bin = 0; delete n.sz; n.mt = nowSec(); auditFile(rp, 'w'); fsNote({ op: 'write', path: rp, size: String(text).length, append: !!opts.append });
       return { ok: true };
     }
     const dir = FS.parent(rp), dn = FS.get(dir);
@@ -614,7 +617,7 @@ const FS = {
     if (dn.t !== 'd') return { ok: false, err: 'Not a directory' };
     if (!FS.canWrite(dn, ctx) || !FS.canExec(dn, ctx)) return { ok: false, err: 'Permission denied' };
     if ((dn.attrs || '').includes('i')) return { ok: false, err: 'Operation not permitted' };
-    S.fs[rp] = { t: 'f', m: opts.mode != null ? opts.mode : 0o644, u: ctx ? ctx.uid : 0, g: ctx ? ctx.gid : 0, c: text, mt: nowSec() }; auditFile(rp, 'w');
+    S.fs[rp] = { t: 'f', m: opts.mode != null ? opts.mode : 0o644, u: ctx ? ctx.uid : 0, g: ctx ? ctx.gid : 0, c: text, mt: nowSec() }; auditFile(rp, 'w'); fsNote({ op: 'create', path: rp, size: String(text).length });
     return { ok: true };
   },
   mkdir(p, ctx, parents) {
@@ -629,7 +632,8 @@ const FS = {
     if (dn.t !== 'd') return { ok: false, err: 'Not a directory' };
     const te = FS.traverse(rp, ctx); if (te) return { ok: false, err: te };
     if (!FS.canWrite(dn, ctx) || !FS.canExec(dn, ctx)) return { ok: false, err: 'Permission denied' };
-    S.fs[FS.real(dir) ? FS.join(FS.real(dir), FS.base(rp)) : rp] = { t: 'd', m: 0o755, u: ctx ? ctx.uid : 0, g: ctx ? ctx.gid : 0, mt: nowSec() };
+    const np = FS.real(dir) ? FS.join(FS.real(dir), FS.base(rp)) : rp;
+    S.fs[np] = { t: 'd', m: 0o755, u: ctx ? ctx.uid : 0, g: ctx ? ctx.gid : 0, mt: nowSec() }; fsNote({ op: 'mkdir', path: np });
     return { ok: true };
   },
   remove(p, ctx, opts) {
@@ -647,7 +651,7 @@ const FS = {
       if (!FS.canWrite(n, ctx) && kids.length) return { ok: false, err: 'Permission denied' };
       for (const k of kids) { const r = FS.remove(FS.join(rp, k), ctx, opts); if (!r.ok) return { ok: false, err: r.err, at: FS.join(rp, k) }; }
     }
-    delete S.fs[rp]; auditFile(rp, 'w', 263);
+    delete S.fs[rp]; auditFile(rp, 'w', 263); fsNote({ op: 'delete', path: rp, dir: n.t === 'd' });
     return { ok: true };
   },
   /* builder-level helpers (no permission checks) */
@@ -670,6 +674,10 @@ const FS = {
   exists(p) { return !!FS.get(p); },
 };
 
+/* ---- file events: strace's recorder and inotifywait's watches listen here (68-cmds-proc.js) ----
+   ev = {op: open (failed, with err) | read | write | create | mkdir | delete, path, size, err, dir} */
+const FS_HOOKS = [];
+function fsNote(ev) { for (const h of FS_HOOKS.slice()) { try { h(ev); } catch (e) { /* a listener never breaks the file operation */ } } }
 /* ---- config-file helpers shared by commands and checks ---- */
 function activeLines(text) { return (text || '').split('\n').map(l => l.trim()).filter(l => l && l[0] !== '#'); }
 /* sshd style "Key value" (first active wins). Includes /etc/ssh/sshd_config.d/*.conf first like real sshd. */
@@ -1343,7 +1351,7 @@ class Term {
   newLine() { this.cur = el('div', { class: 'l' }); this.out.append(this.cur); while (this.out.childElementCount > 2500) this.out.firstChild.remove(); }
   write(text, cls) {
     if (text == null || text === '') return;
-    const parts = String(text).replace(/\t/g, '    ').split('\n');
+    const parts = String(text).replace(/\t/g, '    ').replace(/\u0000/g, '').split('\n'); // a terminal shows nothing for NUL (cat /proc/PID/cmdline)
     parts.forEach((p, i) => { if (i > 0) this.newLine(); if (p) this.cur.append(cls ? el('span', { class: cls, text: p }) : document.createTextNode(p)); });
     this.scroll();
   }
@@ -1680,7 +1688,9 @@ def(['ls', 'dir', 'vdir'], c => {
       const w = k => Math.max(...recs.map(x => x[k].length));
       for (const x of recs) {
         const line = padR(x.mode, w('mode')) + ' ' + padL(x.nlink, w('nlink')) + ' ' + (o.g ? '' : padR(x.user, w('user')) + ' ') + (o.o ? '' : padR(x.group, w('group')) + ' ') + (o.Z ? '? ' : '') + padL(x.size, w('size')) + ' ' + x.date + ' ';
-        c.rich([{ text: (o.i ? padL(hash32(x.r.full || x.r.name) % 900000 + 100000, 7) + ' ' : '') + line }, nameSeg(x.r.name, x.r.node), { text: x.r.node && x.r.node.t === 'l' ? ' -> ' + x.r.node.ln : '' }, { text: '\n' }]);
+        const vl = x.r.node && x.r.node.t === 'l' && x.r.node.virt ? (x.r.node.ln === '' ? 'No such file or directory' : x.r.node.ptrace && c.uid !== 0 && c.uid !== x.r.node.u ? 'Permission denied' : null) : null;
+        if (vl) c.err("ls: cannot read symbolic link '" + (dir ? FS.join(dir, x.r.name) : x.r.name) + "': " + vl + '\n');
+        c.rich([{ text: (o.i ? padL(hash32(x.r.full || x.r.name) % 900000 + 100000, 7) + ' ' : '') + line }, nameSeg(x.r.name, x.r.node), { text: x.r.node && x.r.node.t === 'l' && !vl ? ' -> ' + x.r.node.ln : '' }, { text: '\n' }]);
       }
     } else if (o['1'] || !c.isTTY) { for (const r of rows) c.rich([{ text: o.Z ? '? ' : '' }, nameSeg(r.name, r.node), { text: '\n' }]); }
     else {
@@ -1704,7 +1714,7 @@ def(['ls', 'dir', 'vdir'], c => {
     if (o.r) names.reverse();
     if (all) names = ['.', '..'].concat(names);
     if (header) c.out(p + ':\n');
-    printRows(names.map(n => ({ name: n, node: n === '.' ? dn : n === '..' ? (FS.get(FS.parent(real)) || dn) : S.fs[FS.join(real, n)], full: FS.join(real, n) })), real);
+    printRows(names.map(n => ({ name: n, node: n === '.' ? dn : n === '..' ? (FS.get(FS.parent(real)) || dn) : S.fs[FS.join(real, n)] || (real.startsWith('/proc/') ? procVNode(FS.join(real, n)) : undefined), full: FS.join(real, n) })), real);
     if (o.R) for (const n of names) { if (n === '.' || n === '..') continue; const node = S.fs[FS.join(real, n)]; if (node && node.t === 'd') { c.out('\n'); listDir(FS.join(p === '.' ? '.' : p, n), FS.join(real, n), true); } }
   };
   if (files.length) printRows(files.map(f => ({ name: f.p, node: f.node, full: f.abs })), null);
@@ -1792,7 +1802,7 @@ def('cut', async c => {
 });
 def('tr', async c => {
   const o = opts(c, 'dsc', ''); if (o.err) { c.err(o.err); return 1; }
-  const expand = s => s.replace(/\[:upper:\]/g, 'A-Z').replace(/\[:lower:\]/g, 'a-z').replace(/\[:digit:\]/g, '0-9').replace(/\[:space:\]/g, ' \t\n').replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/(\w)-(\w)/g, (m, a, b) => { let r = ''; for (let i = a.charCodeAt(0); i <= b.charCodeAt(0); i++) r += String.fromCharCode(i); return r; });
+  const expand = s => s.replace(/\\([0-7]{1,3})/g, (m, d) => String.fromCharCode(parseInt(d, 8))).replace(/\[:upper:\]/g, 'A-Z').replace(/\[:lower:\]/g, 'a-z').replace(/\[:digit:\]/g, '0-9').replace(/\[:space:\]/g, ' \t\n').replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/(\w)-(\w)/g, (m, a, b) => { let r = ''; for (let i = a.charCodeAt(0); i <= b.charCodeAt(0); i++) r += String.fromCharCode(i); return r; });
   const from = expand(o._[0] || ''), to = expand(o._[1] || '');
   let t = c.stdin || '';
   if (o.d) t = t.split('').filter(ch => !from.includes(ch)).join('');
@@ -2466,7 +2476,7 @@ def('ps', c => {
   const procs = S.procs.slice().sort((x, y) => x.pid - y.pid);
   const mine = procs.filter(p => p.user === c.user && p.tty);
   const list = /aux|-e|-A|ax/.test(a) ? procs : mine;
-  if (/aux|ax|-e|-A/.test(a)) { c.out(padR('USER', 8) + ' ' + padL('PID', 7) + ' %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND\n'); for (const p of list) { const h = hash32('p' + p.pid + p.cmd), kt = p.cmd[0] === '[', vsz = kt ? 0 : p.vsz || (10000 + h % 200000), rss = kt ? 0 : p.rss || Math.max(1000, Math.floor(vsz * (5 + (h >>> 8) % 40) / 100)), un = p.user.length > 8 ? p.user.slice(0, 7) + '+' : p.user; c.out(padR(un, 8) + ' ' + padL(p.pid, 7) + padL((h % 10 / 10).toFixed(1), 5) + padL((rss / 40141.12).toFixed(1), 5) + padL(vsz, 7) + padL(rss, 6) + ' ' + padR(p.tty || '?', 8) + ' ' + padR(p.stat || (p.pid === 1 ? 'Ss' : p.tty ? 'Ss+' : 'S'), 4) + ' ' + padR(fmtClock(p.start), 5) + padL('0:' + two(h % 59), 7) + ' ' + p.cmd + '\n'); } return 0; }
+  if (/aux|ax|-e|-A/.test(a)) { c.out(padR('USER', 8) + ' ' + padL('PID', 7) + ' %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND\n'); for (const p of list) { const h = hash32('p' + p.pid + p.cmd), kt = p.cmd[0] === '[' && !p.exe, vsz = kt ? 0 : p.vsz || (10000 + h % 200000), rss = kt ? 0 : p.rss || Math.max(1000, Math.floor(vsz * (5 + (h >>> 8) % 40) / 100)), un = p.user.length > 8 ? p.user.slice(0, 7) + '+' : p.user; c.out(padR(un, 8) + ' ' + padL(p.pid, 7) + padL((h % 10 / 10).toFixed(1), 5) + padL((rss / 40141.12).toFixed(1), 5) + padL(vsz, 7) + padL(rss, 6) + ' ' + padR(p.tty || '?', 8) + ' ' + padR(p.stat || (p.pid === 1 ? 'Ss' : p.tty ? 'Ss+' : 'S'), 4) + ' ' + padR(fmtClock(p.start), 5) + padL('0:' + two(h % 59), 7) + ' ' + p.cmd + '\n'); } return 0; }
   c.out(padL('PID', 7) + ' TTY          TIME CMD\n'); for (const p of mine) c.out(padL(p.pid, 7) + ' ' + padR(p.tty, 8) + ' 00:00:00 ' + p.name + '\n'); const tt = padR(S.gui ? 'pts/0' : 'tty1', 8); c.out(padL(c.sh.pid, 7) + ' ' + tt + ' 00:00:00 bash\n' + padL(c.sh.pid + 17, 7) + ' ' + tt + ' 00:00:00 ps\n'); return 0;
 });
 /* -u USER[,USER...]: names or numbers become UIDs, and a process matches by its owner's UID (so a UID 0 name matches every root process, as on a real system) */
@@ -2478,7 +2488,7 @@ function killProc(c, p, sig) {
   if (p.pid === 1) return c.uid === 0 ? 'sandbox' : 'Operation not permitted';
   if (sig === 'STOP' || sig === 'CONT' || sig === 'HUP' && p.svc) { if (sig === 'HUP' && p.svc) return null; return null; }
   S.procs = S.procs.filter(x => x !== p);
-  if (p.svc && S.svc[p.svc]) { const d = SVC[p.svc]; if (d && d.restart) { spawnSvc(p.svc); S.svc[p.svc].restarts = (S.svc[p.svc].restarts || 0) + 1; } else { S.svc[p.svc].active = false; S.svc[p.svc].since = nowSec(); S.svc[p.svc].killed = true; } }
+  if (p.svc && S.svc[p.svc]) { const d = SVC[p.svc]; if (d && d.restart && spawnSvc(p.svc)) { S.svc[p.svc].restarts = (S.svc[p.svc].restarts || 0) + 1; } else { S.svc[p.svc].active = false; S.svc[p.svc].since = nowSec(); S.svc[p.svc].killed = true; } }
   if (p.shell) { c.sh.exitRequested = true; }
   return null;
 }
@@ -3074,8 +3084,8 @@ const PKG = {
   fdisk: { v: '2.39.3-9ubuntu6.6', d: 'collection of partitioning utilities', sbins: ['fdisk'] },
   hostname: { v: '3.23+nmu2ubuntu2', d: 'utility to set/show the host name or domain name', ess: 1, bins: ['hostname'] },
   ncal: { v: '12.1.8', d: 'display a calendar and the date of Easter', bins: ['cal'] },
-  procps: { v: '2:4.0.4-4ubuntu3.3', d: '/proc file system utilities', bins: ['ps', 'top', 'free', 'uptime', 'pkill', 'pgrep', 'pidof', 'sysctl', 'w', 'kill', 'watch'] },
-  psmisc: { v: '23.7-1build1', d: 'utilities that use the proc file system', bins: ['killall', 'pstree'] },
+  procps: { v: '2:4.0.4-4ubuntu3.3', d: '/proc file system utilities', bins: ['ps', 'top', 'free', 'uptime', 'pkill', 'pgrep', 'pidof', 'sysctl', 'w', 'kill', 'watch', 'pmap'], deps: ['libproc2-0'] },
+  psmisc: { v: '23.7-1build1', d: 'utilities that use the proc file system', bins: ['killall', 'pstree', 'fuser', 'peekfd', 'prtstat'] },
   iproute2: { v: '6.1.0-1ubuntu6.4', d: 'networking and traffic control tools', bins: ['ip', 'ss'] },
   grep: { v: '3.11-4build1', d: 'GNU grep, egrep and fgrep', ess: 1, bins: ['grep', 'egrep', 'fgrep', 'rgrep'] },
   sed: { v: '4.9-2ubuntu0.24.04.1', d: 'GNU stream editor for filtering/transforming text', ess: 1, bins: ['sed'] },
@@ -3107,7 +3117,25 @@ const PKG = {
   'man-db': { v: '2.12.0-4build2', d: 'tools for reading manual pages', bins: ['man', 'whatis', 'apropos', 'mandb'] },
   tar: { v: '1.35+dfsg-3ubuntu0.4', d: 'GNU version of the tar archiving utility', ess: 1, bins: ['tar'] },
   gzip: { v: '1.12-1ubuntu3.2', d: 'GNU compression utilities', ess: 1, bins: ['gzip', 'gunzip', 'zcat', 'zgrep'] },
-  'libc-bin': { v: '2.39-0ubuntu8.4', d: 'GNU C Library: Binaries', ess: 1, bins: ['getent', 'iconv'] },
+  'libc-bin': { v: '2.39-0ubuntu8.4', d: 'GNU C Library: Binaries', ess: 1, bins: ['getent', 'iconv', 'ldd'], sbins: ['ldconfig'], deps: ['libc6'] },
+  /* shared libraries the process tools name (ldd, /proc/PID/maps, pmap): libs are their files, by the /usr path dpkg records on 24.04 */
+  libc6: { v: '2.39-0ubuntu8.4', d: 'GNU C Library: Shared libraries', ess: 1, pri: 'required', libs: ['libc.so.6', 'libm.so.6', 'ld-linux-x86-64.so.2'] },
+  libselinux1: { v: '3.5-2ubuntu2.1', d: 'SELinux runtime shared libraries', pri: 'required', libs: ['libselinux.so.1'] },
+  'libpcre2-8-0': { v: '10.42-4ubuntu2.1', d: 'New Perl Compatible Regular Expression Library- 8 bit runtime files', pri: 'required', libs: ['libpcre2-8.so.0'] },
+  libtinfo6: { v: '6.4+20240113-1ubuntu2.1', d: 'shared low-level terminfo library for terminal handling', pri: 'required', libs: ['libtinfo.so.6'] },
+  'libproc2-0': { v: '2:4.0.4-4ubuntu3.3', d: 'library for accessing process information from /proc', pri: 'required', libs: ['libproc2.so.0'] },
+  libsystemd0: { v: '255.4-1ubuntu8.17', d: 'systemd utility library', pri: 'required', libs: ['libsystemd.so.0'] },
+  libcap2: { v: '1:2.66-5ubuntu2.2', d: 'POSIX 1003.1e capabilities (library)', pri: 'required', libs: ['libcap.so.2'] },
+  libcrypt1: { v: '1:4.4.36-4build1', d: 'libcrypt shared library', pri: 'required', libs: ['libcrypt.so.1'] },
+  libpam0g: { v: '1.5.3-5ubuntu5.7', d: 'Pluggable Authentication Modules library', pri: 'required', libs: ['libpam.so.0'] },
+  libaudit1: { v: '1:3.1.2-2.1ubuntu0.1', d: 'Dynamic library for security auditing', pri: 'required', libs: ['libaudit.so.1'] },
+  zlib1g: { v: '1:1.3.dfsg-3.1ubuntu2.1', d: 'compression library - runtime', pri: 'required', libs: ['libz.so.1'] },
+  /* process investigation: strace ships on Ubuntu 24.04 desktop and server (ISO manifests); ltrace, inotify-tools, and unhide install from universe */
+  strace: { v: '6.8-0ubuntu2', d: 'System call tracer', bins: ['strace', 'strace-log-merge'] },
+  ltrace: { v: '0.7.3-6.4ubuntu3', d: 'Tracks runtime library calls in dynamically linked programs', bins: ['ltrace'], comp: 'universe' },
+  'inotify-tools': { v: '3.22.6.0-4', d: 'command-line programs providing a simple interface to inotify', bins: ['inotifywait', 'inotifywatch', 'fsnotifywait', 'fsnotifywatch'], deps: ['libinotifytools0'], comp: 'universe' },
+  libinotifytools0: { v: '3.22.6.0-4', d: 'utility wrapper around inotify', libs: ['libinotifytools.so.0'], comp: 'universe' },
+  unhide: { v: '20220611-1ubuntu1', d: 'forensic tool to find hidden processes and ports', sbins: ['unhide', 'unhide-linux', 'unhide-posix', 'unhide-tcp', 'unhide_rb'], comp: 'universe' },
   debianutils: { v: '5.17build1', d: 'Miscellaneous utilities specific to Debian', ess: 1, bins: ['which'] },
   'ncurses-bin': { v: '6.4+20240113-1ubuntu2.1', d: 'terminal-related programs and man pages', ess: 1, bins: ['clear'] },
   python3: { v: '3.12.3-0ubuntu2.1', d: 'interactive high-level object-oriented language (default python3 version)', bins: ['python3', 'python3.12', 'pydoc3'] },
@@ -3294,7 +3322,9 @@ function spawnSvc(name) {
   const d = SVC[name]; if (!d) return;
   if (d.type === 'oneshot') return;
   const cmd = d.exec.replace(/^@/, '');
-  const main = spawn(d.proc || name, name === 'ssh' ? 'sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups' : cmd, d.user || 'root', { svc: name });
+  // a planted unit whose program was deleted fails to start (status=203/EXEC); procx: what the program does to its own process (a renamed command line, LD_PRELOAD, its loop)
+  if (d.bin && !S.fs[d.bin]) return null;
+  const main = spawn(d.proc || name, name === 'ssh' ? 'sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups' : d.cmdline || cmd, d.user || 'root', Object.assign({ svc: name }, d.procx ? JSON.parse(JSON.stringify(d.procx)) : {}));
   if (d.workers) for (let i = 0; i < d.workers; i++) spawn(d.proc, cmd, d.workerUser, { svc: name, ppid: main.pid, worker: true });
   return main;
 }
@@ -3316,6 +3346,7 @@ function svcStart(name) {
     journal(name, name + '.service: Control process exited, code=exited, status=1/FAILURE'); journal(name, name + ".service: Failed with result 'exit-code'."); journal(name, 'Failed to start ' + name + '.service - ' + (d.desc || name) + '.');
     return { ok: false, err: 'Job for ' + name + '.service failed because the control process exited with error code.\nSee "systemctl status ' + name + '.service" and "journalctl -xeu ' + name + '.service" for details.' };
   }
+  if (d.bin && !S.fs[d.bin]) { st.active = false; st.failed = true; st.since = nowSec(); journal(name, name + '.service: Failed to locate executable ' + d.bin + ': No such file or directory', 'systemd[1]'); journal(name, name + '.service: Main process exited, code=exited, status=203/EXEC'); journal(name, name + ".service: Failed with result 'exit-code'."); return { ok: false, err: 'Job for ' + name + '.service failed because the control process exited with error code.\nSee "systemctl status ' + name + '.service" and "journalctl -xeu ' + name + '.service" for details.' }; }
   st.active = true; st.failed = false; st.killed = false; st.since = nowSec();
   const p = spawnSvc(name); st.pid = p ? p.pid : 0;
   journal(name, 'Started ' + (d.desc || name) + '.');
@@ -3372,7 +3403,7 @@ function sshdCheck() {
 }
 
 /* ---------------- apt / dpkg ---------------- */
-function pkgBinPaths(name) { const d = PKG[name]; if (!d) return []; return (d.bins || []).map(b => '/usr/bin/' + b).concat((d.sbins || []).map(b => '/usr/sbin/' + b)); }
+function pkgBinPaths(name) { const d = PKG[name]; if (!d) return []; return (d.bins || []).map(b => '/usr/bin/' + b).concat((d.sbins || []).map(b => '/usr/sbin/' + b), (d.libs || []).map(b => '/usr/lib/x86_64-linux-gnu/' + b)); }
 /* the size a package's program has as shipped: debsums, dpkg --verify, and rkhunter compare against it, and a reinstall restores it */
 function pkgFileSize(p) { return 20000 + hash32(p) % 900000; }
 function pkgRestoreFiles(name) { for (const p of pkgBinPaths(name)) { const n = S.fs[p]; if (n) Object.assign(n, { t: 'f', bin: 1, sz: pkgFileSize(p), mt: nowSec() }); else FS.mk(p, { t: 'f', m: 0o755, u: 0, g: 0, bin: 1, sz: pkgFileSize(p), mt: nowSec() }); delete S.fs[p].c; } }
@@ -4572,7 +4603,7 @@ def('resolvectl', c => {
   c.err("Unknown command verb '" + verb + "'.\n"); return 1;
 });
 /* the program a process runs (its /proc/PID/exe): an absolute first word of its command line, else the unit's program, else the PATH match */
-function procExe(p) { if (!p.cmd || p.cmd[0] === '[') return null; const w = p.cmd.replace(/^@/, '').split(' ')[0]; if (w[0] === '/') return w; const d = Object.values(SVC).find(s => (s.proc || '') === p.name); if (d && d.exec[0] === '/') return d.exec.split(' ')[0]; return findBin(p.name) || '/usr/bin/' + p.name; }
+function procExe(p) { if (p.exe) return p.exe; if (!p.cmd || p.cmd[0] === '[') return null; const w = p.cmd.replace(/^@/, '').split(' ')[0]; if (w[0] === '/') return w; const d = Object.values(SVC).find(s => (s.proc || '') === p.name); if (d && d.exec[0] === '/') return d.exec.split(' ')[0]; return findBin(p.name) || '/usr/bin/' + p.name; }
 /* ---- lsof 4.95: sockets from the listeners and connections; without -i, each process's folder, root, and program too ---- */
 def('lsof', c => {
   const a = c.args, nF = a.some(x => /^-[a-zA-Z]*n/.test(x) && !/^-i/.test(x)), PF = a.some(x => /^-[a-zA-Z]*P/.test(x) && !/^-i/.test(x));
@@ -4583,7 +4614,10 @@ def('lsof', c => {
   const rows = [];
   if (!estOnly) for (const l of listeners()) { if (!pass(l.proto, l.port) || (listenOnly && l.proto !== 'tcp')) continue; const ad = l.addr.split('%')[0], name = (ad === '0.0.0.0' ? '*' : nF ? ad : labPtr(ad) || ad) + ':' + pn(l.port, l.proto) + (l.proto === 'tcp' ? ' (LISTEN)' : ''); rows.push({ pid: l.pid, proc: l.proc, fd: (3 + l.port % 5) + 'u', type: 'IPv4', node: l.proto.toUpperCase(), name }); if (l.v6 && l.proto === 'tcp') rows.push({ pid: l.pid, proc: l.proc, fd: (4 + l.port % 5) + 'u', type: 'IPv6', node: 'TCP', name: '*:' + pn(l.port, 'tcp') + ' (LISTEN)' }); }
   if (!listenOnly) for (const x of labConns()) if (pass('tcp', x.lport)) rows.push({ pid: x.pid, proc: x.proc, fd: x.fd + 'u', type: 'IPv4', node: 'TCP', name: hn(x.local) + ':' + pn(x.lport, 'tcp') + '->' + hn(x.peer) + ':' + pn(x.pport, 'tcp') + ' (ESTABLISHED)' });
-  if (!ia) for (const p of S.procs.filter(p => p.cmd && p.cmd[0] !== '[')) { const exe = procExe(p), ex = exe && FS.get(exe); rows.push({ pid: p.pid, proc: p.name, fd: 'cwd', type: 'DIR', dev: '8,2', size: '4096', node: '2', name: '/' }, { pid: p.pid, proc: p.name, fd: 'txt', type: 'REG', dev: '8,2', size: String(ex ? FS.size(ex) : 0), node: String(hash32(exe || p.name) % 900000 + 100000), name: (exe || p.name) + (exe && !ex ? ' (deleted)' : '') }); }
+  const pSel = (() => { const i = a.indexOf('-p'); const v = i >= 0 ? a[i + 1] : (a.find(x => /^-p\d/.test(x)) || '').slice(2); return v ? v.split(',').map(Number) : null; })();
+  if (!ia) for (const p of S.procs.filter(p => p.cmd && (p.cmd[0] !== '[' || p.exe) && (!pSel || pSel.includes(p.pid)))) { const exe = procExe(p), ex = exe && FS.get(exe); rows.push({ pid: p.pid, proc: p.name, fd: 'cwd', type: 'DIR', dev: '8,2', size: '4096', node: '2', name: '/' }, { pid: p.pid, proc: p.name, fd: 'txt', type: 'REG', dev: '8,2', size: String(ex ? FS.size(ex) : 0), node: String(hash32(exe || p.name) % 900000 + 100000), name: (exe || p.name) + (exe && !ex ? ' (deleted)' : '') });
+    if (pSel) { for (const l of procLibPaths(p)) rows.push({ pid: p.pid, proc: p.name, fd: 'mem', type: 'REG', dev: '8,2', size: String(FS.get(l) ? FS.size(FS.get(l)) : 0), node: String(hash32(l) % 900000 + 100000), name: l + (FS.get(l) ? '' : ' (path inode=' + (hash32(l) % 900000 + 100000) + ')') }); for (const f of procFds(p)) rows.push({ pid: p.pid, proc: p.name, fd: f.fd + (f.mode || 'u'), type: f.kind === 'sock' ? 'IPv4' : f.kind === 'chr' ? 'CHR' : 'REG', dev: f.kind === 'chr' ? '1,3' : '8,2', size: f.kind === 'chr' ? '0t0' : String(FS.get(f.path) ? FS.size(FS.get(f.path)) : 0), node: f.kind === 'chr' ? '5' : String(hash32(f.path) % 900000 + 100000), name: f.path }); } }
+  if (pSel) for (let i = rows.length - 1; i >= 0; i--) if (!pSel.includes(rows[i].pid)) rows.splice(i, 1);
   const fdo = f => ({ cwd: 0, rtd: 1, txt: 2 })[f] != null ? ({ cwd: 0, rtd: 1, txt: 2 })[f] : 3; rows.sort((x, y) => x.pid - y.pid || fdo(x.fd) - fdo(y.fd));
   const owner = r => (S.procs.find(p => p.pid === r.pid) || { user: 'root' }).user;
   const shown = rows.filter(r => c.uid === 0 || owner(r) === c.user); if (!shown.length) return 1;
@@ -5152,7 +5186,7 @@ def(['readlink', 'realpath'], c => {
   const o = opts(c, 'femnqsvz', ''); if (o.err) { c.err(o.err); return 1; } const canon = o.f || o.e || o.m || c.argv[0] === 'realpath'; let code = 0;
   for (const f of o._) {
     const pm = /^\/proc\/(\d+)\/exe$/.exec(FS.norm(f, c.cwd));
-    if (pm) { const p = S.procs.find(x => x.pid === +pm[1]); if (!p || (c.uid !== 0 && p.user !== c.user)) { if (c.argv[0] === 'realpath') c.err('realpath: ' + f + ': ' + (p ? 'Permission denied' : 'No such file or directory') + '\n'); code = 1; continue; } const exe = procExe(p); c.out(exe + (FS.get(exe) ? '' : ' (deleted)') + '\n'); continue; }
+    if (pm) { const p = S.procs.find(x => x.pid === +pm[1]); if (!p || (c.uid !== 0 && p.user !== c.user)) { if (c.argv[0] === 'realpath') c.err('realpath: ' + f + ': ' + (p ? 'Permission denied' : 'No such file or directory') + '\n'); code = 1; continue; } const exe = procExe(p); if (!exe) { if (c.argv[0] === 'realpath') c.err('realpath: ' + f + ': No such file or directory\n'); code = 1; continue; } c.out(exe + (FS.get(exe) ? '' : ' (deleted)') + '\n'); continue; } // a kernel thread has no program file
     const abs = FS.norm(f, c.cwd);
     if (!canon) { const n = FS.get(abs, true); if (!n || n.t !== 'l') { code = 1; continue; } c.out(n.ln + '\n'); continue; }
     const r = FS.real(abs); if (!r || (o.e && !FS.get(abs))) { if (c.argv[0] === 'realpath') c.err('realpath: ' + f + ': No such file or directory\n'); code = 1; continue; }
@@ -5390,7 +5424,7 @@ def('snap', c => {
 function psFullNeeded(a) { return a.some(x => x === '--forest' || /^-[a-zA-Z]*[oCpUuLf]/.test(x)); }
 /* procps prints a user name longer than its 8-column field as 7 characters and a + */
 const psUser = s => s.length > 8 ? s.slice(0, 7) + '+' : s;
-function procUnit(p) { if (p.pid === 1) return 'init.scope'; if (!p.cmd || p.cmd[0] === '[') return '-'; if (p.svc) return p.svc + '.service'; if (p.src === 'rc.local') return 'rc-local.service'; if (p.src === 'cron' || p.src === 'crontab' || p.src === 'cron.d') return 'cron.service'; return { polkitd: 'polkit.service', 'accounts-daemon': 'accounts-daemon.service', udisksd: 'udisks2.service' }[p.name] || (p.tty ? 'session-' + (2 + (S.sessions || 1)) + '.scope' : '-'); }
+function procUnit(p) { if (p.pid === 1) return 'init.scope'; if (!p.cmd || (p.cmd[0] === '[' && !p.exe)) return '-'; if (p.svc) return p.svc + '.service'; if (p.src === 'rc.local') return 'rc-local.service'; if (p.src === 'cron' || p.src === 'crontab' || p.src === 'cron.d') return 'cron.service'; return { polkitd: 'polkit.service', 'accounts-daemon': 'accounts-daemon.service', udisksd: 'udisks2.service' }[p.name] || (p.tty ? 'session-' + (2 + (S.sessions || 1)) + '.scope' : '-'); }
 function psFull(c) {
   const a = c.args; let all = false, full = false, lwp = false; const forest = a.includes('--forest'), sel = {}, cols = [];
   for (let i = 0; i < a.length; i++) { const x = a[i]; if (x === '--forest') continue; if (x[0] === '-') { for (let j = 1; j < x.length; j++) { const ch = x[j]; if (ch === 'e' || ch === 'A') all = true; else if (ch === 'f') full = true; else if (ch === 'L') lwp = true; else if ('uUCpo'.includes(ch)) { const v = x.slice(j + 1) || a[++i] || ''; if (ch === 'o') cols.push(...v.split(/[,\s]+/).filter(Boolean)); else sel[ch === 'U' ? 'u' : ch] = v; break; } } } else if (/^a?u?x$|^aux$/.test(x)) all = true; }
@@ -5403,7 +5437,7 @@ function psFull(c) {
   }
   if (forest) { const kids = {}; for (const p of list) (kids[p.ppid || (p.pid === 1 ? 0 : 1)] = kids[p.ppid || (p.pid === 1 ? 0 : 1)] || []).push(p); const ids = new Set(list.map(p => p.pid)); const out = []; const walk = (p, d) => { out.push(Object.assign({}, p, { depth: d })); for (const k of (kids[p.pid] || [])) walk(k, d + 1); }; for (const p of list) if (!ids.has(p.ppid || (p.pid === 1 ? 0 : 1))) walk(p, 0); list = out; }
   const tree = p => forest && p.depth ? '    '.repeat(p.depth - 1) + ' \\_ ' : '';
-  const D = { pid: ['PID', 1, p => p.pid], ppid: ['PPID', 1, p => p.ppid || (p.pid === 1 ? 0 : 1)], user: ['USER', 0, p => psUser(p.user)], uid: ['UID', full && !cols.length ? 0 : 1, p => full && !cols.length ? psUser(p.user) : procUid(p)], ruser: ['RUSER', 0, p => psUser(p.user)], c: ['C', 1, () => 0], lwp: ['LWP', 1, p => p.pid], nlwp: ['NLWP', 1, p => p.workers ? 1 : (p.svc ? 2 + hash32(p.name) % 3 : 1)], stime: ['STIME', 0, p => fmtClock(p.start || S.boot)], start: ['STARTED', 0, p => fmtClock(p.start || S.boot)], tty: ['TTY', 0, p => p.tty || '?'], tt: ['TT', 0, p => p.tty || '?'], time: ['TIME', 1, p => p.idle ? '00:00:00' : '00:00:0' + hash32('t' + p.pid) % 10], etime: ['ELAPSED', 1, p => fmtElapsed(nowSec() - (p.start || S.boot))], stat: ['STAT', 0, p => p.stat || (p.pid === 1 ? 'Ss' : p.tty ? 'Ss+' : 'S')], unit: ['UNIT', 0, procUnit], pcpu: ['%CPU', 1, p => (hash32('p' + p.pid) % 10 / 10).toFixed(1)], pmem: ['%MEM', 1, p => (hash32('m' + p.pid) % 30 / 10).toFixed(1)], rss: ['RSS', 1, p => p.cmd[0] === '[' ? 0 : 1000 + hash32('r' + p.pid) % 9000], vsz: ['VSZ', 1, p => p.cmd[0] === '[' ? 0 : 10000 + hash32('v' + p.pid) % 200000], comm: ['COMMAND', 0, p => tree(p) + p.name], cmd: ['CMD', 0, p => tree(p) + p.cmd], args: ['COMMAND', 0, p => tree(p) + p.cmd], command: ['COMMAND', 0, p => tree(p) + p.cmd] };
+  const D = { pid: ['PID', 1, p => p.pid], ppid: ['PPID', 1, p => p.ppid || (p.pid === 1 ? 0 : 1)], user: ['USER', 0, p => psUser(p.user)], uid: ['UID', full && !cols.length ? 0 : 1, p => full && !cols.length ? psUser(p.user) : procUid(p)], ruser: ['RUSER', 0, p => psUser(p.user)], c: ['C', 1, () => 0], lwp: ['LWP', 1, p => p.pid], nlwp: ['NLWP', 1, p => p.workers ? 1 : (p.svc ? 2 + hash32(p.name) % 3 : 1)], stime: ['STIME', 0, p => fmtClock(p.start || S.boot)], start: ['STARTED', 0, p => fmtClock(p.start || S.boot)], tty: ['TTY', 0, p => p.tty || '?'], tt: ['TT', 0, p => p.tty || '?'], time: ['TIME', 1, p => p.idle ? '00:00:00' : '00:00:0' + hash32('t' + p.pid) % 10], etime: ['ELAPSED', 1, p => fmtElapsed(nowSec() - (p.start || S.boot))], stat: ['STAT', 0, p => p.stat || (p.pid === 1 ? 'Ss' : p.tty ? 'Ss+' : 'S')], unit: ['UNIT', 0, procUnit], pcpu: ['%CPU', 1, p => (hash32('p' + p.pid) % 10 / 10).toFixed(1)], pmem: ['%MEM', 1, p => (hash32('m' + p.pid) % 30 / 10).toFixed(1)], rss: ['RSS', 1, p => p.cmd[0] === '[' && !p.exe ? 0 : 1000 + hash32('r' + p.pid) % 9000], vsz: ['VSZ', 1, p => p.cmd[0] === '[' && !p.exe ? 0 : 10000 + hash32('v' + p.pid) % 200000], comm: ['COMMAND', 0, p => tree(p) + p.name], cmd: ['CMD', 0, p => tree(p) + p.cmd], args: ['COMMAND', 0, p => tree(p) + p.cmd], command: ['COMMAND', 0, p => tree(p) + p.cmd] };
   D['%cpu'] = D.pcpu; D['%mem'] = D.pmem; D.ucmd = D.comm; D.euid = D.uid; D.euser = D.user;
   const spec = cols.length ? cols : full ? ['uid', 'pid', 'ppid'].concat(lwp ? ['lwp', 'c', 'nlwp'] : ['c'], ['stime', 'tty', 'time', 'cmd']) : (lwp ? ['pid', 'lwp', 'tty', 'time', 'comm'] : ['pid', 'tty', 'time', 'comm']);
   const C = []; for (const s of spec) { const [k, h] = s.split('='); const d = D[k.toLowerCase()]; if (!d) { c.err('error: unknown user-defined format specifier "' + k + '"\n\nUsage:\n ps [options]\n\n Try \'ps --help <simple|list|output|threads|misc|all>\'\n  or \'ps --help <s|l|o|t|m|a>\'\n for additional help text.\n\nFor more details see ps(1).\n'); return 1; } C.push({ head: s.includes('=') ? (h || '') : (!cols.length && k === 'comm' ? 'CMD' : d[0]), right: d[1], get: d[2] }); }
@@ -5416,7 +5450,7 @@ function psFull(c) {
 /* ---- pstree (psmisc 23.7): the process tree from PID 1; -p shows PIDs, -a command lines; identical leaves fold into N*[name] ---- */
 def('pstree', c => {
   const o = opts(c, 'paunlhsAGU', ''); if (o.err) { c.err(o.err); return 1; } const root = o._[0] && /^\d+$/.test(o._[0]) ? +o._[0] : 1;
-  const P = S.procs.filter(p => p.cmd && p.cmd[0] !== '[' || p.pid === 1), kids = {}; for (const p of P) if (p.pid !== 1) { const pp = p.ppid && P.some(x => x.pid === p.ppid) ? p.ppid : 1; (kids[pp] = kids[pp] || []).push(p); }
+  const P = S.procs.filter(p => p.cmd && (p.cmd[0] !== '[' || p.exe) || p.pid === 1), kids = {}; for (const p of P) if (p.pid !== 1) { const pp = p.ppid && P.some(x => x.pid === p.ppid) ? p.ppid : 1; (kids[pp] = kids[pp] || []).push(p); }
   const label = p => (o.a ? p.cmd.replace(/^@/, '') : p.name) + (o.p ? '(' + p.pid + ')' : '');
   const render = p => {
     const lab = label(p); let ks = (kids[p.pid] || []).slice().sort((x, y) => cmpStr(x.name, y.name) || x.pid - y.pid);
@@ -5886,6 +5920,511 @@ def('gsettings', c => {
   else { if (!/^(true|false)$/.test(v)) { c.err('0-' + v.length + ':invalid boolean value “' + v + '”\n'); return 1; } nv = v; }
   (mine[schema] = mine[schema] || {})[key] = nv; return 0;
 }, { pkg: 'libglib2.0-bin' });
+
+/* ---------------- process investigation: /proc/PID, strace, ltrace, ldd, fuser, pmap, inotifywait, unhide ----------------
+   Every view reads S.procs. A process may carry: exe (its program file when the command line was renamed), ppid, env (extra
+   environment lines, such as LD_PRELOAD), preload (a library LD_PRELOAD maps in), fds ([{fd, path, mode}] files it holds
+   open), bd (the Captain's planted program: its loop is what strace and ltrace print), rk (a changed /usr/bin/ps leaves it
+   out). Long-running tools (strace -p, ltrace -p, inotifywait -m) wait for Ctrl+C as the real ones do. */
+const LIBDIR = '/usr/lib/x86_64-linux-gnu';
+const LD_SO = LIBDIR + '/ld-linux-x86-64.so.2';
+/* the libraries a program asks for (ldd order on Ubuntu 24.04, after linux-vdso and before the loader); others take libc alone */
+const LIB_DEPS = {
+  ls: ['libselinux.so.1', 'libc.so.6', 'libpcre2-8.so.0'], dir: ['libselinux.so.1', 'libc.so.6', 'libpcre2-8.so.0'], vdir: ['libselinux.so.1', 'libc.so.6', 'libpcre2-8.so.0'],
+  id: ['libselinux.so.1', 'libc.so.6', 'libpcre2-8.so.0'], mkdir: ['libselinux.so.1', 'libc.so.6', 'libpcre2-8.so.0'], stat: ['libselinux.so.1', 'libc.so.6', 'libpcre2-8.so.0'],
+  bash: ['libtinfo.so.6', 'libc.so.6'], rbash: ['libtinfo.so.6', 'libc.so.6'],
+  ps: ['libproc2.so.0', 'libc.so.6', 'libsystemd.so.0', 'libcap.so.2'], top: ['libproc2.so.0', 'libtinfo.so.6', 'libc.so.6', 'libsystemd.so.0', 'libcap.so.2'], pgrep: ['libproc2.so.0', 'libc.so.6', 'libsystemd.so.0', 'libcap.so.2'], pkill: ['libproc2.so.0', 'libc.so.6', 'libsystemd.so.0', 'libcap.so.2'], pidof: ['libproc2.so.0', 'libc.so.6', 'libsystemd.so.0', 'libcap.so.2'], pmap: ['libproc2.so.0', 'libc.so.6', 'libsystemd.so.0', 'libcap.so.2'], free: ['libproc2.so.0', 'libc.so.6', 'libsystemd.so.0', 'libcap.so.2'], w: ['libproc2.so.0', 'libc.so.6', 'libsystemd.so.0', 'libcap.so.2'],
+  sudo: ['libaudit.so.1', 'libselinux.so.1', 'libc.so.6', 'libcap.so.2', 'libpcre2-8.so.0'], su: ['libpam.so.0', 'libc.so.6', 'libaudit.so.1', 'libcap.so.2'], login: ['libpam.so.0', 'libc.so.6', 'libaudit.so.1', 'libcap.so.2'],
+  passwd: ['libcrypt.so.1', 'libaudit.so.1', 'libselinux.so.1', 'libpam.so.0', 'libc.so.6', 'libcap.so.2', 'libpcre2-8.so.0'],
+  sshd: ['libcrypt.so.1', 'libaudit.so.1', 'libpam.so.0', 'libselinux.so.1', 'libz.so.1', 'libc.so.6', 'libcap.so.2', 'libpcre2-8.so.0'],
+  systemd: ['libsystemd.so.0', 'libselinux.so.1', 'libcap.so.2', 'libcrypt.so.1', 'libpam.so.0', 'libaudit.so.1', 'libc.so.6', 'libpcre2-8.so.0'], init: ['libsystemd.so.0', 'libselinux.so.1', 'libcap.so.2', 'libcrypt.so.1', 'libpam.so.0', 'libaudit.so.1', 'libc.so.6', 'libpcre2-8.so.0'],
+  'python3.12': ['libm.so.6', 'libz.so.1', 'libc.so.6'], python3: ['libm.so.6', 'libz.so.1', 'libc.so.6'], fuser: ['libselinux.so.1', 'libc.so.6', 'libpcre2-8.so.0'], pstree: ['libtinfo.so.6', 'libselinux.so.1', 'libc.so.6', 'libpcre2-8.so.0'],
+};
+/* the Captain's planted program (85-scenarios.js plants it): one loop every BD_SLEEP seconds */
+const BD_BIN = '/var/tmp/.font-unix/fcsync', BD_LIB = LIBDIR + '/.fc/libfcsync.so.1', BD_UNIT = '/etc/systemd/system/fontcache-sync.service', BD_READS = '/etc/mysql/debian.cnf', BD_PEER = ['203.0.113.50', 8443], BD_SLEEP = 10;
+function procKthread(p) { return !p.exe && !!p.cmd && p.cmd[0] === '['; }
+function procOwner(p) { const u = U.user(p.user); return u ? { uid: u.uid, gid: u.gid } : { uid: 0, gid: 0 }; }
+function procHex(p, salt, span) { return hash32(salt + ':' + p.pid + ':' + (p.name || '')) % span; }
+function procLibSonames(exe) { if (!exe) return []; const b = FS.base(exe); return LIB_DEPS[b] || ['libc.so.6']; }
+/* every library a process has mapped, in load order: LD_PRELOAD first, then what the program asks for, then the loader */
+function procLibPaths(p) { if (procKthread(p)) return []; const out = []; if (p.preload) out.push(p.preload); for (const s of procLibSonames(procExe(p))) out.push(LIBDIR + '/' + s); out.push(LD_SO); return out; }
+function procCmdline(p) { if (procKthread(p)) return ''; return p.cmd.replace(/^@/, '').split(' ').filter(Boolean).join('\0') + '\0'; }
+function procEnv(p) {
+  if (procKthread(p)) return [];
+  const P = 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin';
+  if (p.pid === 1) return ['HOME=/', 'init=/sbin/init', 'NETWORK_SKIP_ENSLAVED=', 'TERM=linux', 'BOOT_IMAGE=/vmlinuz-' + FLAVORS.ubuntu.kernel, 'drop_caps=', P, 'PWD=/', 'rootmnt=/root'];
+  const inv = sha256Hex('inv' + p.pid + (p.svc || p.name)).slice(0, 32);
+  const base = p.svc ? ['LANG=C.UTF-8', P, 'INVOCATION_ID=' + inv, 'JOURNAL_STREAM=8:' + (12000 + procHex(p, 'js', 9000)), 'SYSTEMD_EXEC_PID=' + p.pid, 'MEMORY_PRESSURE_WATCH=/sys/fs/cgroup/system.slice/' + p.svc + '.service/memory.pressure', 'MEMORY_PRESSURE_WRITE=c29tZSAyMDAwMDAgMjAwMDAwMAA='] : ['LANG=C.UTF-8', P, 'PWD=/', 'SHLVL=1'];
+  return base.concat(p.env || []);
+}
+/* open files: standard streams, each listening socket, and the files the process holds */
+function procFds(p) {
+  if (procKthread(p)) return [];
+  const sock = n => 'socket:[' + (20000 + procHex(p, 's' + n, 30000)) + ']';
+  const out = p.svc && !p.bd ? [{ fd: 0, path: '/dev/null', kind: 'chr', mode: 'r' }, { fd: 1, path: sock(1), kind: 'sock', mode: 'u' }, { fd: 2, path: sock(1), kind: 'sock', mode: 'u' }] : [{ fd: 0, path: '/dev/null', kind: 'chr', mode: 'r' }, { fd: 1, path: '/dev/null', kind: 'chr', mode: 'w' }, { fd: 2, path: '/dev/null', kind: 'chr', mode: 'w' }];
+  let n = 3; for (const l of listeners().filter(l => l.pid === p.pid)) out.push({ fd: n++, path: sock(10 + l.port), kind: 'sock', mode: 'u' });
+  for (const f of (p.fds || [])) out.push(Object.assign({ kind: 'reg', mode: 'r' }, f));
+  return out;
+}
+/* /proc/PID/maps: the program's five segments, the heap, each library, the stack, vvar, vdso, and vsyscall */
+function procMaps(p) {
+  if (procKthread(p)) return [];
+  const exe = procExe(p), exn = exe ? FS.get(exe) : null, ino = path => String(hash32(path) % 9000000 + 1000000), rows = [];
+  const segs = (path, at, size) => { const pg = Math.max(1, Math.round(size / 4096 / 6)); const parts = [['r--p', pg], ['r-xp', pg * 3], ['r--p', pg], ['r--p', 1], ['rw-p', 1]]; let a = at, off = 0; for (const [perm, n] of parts) { rows.push({ lo: a, hi: a + n * 4096, perm, off, dev: '08:02', ino: ino(path), path }); a += n * 4096; off += perm === 'r--p' && n === 1 ? 0 : n * 4096; } return a; };
+  let a = 0x550000000000 + procHex(p, 'exe', 0xffff) * 0x1000000;
+  a = segs(exe || '/usr/bin/' + p.name, a, exn ? FS.size(exn) : 65536);
+  const heap = a + (1 + procHex(p, 'h', 255)) * 0x100000; rows.push({ lo: heap, hi: heap + 0x21000, perm: 'rw-p', off: 0, dev: '00:00', ino: '0', path: '[heap]' });
+  let top = 0x7f8000000000 + procHex(p, 'lib', 0x7000) * 0x1000000;
+  const libs = procLibPaths(p), libRows = [];
+  for (const l of libs.slice().reverse()) { const n = FS.get(l), sz = n ? FS.size(n) : 200000; top -= Math.ceil(sz / 4096 + 8) * 4096; const before = rows.length; segs(l, top, sz); libRows.push(...rows.splice(before)); }
+  rows.push(...libRows.sort((x, y) => x.lo - y.lo));
+  const st = 0x7ffc00000000 + procHex(p, 'st', 0x3ffff) * 0x1000; rows.push({ lo: st, hi: st + 0x21000, perm: 'rw-p', off: 0, dev: '00:00', ino: '0', path: '[stack]' });
+  const vv = st + 0x30000 + procHex(p, 'vv', 64) * 0x1000; rows.push({ lo: vv, hi: vv + 0x4000, perm: 'r--p', off: 0, dev: '00:00', ino: '0', path: '[vvar]' }, { lo: vv + 0x4000, hi: vv + 0x6000, perm: 'r-xp', off: 0, dev: '00:00', ino: '0', path: '[vdso]' });
+  rows.push({ lo: 0xffffffffff600000, hi: 0xffffffffff601000, perm: '--xp', off: 0, dev: '00:00', ino: '0', path: '[vsyscall]', fixed: ['ffffffffff600000', 'ffffffffff601000'] });
+  return rows;
+}
+const hex12 = n => n.toString(16).padStart(12, '0');
+function mapsText(p) { return procMaps(p).map(r => { const head = (r.fixed ? r.fixed[0] + '-' + r.fixed[1] : r.lo.toString(16) + '-' + r.hi.toString(16)) + ' ' + r.perm + ' ' + r.off.toString(16).padStart(8, '0') + ' ' + r.dev + ' ' + r.ino; return (r.path ? padR(head, 73) + r.path : head) + '\n'; }).join(''); }
+function procStatus(p) {
+  const o = procOwner(p), kt = procKthread(p), ppid = p.pid === 1 ? 0 : p.pid === 2 ? 0 : kt ? 2 : (p.ppid || 1), maps = procMaps(p), kb = maps.reduce((s, r) => s + (r.fixed ? 4096 : r.hi - r.lo), 0) / 1024, lib = maps.filter(r => /\.so/.test(r.path)).reduce((s, r) => s + (r.hi - r.lo), 0) / 1024;
+  const cap = o.uid === 0 ? '000001ffffffffff' : '0000000000000000', rss = Math.floor(kb * 0.38);
+  let t = 'Name:\t' + p.name + '\nUmask:\t' + (kt ? '0000' : '0022') + '\nState:\tS (sleeping)\nTgid:\t' + p.pid + '\nNgid:\t0\nPid:\t' + p.pid + '\nPPid:\t' + ppid + '\nTracerPid:\t0\nUid:\t' + [o.uid, o.uid, o.uid, o.uid].join('\t') + '\nGid:\t' + [o.gid, o.gid, o.gid, o.gid].join('\t') + '\nFDSize:\t' + (kt ? 64 : 64) + '\nGroups:\t\nNStgid:\t' + p.pid + '\nNSpid:\t' + p.pid + '\nNSpgid:\t' + (kt ? 0 : p.pid) + '\nNSsid:\t' + (kt ? 0 : p.pid) + '\n';
+  if (!kt) t += ['VmPeak', 'VmSize'].map(k => k + ':\t' + padL(Math.floor(kb), 8) + ' kB\n').join('') + 'VmLck:\t       0 kB\nVmPin:\t       0 kB\nVmHWM:\t' + padL(rss, 8) + ' kB\nVmRSS:\t' + padL(rss, 8) + ' kB\nRssAnon:\t' + padL(Math.floor(rss / 9), 8) + ' kB\nRssFile:\t' + padL(rss - Math.floor(rss / 9), 8) + ' kB\nRssShmem:\t       0 kB\nVmData:\t     224 kB\nVmStk:\t     132 kB\nVmExe:\t' + padL(Math.max(4, Math.floor((maps[1] ? maps[1].hi - maps[1].lo : 4096) / 1024)), 8) + ' kB\nVmLib:\t' + padL(Math.floor(lib), 8) + ' kB\nVmPTE:\t      48 kB\nVmSwap:\t       0 kB\nHugetlbPages:\t       0 kB\nCoreDumping:\t0\nTHP_enabled:\t1\nuntag_mask:\t0xffffffffffffffff\n';
+  t += 'Threads:\t1\nSigQ:\t0/15282\nSigPnd:\t0000000000000000\nShdPnd:\t0000000000000000\nSigBlk:\t0000000000000000\nSigIgn:\t' + (kt ? 'ffffffffffffffff' : '0000000000001000') + '\nSigCgt:\t' + (kt ? '0000000000000000' : '0000000000004a02') + '\nCapInh:\t0000000000000000\nCapPrm:\t' + cap + '\nCapEff:\t' + cap + '\nCapBnd:\t000001ffffffffff\nCapAmb:\t0000000000000000\nNoNewPrivs:\t0\nSeccomp:\t0\nSeccomp_filters:\t0\nSpeculation_Store_Bypass:\tthread vulnerable\nSpeculationIndirectBranch:\tconditional enabled\nCpus_allowed:\t3\nCpus_allowed_list:\t0-1\nMems_allowed:\t00000000,00000001\nMems_allowed_list:\t0\nvoluntary_ctxt_switches:\t' + (40 + procHex(p, 'v', 4000)) + '\nnonvoluntary_ctxt_switches:\t' + procHex(p, 'nv', 40) + '\n';
+  return t;
+}
+/* the /proc/PID tree as file nodes; ptrace: readable by the owner and root alone (maps, environ, the fd links) */
+const PROC_FILES = ['cmdline', 'comm', 'cwd', 'environ', 'exe', 'fd', 'maps', 'root', 'stat', 'status'];
+function procByPid(pid) { return S.procs.find(x => x.pid === pid) || null; }
+function procVNode(path) {
+  const m = /^\/proc\/(\d+)(?:\/([^/]+)(?:\/([^/]+))?)?$/.exec(path); if (!m) return null;
+  const p = procByPid(+m[1]); if (!p) return null;
+  const o = procOwner(p), mt = p.start || S.boot || nowSec(), f = (c, mode, extra) => Object.assign({ t: 'f', m: mode, u: o.uid, g: o.gid, mt, virt: true, pid: p.pid, c }, extra || {}), ln = (target, extra) => Object.assign({ t: 'l', m: 0o777, u: o.uid, g: o.gid, mt, virt: true, pid: p.pid, ln: target, ptrace: true }, extra || {});
+  if (!m[2]) return { t: 'd', m: 0o555, u: o.uid, g: o.gid, mt, virt: true, pid: p.pid };
+  const kt = procKthread(p), exe = procExe(p);
+  if (m[3] != null) { if (m[2] !== 'fd') return null; const fd = procFds(p).find(x => String(x.fd) === m[3]); return fd ? ln(fd.path) : null; }
+  switch (m[2]) {
+    case 'cmdline': return f(procCmdline(p), 0o444);
+    case 'comm': return f(p.name + '\n', 0o644);
+    case 'status': return f(procStatus(p), 0o444);
+    case 'stat': return f(p.pid + ' (' + p.name + ') S ' + (p.pid === 1 ? 0 : kt ? 2 : (p.ppid || 1)) + ' ' + p.pid + ' ' + p.pid + ' 0 -1 ' + (kt ? 2129984 : 4194560) + ' 0 0 0 0 0 0 0 0 20 0 1 0 ' + (100 + procHex(p, 'st', 9000)) + ' ' + (kt ? 0 : 2838528) + ' ' + (kt ? 0 : 259) + '\n', 0o444);
+    case 'maps': return f(mapsText(p), 0o444, { ptrace: true });
+    case 'environ': return f(procEnv(p).map(x => x + '\0').join(''), 0o400);
+    case 'exe': return kt ? ln('') : ln(exe && !FS.get(exe) ? exe + ' (deleted)' : FS.real(exe) || exe);
+    case 'cwd': return kt ? ln('') : ln('/');
+    case 'root': return kt ? ln('') : ln('/');
+    case 'fd': return { t: 'd', m: 0o500, u: o.uid, g: o.gid, mt, virt: true, pid: p.pid };
+  }
+  return null;
+}
+function procVList(dir) {
+  if (dir === '/proc') return S.procs.map(p => String(p.pid));
+  const m = /^\/proc\/(\d+)(\/fd)?$/.exec(dir); if (!m) return null; const p = procByPid(+m[1]); if (!p) return null;
+  return m[2] ? procFds(p).map(x => String(x.fd)) : PROC_FILES.slice();
+}
+/* a changed /usr/bin/ps (the Captain's tampered procps) leaves out the processes marked rk */
+function psTampered() { return !!S.fs['/usr/bin/ps'] && pkgChanged('procps').includes('/usr/bin/ps'); }
+if (CMDS.ps) { const psRun = CMDS.ps.run; CMDS.ps.run = c => { if (!psTampered() || !S.procs.some(p => p.rk)) return psRun(c); const keep = S.procs; S.procs = keep.filter(p => !p.rk); try { return psRun(c); } finally { S.procs = keep; } }; }
+
+/* ---- waiting for Ctrl+C (strace -p, ltrace -p, inotifywait): output written while the prompt waits lands above it ---- */
+function liveWrite(term, text) { if (!term || !text) return; const r = term.read; if (r && r.promptEl) { r.promptEl.remove(); r.inpEl.remove(); r.promptEl = null; r.inpEl = null; } term.write(text); if (r && term.read === r) term.renderPrompt(); }
+const WAITERS = new Set(); let bdTicker = null;
+/* the planted loop runs every BD_SLEEP seconds while something watches it (a trace or a watch); otherwise its effects are the static views */
+function bdTick() { if (!S) return; for (const p of S.procs.filter(x => x.bd)) { fsNote({ op: 'access', path: BD_READS, size: FS.get(BD_READS) ? FS.size(FS.get(BD_READS)) : 0, by: p.pid }); for (const w of Array.from(WAITERS)) if (w.loop && w.pid === p.pid) w.loop(); } }
+function waiterAdd(w) { WAITERS.add(w); if (!bdTicker) bdTicker = setInterval(bdTick, BD_SLEEP * 1000); }
+function waiterDel(w) { WAITERS.delete(w); if (!WAITERS.size && bdTicker) { clearInterval(bdTicker); bdTicker = null; } }
+/* ends a wait without Ctrl+C (an event arrived, or the timeout passed): the waiting read resolves quietly */
+const WAIT_END = '\u0000end';
+function endWait(term) { const r = term && term.read; if (!r || !r.key) return; term.read = null; if (r.promptEl) { r.promptEl.remove(); r.inpEl.remove(); } r.resolve(WAIT_END); }
+/* resolves with 'break' on Ctrl+C (or at once when nothing interactive is attached, as in a script), 'end' when endWait
+   ends it, and 'timeout' after secs; any other key keeps waiting, as on a real terminal */
+async function waitBreak(c, secs) {
+  c.flush(); const term = c.term;
+  if (!term || !term.el || term.dead) return 'break';
+  let timer = null, timedOut = false; if (secs) timer = setTimeout(() => { timedOut = true; endWait(term); }, secs * 1000);
+  try { for (;;) { const k = await term.readKey(''); if (k === WAIT_END) return timedOut ? 'timeout' : 'end'; } }
+  catch (e) { if (e && e.abort) return 'break'; throw e; } finally { if (timer) clearTimeout(timer); }
+}
+
+/* ---- strace 6.8 ---- */
+const SC_CLASS = {
+  file: ['execve', 'access', 'openat', 'newfstatat', 'mkdir', 'unlinkat', 'readlink', 'statfs', 'chdir'],
+  desc: ['openat', 'read', 'pread64', 'write', 'close', 'fstat', 'poll', 'ppoll', 'epoll_wait', 'mmap', 'newfstatat', 'getdents64', 'ioctl', 'lseek'],
+  network: ['socket', 'connect', 'sendto', 'recvfrom', 'setsockopt', 'getsockopt', 'bind', 'listen', 'accept4'],
+  process: ['execve', 'exit_group', 'clone', 'clone3', 'wait4', 'kill', 'execveat'],
+  memory: ['brk', 'mmap', 'mprotect', 'munmap'], signal: ['rt_sigaction', 'rt_sigprocmask', 'kill'], ipc: [], creds: ['getuid', 'geteuid'],
+};
+/* the system call names strace accepts in -e trace= (a name outside the table is an error, as in strace) */
+const SC_NAMES = new Set(Object.values(SC_CLASS).flat().concat(['clock_nanosleep', 'nanosleep', 'restart_syscall', 'fadvise64', 'arch_prctl', 'set_tid_address', 'set_robust_list', 'rseq', 'prlimit64', 'getrandom', 'open', 'stat', 'lstat', 'statx', 'faccessat', 'faccessat2', 'readlinkat', 'mkdirat', 'unlink', 'rmdir', 'rename', 'renameat', 'renameat2', 'chmod', 'fchmod', 'fchmodat', 'chown', 'fchown', 'fchownat', 'link', 'linkat', 'symlink', 'symlinkat', 'truncate', 'ftruncate', 'creat', 'getdents', 'fcntl', 'dup', 'dup2', 'dup3', 'pipe', 'pipe2', 'select', 'pselect6', 'epoll_create1', 'epoll_ctl', 'epoll_pwait', 'sendmsg', 'recvmsg', 'sendmmsg', 'recvmmsg', 'shutdown', 'getpeername', 'getsockname', 'socketpair', 'accept', 'sendfile', 'writev', 'readv', 'pwrite64', 'futex', 'madvise', 'rt_sigreturn', 'getpid', 'getppid', 'gettid', 'setuid', 'setgid', 'setresuid', 'setresgid', 'getgid', 'getegid', 'umask', 'chdir', 'fchdir', 'getcwd', 'exit', 'fork', 'vfork', 'prctl', 'ptrace', 'mount', 'umount2', 'chroot', 'sync', 'uname', 'sysinfo', 'times', 'getrusage', 'capget', 'capset', 'seccomp', 'bpf', 'memfd_create', 'init_module', 'finit_module', 'delete_module', 'reboot', 'kexec_load', 'inotify_init1', 'inotify_add_watch']));
+/* strace's string form: C escapes, at most s bytes, then ... when cut */
+function stStr(s, max) { s = String(s); const cut = s.length > max, part = s.slice(0, max); return '"' + part.replace(/[\\"]/g, m => '\\' + m).replace(/\n/g, '\\n').replace(/\t/g, '\\t').replace(/[\x00-\x1f\x7f]/g, ch => '\\' + ch.charCodeAt(0).toString(8)) + '"' + (cut ? '...' : ''); }
+const ERRNO = { 'Permission denied': 'EACCES', 'No such file or directory': 'ENOENT', 'Is a directory': 'EISDIR', 'Not a directory': 'ENOTDIR', 'Operation not permitted': 'EPERM', 'File exists': 'EEXIST', 'Directory not empty': 'ENOTEMPTY' };
+function stLine(call, ret) { return (call.length < 39 ? padR(call, 39) : call) + ' = ' + ret + '\n'; }
+/* -e EXPR: trace=CLASS,name,...  (or a bare list); %file is the same as file; ! inverts */
+function stFilter(exprs) {
+  if (!exprs.length) return { ok: () => true };
+  let set = null, neg = false;
+  for (const e of exprs) {
+    let v = e.replace(/^trace=/, ''); if (/^(abbrev|verbose|raw|signal|read|write|status|quiet|decode-fds|kvm|fault|inject)=/.test(e)) continue;
+    if (v[0] === '!') { neg = true; v = v.slice(1); }
+    for (const w of v.split(',').filter(Boolean)) { const k = w.replace(/^%/, ''); if (k === 'all') { set = null; neg = false; continue; } const names = SC_CLASS[k] || (SC_NAMES.has(w) ? [w] : null); if (!names) return { err: "strace: invalid system call '" + w + "'\n" }; set = set || new Set(); names.forEach(n => set.add(n)); }
+  }
+  return { ok: name => !set ? !neg : neg ? !set.has(name) : set.has(name) };
+}
+function stOpts(c, prog) {
+  const a = c.args, o = { p: [], e: [], s: 32, f: false, o: null, t: 0, y: false, rest: [] };
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i];
+    if (x === '--') { o.rest = a.slice(i + 1); break; }
+    if (x[0] !== '-' || x === '-') { o.rest = a.slice(i); break; }
+    if (x.startsWith('--')) { const m = /^--(trace|output|string-limit|attach|follow-forks|decode-fds)(?:=(.*))?$/.exec(x); if (!m) { o.err = prog + ": unrecognized option '" + x + "'\nTry '" + prog + " -h' for more information.\n"; return o; } const v = m[2] != null ? m[2] : (/^(trace|output|string-limit|attach)$/.test(m[1]) ? a[++i] : ''); if (m[1] === 'trace') o.e.push('trace=' + v); else if (m[1] === 'output') o.o = v; else if (m[1] === 'string-limit') o.s = parseInt(v, 10); else if (m[1] === 'attach') o.p.push(...String(v).split(',')); else if (m[1] === 'follow-forks') o.f = true; else o.y = true; continue; }
+    for (let j = 1; j < x.length; j++) {
+      const ch = x[j];
+      if ('peosSa'.includes(ch) && !(prog === 'ltrace' && ch === 'S')) { const v = x.slice(j + 1) || a[++i]; if (v == null) { o.err = prog + ": option requires an argument -- '" + ch + "'\nTry '" + prog + " -h' for more information.\n"; return o; } if (ch === 'p') o.p.push(...v.split(',')); else if (ch === 'e') o.e.push(v); else if (ch === 'o') o.o = v; else if (ch === 's') o.s = parseInt(v, 10); break; }
+      if (ch === 'f') o.f = true; else if (ch === 't') o.t++; else if (ch === 'y') o.y = true; else if (ch === 'q' || ch === 'v' || ch === 'i' || ch === 'S' || ch === 'C' || ch === 'n' || ch === 'T' || ch === 'r') continue;
+      else { o.err = prog + ": invalid option -- '" + ch + "'\nTry '" + prog + " -h' for more information.\n"; return o; }
+    }
+  }
+  if (isNaN(o.s) || o.s < 0) { o.err = prog + ': invalid -s argument\n'; }
+  return o;
+}
+/* ptrace rules: Yama's kernel.yama.ptrace_scope (1 on Ubuntu) lets a plain user trace only its own children */
+function ptraceDenied(c, p) { const scope = parseInt(S.sysctl['kernel.yama.ptrace_scope'] || '1', 10); if (procKthread(p)) return 'Operation not permitted'; if (scope >= 3) return 'Operation not permitted'; if (c.uid === 0) return null; if (scope >= 1 || p.user !== c.user) return 'Operation not permitted'; return null; }
+/* one pass of the planted loop, as strace prints it */
+function bdLoop(o, ok, fdName) {
+  const n = FS.get(BD_READS), txt = n && !n.bin ? (n.c || '') : '', sz = txt.length, fd = x => o.y ? x + '<' + fdName(x) + '>' : String(x);
+  let out = '';
+  if (ok('newfstatat')) out += stLine('newfstatat(AT_FDCWD, "' + BD_READS + '", ' + (n ? '{st_mode=S_IFREG|0600, st_size=' + sz + ', ...}' : '0x7ffd5c1e8b10') + ', 0)', n ? '0' : '-1 ENOENT (No such file or directory)');
+  if (ok('pread64')) out += stLine('pread64(' + fd(3) + ', ' + stStr(txt, o.s) + ', 4096, 0)', String(sz));
+  if (ok('socket')) out += stLine('socket(AF_INET, SOCK_STREAM|SOCK_NONBLOCK, IPPROTO_TCP)', '4');
+  if (ok('connect')) out += stLine('connect(' + (o.y ? '4<TCP:[' + S.net.ip + ':' + (41000 + (Date.now() / 1000 | 0) % 900) + ']>' : '4') + ', {sa_family=AF_INET, sin_port=htons(' + BD_PEER[1] + '), sin_addr=inet_addr("' + BD_PEER[0] + '")}, 16)', '-1 EINPROGRESS (Operation now in progress)');
+  if (ok('poll')) out += stLine('poll([{fd=4, events=POLLOUT}], 1, 5000)', '0 (Timeout)');
+  if (ok('close')) out += stLine('close(4)', '0');
+  return out;
+}
+const BD_SLEEP_CALL = 'clock_nanosleep(CLOCK_REALTIME, 0, {tv_sec=' + BD_SLEEP + ', tv_nsec=0}, ';
+const BD_SLEEP_RET = '0x7ffd5c1e8a30) = 0\n';
+/* the call a quiet daemon sits in when strace attaches */
+function idleCall(p) { const n = p.name; if (n === 'sshd') return 'ppoll([{fd=3, events=POLLIN}, {fd=4, events=POLLIN}], 2, NULL, NULL, 8'; if (n === 'cron') return 'clock_nanosleep(CLOCK_REALTIME, 0, {tv_sec=60, tv_nsec=0}, '; if (n === 'systemd' || n === 'systemd-journal' || n === 'systemd-logind' || n === 'systemd-resolve' || n === 'systemd-udevd' || n === 'dbus-daemon') return 'epoll_wait(4, '; if (n === 'apache2' || n === 'nginx' || n === 'mysqld') return 'epoll_wait(6, '; return 'restart_syscall(<... resuming interrupted read ...>'; }
+function idleName(call) { return (/^(\w+)\(/.exec(call) || [])[1]; }
+async function straceAttach(c, o, flt) {
+  const out = o.o ? [] : null, emit = s => { if (!s) return; if (out) { out.push(s); const r = FS.writeText(FS.norm(o.o, c.cwd), out.join(''), c.ctx); if (!r.ok) c.err('strace: Can\'t fopen \'' + o.o + '\': ' + r.err + '\n'); } else if (live) liveWrite(c.term, s); else { c.err(s); } };
+  let live = false;
+  const procs = [];
+  for (const ps of o.p) {
+    const pid = parseInt(ps, 10); if (!/^\d+$/.test(ps) || pid <= 0) { c.err("strace: Invalid process id: '" + ps + "'\n"); return 1; }
+    const p = procByPid(pid); if (!p) { c.err('strace: attach: ptrace(PTRACE_SEIZE, ' + pid + '): No such process\n'); return 1; }
+    const den = ptraceDenied(c, p); if (den) { c.err('strace: attach: ptrace(PTRACE_SEIZE, ' + pid + '): ' + den + '\n'); return 1; }
+    procs.push(p);
+  }
+  const pend = {};
+  const fdName = p => x => (procFds(p).find(f => f.fd === x) || { path: 'socket:[' + (20000 + x) + ']' }).path;
+  for (const p of procs) {
+    c.err('strace: Process ' + p.pid + ' attached\n');
+    const pre = procs.length > 1 ? '[pid ' + padL(p.pid, 5) + '] ' : '';
+    if (p.bd) { let s = flt.ok('restart_syscall') ? 'restart_syscall(<... resuming interrupted clock_nanosleep ...>) = 0\n' : ''; s += bdLoop(o, flt.ok, fdName(p)); if (flt.ok('clock_nanosleep')) { s += BD_SLEEP_CALL; pend[p.pid] = true; } emit(s.split('\n').map((l, i, a) => l && i < a.length ? pre + l : l).join('\n')); }
+    else { const call = idleCall(p); if (flt.ok(idleName(call))) { emit(pre + call); pend[p.pid] = true; } }
+  }
+  if (!c.isTTY && !o.o) { // piped: three passes of the loop, then the detach (a real one keeps going until Ctrl+C)
+    for (const p of procs.filter(x => x.bd)) for (let k = 0; k < 2; k++) { let s = pend[p.pid] ? BD_SLEEP_RET : ''; s += bdLoop(o, flt.ok, fdName(p)); s += flt.ok('clock_nanosleep') ? BD_SLEEP_CALL : ''; emit(s); }
+  } else {
+    live = !o.o;
+    const ws = procs.filter(p => p.bd).map(p => ({ pid: p.pid, loop: () => { let s = pend[p.pid] ? BD_SLEEP_RET : ''; s += bdLoop(o, flt.ok, fdName(p)); if (flt.ok('clock_nanosleep')) { s += BD_SLEEP_CALL; pend[p.pid] = true; } else pend[p.pid] = false; emit(s); } }));
+    ws.forEach(waiterAdd);
+    try { await waitBreak(c); } finally { ws.forEach(waiterDel); }
+    live = false;
+  }
+  for (const p of procs) c.err('strace: Process ' + p.pid + ' detached\n' + (pend[p.pid] && !o.o ? ' <detached ...>\n' : ''));
+  if (o.o) for (const p of procs) if (pend[p.pid]) emit(' <detached ...>\n');
+  return 0;
+}
+/* tracing a command: execve, the loader's work, every file the command touched, its writes, and exit_group */
+async function straceRun(c, o, flt, prog) {
+  const argv = o.rest, name = argv[0];
+  const path = name.includes('/') ? FS.norm(name, c.cwd) : findBin(name);
+  if (!path || !FS.get(path) || FS.get(path).t !== 'f') { c.err(prog === 'ltrace' ? "Can't execute `" + name + "': No such file or directory\n" : "strace: Can't stat '" + name + "': No such file or directory\n"); return 1; }
+  const real = FS.real(path) || path, base = FS.base(real), pid = (c.sh ? c.sh.pid : 2210) + 23, trace = [], t0 = Date.now();
+  const ts = () => { if (!o.t) return ''; const d = new Date(Date.now()), hms = two(d.getHours()) + ':' + two(d.getMinutes()) + ':' + two(d.getSeconds()); return (o.t > 1 ? hms + '.' + String(d.getMilliseconds() * 1000 + 417).padStart(6, '0') : hms) + ' '; };
+  const add = (n, call, ret) => { if (flt.ok(n)) trace.push(ts() + stLine(call, ret)); };
+  const vars = Object.keys(c.env || {}).length + 18;
+  add('execve', 'execve("' + real + '", [' + argv.map(x => stStr(x, 1e6)).join(', ') + '], 0x7ffc8e1d2b38 /* ' + vars + ' vars */)', '0');
+  // a setuid program runs without its privilege under ptrace, so sudo stops at once
+  if (base === 'sudo' && c.uid !== 0) { const msg = "sudo: effective uid is not 0, is /usr/bin/sudo on a file system with the 'nosuid' option set or an NFS file system without root privileges?\n"; add('write', 'write(2, ' + stStr(msg, o.s) + ', ' + msg.length + ')', String(msg.length)); add('exit_group', 'exit_group(1)', '?'); trace.push('+++ exited with 1 +++\n'); if (o.o) FS.writeText(FS.norm(o.o, c.cwd), trace.join(''), c.ctx); else c.err(trace.join('')); c.err(msg); return 1; }
+  const brk = 0x55d000000000 + (hash32(real) % 0xfff) * 0x1000000;
+  add('brk', 'brk(NULL)', '0x' + brk.toString(16));
+  add('mmap', 'mmap(NULL, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0)', '0x7f3a1c6e4000');
+  const pre = activeLines(FS.text('/etc/ld.so.preload')).flatMap(l => l.split(/[\s:]+/)).filter(Boolean).concat(c.env && c.env.LD_PRELOAD ? String(c.env.LD_PRELOAD).split(/[\s:]+/).filter(Boolean) : []);
+  add('access', 'access("/etc/ld.so.preload", R_OK)', FS.get('/etc/ld.so.preload') ? '0' : '-1 ENOENT (No such file or directory)');
+  const openLib = l => { const n = FS.get(l); if (!n) { add('openat', 'openat(AT_FDCWD, "' + l + '", O_RDONLY|O_CLOEXEC)', '-1 ENOENT (No such file or directory)'); return; } add('openat', 'openat(AT_FDCWD, "' + l + '", O_RDONLY|O_CLOEXEC)', '3'); add('read', 'read(3, "\\177ELF\\2\\1\\1\\3\\0\\0\\0\\0\\0\\0\\0\\0\\3\\0>\\0\\1\\0\\0\\0\\220\\243\\2\\0\\0\\0\\0\\0"..., 832)', '832'); add('fstat', 'fstat(3, {st_mode=S_IFREG|0' + (n.m & 0o777).toString(8) + ', st_size=' + FS.size(n) + ', ...})', '0'); add('mmap', 'mmap(NULL, ' + (FS.size(n) + 45056) + ', PROT_READ, MAP_PRIVATE|MAP_DENYWRITE, 3, 0)', '0x7f3a1c' + (hash32(l) % 0xfff).toString(16).padStart(3, '0') + '000'); add('close', 'close(3)', '0'); };
+  if (FS.get('/etc/ld.so.preload')) { add('openat', 'openat(AT_FDCWD, "/etc/ld.so.preload", O_RDONLY|O_CLOEXEC)', '3'); add('close', 'close(3)', '0'); }
+  for (const l of pre) openLib(l);
+  add('openat', 'openat(AT_FDCWD, "/etc/ld.so.cache", O_RDONLY|O_CLOEXEC)', '3'); add('fstat', 'fstat(3, {st_mode=S_IFREG|0644, st_size=45627, ...})', '0'); add('mmap', 'mmap(NULL, 45627, PROT_READ, MAP_PRIVATE, 3, 0)', '0x7f3a1c6d8000'); add('close', 'close(3)', '0');
+  for (const s of procLibSonames(real)) openLib('/lib/x86_64-linux-gnu/' + s);
+  add('arch_prctl', 'arch_prctl(ARCH_SET_FS, 0x7f3a1c4a1740)', '0'); add('set_tid_address', 'set_tid_address(0x7f3a1c4a1a10)', String(pid)); add('set_robust_list', 'set_robust_list(0x7f3a1c4a1a20, 24)', '0'); add('rseq', 'rseq(0x7f3a1c4a2060, 0x20, 0, 0x53053053)', '0');
+  add('mprotect', 'mprotect(0x7f3a1c6c4000, 16384, PROT_READ)', '0'); add('prlimit64', 'prlimit64(0, RLIMIT_STACK, NULL, {rlim_cur=8192*1024, rlim_max=RLIM64_INFINITY})', '0'); add('getrandom', 'getrandom("\\x6b\\x2a\\x51\\x9f\\x0e\\x73\\xc4\\x18", 8, GRND_NONBLOCK)', '8');
+  add('brk', 'brk(NULL)', '0x' + brk.toString(16)); add('brk', 'brk(0x' + (brk + 0x21000).toString(16) + ')', '0x' + (brk + 0x21000).toString(16));
+  if (base !== 'bash' && base !== 'sh') { add('openat', 'openat(AT_FDCWD, "/usr/lib/locale/locale-archive", O_RDONLY|O_CLOEXEC)', '3'); add('fstat', 'fstat(3, {st_mode=S_IFREG|0644, st_size=3055776, ...})', '0'); add('mmap', 'mmap(NULL, 3055776, PROT_READ, MAP_PRIVATE, 3, 0)', '0x7f3a1c000000'); add('close', 'close(3)', '0'); }
+  // run the command itself, recording its file work and holding its output for the write() lines
+  const hook = ev => {
+    const q = '"' + ev.path + '"';
+    if (ev.op === 'open') { const dirOpen = ev.dir; add('openat', 'openat(AT_FDCWD, ' + q + ', O_RDONLY' + (dirOpen ? '|O_NONBLOCK|O_CLOEXEC|O_DIRECTORY' : '') + ')', ev.err ? '-1 ' + (ERRNO[ev.err] || 'EIO') + ' (' + ev.err + ')' : '3'); if (dirOpen && !ev.err) { add('fstat', 'fstat(3, {st_mode=S_IFDIR|0755, st_size=4096, ...})', '0'); add('getdents64', 'getdents64(3, 0x55d0f3a5c2c0 /* 2 entries */, 32768)', '48'); add('close', 'close(3)', '0'); } return; }
+    if (ev.op === 'read') { const n = FS.get(ev.path), txt = n ? (n.bin ? '\x7fELF\x02\x01\x01' : n.c || '') : ''; add('openat', 'openat(AT_FDCWD, ' + q + ', O_RDONLY)', '3'); add('fstat', 'fstat(3, {st_mode=S_IFREG|0' + (n ? (n.m & 0o777).toString(8) : '644') + ', st_size=' + ev.size + ', ...})', '0'); add('fadvise64', 'fadvise64(3, 0, 0, POSIX_FADV_SEQUENTIAL)', '0'); add('read', 'read(3, ' + stStr(txt, o.s) + ', 131072)', String(ev.size)); add('read', 'read(3, "", 131072)', '0'); add('close', 'close(3)', '0'); return; }
+    if (ev.op === 'write' || ev.op === 'create') { const n = FS.get(ev.path); add('openat', 'openat(AT_FDCWD, ' + q + ', O_WRONLY|O_CREAT|' + (ev.append ? 'O_APPEND' : 'O_TRUNC') + ', 0666)', '3'); add('write', 'write(3, ' + stStr(n && n.c ? (ev.append ? n.c.slice(-ev.size) : n.c) : '', o.s) + ', ' + ev.size + ')', String(ev.size)); add('close', 'close(3)', '0'); return; }
+    if (ev.op === 'mkdir') { add('mkdir', 'mkdir(' + q + ', 0777)', '0'); return; }
+    if (ev.op === 'delete') { add('unlinkat', 'unlinkat(AT_FDCWD, ' + q + ', ' + (ev.dir ? 'AT_REMOVEDIR' : '0') + ')', '0'); }
+  };
+  // stdout is buffered, so each run of output between file calls is one write(1, ...)
+  const so = c.out, se = c.err, sr = c.rich, outs = [], errs = []; let pendOut = '';
+  const flushOut = () => { if (pendOut) { outs.push(pendOut); add('write', 'write(1, ' + stStr(pendOut, o.s) + ', ' + pendOut.length + ')', String(pendOut.length)); pendOut = ''; } };
+  c.out = s => { if (s) pendOut += String(s); };
+  c.rich = segs => c.out(segs.map(x => x.text).join(''));
+  c.err = s => { if (s) { flushOut(); errs.push(String(s)); add('write', 'write(2, ' + stStr(s, o.s) + ', ' + String(s).length + ')', String(String(s).length)); } };
+  const fhook = ev => { flushOut(); hook(ev); };
+  if (base === 'ls' || base === 'dir') hook({ op: 'open', path: FS.norm(argv.slice(1).filter(x => x[0] !== '-')[0] || '.', c.cwd), dir: true });
+  FS_HOOKS.push(fhook); let code = 0;
+  const saved = { argv: c.argv, args: c.args };
+  try { c.argv = argv.slice(); c.args = argv.slice(1); code = CMDS[base] ? await CMDS[base].run(c) : (c.out('[Range] This trainer does not simulate ' + name + '.\n'), 0); flushOut(); }
+  finally { FS_HOOKS.splice(FS_HOOKS.indexOf(fhook), 1); c.out = so; c.err = se; c.rich = sr; Object.assign(c, saved); }
+  code = code || 0;
+  if (outs.length) add('close', 'close(1)', '0'); add('close', 'close(2)', '0');
+  add('exit_group', 'exit_group(' + code + ')', '?'); trace.push((o.t ? ts() : '') + '+++ exited with ' + code + ' +++\n');
+  if (o.o) { const r = FS.writeText(FS.norm(o.o, c.cwd), trace.join(''), c.ctx); if (!r.ok) { c.err("strace: Can't fopen '" + o.o + "': " + r.err + '\n'); return 1; } for (const s of errs) c.err(s); for (const s of outs) c.out(s); return code; }
+  // trace on stderr, the command's own output where its write() happens, as on a terminal
+  let oi = 0, ei = 0;
+  for (const line of trace) {
+    const w = /^(?:[\d:.]+ )?write\(([12]), /.exec(line);
+    if (w && w[1] === '1' && oi < outs.length) { c.err(line.replace(/\) +=.*\n$/, '')); c.flush(); c.out(outs[oi++]); c.flush(); c.err(') = ' + line.replace(/^.* = /, '')); c.flush(); continue; }
+    if (w && w[1] === '2' && ei < errs.length) { c.err(line.replace(/\) +=.*\n$/, '') + errs[ei++] + ') = ' + line.replace(/^.* = /, '')); continue; }
+    c.err(line);
+  }
+  while (oi < outs.length) c.out(outs[oi++]); while (ei < errs.length) c.err(errs[ei++]);
+  return code;
+}
+def('strace', async c => {
+  const o = stOpts(c, 'strace'); if (o.err) { c.err(o.err); return 1; }
+  if (!o.p.length && !o.rest.length) { c.err('strace: must have PROG [ARGS] or -p PID\nTry \'strace -h\' for more information.\n'); return 1; }
+  const flt = stFilter(o.e); if (flt.err) { c.err(flt.err); return 1; }
+  if (o.p.length) return straceAttach(c, o, flt);
+  return straceRun(c, o, flt, 'strace');
+});
+
+/* ---- ltrace 0.7.3: library calls; -e names the calls to show (a+b, !a) ---- */
+function ltFilter(e) { if (!e.length) return () => true; const inc = new Set(), exc = new Set(); for (const x of e) for (const w of x.split(/[+,]/).filter(Boolean)) (w[0] === '!' ? exc : inc).add(w.replace(/^!/, '').replace(/@.*$/, '')); return n => (!inc.size || inc.has(n)) && !exc.has(n); }
+function ltLine(call, ret) { return (call.length < 48 ? padR(call, 48) : call) + ' = ' + ret + '\n'; }
+function bdLtLoop(ok) {
+  let s = '';
+  if (ok('stat')) s += ltLine('stat("' + BD_READS + '", 0x7ffd2a51e0a0)', FS.get(BD_READS) ? '0' : '-1');
+  if (ok('pread')) s += ltLine('pread(3, 0x7ffd2a51d090, 4096, 0)', String(FS.get(BD_READS) ? FS.size(FS.get(BD_READS)) : 0));
+  if (ok('inet_addr')) s += ltLine('inet_addr("' + BD_PEER[0] + '")', '0x' + BD_PEER[0].split('.').reverse().map(x => (+x).toString(16).padStart(2, '0')).join('').replace(/^0+/, ''));
+  if (ok('htons')) s += ltLine('htons(' + BD_PEER[1] + ', 0x7ffd2a51e1c0, 0, 0x7f3a1c4a1740)', '0x' + (((BD_PEER[1] & 0xff) << 8) | (BD_PEER[1] >> 8)).toString(16));
+  if (ok('socket')) s += ltLine('socket(2, 2049, 6)', '4');
+  if (ok('connect')) s += ltLine('connect(4, 0x7ffd2a51e1c0, 16, 0x7ffd2a51e1c0)', '-1');
+  if (ok('poll')) s += ltLine('poll(0x7ffd2a51e1b8, 1, 5000, 0)', '0');
+  if (ok('close')) s += ltLine('close(4)', '0');
+  return s;
+}
+def('ltrace', async c => {
+  const o = stOpts(c, 'ltrace'); if (o.err) { c.err(o.err); return 1; }
+  if (!o.p.length && !o.rest.length) { c.err('ltrace: too few arguments\nTry `ltrace --help\' for more information.\n'); return 1; }
+  const ok = ltFilter(o.e);
+  if (o.p.length) {
+    const procs = [];
+    for (const ps of o.p) { const pid = parseInt(ps, 10), p = procByPid(pid); const den = !p ? 'No such process' : ptraceDenied(c, p); if (den) { c.err('Cannot attach to pid ' + pid + ': ' + den + '\n'); return 1; } procs.push(p); }
+    let live = false, pend = {};
+    const emit = s => { if (!s) return; if (o.o) { const r = FS.writeText(FS.norm(o.o, c.cwd), (FS.text(FS.norm(o.o, c.cwd)) || '') + s, c.ctx); if (!r.ok) c.err("Can't open " + o.o + ' for writing: ' + r.err + '\n'); } else if (live) liveWrite(c.term, s); else c.err(s); };
+    if (o.o) FS.writeText(FS.norm(o.o, c.cwd), '', c.ctx);
+    for (const p of procs.filter(x => x.bd)) { emit((ok('sleep') ? '<... sleep resumed> )' + ' '.repeat(26) + ' = 0\n' : '') + bdLtLoop(ok) + (ok('sleep') ? 'sleep(' + BD_SLEEP + ' <unfinished ...>\n' : '')); pend[p.pid] = ok('sleep'); }
+    if (!c.isTTY && !o.o) { for (const p of procs.filter(x => x.bd)) emit((pend[p.pid] ? '<... sleep resumed> )' + ' '.repeat(26) + ' = 0\n' : '') + bdLtLoop(ok) + (ok('sleep') ? 'sleep(' + BD_SLEEP + ' <unfinished ...>\n' : '')); return 0; }
+    live = !o.o;
+    const ws = procs.filter(p => p.bd).map(p => ({ pid: p.pid, loop: () => emit((pend[p.pid] ? '<... sleep resumed> )' + ' '.repeat(26) + ' = 0\n' : '') + bdLtLoop(ok) + (ok('sleep') ? 'sleep(' + BD_SLEEP + ' <unfinished ...>\n' : '')) }));
+    ws.forEach(waiterAdd); try { await waitBreak(c); } finally { ws.forEach(waiterDel); }
+    return 0;
+  }
+  // a command: its library calls around the files it reads and the text it writes
+  const argv = o.rest, name = argv[0], path = name.includes('/') ? FS.norm(name, c.cwd) : findBin(name);
+  if (!path || !FS.get(path) || FS.get(path).t !== 'f') { c.err("Can't execute `" + name + "': No such file or directory\n"); return 1; }
+  const real = FS.real(path) || path, base = FS.base(real), pkg = Object.keys(PKG).find(k => (PKG[k].bins || []).includes(base) || (PKG[k].sbins || []).includes(base)) || base, lines = [], add = (n, call, ret) => { if (ok(n)) lines.push(ltLine(call, ret)); };
+  if (!CMDS[base]) { c.out('[Range] This trainer does not simulate ' + name + '.\n'); return 0; }
+  add('setlocale', 'setlocale(LC_ALL, "")', '"C.UTF-8"'); add('bindtextdomain', 'bindtextdomain("' + pkg + '", "/usr/share/locale")', '"/usr/share/locale"'); add('textdomain', 'textdomain("' + pkg + '")', '"' + pkg + '"'); add('__cxa_atexit', '__cxa_atexit(0x55d0f2a3e0a0, 0, 0x55d0f2a4f008, 0)', '0');
+  const hook = ev => { if (ev.op === 'read') { add('open', 'open("' + ev.path + '", 0, 00)', '3'); add('read', 'read(3, "' + (FS.text(ev.path) || '').slice(0, 30).replace(/\n/g, '\\n') + '"..., 131072)', String(ev.size)); add('close', 'close(3)', '0'); } else if (ev.op === 'open') add('open', 'open("' + ev.path + '", 0, 00)', '-1'); else if (ev.op === 'write' || ev.op === 'create') { add('fopen', 'fopen("' + ev.path + '", "w")', '0x55d0f3a5c2a0'); add('fclose', 'fclose(0x55d0f3a5c2a0)', '0'); } else if (ev.op === 'delete') add('unlink', 'unlink("' + ev.path + '")', '0'); };
+  const so = c.out, se = c.err, sr = c.rich, outs = [], errs = [];
+  c.out = s => { if (s) { outs.push(String(s)); add('fwrite', 'fwrite("' + String(s).slice(0, 30).replace(/\n/g, '\\n') + '"..., 1, ' + String(s).length + ', 0x7f3a1c4a0780)', String(String(s).length)); } };
+  c.rich = segs => c.out(segs.map(x => x.text).join('')); c.err = s => { if (s) { errs.push(String(s)); add('fprintf', 'fprintf(0x7f3a1c4a06a0, "%s: ", "' + name + '")', String(name.length + 2)); } };
+  FS_HOOKS.push(hook); let code = 0; const saved = { argv: c.argv, args: c.args };
+  try { c.argv = argv.slice(); c.args = argv.slice(1); code = (await CMDS[base].run(c)) || 0; } finally { FS_HOOKS.splice(FS_HOOKS.indexOf(hook), 1); c.out = so; c.err = se; c.rich = sr; Object.assign(c, saved); }
+  add('fclose', 'fclose(0x7f3a1c4a0780)', '0'); add('fclose', 'fclose(0x7f3a1c4a06a0)', '0');
+  lines.push('+++ exited (status ' + code + ') +++\n');
+  if (o.o) { FS.writeText(FS.norm(o.o, c.cwd), lines.join(''), c.ctx); for (const s of errs) c.err(s); for (const s of outs) c.out(s); return code; }
+  for (const s of errs) c.err(s); for (const s of outs) c.out(s); c.flush(); c.err(lines.join(''));
+  return code;
+});
+
+/* ---- ldd (glibc 2.39): the libraries a program asks for and where the loader finds them; LD_PRELOAD and /etc/ld.so.preload come first ---- */
+def('ldd', c => {
+  const files = c.args.filter(x => x[0] !== '-'); if (c.args.includes('--version')) { c.out('ldd (Ubuntu GLIBC 2.39-0ubuntu8.4) 2.39\n'); return 0; }
+  if (!files.length) { c.err('ldd: missing file arguments\nTry `ldd --help\' for more information.\n'); return 1; }
+  let code = 0; const addr = s => '(0x' + (0x7f0000000000 + (hash32(s) % 0xffffff) * 0x1000).toString(16).padStart(16, '0') + ')';
+  const pre = activeLines(FS.text('/etc/ld.so.preload')).flatMap(l => l.split(/[\s:]+/)).concat(c.env && c.env.LD_PRELOAD ? String(c.env.LD_PRELOAD).split(/[\s:]+/) : []).filter(Boolean);
+  for (const f of files) {
+    const abs = FS.norm(f, c.cwd), st = FS.stat(abs, c.ctx);
+    if (files.length > 1) c.out(f + ':\n');
+    if (!st.ok) { c.err('ldd: ' + f + ': ' + st.err + '\n'); code = 1; continue; }
+    if (st.node.t !== 'f') { c.err('ldd: ' + f + ': not regular file\n'); code = 1; continue; }
+    if (!FS.canRead(st.node, c.ctx)) { c.err('ldd: error: you do not have read permission for `' + f + "'\n"); code = 1; continue; }
+    if (!st.node.bin) { c.out('\tnot a dynamic executable\n'); code = 1; continue; }
+    const isLib = /\.so(\.|$)/.test(st.path), libs = isLib ? (FS.base(st.path) === 'libc.so.6' || FS.base(st.path) === 'ld-linux-x86-64.so.2' ? [] : ['libc.so.6']) : procLibSonames(st.path);
+    let t = '\tlinux-vdso.so.1 ' + addr('vdso' + f) + '\n';
+    for (const l of pre) t += '\t' + l + (FS.get(l) ? ' ' + addr(l) : ' => not found') + '\n';
+    for (const s of libs) t += '\t' + s + ' => ' + (FS.get(LIBDIR + '/' + s) ? '/lib/x86_64-linux-gnu/' + s + ' ' + addr(s) : 'not found') + '\n';
+    if (FS.base(st.path) !== 'ld-linux-x86-64.so.2') t += '\t/lib64/ld-linux-x86-64.so.2 ' + addr('ld') + '\n'; else t = '\tstatically linked\n';
+    c.out(t);
+  }
+  return code;
+});
+
+/* ---- fuser (psmisc 23.7): which processes use a file, a folder, or a port; -k ends them ---- */
+def('fuser', async c => {
+  const a = c.args; let v = false, k = false, ask = false, mnt = false, showU = false, silent = false, space = null, sig = 'KILL'; const names = [];
+  for (let i = 0; i < a.length; i++) { const x = a[i]; if (x === '-n' || x === '--namespace') { space = a[++i]; if (!/^(file|tcp|udp)$/.test(space || '')) { c.err('fuser: Invalid namespace name\n'); return 1; } continue; } if (/^-(SIG)?[A-Z]+\d*$/.test(x) || /^-\d+$/.test(x)) { sig = x.replace(/^-(SIG)?/, ''); continue; } if (x === '--verbose') { v = true; continue; } if (x === '--kill') { k = true; continue; } if (x === '--mount') { mnt = true; continue; } if (x[0] === '-' && x.length > 1) { for (const ch of x.slice(1)) { if (ch === 'v') v = true; else if (ch === 'k') k = true; else if (ch === 'i') ask = true; else if (ch === 'm' || ch === 'M') mnt = true; else if (ch === 'u') showU = true; else if (ch === 's') silent = true; else if ('a'.includes(ch)) continue; else { c.err('fuser: Invalid option ' + ch + '\n'); return 1; } } continue; } names.push(x); }
+  if (!names.length) { c.err('No process specification given\nUsage: fuser [-fIMuvw] [-a|-s] [-4|-6] [-c|-m|-n SPACE]\n             [-k [-i] [-SIGNAL]] NAME...\n       fuser -l\n       fuser -V\nShow which processes use the named files, sockets, or filesystems.\n'); return 1; }
+  const vis = p => c.uid === 0 || p.user === c.user;
+  let found = false, code = 0; const header = '                     USER        PID ACCESS COMMAND\n';
+  let headed = false;
+  for (const nm of names) {
+    const sm = /^(\d+)\/(tcp|udp)$/.exec(nm), portSpace = space === 'tcp' || space === 'udp' ? space : sm ? sm[2] : null, port = sm ? +sm[1] : +nm;
+    const hits = [];
+    if (portSpace) { if (isNaN(port)) { c.err('fuser: Invalid port specification ' + nm + '\n'); code = 1; continue; } for (const l of listeners().filter(l => l.proto === portSpace && l.port === port)) { const p = procByPid(l.pid); if (p && vis(p) && !hits.some(h => h.p === p)) hits.push({ p, acc: 'f' }); } }
+    else {
+      const abs = FS.norm(nm, c.cwd), st = FS.stat(abs, c.ctx); if (!st.ok) { c.err('Specified filename ' + nm + ' does not exist.\n'); code = 1; continue; } const P = st.path;
+      for (const p of S.procs) { if (!vis(p) || procKthread(p)) continue; let acc = ''; const exe = procExe(p);
+        const fds = procFds(p); if (fds.some(f => f.path === P) || (mnt && fds.some(f => f.path[0] === '/'))) acc += fds.some(f => f.path === P && /w|u/.test(f.mode)) ? 'F' : 'f';
+        if (P === '/' ) acc += 'r'; if (P === '/') acc += 'c'; if (exe && (FS.real(exe) === P || (mnt && P === '/'))) acc += 'e'; if (procLibPaths(p).includes(P) || (mnt && P === '/')) acc += 'm';
+        if (acc) hits.push({ p, acc }); }
+    }
+    const label = portSpace ? port + '/' + portSpace : nm;
+    if (!hits.length) { if (!v && !silent) c.err(''); continue; }
+    found = true;
+    if (silent) { /* status only */ }
+    else if (v) { if (!headed) { c.err(header); headed = true; } hits.forEach((h, i) => { const acc5 = ['fF', 'r', 'c', 'e', 'm'].map(set => set.split('').find(ch => h.acc.includes(ch)) || '.').join(''); c.err((i === 0 ? (label.length + 1 > 20 ? label + ':\n' + ' '.repeat(20) : padR(label + ':', 20)) : ' '.repeat(20)) + ' '); c.flush(); c.out(padR(h.p.user, 10) + padL(h.p.pid, 6) + ' ' + acc5 + ' ' + h.p.name + '\n'); }); }
+    else { c.err(padR(label + ':', 19 > label.length ? 19 : label.length + 1)); c.flush(); c.out(hits.map(h => padL(h.p.pid, 6) + h.acc.replace(/[fF]/g, '') + (showU ? '(' + h.p.user + ')' : '')).join('')); c.flush(); c.err('\n'); }
+    if (k) for (const h of hits) { if (ask) { const ans = await c.prompt('Kill process ' + h.p.pid + ' ? (y/N) '); if (!/^y/i.test(ans || '')) continue; } const e = killProc(c, h.p, sig); if (e && e !== 'sandbox') c.err('Could not kill process ' + h.p.pid + ': ' + e + '\n'); }
+  }
+  return found ? code : 1;
+});
+
+/* ---- pmap (procps 4.0.4): a process's memory map, one line per mapping; -x adds RSS and dirty pages ---- */
+def('pmap', c => {
+  const o = opts(c, 'xXdqp', 'A'); if (o.err) { c.err(o.err); return 1; }
+  if (!o._.length) { c.err('Usage:\n pmap [options] PID [PID ...]\n\nOptions:\n -x, --extended              show details\n -X                          show even more details\n -d, --device                show the device format\n -q, --quiet                 do not display header and footer\n -p, --show-path             show path in the mapping\n\nFor more details see pmap(1).\n'); return 1; }
+  let code = 0;
+  for (const ps of o._) {
+    const p = procByPid(parseInt(ps, 10)); if (!p) { code = 42; continue; }
+    const head = p.pid + ':   ' + (procKthread(p) ? p.cmd : p.cmd.replace(/^@/, '')) + '\n';
+    const mayRead = c.uid === 0 || p.user === c.user, rows = mayRead ? procMaps(p) : [];
+    const kb = r => (r.fixed ? 4096 : r.hi - r.lo) / 1024, name = r => !r.path || r.path === '[heap]' || r.path === '[vvar]' || r.path === '[vdso]' ? '  [ anon ]' : r.path === '[stack]' ? '  [ stack ]' : r.path === '[vsyscall]' ? '  [ anon ]' : (o.p ? r.path : FS.base(r.path)), mode = r => r.perm.slice(0, 3) + '--';
+    const addr = r => r.fixed ? r.fixed[0] : r.lo.toString(16).padStart(16, '0'), total = rows.reduce((s, r) => s + kb(r), 0);
+    if (!o.q) c.out(head);
+    if (o.x) {
+      if (!o.q) c.out('Address           Kbytes     RSS   Dirty Mode  Mapping\n');
+      for (const r of rows) { const rss = r.perm.includes('w') ? kb(r) : Math.floor(kb(r) / 2), dirty = r.perm.includes('w') ? Math.min(kb(r), 8) : 0; c.out(addr(r) + ' ' + padL(kb(r), 7) + ' ' + padL(rss, 7) + ' ' + padL(dirty, 7) + ' ' + mode(r) + ' ' + name(r).replace(/^ {2}/, '') + '\n'); }
+      if (!o.q) c.out('---------------- ------- ------- ------- \ntotal kB         ' + padL(total, 7) + ' ' + padL(Math.floor(total / 3), 7) + ' ' + padL(Math.floor(total / 20), 7) + '\n');
+    } else {
+      for (const r of rows) c.out(addr(r) + ' ' + padL(kb(r) + 'K', 6) + ' ' + mode(r) + ' ' + name(r) + '\n');
+      if (!o.q) c.out(' total ' + padL(total + 'K', 16) + '\n');
+    }
+  }
+  return code;
+});
+
+/* ---- inotifywait (inotify-tools 3.22): one line per file event; -m keeps watching until Ctrl+C ---- */
+const INO_EVENTS = ['access', 'modify', 'attrib', 'close_write', 'close_nowrite', 'close', 'open', 'moved_to', 'moved_from', 'move', 'move_self', 'create', 'delete', 'delete_self', 'unmount'];
+function inoEvents(ev) {
+  const d = ev.dir ? ',ISDIR' : '';
+  if (ev.op === 'read') return [['OPEN', 'open'], ['ACCESS', 'access'], ['CLOSE_NOWRITE,CLOSE', 'close_nowrite']];
+  if (ev.op === 'access') return [['ACCESS', 'access']];
+  if (ev.op === 'write') return [['OPEN', 'open'], ['MODIFY', 'modify'], ['CLOSE_WRITE,CLOSE', 'close_write']];
+  if (ev.op === 'create') return [['CREATE', 'create'], ['OPEN', 'open'], ['MODIFY', 'modify'], ['CLOSE_WRITE,CLOSE', 'close_write']];
+  if (ev.op === 'mkdir') return [['CREATE,ISDIR', 'create']];
+  if (ev.op === 'delete') return [['DELETE' + d, 'delete']];
+  return [];
+}
+def('inotifywait', async c => {
+  const a = c.args; let mon = false, rec = false, quiet = 0, tmo = 0; const evs = [], paths = [];
+  for (let i = 0; i < a.length; i++) { const x = a[i];
+    if (x === '-e' || x === '--event') { const v = a[++i]; if (!v) { c.err("inotifywait: option requires an argument -- 'e'\n"); return 1; } evs.push(...v.split(',')); continue; }
+    if (x.startsWith('--event=')) { evs.push(...x.slice(8).split(',')); continue; }
+    if (x === '-t' || x === '--timeout') { tmo = parseInt(a[++i], 10); if (isNaN(tmo)) { c.err('inotifywait: invalid timeout\n'); return 1; } continue; }
+    if (x === '--monitor') { mon = true; continue; } if (x === '--recursive') { rec = true; continue; } if (x === '--quiet') { quiet++; continue; }
+    if (/^-[mrqc]+$/.test(x)) { for (const ch of x.slice(1)) { if (ch === 'm') mon = true; else if (ch === 'r') rec = true; else if (ch === 'q') quiet++; } continue; }
+    if (x[0] === '-' && x.length > 1) { c.err("inotifywait: invalid option -- '" + x.replace(/^-+/, '')[0] + "'\n"); return 1; }
+    paths.push(x); }
+  for (const e of evs) if (!INO_EVENTS.includes(e.toLowerCase())) { c.err('\'' + e + '\' is not a valid event!  Run with the \'--help\' option to see a list of events.\n'); return 1; }
+  if (!paths.length) { c.err('No files specified to watch!\n'); return 1; }
+  const watches = [];
+  if (!quiet) c.err('Setting up watches.' + (rec ? '  Beware: since -r was given, this may take a while!' : '') + '\n');
+  for (const p of paths) { const abs = FS.norm(p, c.cwd), st = FS.stat(abs, c.ctx); if (!st.ok || !FS.canRead(st.node, c.ctx)) { c.err("Couldn't watch " + p + ': ' + (st.ok ? 'Permission denied' : st.err) + '\n'); return 1; } watches.push({ given: p.replace(/\/+$/, '') || '/', real: st.path, dir: st.node.t === 'd' }); }
+  if (!quiet) c.err('Watches established.\n');
+  const want = name => !evs.length || evs.some(e => { e = e.toLowerCase(); return e === name || (e === 'close' && /^close_/.test(name)) || (e === 'move' && /^moved_/.test(name)); });
+  let done = null, live = false, hits = 0; const lines = [];
+  const emit = s => { if (live) liveWrite(c.term, s); else lines.push(s); };
+  const hook = ev => {
+    if (done) return;
+    for (const w of watches) {
+      let where = null, file = '';
+      if (ev.path === w.real && !w.dir) where = w.given;
+      else if (w.dir && FS.parent(ev.path) === w.real) { where = w.given.replace(/\/$/, '') + '/'; file = FS.base(ev.path); }
+      else if (w.dir && rec && ev.path.startsWith(w.real === '/' ? '/' : w.real + '/')) { const sub = FS.parent(ev.path).slice(w.real.length); where = (w.given === '/' ? '' : w.given.replace(/\/$/, '')) + sub + '/'; file = FS.base(ev.path); }
+      if (where == null) continue;
+      for (const [label, name] of inoEvents(ev)) { if (!want(name)) continue; emit(where + ' ' + label + (file ? ' ' + file : '') + '\n'); hits++; if (!mon) { done = 'event'; break; } }
+      if (done) break;
+    }
+    if (done && !mon) endWait(c.term);
+  };
+  if (!c.term || !c.term.el) return 0; // nothing interactive to wait on (a script): the watch ends at once
+  if (!c.isTTY) { c.err('[Range] inotifywait waits for events until Ctrl+C; run it on its own line to watch them live.\n'); return 0; }
+  FS_HOOKS.push(hook); const w = { pid: -1 }; waiterAdd(w); live = true;
+  let how;
+  try { how = await waitBreak(c, tmo || 0); } finally { FS_HOOKS.splice(FS_HOOKS.indexOf(hook), 1); waiterDel(w); live = false; }
+  for (const l of lines) c.out(l);
+  if (done === 'event') return 0;
+  if (how === 'timeout') return hits ? 0 : 2;
+  return 130;
+});
+def('inotifywatch', c => { c.out('[Range] inotifywatch counts events over a time span; the trainer models inotifywait (inotifywait -m -r DIR).\n'); return 0; });
+
+/* ---- unhide 20220611: processes in /proc that ps leaves out, and ports that ss leaves out ---- */
+const UNHIDE_HEAD = n => n + ' 20220611\nCopyright © 2022 Yago Jesus & Patrick Gouin\nLicense GPLv3+ : GNU GPL version 3 or later\nwww.unhide-forensics.info\n\n';
+def(['unhide', 'unhide-linux'], c => {
+  const tests = c.args.filter(x => x[0] !== '-'), known = ['proc', 'procall', 'procfs', 'quick', 'reverse', 'sys', 'brute', 'opendir', 'readdir', 'chdir'];
+  c.out(UNHIDE_HEAD('Unhide') + 'NOTE : This version of unhide is for systems using Linux >= 2.6 \n\n');
+  if (!tests.length || tests.some(t => !known.includes(t))) { c.out('Usage: ' + c.argv[0] + ' [options] test_list\n\nOption :\n   -V          Show version and exit\n   -v          verbose\n   -h          display this help\n   -m          more checks (available only with procfs, checkopendir & checkchdir commands)\n   -r          use alternate sysinfo test in meta-test\n   -f          log result into unhide-linux.log file\n   -o          same as \'-f\'\n   -d          do a double check in brute test to avoid false positive\n   -u          unbufferize stdout (need to be root)\n   -H          add a hidden process test (need to be root)\nTest_list :\n   Test_list is one or more of the following\n   Standard tests :\n      brute\n      proc\n      procall\n      procfs\n      quick\n      reverse\n      sys\n'); return 1; }
+  if (c.uid !== 0) { c.flush(); c.err('You must be root to run ' + c.argv[0] + ' !\n'); return 1; }
+  const desc = { proc: ['/proc stat scanning'], procall: ['/proc stat scanning', '/proc chdir scanning', '/proc opendir scanning', '/proc readdir scanning'], procfs: ['/proc chdir scanning', '/proc opendir scanning', '/proc readdir scanning'], quick: ['comparison of results of system calls, proc, dir and ps'], reverse: ['verification of ps output against /proc and system calls'], sys: ['kill(..,0) scanning', 'comparison of getpriority() results', 'comparison of getpgid() results', 'comparison of getsid() results', 'comparison of sched_getaffinity() results', 'comparison of sched_getparam() results', 'comparison of sched_getscheduler() results', 'comparison of sched_rr_get_interval() results', 'comparison of sysinfo() results'], brute: ['brute force scanning'], opendir: ['/proc opendir scanning'], readdir: ['/proc readdir scanning'], chdir: ['/proc chdir scanning'] };
+  c.out('Used options: \n');
+  const hidden = psTampered() ? S.procs.filter(p => p.rk) : [];
+  for (const t of tests) for (const d of desc[t]) {
+    c.out('[*]Searching for Hidden processes through ' + (t === 'sys' ? ' ' : '') + d + '\n\n');
+    if (t === 'reverse') continue;
+    for (const p of hidden) { const exe = procExe(p); c.out('Found HIDDEN PID: ' + p.pid + '\n\tCmdline: "' + p.cmd + '"\n\tExecutable: "' + (exe || '<none>') + (exe && !FS.get(exe) ? ' (deleted)' : '') + '"\n\tCommand: "' + p.name + '"\n\t$USER=' + p.user + '\n\t$PWD=/\n\n'); }
+  }
+  return hidden.length ? 1 : 0;
+});
+def('unhide-tcp', c => {
+  c.out(UNHIDE_HEAD('Unhide-tcp'));
+  if (c.uid !== 0) { c.flush(); c.err('You must be root to run ' + c.argv[0] + ' !\n'); return 1; }
+  c.out('Used options: \n[*]Starting TCP checking\n\n[*]Starting UDP checking\n\n');
+  return 0;
+});
+
+/* ---- manual pages for the tools above ---- */
+manp('strace', 1, 'trace system calls and signals', ['strace [-fty] [-e EXPR] [-o FILE] [-s STRSIZE] -p PID', 'strace [-fty] [-e EXPR] [-o FILE] [-s STRSIZE] COMMAND [ARG...]'], ['-p PID          attach to a running process; Ctrl+C detaches (other users\' processes need sudo; kernel.yama.ptrace_scope=1 limits a plain user to its own children)', '-f              follow child processes', '-e trace=SET    show only some calls: network, file, process, desc, memory, or names such as openat,connect', '-o FILE         write the trace to FILE', '-s N            print N characters of each string (default 32)', '-y              print the path behind each file descriptor', '-t, -tt         prefix each line with the time']);
+manp('ltrace', 1, 'a library call tracer', ['ltrace [-e FILTER] [-o FILE] -p PID', 'ltrace [-e FILTER] [-o FILE] COMMAND [ARG...]'], ['-p PID          attach to a running process; Ctrl+C detaches', '-e FILTER       which calls to show: connect, connect+socket, or !malloc', '-o FILE         write the trace to FILE']);
+manp('ldd', 1, 'print shared object dependencies', ['ldd [OPTION]... FILE...'], ['Lists each library FILE asks for and where the loader finds it. LD_PRELOAD and /etc/ld.so.preload add libraries in front.', 'ldd may run the program\'s own loader: on a file you do not trust, use objdump -p FILE | grep NEEDED instead.']);
+manp('fuser', 1, 'identify processes using files or sockets', ['fuser [-fuv] [-a|-s] [-m] [-n SPACE] [-k [-i] [-SIGNAL]] NAME...'], ['-v              verbose: USER, PID, ACCESS, COMMAND (ACCESS: f open file, F open for writing, r root, c current folder, e running program, m mapped library)', '-n tcp PORT     the processes that hold a TCP port (also PORT/tcp)', '-m              every process using the filesystem that holds NAME', '-k              send SIGKILL to each process found (use -v first; -i asks before each)', '-u              add the user name to each PID']);
+manp('pmap', 1, 'report memory map of a process', ['pmap [options] PID [...]'], ['-x              extended: Kbytes, RSS, and dirty pages for each mapping', '-p              show the full path of each mapping', '-q              leave out the header and the total']);
+manp('inotifywait', 1, 'wait for changes to files using inotify', ['inotifywait [-mrq] [-e EVENT[,EVENT]] [-t SECONDS] FILE...'], ['-m              keep listening (monitor) until Ctrl+C; without it, exit after the first event', '-r              watch every folder below a folder', '-e EVENTS       only these events: access, modify, attrib, close_write, close_nowrite, close, open, moved_to, moved_from, move, create, delete', '-t SECONDS      stop after SECONDS', 'Output: WATCHED-FOLDER EVENT FILE. In the trainer, events from another terminal window and from running programs print while it waits.']);
+manp(['unhide', 'unhide-linux'], 8, 'forensic tool to find hidden processes', ['unhide [options] test_list'], ['proc            compare /proc with the output of ps', 'sys             compare system call results with ps', 'procall, quick, reverse, brute   further tests', 'Runs as root. A PID it reports is a process that ps leaves out: check ps itself (debsums, dpkg --verify procps).']);
+manp('unhide-tcp', 8, 'forensic tool to find hidden TCP/IP ports', ['unhide-tcp [options]'], ['Tries every TCP and UDP port and reports each one in use that ss or netstat leaves out.']);
 
 /* ---------------- editors: nano, vi, pager ---------------- */
 /* runEditor(term, 'nano'|'vi', {path, display, text, ro, ctx, virtual}) -> Promise<{saved, text}> */
@@ -6774,11 +7313,11 @@ function buildBase(sc) {
   const tz = (() => { try { const z = Intl.DateTimeFormat().resolvedOptions().timeZone; return /^[A-Za-z0-9_+-]+(\/[A-Za-z0-9_+-]+)*$/.test(z || '') ? z : 'Etc/UTC'; } catch (e) { return 'Etc/UTC'; } })();
   S.fs = {};
   B.d('/', 0o755);
-  B.dirs(['/etc', '/usr', '/usr/bin', '/usr/sbin', '/usr/lib', '/usr/lib/systemd', '/usr/lib/systemd/system', '/usr/local', '/usr/local/bin', '/usr/local/sbin', '/usr/local/lib', '/usr/local/share', '/usr/share', '/usr/share/doc', '/usr/share/man', '/usr/share/man/man1', '/usr/games', '/usr/include', '/usr/src', '/usr/libexec', '/var', '/var/log', '/var/log/apt', '/var/spool', '/var/spool/cron', '/var/mail', '/var/backups', '/var/cache', '/var/cache/apt', '/var/lib', '/var/lib/dpkg', '/var/lib/apt', '/var/lib/apt/lists', '/var/lib/systemd', '/var/run', '/var/opt', '/var/local', '/opt', '/srv', '/mnt', '/media', '/home', '/boot', '/boot/grub', '/dev', '/proc', '/sys', '/run', '/run/systemd', '/run/user', '/etc/default', '/etc/skel', '/etc/pam.d', '/etc/security', '/etc/ssh', '/etc/ssh/sshd_config.d', '/etc/apt', '/etc/apt/apt.conf.d', '/etc/apt/sources.list.d', '/etc/apt/preferences.d', '/etc/apt/trusted.gpg.d', '/etc/cron.d', '/etc/cron.daily', '/etc/cron.hourly', '/etc/cron.weekly', '/etc/cron.monthly', '/etc/systemd', '/etc/systemd/system', '/etc/systemd/system/multi-user.target.wants', '/etc/sysctl.d', '/etc/sudoers.d', '/etc/init.d', '/etc/profile.d', '/etc/update-motd.d', '/etc/logrotate.d', '/etc/rsyslog.d', '/etc/network', '/etc/alternatives', '/etc/ld.so.conf.d', '/etc/vim', '/etc/X11', '/etc/dpkg', '/etc/dconf', '/etc/polkit-1', '/etc/ufw', '/etc/ufw/applications.d', '/etc/fonts', '/etc/ssl', '/etc/ssl/certs', '/etc/ssl/private', '/etc/udev', '/etc/kernel', '/etc/modprobe.d', '/etc/netplan', '/etc/dbus-1', '/etc/xdg', '/var/lib/ufw', '/var/log/journal', '/var/www']);
+  B.dirs(['/etc', '/usr', '/usr/bin', '/usr/sbin', '/usr/lib', '/usr/lib/x86_64-linux-gnu', '/usr/lib/systemd', '/usr/lib/systemd/system', '/usr/local', '/usr/local/bin', '/usr/local/sbin', '/usr/local/lib', '/usr/local/share', '/usr/share', '/usr/share/doc', '/usr/share/man', '/usr/share/man/man1', '/usr/games', '/usr/include', '/usr/src', '/usr/libexec', '/var', '/var/log', '/var/log/apt', '/var/spool', '/var/spool/cron', '/var/mail', '/var/backups', '/var/cache', '/var/cache/apt', '/var/lib', '/var/lib/dpkg', '/var/lib/apt', '/var/lib/apt/lists', '/var/lib/systemd', '/var/run', '/var/opt', '/var/local', '/opt', '/srv', '/mnt', '/media', '/home', '/boot', '/boot/grub', '/dev', '/proc', '/sys', '/run', '/run/systemd', '/run/user', '/etc/default', '/etc/skel', '/etc/pam.d', '/etc/security', '/etc/ssh', '/etc/ssh/sshd_config.d', '/etc/apt', '/etc/apt/apt.conf.d', '/etc/apt/sources.list.d', '/etc/apt/preferences.d', '/etc/apt/trusted.gpg.d', '/etc/cron.d', '/etc/cron.daily', '/etc/cron.hourly', '/etc/cron.weekly', '/etc/cron.monthly', '/etc/systemd', '/etc/systemd/system', '/etc/systemd/system/multi-user.target.wants', '/etc/sysctl.d', '/etc/sudoers.d', '/etc/init.d', '/etc/profile.d', '/etc/update-motd.d', '/etc/logrotate.d', '/etc/rsyslog.d', '/etc/network', '/etc/alternatives', '/etc/ld.so.conf.d', '/etc/vim', '/etc/X11', '/etc/dpkg', '/etc/dconf', '/etc/polkit-1', '/etc/ufw', '/etc/ufw/applications.d', '/etc/fonts', '/etc/ssl', '/etc/ssl/certs', '/etc/ssl/private', '/etc/udev', '/etc/kernel', '/etc/modprobe.d', '/etc/netplan', '/etc/dbus-1', '/etc/xdg', '/var/lib/ufw', '/var/log/journal', '/var/www']);
   B.d('/tmp', 0o1777); B.d('/var/tmp', 0o1777); B.d('/var/spool/cron/crontabs', 0o1730, 0, 104); B.d('/var/mail', 0o2775, 0, 8);
   for (const x of ['X11', 'ICE', 'XIM', 'font']) B.d('/tmp/.' + x + '-unix', 0o1777); // systemd's tmpfiles.d/x11.conf
   B.d('/root', 0o700); B.d('/lost+found', 0o700); B.d('/etc/ssl/private', 0o710, 0, 114); B.d('/var/log/journal', 0o2755, 0, 101); B.d('/etc/sudoers.d', 0o750); B.d('/etc/polkit-1', 0o755);
-  B.l('/bin', 'usr/bin'); B.l('/sbin', 'usr/sbin'); B.l('/lib', 'usr/lib'); B.l('/lib64', 'usr/lib64'); B.l('/lib32', 'usr/lib32'); B.l('/libx32', 'usr/libx32'); B.d('/usr/lib64'); B.d('/usr/lib32'); B.d('/usr/libx32'); B.l('/etc/os-release', '../usr/lib/os-release'); B.l('/etc/resolv.conf', '../run/systemd/resolve/stub-resolv.conf'); B.l('/etc/localtime', '/usr/share/zoneinfo/' + tz); B.l('/etc/mtab', '../proc/self/mounts'); B.l('/etc/sysctl.d/99-sysctl.conf', '../sysctl.conf');
+  B.l('/bin', 'usr/bin'); B.l('/sbin', 'usr/sbin'); B.l('/lib', 'usr/lib'); B.l('/lib64', 'usr/lib64'); B.l('/usr/lib64/ld-linux-x86-64.so.2', '../lib/x86_64-linux-gnu/ld-linux-x86-64.so.2'); B.l('/lib32', 'usr/lib32'); B.l('/libx32', 'usr/libx32'); B.d('/usr/lib64'); B.d('/usr/lib32'); B.d('/usr/libx32'); B.l('/etc/os-release', '../usr/lib/os-release'); B.l('/etc/resolv.conf', '../run/systemd/resolve/stub-resolv.conf'); B.l('/etc/localtime', '/usr/share/zoneinfo/' + tz); B.l('/etc/mtab', '../proc/self/mounts'); B.l('/etc/sysctl.d/99-sysctl.conf', '../sysctl.conf');
   B.d('/run/systemd/resolve'); B.f('/run/systemd/resolve/stub-resolv.conf', '# This is /run/systemd/resolve/stub-resolv.conf managed by man:systemd-resolved(8).\n# Do not edit.\n#\n# This file might be symlinked as /etc/resolv.conf. If you\'re looking at\n# /etc/resolv.conf and seeing this text, you have followed the symlink.\n\nnameserver 127.0.0.53\noptions edns0 trust-ad\nsearch lan\n');
   B.d('/usr/share/zoneinfo'); B.d('/usr/share/zoneinfo/Etc'); B.bin('/usr/share/zoneinfo/Etc/UTC', 114, 0o644);
   tz.split('/').slice(0, -1).reduce((d, x) => (B.d(d + '/' + x), d + '/' + x), '/usr/share/zoneinfo'); if (!S.fs['/usr/share/zoneinfo/' + tz]) B.bin('/usr/share/zoneinfo/' + tz, 1200 + hash32(tz) % 2000, 0o644);
@@ -6865,7 +7404,7 @@ function buildBase(sc) {
   if (!gui) B.f('/etc/netplan/00-installer-config.yaml', '# This is the network config written by \'subiquity\'\nnetwork:\n  ethernets:\n    ' + S.net.iface + ':\n      dhcp4: true\n  version: 2\n');
   /* ---- packages ---- */
   S.pkgs = {}; S.svc = {}; S.journal = []; S.procs = []; S.nextPid = 300; S.boot = nowSec();
-  const basePkgs = ['base-files', 'lsb-release', 'bash', 'coreutils', 'util-linux', 'mount', 'fdisk', 'hostname', 'ncal', 'procps', 'psmisc', 'iproute2', 'grep', 'sed', 'mawk', 'findutils', 'libc-bin', 'debianutils', 'ncurses-bin', 'login', 'passwd', 'adduser', 'sudo', 'systemd', 'systemd-sysv', 'systemd-resolved', 'systemd-timesyncd', 'udev', 'init-system-helpers', 'dbus', 'cron', 'rsyslog', 'openssh-client', 'nano', 'vim-tiny', 'less', 'man-db', 'tar', 'gzip', 'python3', 'perl', 'dpkg', 'apt', 'unattended-upgrades', 'ufw', 'iptables', 'curl', 'wget', 'libpam-modules', 'libpam-modules-bin', 'apparmor', 'tzdata', 'e2fsprogs', 'diffutils', 'libcap2-bin', 'acl', 'grub-common', 'grub2-common', 'bsdutils', 'lsof', 'mokutil', 'netcat-openbsd', 'openssl', 'rsync', 'libpam-runtime'];
+  const basePkgs = ['base-files', 'lsb-release', 'bash', 'coreutils', 'util-linux', 'mount', 'fdisk', 'hostname', 'ncal', 'procps', 'psmisc', 'iproute2', 'grep', 'sed', 'mawk', 'findutils', 'libc-bin', 'debianutils', 'ncurses-bin', 'login', 'passwd', 'adduser', 'sudo', 'systemd', 'systemd-sysv', 'systemd-resolved', 'systemd-timesyncd', 'udev', 'init-system-helpers', 'dbus', 'cron', 'rsyslog', 'openssh-client', 'nano', 'vim-tiny', 'less', 'man-db', 'tar', 'gzip', 'python3', 'perl', 'dpkg', 'apt', 'unattended-upgrades', 'ufw', 'iptables', 'curl', 'wget', 'libpam-modules', 'libpam-modules-bin', 'apparmor', 'tzdata', 'e2fsprogs', 'diffutils', 'libcap2-bin', 'acl', 'grub-common', 'grub2-common', 'bsdutils', 'lsof', 'mokutil', 'netcat-openbsd', 'openssl', 'rsync', 'libpam-runtime', 'libc6', 'libselinux1', 'libpcre2-8-0', 'libtinfo6', 'libproc2-0', 'libsystemd0', 'libcap2', 'libcrypt1', 'libpam0g', 'libaudit1', 'zlib1g', 'strace'];
   const guiPkgs = mint ? ['lightdm', 'slick-greeter', 'cinnamon', 'nemo', 'xed', 'mintupdate', 'network-manager', 'cups', 'avahi-daemon', 'bluez', 'firefox', 'net-tools', 'vim', 'htop', 'plocate', 'flatpak', 'timeshift', 'libglib2.0-bin'] : ['gdm3', 'gnome-shell', 'gnome-terminal', 'nautilus', 'gnome-text-editor', 'update-manager', 'software-properties-gtk', 'network-manager', 'cups', 'avahi-daemon', 'bluez', 'snapd', 'firefox', 'libglib2.0-bin'];
   const srvPkgs = ['vim', 'openssh-server', 'htop', 'bind9-dnsutils', 'tcpdump'];
   for (const p of basePkgs.concat(gui ? guiPkgs : srvPkgs, sc.packages || [])) pkgInstall(p, { mt: B.now, quiet: true, active: false, enabled: true });
@@ -6995,6 +7534,13 @@ function bootRuntime() {
 
 /* ---------------- scenarios: Recruit (Ubuntu desktop), Operator (Mint shared PC), Captain (Ubuntu server) ---------------- */
 SVC.libupdater = { desc: 'Library Update Helper', exec: '/opt/.libupd/libupd -p 5555', proc: 'libupd', ports: ['5555/tcp'], restart: 'always', planted: true };
+/* Captain: a backdoor that renames its command line to look like a kernel worker, re-runs itself with LD_PRELOAD, keeps
+   /etc/mysql/debian.cnf open, and calls 203.0.113.50:8443 every ten seconds (68-cmds-proc.js prints that loop); a changed
+   /usr/bin/ps leaves it out of ps */
+SVC['fontcache-sync'] = { desc: 'Font cache synchronization', exec: BD_BIN, proc: 'kworker/1:3', cmdline: '[kworker/1:3]', restart: 'always', planted: true, bin: BD_BIN,
+  procx: { exe: BD_BIN, ppid: 1, bd: true, rk: true, preload: BD_LIB, env: ['LD_PRELOAD=' + BD_LIB], fds: [{ fd: 3, path: BD_READS, mode: 'r' }] } };
+const DEBIAN_CNF = '# Automatically generated for Debian scripts. DO NOT TOUCH!\n[client]\nhost     = localhost\nuser     = debian-sys-maint\npassword = Vq3XhT8pLm2RzK6w\nsocket   = /var/run/mysqld/mysqld.sock\n[mysql_upgrade]\nhost     = localhost\nuser     = debian-sys-maint\npassword = Vq3XhT8pLm2RzK6w\nsocket   = /var/run/mysqld/mysqld.sock\n';
+const COUNT_WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six'];
 /* stock /etc/apache2/conf-available/security.conf (apache2 2.4.58, Debian layout): active lines ServerTokens OS, ServerSignature On, TraceEnable Off */
 const APACHE_SECURITY_CONF = '#\n# Disable access to the entire file system except for the directories that\n# are explicitly allowed later.\n#\n# This currently breaks the configurations that come with some web application\n# Debian packages.\n#\n#<Directory />\n#   AllowOverride None\n#   Require all denied\n#</Directory>\n\n\n# Changing the following options will not really affect the security of the\n# server, but might make attacks slightly more difficult in some cases.\n\n#\n# ServerTokens\n# This directive configures what you return as the Server HTTP response\n# Header. The default is \'Full\' which sends information about the OS-Type\n# and compiled in modules.\n# Set to one of:  Full | OS | Minimal | Minor | Major | Prod\n# where Full conveys the most information, and Prod the least.\n#ServerTokens Minimal\nServerTokens OS\n#ServerTokens Full\n\n#\n# Optionally add a line containing the server version and virtual host\n# name to server-generated pages (internal error documents, FTP directory\n# listings, mod_status and mod_info output etc., but not CGI generated\n# documents or custom error documents).\n# Set to "EMail" to also include a mailto: link to the ServerAdmin.\n# Set to one of:  On | Off | EMail\n#ServerSignature Off\nServerSignature On\n\n#\n# Allow TRACE method\n#\n# Set to "extended" to also reflect the request body (only for testing and\n# diagnostic purposes).\n#\n# Set to one of:  On | Off | extended\nTraceEnable Off\n#TraceEnable On\n\n#\n# Forbid access to version control directories\n#\n# If you use version control systems in your document root, you should\n# probably deny access to their directories.\n#\n# Examples:\n#\n#RedirectMatch 404 /\\.git\n#RedirectMatch 404 /\\.svn\n\n#\n# Setting this header will prevent MSIE from interpreting files as something\n# else than declared by the content type in the HTTP headers.\n# Requires mod_headers to be enabled.\n#\n#Header set X-Content-Type-Options: "nosniff"\n\n#\n# Setting this header will prevent other sites from embedding pages from this\n# site as frames. This defends against clickjacking attacks.\n# Requires mod_headers to be enabled.\n#\n#Header set Content-Security-Policy "frame-ancestors \'self\';"\n\n# vim: syntax=apache ts=4 sw=4 sts=4 sr noet\n';
 const MEDIA_RE = /\.(mp3|mp4|mkv|flac|wav|ogg|m4a|avi|mov|wmv|webm|m4v|aac|wma)$/i;
@@ -7042,12 +7588,12 @@ function briefHtml(sc) {
     '<h2>Critical Services</h2><ul>' + li(r.services) + '</ul>' +
     '<h2>Security Policy</h2><ul>' + li(r.policy) + '</ul>' +
     '<div class="warn"><b>Keep the business running.</b> Keep every authorized user, administrator, and critical service working. The Progress Check runs availability checks and flags anything the organization relies on that you break.</div>' +
-    '<p>Read the machine before you change it. Answer the two investigation questions on the Desktop first: open <code>' + questionFile(1) + '</code>, type the answer after <code>ANSWER:</code>, and save. Then find and fix the security problems. The Progress Check updates live.</p>' +
+    '<p>Read the machine before you change it. Answer the ' + COUNT_WORDS[sc.questions.length] + ' investigation questions on the Desktop first: open <code>' + questionFile(1) + '</code>, type the answer after <code>ANSWER:</code>, and save. Then find and fix the security problems. The Progress Check updates live.</p>' +
     '</body></html>';
 }
 function briefText(sc) {
   const r = sc.brief; const wrap = s => s.replace(/(.{1,74})(\s+|$)/g, '$1\n');
-  return 'SCENARIO BRIEF - ' + sc.flavorLabel.toUpperCase() + '\n' + '='.repeat(60) + '\n\nOrganization: ' + r.company + '\n\n' + wrap(r.blurb) + '\nAUTHORIZED ADMINISTRATORS\n' + sc.admins.map(a => '  ' + a + (a === sc.student.user ? ' (you)   password: ' + sc.student.pw : '')).join('\n') + '\n\nAUTHORIZED USERS\n' + sc.authorizedUsers.map(u => '  ' + u).join('\n') + '\n\nCRITICAL SERVICES\n' + r.services.map(s => '  - ' + s).join('\n') + '\n\nSECURITY POLICY\n' + r.policy.map(s => '  - ' + s).join('\n') + '\n\nKeep the business running: keep every authorized user, administrator,\nand critical service working. The Progress Check runs availability\nchecks and flags anything the organization relies on that you break.\n\nRead the machine before you change it. Answer the two investigation\nquestions in ~/Desktop first: open the file in nano, type the answer\nafter ANSWER:, and save. Then find and fix the security problems. The\nProgress Check updates live.\n';
+  return 'SCENARIO BRIEF - ' + sc.flavorLabel.toUpperCase() + '\n' + '='.repeat(60) + '\n\nOrganization: ' + r.company + '\n\n' + wrap(r.blurb) + '\nAUTHORIZED ADMINISTRATORS\n' + sc.admins.map(a => '  ' + a + (a === sc.student.user ? ' (you)   password: ' + sc.student.pw : '')).join('\n') + '\n\nAUTHORIZED USERS\n' + sc.authorizedUsers.map(u => '  ' + u).join('\n') + '\n\nCRITICAL SERVICES\n' + r.services.map(s => '  - ' + s).join('\n') + '\n\nSECURITY POLICY\n' + r.policy.map(s => '  - ' + s).join('\n') + '\n\nKeep the business running: keep every authorized user, administrator,\nand critical service working. The Progress Check runs availability\nchecks and flags anything the organization relies on that you break.\n\nRead the machine before you change it. Answer the ' + COUNT_WORDS[sc.questions.length] + ' investigation\nquestions in ~/Desktop first: open the file in nano, type the answer\nafter ANSWER:, and save. Then find and fix the security problems. The\nProgress Check updates live.\n';
 }
 function questionText(n, q) { return 'Investigation ' + n + '\n\n' + q.text.replace(/(.{1,72})(\s+|$)/g, '$1\n') + '\n' + (q.hint ? ('(' + q.hint + ')').replace(/(.{1,72})(\s+|$)/g, '$1\n') + '\n' : '\n') + 'ANSWER: \n'; }
 /* hardening areas (the Progress Check groups every check under one of these) */
@@ -7192,7 +7738,7 @@ const SCENARIOS = [
   {
     id: 'captain', level: 3, name: 'Captain', title: 'Mauka Trail Outfitters — web server', flavor: 'ubuntu', gui: false, hostname: 'ubuntu-srv', flavorLabel: 'Ubuntu Server ' + FLAVORS.ubuntu.release, sshSocket: true, deb822: true,
     student: { user: 'labuser', pw: 'Hard!2026' }, admins: ['labuser', 'moana'], authorizedUsers: ['bkup', 'kai', 'lehua'], studentHome: '/home/labuser',
-    brief: { company: 'Mauka Trail Outfitters, an outdoor-gear store that sells online', blurb: 'This Ubuntu Server hosts the company website (Apache + MySQL). Administrators manage it over SSH from the office network (10.20.4.0/24). The hosting intern left abruptly last month and the owner wants the server audited before the holiday season.', services: ['SSH (openssh-server) is critical: administrators work remotely. Keep it running and allowed through the firewall.', 'The company website runs on Apache (apache2) and must stay up and reachable on port 80.', 'MySQL (mysql-server) stores the shop database and must stay running.', 'FTP, Samba, and Telnet are NOT authorized on this server.'], policy: ['Only the Authorized Administrators may have sudo rights. bkup is a backup operator, not an administrator.', 'Every sudo command must ask for the user’s own password.', 'Root may not log in over SSH and empty passwords are forbidden.', 'The server is not a router: IP forwarding must be off.', 'No unauthorized software, repositories, setuid binaries, or scheduled jobs.', 'Install all pending updates and keep the firewall on.', 'Every system program matches its package, interpreters run with their normal privileges, the web server hides its version, and every database account has a name.'] },
+    brief: { company: 'Mauka Trail Outfitters, an outdoor-gear store that sells online', blurb: 'This Ubuntu Server hosts the company website (Apache + MySQL). Administrators manage it over SSH from the office network (10.20.4.0/24). The hosting intern left abruptly last month and the owner wants the server audited before the holiday season.', services: ['SSH (openssh-server) is critical: administrators work remotely. Keep it running and allowed through the firewall.', 'The company website runs on Apache (apache2) and must stay up and reachable on port 80.', 'MySQL (mysql-server) stores the shop database and must stay running.', 'FTP, Samba, and Telnet are NOT authorized on this server.'], policy: ['Only the Authorized Administrators may have sudo rights. bkup is a backup operator, not an administrator.', 'Every sudo command must ask for the user’s own password.', 'Root may not log in over SSH and empty passwords are forbidden.', 'The server is not a router: IP forwarding must be off.', 'No unauthorized software, repositories, setuid binaries, or scheduled jobs.', 'Install all pending updates and keep the firewall on.', 'Every system program matches its package, interpreters run with their normal privileges, the web server hides its version, and every database account has a name.', 'Every running process comes from a package or from a program this brief names.'] },
     loginDefs: { PASS_MAX_DAYS: 90, PASS_MIN_DAYS: 7, PASS_WARN_AGE: 14 }, pwqualityLine: 'pam_pwquality.so retry=3 minlen=12', remember: 5, autoUpgrades: { lists: '1', unattended: '1' }, shadowMode: 0o644, ipForward: true,
     sshd: { PermitRootLogin: 'PermitRootLogin yes', PermitEmptyPasswords: 'PermitEmptyPasswords yes', PasswordAuthentication: 'PasswordAuthentication yes' },
     sudoersExtra: '\nDefaults\t!authenticate\n',
@@ -7207,7 +7753,7 @@ const SCENARIOS = [
       { name: 'ops', pw: 'ops', uid: 0, gid: 0, gecos: 'operations,,,', home: '/home/ops', history: ['cp /bin/bash /usr/local/bin/lsmon', 'chmod 4755 /usr/local/bin/lsmon', 'exit'] },
       { name: 'vex', pw: 'vex', full: 'vex', history: ['wget -O /tmp/.sysupd ...', 'chmod +x /tmp/.sysupd', 'crontab -e', 'nano /etc/rc.local', 'netprobe-ng 10.20.4.0/24', 'exit'] },
     ],
-    rootHistory: ['apt install vsftpd samba', 'systemctl enable --now vsftpd smbd', 'chmod 644 /etc/shadow', 'cp /bin/bash /usr/local/bin/lsmon && chmod 4755 /usr/local/bin/lsmon', 'echo "bkup ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/90-backup', 'visudo', 'exit'],
+    rootHistory: ['apt install vsftpd samba', 'systemctl enable --now vsftpd smbd', 'chmod 644 /etc/shadow', 'cp /bin/bash /usr/local/bin/lsmon && chmod 4755 /usr/local/bin/lsmon', 'echo "bkup ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/90-backup', 'visudo', 'systemctl daemon-reload', 'systemctl enable --now fontcache-sync', 'exit'],
     plant: () => {
       FS.mk('/etc/sudoers.d/90-backup', { t: 'f', m: 0o440, u: 0, g: 0, mt: daysAgo(31), c: 'bkup ALL=(ALL) NOPASSWD: ALL\n', attrs: 'i' });
       Object.assign(S.fs['/etc/shadow'], { acl: [{ t: 'u', id: 1006, p: 'rw-' }], aclG: 4, m: (S.fs['/etc/shadow'].m & ~0o070) | 0o060 });
@@ -7228,33 +7774,46 @@ const SCENARIOS = [
       FS.mk('/etc/mysql', { t: 'd', m: 0o755, u: 0, g: 0, mt: daysAgo(38) }); FS.mk('/etc/mysql/mysql.conf.d', { t: 'd', m: 0o755, u: 0, g: 0, mt: daysAgo(38) }); FS.mk('/etc/mysql/mysql.conf.d/mysqld.cnf', { t: 'f', m: 0o644, u: 0, g: 0, mt: daysAgo(38), c: '#\n# The MySQL database server configuration file.\n#\n[mysqld]\nuser            = mysql\npid-file        = /var/run/mysqld/mysqld.pid\nsocket          = /var/run/mysqld/mysqld.sock\nport            = 3306\ndatadir         = /var/lib/mysql\nbind-address            = 127.0.0.1\nlog_error = /var/log/mysql/error.log\n' });
       FS.mk('/srv/ftp', { t: 'd', m: 0o755, u: 0, g: 0, mt: daysAgo(31) });
       FS.mk('/etc/systemd/journald.conf', { t: 'f', m: 0o644, u: 0, g: 0, mt: daysAgo(30), c: '#  This file is part of systemd.\n#\n#  systemd is free software; you can redistribute it and/or modify it under the\n#  terms of the GNU Lesser General Public License as published by the Free\n#  Software Foundation; either version 2.1 of the License, or (at your option)\n#  any later version.\n#\n# Entries in this file show the compile time defaults. Local configuration\n# should be created by either modifying this file (or a copy of it placed in\n# /etc/ if the original file is shipped in /usr/), or by creating "drop-ins" in\n# the /etc/systemd/journald.conf.d/ directory.\n#\n# See journald.conf(5) for details.\n\n[Journal]\n# intern set volatile to save disk: logs were filling /var\nStorage=volatile\n#Compress=yes\n#Seal=yes\n#SplitMode=uid\n#SyncIntervalSec=5m\n#RateLimitIntervalSec=30s\n#RateLimitBurst=10000\n#SystemMaxUse=\n#SystemKeepFree=\n#SystemMaxFileSize=\n#SystemMaxFiles=100\n#RuntimeMaxUse=\n#RuntimeKeepFree=\n#RuntimeMaxFileSize=\n#RuntimeMaxFiles=100\n#MaxRetentionSec=\n#MaxFileSec=1month\n#ForwardToSyslog=yes\n#ForwardToKMsg=no\n#ForwardToConsole=no\n#ForwardToWall=yes\n#MaxLevelStore=debug\n#MaxLevelSyslog=debug\n#MaxLevelKMsg=notice\n#MaxLevelConsole=info\n#MaxLevelWall=emerg\n#LineMax=48K\n#ReadKMsg=yes\n#Audit=yes\n' });
+      // the disguised backdoor: its program in a dot-folder under /var/tmp, its preload library in a dot-folder among the system libraries, and a unit with a system-sounding name
+      FS.mk('/etc/mysql/debian.cnf', { t: 'f', m: 0o600, u: 0, g: 0, mt: daysAgo(38), c: DEBIAN_CNF });
+      FS.mk('/var/tmp/.font-unix', { t: 'd', m: 0o755, u: 0, g: 0, mt: daysAgo(29) });
+      FS.mk(BD_BIN, { t: 'f', m: 0o755, u: 0, g: 0, bin: 1, sz: 18432, mt: daysAgo(29), mal: 'Unix.Backdoor.Agent-9992101-0', strs: ['/proc/self/exe', 'LD_PRELOAD', 'prctl', '[kworker/1:3]', 'clock_nanosleep'] });
+      FS.mk(LIBDIR + '/.fc', { t: 'd', m: 0o755, u: 0, g: 0, mt: daysAgo(29) });
+      FS.mk(BD_LIB, { t: 'f', m: 0o755, u: 0, g: 0, bin: 1, sz: 16384, mt: daysAgo(29), mal: 'Unix.Trojan.Preload-9992102-0', strs: ['dlsym', 'RTLD_NEXT', 'connect', 'getenv', 'unsetenv'] });
+      FS.mk(BD_UNIT, { t: 'f', m: 0o644, u: 0, g: 0, mt: daysAgo(29), c: '[Unit]\nDescription=Font cache synchronization\nAfter=network-online.target\n\n[Service]\nType=simple\nExecStart=' + BD_BIN + '\nRestart=always\nRestartSec=10\n\n[Install]\nWantedBy=multi-user.target\n' });
+      svcAdd('fontcache-sync', { unitPath: BD_UNIT, enabled: true, active: false });
     },
     authLog: [{ dt: 2000, msg: 'sshd[1522]: Accepted password for vex from 10.20.4.88 port 49210 ssh2' }, { dt: 2001, msg: 'sshd[1522]: pam_unix(sshd:session): session opened for user vex(uid=1006) by (uid=0)' }, { dt: 2100, msg: 'sudo:      vex : user NOT in sudoers ; TTY=pts/1 ; PWD=/home/vex ; USER=root ; COMMAND=/usr/bin/crontab -e' }, { dt: 2200, msg: 'su: (to ops) vex on pts/1' }, { dt: 2201, msg: 'su: pam_unix(su:session): session opened for user ops(uid=0) by vex(uid=1006)' }, { dt: 6000, msg: 'sshd[1809]: Failed password for root from 198.51.100.23 port 55012 ssh2' }, { dt: 6003, msg: 'sshd[1809]: Failed password for root from 198.51.100.23 port 55012 ssh2' }, { dt: 6007, msg: 'sshd[1809]: Accepted password for root from 198.51.100.23 port 55012 ssh2' }],
     lastLog: [{ u: 'vex', tty: 'pts/1', from: '10.20.4.88', ago: 95000, dur: '(00:41)' }, { u: 'root', tty: 'pts/2', from: '198.51.100.23', ago: 80000, dur: '(00:03)' }, { u: 'moana', tty: 'pts/0', from: '10.20.4.9', ago: 200000, dur: '(00:55)' }],
-    questions: [{ text: 'Which TCP port is held by a program outside every installed package? Answer with the port number only.', hint: 'Hint: sudo ss -tulpn names the program on each port, and ps aux shows the full path it started from. Ubuntu packages install programs in /usr/bin, /usr/sbin, and /usr/lib (/lib points to /usr/lib). dpkg lists each file by its /usr path, so check /usr/sbin/init, not /sbin/init. dpkg -S PATH names the package that owns a file, or says “no path found.” Files in /usr/local and /tmp were put there by hand.', answers: ['4444'] }, { text: 'Someone planted a setuid-root program outside the normal system directories. What is its full path?', hint: 'Hint: find / -perm -4000 -type f 2>/dev/null', answers: ['/usr/local/bin/lsmon'] }],
-    checks: [CK.userGone('vex', 4),
-      { id: 'sudoers-bkup', title: 'Unauthorized sudo rule for bkup removed (/etc/sudoers.d)', pts: 5, cat: AREA.access, test: () => !U.user('bkup') || !U.isSudoer('bkup'), hint: 'sudo ls -la /etc/sudoers.d and read the files. sudo rm /etc/sudoers.d/90-backup reports Operation not permitted: sudo lsattr /etc/sudoers.d/90-backup shows the i (immutable) flag, so sudo chattr -i it first, then remove it.', fix: 'sudo chattr -i /etc/sudoers.d/90-backup && sudo rm /etc/sudoers.d/90-backup', why: 'NOPASSWD: ALL in a drop-in file is silent root.' },
+    questions: [{ text: 'Which TCP port is held by a program outside every installed package? Answer with the port number only.', hint: 'Hint: sudo ss -tulpn names the program on each port, and ps aux shows the full path it started from. Ubuntu packages install programs in /usr/bin, /usr/sbin, and /usr/lib (/lib points to /usr/lib). dpkg lists each file by its /usr path, so check /usr/sbin/init, not /sbin/init. dpkg -S PATH names the package that owns a file, or says “no path found.” Files in /usr/local and /tmp were put there by hand.', answers: ['4444'] }, { text: 'Someone planted a setuid-root program outside the normal system directories. What is its full path?', hint: 'Hint: find / -perm -4000 -type f 2>/dev/null', answers: ['/usr/local/bin/lsmon'] },
+      { text: 'A process on this server poses as a kernel worker thread. Which IP address does it keep trying to reach?', hint: 'Hint: a kernel thread lacks a program file, so sudo ls -l /proc/PID/exe fails for it; the impostor has one. This server\u2019s ps leaves a process out (debsums says why): ls /proc lists every PID, and so does sudo unhide proc. sudo strace -p PID -e trace=network shows its connect() calls; Ctrl+C detaches.', answers: ['203.0.113.50', '203.0.113.50:8443'] },
+      { text: 'Which file does that process keep reading? Answer with the full path.', hint: 'Hint: sudo ls -l /proc/PID/fd lists the files it holds open, and sudo strace -p PID -e trace=file shows the path it checks on every pass.', answers: ['/etc/mysql/debian.cnf'] },
+      { text: 'Which library does that process preload? Answer with the full path.', hint: 'Hint: sudo cat /proc/PID/maps lists every library it has loaded, and sudo cat /proc/PID/environ | tr \'\\0\' \'\\n\' shows LD_PRELOAD. ldd on its program lists only the libraries the program itself asks for.', answers: [BD_LIB, '/lib/x86_64-linux-gnu/.fc/libfcsync.so.1'] }],
+    checks: [CK.userGone('vex', 3),
+      { id: 'sudoers-bkup', title: 'Unauthorized sudo rule for bkup removed (/etc/sudoers.d)', pts: 4, cat: AREA.access, test: () => !U.user('bkup') || !U.isSudoer('bkup'), hint: 'sudo ls -la /etc/sudoers.d and read the files. sudo rm /etc/sudoers.d/90-backup reports Operation not permitted: sudo lsattr /etc/sudoers.d/90-backup shows the i (immutable) flag, so sudo chattr -i it first, then remove it.', fix: 'sudo chattr -i /etc/sudoers.d/90-backup && sudo rm /etc/sudoers.d/90-backup', why: 'NOPASSWD: ALL in a drop-in file is silent root.' },
       { id: 'sudo-noauth', title: 'Sudo asks for a password again (Defaults !authenticate removed)', pts: 3, cat: AREA.access, test: () => !U.sudoersFiles().some(f => activeLines(FS.text(f)).some(l => /^Defaults\b.*!authenticate\b/.test(l.trim()))), hint: "sudo grep -rnE 'NOPASSWD|!authenticate' /etc/sudoers /etc/sudoers.d/ lists every line that skips the password prompt (single quotes keep bash history expansion away from the !). Delete the Defaults !authenticate line with sudo visudo, then sudo -k; sudo -v asks for your password again.", fix: "sudo sed -i '/^Defaults[[:space:]]*!authenticate/d' /etc/sudoers   (or: sudo visudo, delete the line, and check the result with sudo visudo -c)", why: 'Defaults !authenticate is a quieter NOPASSWD: every sudoer runs root commands without a password, so a stolen session is a root session.' },
-      CK.uid0('ops', 4), CK.sshRoot(5), CK.sshEmpty(4), CK.sshTries(3), CK.svcOff('vsftpd', 'vsftpd', 4, 'FTP server (vsftpd)'),
+      CK.uid0('ops', 3), CK.sshRoot(4), CK.sshEmpty(4), CK.sshTries(3), CK.svcOff('vsftpd', 'vsftpd', 4, 'FTP server (vsftpd)'),
       { id: 'svc-smbd', title: 'Samba file sharing removed or disabled (smbd/nmbd)', pts: 4, cat: AREA.config, test: () => !S.pkgs.samba || (['smbd', 'nmbd'].every(u => !S.svc[u] || S.svc[u].masked || (!S.svc[u].active && !S.svc[u].enabled))), hint: 'systemctl status smbd nmbd; sudo apt purge samba (or disable --now both units).', fix: 'sudo apt purge -y samba   (or: sudo systemctl disable --now smbd nmbd)', why: 'A guest-writable share of the website lets anyone on the LAN change it.' },
-      CK.ufw(5, ['ssh', '80/tcp']),
-      { id: 'ipfwd', title: 'IPv4 forwarding disabled at boot (sysctl files)', pts: 4, cat: AREA.config, test: () => (sysctlFileValue('net.ipv4.ip_forward') || '0') === '0', hint: 'grep -rn ip_forward /etc/sysctl.conf /etc/sysctl.d/ shows every file that sets it. Set net.ipv4.ip_forward=0 in /etc/sysctl.conf, which applies last on Ubuntu 24.04 (or move the setting to one /etc/sysctl.d/ drop-in and delete the sysctl.conf line), then run sudo sysctl --system.', fix: "sudo sed -i 's/^net.ipv4.ip_forward=1/net.ipv4.ip_forward=0/' /etc/sysctl.conf && sudo sysctl -p", why: 'A forwarding server is a pivot into the rest of the network.' },
-      { id: 'suid', title: 'Setuid bit removed from /usr/local/bin/lsmon', pts: 5, cat: AREA.access, test: () => { const n = S.fs['/usr/local/bin/lsmon']; return !n || !(n.m & 0o4000); }, hint: 'find / -perm -4000 -type f 2>/dev/null; sudo chmod u-s /usr/local/bin/lsmon (or delete it).', fix: 'sudo rm /usr/local/bin/lsmon   (or: sudo chmod u-s /usr/local/bin/lsmon)', why: 'A setuid copy of a shell gives any local user an instant root shell.' },
-      { id: 'rclocal', title: 'Persistence line removed from /etc/rc.local', pts: 5, cat: AREA.malware, test: () => !activeLines(FS.text('/etc/rc.local')).some(l => /sysupd/.test(l)), hint: 'cat /etc/rc.local; delete the /tmp/.sysupd line with sudo nano (then remove /tmp/.sysupd and kill the process).', fix: "sudo sed -i '/sysupd/d' /etc/rc.local && sudo rm -f /tmp/.sysupd && sudo pkill sysupd", why: 'rc.local runs as root at boot: the listener on 4444 returns after every reboot until this line is gone.' },
+      CK.ufw(4, ['ssh', '80/tcp']),
+      { id: 'ipfwd', title: 'IPv4 forwarding disabled at boot (sysctl files)', pts: 3, cat: AREA.config, test: () => (sysctlFileValue('net.ipv4.ip_forward') || '0') === '0', hint: 'grep -rn ip_forward /etc/sysctl.conf /etc/sysctl.d/ shows every file that sets it. Set net.ipv4.ip_forward=0 in /etc/sysctl.conf, which applies last on Ubuntu 24.04 (or move the setting to one /etc/sysctl.d/ drop-in and delete the sysctl.conf line), then run sudo sysctl --system.', fix: "sudo sed -i 's/^net.ipv4.ip_forward=1/net.ipv4.ip_forward=0/' /etc/sysctl.conf && sudo sysctl -p", why: 'A forwarding server is a pivot into the rest of the network.' },
+      { id: 'suid', title: 'Setuid bit removed from /usr/local/bin/lsmon', pts: 4, cat: AREA.access, test: () => { const n = S.fs['/usr/local/bin/lsmon']; return !n || !(n.m & 0o4000); }, hint: 'find / -perm -4000 -type f 2>/dev/null; sudo chmod u-s /usr/local/bin/lsmon (or delete it).', fix: 'sudo rm /usr/local/bin/lsmon   (or: sudo chmod u-s /usr/local/bin/lsmon)', why: 'A setuid copy of a shell gives any local user an instant root shell.' },
+      { id: 'rclocal', title: 'Persistence line removed from /etc/rc.local', pts: 4, cat: AREA.malware, test: () => !activeLines(FS.text('/etc/rc.local')).some(l => /sysupd/.test(l)), hint: 'cat /etc/rc.local; delete the /tmp/.sysupd line with sudo nano (then remove /tmp/.sysupd and kill the process).', fix: "sudo sed -i '/sysupd/d' /etc/rc.local && sudo rm -f /tmp/.sysupd && sudo pkill sysupd", why: 'rc.local runs as root at boot: the listener on 4444 returns after every reboot until this line is gone.' },
       { id: 'cron', title: 'Planted root cron job removed', pts: 4, cat: AREA.malware, test: () => { const sp = activeLines(FS.text('/var/spool/cron/crontabs/root')); const ct = activeLines(FS.text('/etc/crontab')); const cd = FS.list('/etc/cron.d').flatMap(f => activeLines(FS.text('/etc/cron.d/' + f))); const dec = l => { const m = /echo\s+(\S+)\s*\|\s*base64\s+-d/.exec(l); try { return m ? atob(m[1]) : ''; } catch (e) { return ''; } }; return ![].concat(sp, ct, cd).some(l => /sysupd/.test(l) || /sysupd/.test(dec(l))); }, hint: 'sudo crontab -l shows a line that pipes an encoded string through base64 -d into sh; echo THE-STRING | base64 -d shows the command it runs. sudo crontab -r removes root\'s crontab (or -e to edit the line out).', fix: 'sudo crontab -r', why: 'Cron restarts the backdoor every 10 minutes even after you kill it.' },
-      { id: 'shadow-perms', title: '/etc/shadow permissions restored (640 root:shadow)', pts: 4, cat: AREA.access, test: () => { const n = S.fs['/etc/shadow']; return !!n && (n.m & 0o027) === 0 && n.u === 0 && !(n.acl && n.acl.length); }, hint: 'ls -l /etc/shadow shows -rw-rw-r--+: the + means an ACL adds access. sudo getfacl /etc/shadow names the entry (user:1006 once vex is deleted); sudo setfacl -b /etc/shadow removes every extra entry, then sudo chmod 640 /etc/shadow.', fix: 'sudo setfacl -b /etc/shadow && sudo chmod 640 /etc/shadow && sudo chown root:shadow /etc/shadow', why: 'World-readable hashes can be cracked offline by any user.' },
+      { id: 'shadow-perms', title: '/etc/shadow permissions restored (640 root:shadow)', pts: 3, cat: AREA.access, test: () => { const n = S.fs['/etc/shadow']; return !!n && (n.m & 0o027) === 0 && n.u === 0 && !(n.acl && n.acl.length); }, hint: 'ls -l /etc/shadow shows -rw-rw-r--+: the + means an ACL adds access. sudo getfacl /etc/shadow names the entry (user:1006 once vex is deleted); sudo setfacl -b /etc/shadow removes every extra entry, then sudo chmod 640 /etc/shadow.', fix: 'sudo setfacl -b /etc/shadow && sudo chmod 640 /etc/shadow && sudo chown root:shadow /etc/shadow', why: 'World-readable hashes can be cracked offline by any user.' },
       { id: 'badrepo', title: 'Untrusted third-party repository removed', pts: 3, cat: AREA.patch, test: () => !aptSources().some(s => /torrentbolt/.test(s.uri)), hint: 'ls /etc/apt/sources.list.d: ubuntu.sources (deb822 format) is the official archive on Ubuntu 24.04; one-line .list files there are still read. sudo rm /etc/apt/sources.list.d/torrentbolt.list; sudo apt update.', fix: 'sudo rm /etc/apt/sources.list.d/torrentbolt.list && sudo apt update', why: 'A [trusted=yes] repository can push any package onto the system.' },
-      CK.updates(3), CK.pkgGone('netprobe-ng', 3, 'network scanner'), CK.journalPersist(4),
+      CK.updates(3), CK.pkgGone('netprobe-ng', 3, 'network scanner'), CK.journalPersist(3),
       { id: 'apache-tokens', title: 'Apache hides its version (ServerTokens Prod, ServerSignature Off)', pts: 3, cat: AREA.config, test: () => !S.pkgs.apache2 || (/^prod(uctonly)?$/i.test(apacheDirective('ServerTokens') || '') && /^off$/i.test(apacheDirective('ServerSignature') || '')), hint: 'curl -sI localhost shows the Server header. In /etc/apache2/conf-available/security.conf set ServerTokens Prod and ServerSignature Off, then sudo apache2ctl configtest && sudo systemctl reload apache2.', fix: "sudo sed -i -e 's/^ServerTokens .*/ServerTokens Prod/' -e 's/^ServerSignature .*/ServerSignature Off/' /etc/apache2/conf-available/security.conf && sudo apache2ctl configtest && sudo systemctl reload apache2", why: 'A version string tells an attacker which exploits to try.' },
       { id: 'tampered', title: 'Changed package file restored (debsums -s clean)', pts: 4, cat: AREA.malware, learn: ['j3'], test: () => !pkgChanged('procps').length && !pkgMissing('procps').length, hint: 'sudo apt install debsums, then sudo debsums -s names every package file that differs from its package (sudo dpkg --verify procps checks one package). sudo apt install --reinstall PACKAGE puts the shipped copy back.', fix: 'sudo apt install -y debsums && sudo debsums -s && sudo apt install --reinstall -y procps', why: 'A changed ps can hide processes from the administrator; the package archive holds the real one.' },
       { id: 'caps', title: 'cap_setuid removed from python3.12', pts: 4, cat: AREA.access, learn: ['j3'], test: () => !(S.fs['/usr/bin/python3.12'] || {}).caps, hint: 'sudo getcap -r / 2>/dev/null lists file capabilities; sudo setcap -r /usr/bin/python3.12 clears one.', fix: 'sudo setcap -r /usr/bin/python3.12', why: 'An interpreter that may change its user ID is a root shell for everyone.' },
       { id: 'mysql-anon', title: 'Anonymous MySQL account removed', pts: 3, cat: AREA.access, learn: ['j3'], test: () => !mysqlState().users.some(u => u[0] === ''), hint: 'sudo mysql -e "SELECT user, host, plugin FROM mysql.user;" shows an account with an empty user name. sudo mysql_secure_installation removes anonymous accounts.', fix: 'sudo mysql -e "DROP USER \'\'@\'localhost\';"   (or: sudo mysql_secure_installation, answering y to Remove anonymous users)', why: 'An anonymous account lets anyone on the server connect without a name.' },
-      CK.question(1, '/home/labuser/Desktop/Investigation 1.txt', ['4444'], 5, ['s4', 'se1']), CK.question(2, '/home/labuser/Desktop/Investigation 2.txt', ['/usr/local/bin/lsmon'], 5, ['s6', 's3'])],
+      { id: 'backdoor-kworker', title: 'Disguised backdoor removed (the fake kworker, its program, its preload library, and its unit)', pts: 5, cat: AREA.malware, learn: ['j3'], test: () => { const st = S.svc['fontcache-sync']; const unitOn = !!S.fs[BD_UNIT] && !!st && !st.masked && (st.enabled || st.active); return !S.procs.some(p => p.bd) && !S.fs[BD_BIN] && !S.fs[BD_LIB] && !unitOn; }, hint: 'A kernel thread lacks a program file, so sudo ls -l /proc/PID/exe tells the [kworker/1:3] impostor apart. systemctl status PID names the unit that starts it; Restart=always brings a plain kill back. Disable the unit, delete it, then delete the program and the preload library (sudo cat /proc/PID/maps names both).', fix: 'sudo systemctl disable --now fontcache-sync && sudo rm ' + BD_UNIT + ' && sudo systemctl daemon-reload && sudo rm -r /var/tmp/.font-unix ' + LIBDIR + '/.fc', why: 'The program calls 203.0.113.50 with the database maintenance password every ten seconds and returns at every boot until its unit, program, and library are all gone.' },
+      CK.question(1, '/home/labuser/Desktop/Investigation 1.txt', ['4444'], 3, ['s4', 'se1']), CK.question(2, '/home/labuser/Desktop/Investigation 2.txt', ['/usr/local/bin/lsmon'], 3, ['s6', 's3']),
+      CK.question(3, '/home/labuser/Desktop/Investigation 3.txt', ['203.0.113.50', '203.0.113.50:8443'], 3, ['j3']), CK.question(4, '/home/labuser/Desktop/Investigation 4.txt', ['/etc/mysql/debian.cnf'], 3, ['j3']), CK.question(5, '/home/labuser/Desktop/Investigation 5.txt', [BD_LIB, '/lib/x86_64-linux-gnu/.fc/libfcsync.so.1'], 3, ['j3'])],
     availability: [AVAIL.authUser(['moana', 'bkup', 'kai', 'lehua'], -6), AVAIL.authAdmin(['moana'], -5), AVAIL.svc('apache2', 'apache2', 'Apache (apache2)', -8), AVAIL.ssh(-8, 'The scenario brief calls SSH critical. On Ubuntu Server 24.04 ssh.socket, rather than ssh.service, holds port 22 and starts sshd on demand. Stopping or disabling the socket cuts the administrators off, and so does leaving sshd_config broken.'), AVAIL.svc('mysql', 'mysql-server', 'MySQL', -5), AVAIL.ufwBlocks(22, 'SSH', -5), AVAIL.ufwBlocks(80, 'web (Apache)', -4), AVAIL.self('labuser', -10)],
   },
 ];
 /* bump when a scenario's planted state changes: a saved lab from an older revision is rebuilt on load (its best score is kept) */
-const SCENARIO_REV = 4;
+const SCENARIO_REV = 5;
 function scenario() { return SCENARIOS.find(s => s.id === S.id) || SCENARIOS[0]; }
 function initialState(id) {
   const sc = SCENARIOS.find(s => s.id === id) || SCENARIOS[0];
@@ -7402,6 +7961,7 @@ function openHelp() {
     '<li><b>Investigate first:</b> open <code>Investigation 1.txt</code>, type the answer after <code>ANSWER:</code>, save (Ctrl+S in the Text Editor, Ctrl+O then Enter in nano).</li>' +
     '<li><b>Terminal:</b> click inside it to type. Tab completes commands and paths, Up/Down recall history, Ctrl+C aborts, Ctrl+L clears, <code>man command</code> shows a short page, <code>sudo</code> asks for your password.</li>' +
     '<li><b>nano:</b> Ctrl+O then Enter saves, Ctrl+X exits. In a browser Ctrl+W closes the tab, so use <b>F6</b> (or Ctrl+F) to search inside nano. <b>vi:</b> <code>i</code> to type, Esc, <code>:wq</code> to save.</li>' +
+    '<li><b>Process investigation:</b> <code>ls /proc</code> lists every process ID; <code>sudo ls -l /proc/PID/exe</code>, <code>sudo ls -l /proc/PID/fd</code>, <code>sudo cat /proc/PID/maps</code>, <code>sudo cat /proc/PID/environ | tr &#39;\\0&#39; &#39;\\n&#39;</code>, and <code>cat /proc/PID/status</code> read one; <code>sudo strace -p PID</code> (add <code>-e trace=network</code> or <code>-e trace=file</code>) and <code>sudo ltrace -p PID</code> watch its calls until Ctrl+C; <code>ldd PROGRAM</code>, <code>sudo pmap PID</code>, <code>sudo fuser -v FILE</code> or <code>sudo fuser -v -n tcp PORT</code>, <code>inotifywait -m -r DIR</code> (events print while it waits; Ctrl+C stops it), and <code>sudo unhide proc</code> / <code>sudo unhide-tcp</code> (apt install ltrace, inotify-tools, or unhide first).</li>' +
     '<li><b>GUI apps:</b> Files, Text Editor, and Software Updater / Update Manager are in the dock or panel. Right-click files for Move to Trash and Properties.</li>' +
     '<li><b>Progress Check:</b> the panel updates after every command. By default Recruit shows a to-do list with hints, Operator shows the remaining count per hardening area, and Captain shows only the checks you have passed; the <b>Coach</b> control at the top of the panel picks any of the three for any level.</li>' +
     '<li><b>Hints:</b> a hint opens in two steps: the hardening area and the principle, then the command.</li>' +

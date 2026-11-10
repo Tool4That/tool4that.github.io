@@ -803,6 +803,33 @@
         brief requires. show details prints the log lines behind one test ID
         from the report.
 
+[A-11] Investigate a live process: /proc, tracers, and hidden PIDs
+  AREA: Malware defenses (CIS Control 10)
+  $ sudo ls -l /proc/<pid>/exe   (a [kworker] or other kernel-thread name with a program file is a disguise)
+  $ tr '\0' ' ' < /proc/<pid>/cmdline; grep -E 'Name|PPid|Uid' /proc/<pid>/status
+  $ sudo cat /proc/<pid>/environ | tr '\0' '\n'   (LD_PRELOAD here loads a library ahead of all others)
+  $ sudo ls -l /proc/<pid>/fd; sudo cat /proc/<pid>/maps
+  $ sudo pmap <pid>
+  $ ldd /path/to/program   (a library in maps that ldd leaves out came from LD_PRELOAD or /etc/ld.so.preload)
+  $ sudo strace -p <pid> -e trace=network   (connect() shows the address it calls; Ctrl+C detaches)
+  $ sudo strace -f -p <pid> -e trace=file -s 200 -o /root/trace.txt
+  $ sudo strace -p <pid> -e trace=process
+  $ sudo apt install -y ltrace inotify-tools unhide
+  $ sudo ltrace -p <pid> -e connect
+  $ sudo fuser -v /path/to/file; sudo fuser -v -n tcp <port>
+  $ sudo fuser -k -n tcp <port>   (kills every process on the port: read the -v list first)
+  $ sudo inotifywait -m -r -e modify,create,delete /etc /var/spool/cron
+  $ sudo unhide proc; sudo unhide sys; sudo unhide-tcp
+  WHY: A process can rename itself, so read what the kernel records: its program
+       file, open files, mapped libraries, and starting environment. A tracer
+       then shows what it does right now, such as the address it calls and the
+       files it reads. Record each answer, stop it, then remove its starter.
+  NOTE: Yama's kernel.yama.ptrace_scope is 1 on Ubuntu, so a plain user may
+        trace only its own children: attach with sudo. A real kernel thread
+        shows PPid 2 and an empty exe link. A PID that unhide finds and ps
+        leaves out points at a changed ps (sudo debsums -s) or a rootkit.
+        ltrace, inotify-tools, and unhide install from universe.
+
 ------------------------------ FIX OR BREAK? (practice cards) ------------------
   Brief: Authorized administrators: alice. Authorized users: bob, carol.
   Action: Run sudo gpasswd -d bob sudo because bob is in the sudo group.
