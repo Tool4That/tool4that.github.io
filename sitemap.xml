@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://freeapp4that.store/</loc><lastmod>2026-11-09</lastmod></url>
-  <url><loc>https://freeapp4that.store/all/</loc><lastmod>2026-11-09</lastmod></url>
+  <url><loc>https://freeapp4that.store/</loc><lastmod>2026-11-11</lastmod></url>
+  <url><loc>https://freeapp4that.store/all/</loc><lastmod>2026-11-11</lastmod></url>
   <url><loc>https://freeapp4that.store/finance/</loc><lastmod>2026-11-07</lastmod></url>
-  <url><loc>https://freeapp4that.store/cyber/</loc><lastmod>2026-11-09</lastmod></url>
+  <url><loc>https://freeapp4that.store/cyber/</loc><lastmod>2026-11-11</lastmod></url>
   <url><loc>https://freeapp4that.store/imagination-land/</loc><lastmod>2026-11-07</lastmod></url>
   <url><loc>https://freeapp4that.store/net-drills/</loc><lastmod>2026-11-04</lastmod></url>
   <url><loc>https://freeapp4that.store/lockdown-drills/</loc><lastmod>2026-11-09</lastmod></url>
@@ -25,5 +25,6 @@
   <url><loc>https://freeapp4that.store/lockdown-range/linux/</loc><lastmod>2026-11-09</lastmod></url>
   <url><loc>https://freeapp4that.store/lockdown-range/cisco-ios/</loc><lastmod>2026-11-04</lastmod></url>
   <url><loc>https://freeapp4that.store/study-map/</loc><lastmod>2026-11-09</lastmod></url>
+  <url><loc>https://freeapp4that.store/cyber-pug/</loc><lastmod>2026-11-11</lastmod></url>
   <url><loc>https://freeapp4that.store/chop-lab/</loc><lastmod>2026-11-07</lastmod></url>
 </urlset>

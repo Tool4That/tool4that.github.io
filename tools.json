@@ -33,7 +33,7 @@
       "slug": "learning",
       "title": "Learning",
       "category": "cyber",
-      "intro": "Build the concepts and vocabulary, from your first terminal command to confident defender. New to cybersecurity? Start with Defense Ladder, the course. Know what you need? The Study Map finds any concept as you type and shows where to learn and practice it."
+      "intro": "Build the concepts and vocabulary, from your first terminal command to confident defender. New to cybersecurity? Start with Defense Ladder, the course. Know what you need? The Study Map finds any concept as you type and shows where to learn and practice it. Cyber PUG gives a team experimental checklists for taking over a network, coordinated from a shared Collab Tab."
     },
     {
       "slug": "practice",
@@ -495,6 +495,25 @@
       "section": "learning",
       "sha256": "2d1dd4dbb90fee9352381ebd9a1173c991fe24c0c1f15a5c68a0c82136f2f2c6",
       "updated": "2026-11-09"
+    },
+    {
+      "slug": "cyber-pug",
+      "name": "Cyber PUG",
+      "tagline": "Experimental takeover checklists, coordinated from a shared Collab Tab.",
+      "description": "Cyber PUG (Pick-Up Game): experimental team checklists for taking over a network. Windows, eight Unix-like families, and Cisco, with a shared Collab Tab. Works offline.",
+      "badges": [
+        "Cybersecurity",
+        "Study",
+        "Offline",
+        "Private"
+      ],
+      "file": "cyber-pug/index.html",
+      "download_as": "cyber-pug.html",
+      "icon": "terminal",
+      "category": "cyber",
+      "section": "learning",
+      "sha256": "96683014c970ebe612c8f0b92693ef980333e425e6779dcc24510f97672fc824",
+      "updated": "2026-11-11"
     },
     {
       "slug": "chop-lab",
