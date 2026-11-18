@@ -23,3 +23,13 @@
 /chop-lab/*
   ! Permissions-Policy
   Permissions-Policy: camera=(), microphone=(self), geolocation=(), payment=(), usb=(), serial=(), bluetooth=()
+
+# The photo edition of Cyber PUG verifies every embedded file by SHA-256 and carries the same library license text
+# with email addresses, so Cloudflare delivers it byte for byte too.
+/cyber-pug/cyber-pug-photo.html
+  ! Cache-Control
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
+
+/cyber-pug/cyber-pug-photo
+  ! Cache-Control
+  Cache-Control: public, max-age=0, must-revalidate, no-transform

@@ -33,7 +33,7 @@
       "slug": "learning",
       "title": "Learning",
       "category": "cyber",
-      "intro": "Build the concepts and vocabulary, from your first terminal command to confident defender. New to cybersecurity? Start with Defense Ladder, the course. Know what you need? The Study Map finds any concept as you type and shows where to learn and practice it. Cyber PUG gives a team experimental checklists for taking over a network, coordinated from a shared Collab Tab."
+      "intro": "Build the concepts and vocabulary, from your first terminal command to confident defender. New to cybersecurity? Start with Defense Ladder, the course. Know what you need? The Study Map finds any concept as you type and shows where to learn and practice it. Cyber PUG gives a team experimental checklists for taking over a network, coordinated from a shared Collab Tab, with a Map that draws the network from pasted command output."
     },
     {
       "slug": "practice",
@@ -499,8 +499,8 @@
     {
       "slug": "cyber-pug",
       "name": "Cyber PUG",
-      "tagline": "Experimental takeover checklists, coordinated from a shared Collab Tab.",
-      "description": "Cyber PUG (Pick-Up Game): experimental team checklists for taking over a network. Windows, eight Unix-like families, and Cisco, with a shared Collab Tab. Works offline.",
+      "tagline": "Experimental takeover checklists and a network Map, coordinated from a shared Collab Tab.",
+      "description": "Cyber PUG (Pick-Up Game): experimental team checklists for taking over a network. Windows, eight Unix-like families, and Cisco, with a shared Collab Tab. Paste command output under a checklist line, and the Map tab draws the network by site, VLAN, and subnet, lists leads to check, and compares before with after. Works offline.",
       "badges": [
         "Cybersecurity",
         "Study",
@@ -512,8 +512,18 @@
       "icon": "terminal",
       "category": "cyber",
       "section": "learning",
-      "sha256": "96683014c970ebe612c8f0b92693ef980333e425e6779dcc24510f97672fc824",
-      "updated": "2026-11-11"
+      "sha256": "f5133b751a7307cecdcc739e3fe8b118f6f628d454869f84f506cc7a00129799",
+      "updated": "2026-11-17",
+      "download_note": "Both downloads are the full page. Download .html: paste command output as text. Download with photo reading (about 12 MB): also turns a photo or a screenshot of a terminal into text on your device, completely offline.",
+      "extras": [
+        {
+          "label": "Download with photo reading",
+          "file": "cyber-pug/cyber-pug-photo.html",
+          "download_as": "cyber-pug-photo.html",
+          "sha256": "0d20bcd67a4757ccfdd94a0c975d26166420459de98fd6a1f5655a6b3a770b18",
+          "updated": "2026-11-17"
+        }
+      ]
     },
     {
       "slug": "chop-lab",
