@@ -165,6 +165,8 @@ def size(kb): return f"{kb} KB" if kb < 1024 else f"{kb / 1024:.1f} MB"
 def tool_card(t, base, lvl=3):
     badges = "".join(f"<li>{e(b)}</li>" for b in t.get("badges", []))
     extras = "".join(f'<a class="btn" href="{base}{e(x["file"])}" download="{e(x.get("download_as") or Path(x["file"]).name)}">{e(x["label"])}</a>' for x in t.get("extras", []))
+    # an extra with "open_label" also opens in the browser, beside the main Open button
+    opens = "".join(f'<a class="btn" href="{base}{e(x["file"])}">{e(x["open_label"])}</a>' for x in t.get("extras", []) if x.get("open_label"))
     label = t.get("download_label", "Download .html")
     note = f'        <p class="desc">{e(t["download_note"])}</p>\n' if t.get("download_note") else ""
     if t.get("download_menu"):
@@ -190,7 +192,7 @@ def tool_card(t, base, lvl=3):
         <div class="tool-head">{mark(t.get('icon', 'four'), 44)}<div><h{lvl} class="tool-name"><a href="{base}{e(t['slug'])}/">{e(t['name'])}</a></h{lvl}><p class="tagline">{e(t['tagline'])}</p></div></div>
         <p class="desc">{e(t['description'])}</p>
         <ul class="badges" aria-label="Tags">{badges}</ul>
-        <div class="actions"><a class="btn primary" href="{base}{e(t['slug'])}/">Open</a><a class="btn" href="{base}{e(t['file'])}" download="{e(t['download_as'])}">{e(label)}</a>{extras}</div>
+        <div class="actions"><a class="btn primary" href="{base}{e(t['slug'])}/">Open</a>{opens}<a class="btn" href="{base}{e(t['file'])}" download="{e(t['download_as'])}">{e(label)}</a>{extras}</div>
 {note}        <p class="meta">{meta}</p>
       </li>
 """

@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-uIe+ROr4+dQU+sWPPJKHE+ikUwWn7xjKVEaf+WMHXoQ='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Be/+dRALa9evf83OqpXTc043dV46WkbuMbdiB/gfi4M='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Cyber PUG (Pick-Up Game): experimental team checklists for taking over a network. Windows, eight Unix-like families, and Cisco, with a shared Collab Tab. Paste command output under a checklist line, and the Map tab draws the network by site, VLAN, and subnet, lists leads to check, and compares before with after. Works offline.">
 <link rel="canonical" href="https://freeapp4that.store/cyber-pug/">
@@ -5948,7 +5948,7 @@ const MapOcr = (() => {
   });
   const IDS = ['tesseract', 'worker', 'core', 'eng'], MAX = 20 * 1024 * 1024, LOW = 65;
   const T = {
-    plain: 'Photo reading lives in the photo edition of this page (cyber-pug-photo.html). Open that edition to read a photo or a screenshot, or paste the text here. A copy opened from disk may keep a save of its own: Export here and Import there to carry your work across.',
+    plain: ['Photo reading lives in the ', 'photo edition (about 12 MB)', ': read a photo or a screenshot there, or paste the text here. A copy opened from disk keeps its own save: Export here, then Import there.'],
     where: 'Photo reading lives in the photo edition of this page.',
     add: 'Add a photo or screenshot',
     starting: 'Starting the text reader on this device…',
@@ -6271,7 +6271,7 @@ const MapOcr = (() => {
   function control(opts) {
     const h = env.h, o = opts || {};
     if (!available() && typeof PUG_DATA !== 'object') {
-      const p = h('p', { class: 'mp-plain', text: T.plain });
+      const p = h('p', { class: 'mp-plain' }, T.plain[0], h('a', { class: 'mp-photolink', href: (/^http/.test((globalThis.location || {}).protocol) ? '' : 'https://freeapp4that.store/cyber-pug/') + 'cyber-pug-photo.html', target: '_blank', rel: 'noopener', text: T.plain[1] }), T.plain[2]);
       pics(o.box || p, () => p.scrollIntoView({ block: 'nearest' }));
       return h('div', { class: 'mp-photo' }, p);
     }
