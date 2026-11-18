@@ -512,16 +512,16 @@
       "icon": "terminal",
       "category": "cyber",
       "section": "learning",
-      "sha256": "865e8759ecea8dd49bd7ae9f542bf8cf0ae209f228b7d3c1888350f7d4b2c27b",
-      "updated": "2026-11-17",
+      "sha256": "d76abcb09133e6a3a7830b7d7ae9de8133c7bdfeaf86c502860335fa5c4439a7",
+      "updated": "2026-11-18",
       "download_note": "Open with photo reading (about 12 MB) also turns a photo or a screenshot of a terminal into text, right on your device. Both editions keep the same save on this site. Each download is the full page.",
       "extras": [
         {
           "label": "Download with photo reading",
           "file": "cyber-pug/cyber-pug-photo.html",
           "download_as": "cyber-pug-photo.html",
-          "sha256": "f3acbcfa82f08f936e2135e3ca7c290fa203f7a135b6af51ec2510b415ec084c",
-          "updated": "2026-11-17",
+          "sha256": "ba0325ec18aade6756e1ddb05390f951c6aa431ceb171bc84666a460d017c987",
+          "updated": "2026-11-18",
           "open_label": "Open with photo reading"
         }
       ]
