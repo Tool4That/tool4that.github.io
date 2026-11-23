@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-hriPrGlfAZYwpuK7wSqhg8ZaL8D0b+2ZTLKPabwcybQ=' blob:; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-pT+k9y1M/+ZWcjCNS+uvPs59u3740kGsSg5VxaoXdVw=' blob:; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/chop-lab/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Tool4That">
 <meta property="og:title" content="Chop Lab">
-<meta property="og:description" content="A music studio in your browser: 16 pads, a step sequencer, 63 genre kits from boom bap and house to jazz, reggae, country, and metal, a sample chopper, a Screw control that slows and deepens everything, two DJ decks with scratching, and recording to WAV.">
+<meta property="og:description" content="A music studio in your browser: 16 pads, a step sequencer with patterns up to 128 bars, a song timeline for layering patterns into full tracks, 63 genre kits from boom bap and house to jazz, reggae, country, and metal, a sample chopper, a Screw control that slows and deepens everything, two DJ decks with scratching, and recording to WAV.">
 <meta property="og:url" content="https://freeapp4that.store/chop-lab/">
 <meta property="og:image" content="https://freeapp4that.store/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -204,6 +204,51 @@ main { min-width: 0; overflow: auto; padding: 0 14px 14px; }
 .cell.soft { background: color-mix(in srgb, var(--c) 45%, transparent); }
 .cell.now { box-shadow: inset 0 0 0 2px #ffffffcc; }
 .cell:hover { filter: brightness(1.35); }
+
+/* ---------- beats: pattern length, pages, song timeline ---------- */
+.pat-pick { display: inline-flex; gap: 4px; align-items: center; }
+.len-ctl { display: inline-flex; gap: 4px; align-items: center; padding: 2px 6px; border: 1px solid var(--line); border-radius: 9px; }
+.len-ctl input { width: 4.2em; text-align: center; padding: 3px 4px; }
+.len-unit { font-size: 12px; color: var(--muted); }
+.len-time { font-size: 12px; color: var(--accent2); font-variant-numeric: tabular-nums; min-width: 3.6em; }
+.pager-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: -2px 0 8px; min-height: 26px; }
+.pager { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; flex: 1 1 320px; }
+.pager-at { font-size: 12px; font-variant-numeric: tabular-nums; min-width: 6.5em; text-align: center; }
+.barmap { display: flex; flex-wrap: wrap; gap: 2px; flex: 1 1 200px; min-width: 0; }
+.bar-sq { width: 12px; height: 14px; padding: 0; border: 1px solid var(--line2); border-radius: 3px; background: var(--bg2); }
+.bar-sq.has { background: color-mix(in srgb, var(--gold) 55%, var(--bg2)); }
+.bar-sq.on { border-color: var(--accent2); box-shadow: 0 0 0 1px var(--accent2); }
+.bar-sq.now { background: #ffffffcc; }
+.cell.past { background: transparent; box-shadow: inset 0 0 0 1px var(--line); cursor: default; }
+.cell.past:hover { filter: none; }
+
+.song { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--line); }
+.song-bar { margin-bottom: 8px; }
+.song-title { margin: 0 4px 0 0; font-size: 15px; }
+.song-len { font-size: 13px; color: var(--accent2); font-variant-numeric: tabular-nums; }
+.song-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--bg2); }
+.song-tl { --w: 16px; display: flex; width: max-content; min-width: 100%; }
+.song-heads { position: sticky; left: 0; z-index: 2; display: grid; gap: 3px; padding: 4px; background: var(--panel); border-right: 1px solid var(--line2); }
+.song-head { --lc: #c46bff; display: flex; align-items: center; gap: 3px; height: 26px; }
+.song-head.ruler-head { height: 20px; font-size: 11px; color: var(--muted); padding-left: 4px; }
+.lane-name { display: flex; align-items: baseline; gap: 5px; width: 74px; height: 24px; padding: 0 6px; border-radius: 6px; border: 1px solid color-mix(in srgb, var(--lc) 55%, transparent); background: color-mix(in srgb, var(--lc) 14%, transparent); font-weight: 700; }
+.lane-name small { font-weight: 400; font-size: 10px; color: var(--muted); white-space: nowrap; }
+.song-head.sel .lane-name { background: var(--lc); color: #12091f; }
+.song-head.sel .lane-name small { color: #12091fbb; }
+.song-head.off .lane-name { opacity: .5; }
+.mute.solo.on { background: var(--accent2); color: #12091f; }
+.song-tracks { position: relative; display: grid; gap: 3px; padding: 4px 0; }
+.song-ruler { position: relative; height: 20px; cursor: pointer; border-bottom: 1px solid var(--line2); }
+.rl-bar { position: absolute; top: 2px; font-size: 10px; color: var(--muted); padding-left: 3px; border-left: 1px solid var(--line2); line-height: 14px; }
+.rl-min { position: absolute; top: 0; bottom: -4px; font-size: 10px; color: var(--gold); padding-left: 3px; border-left: 2px dashed color-mix(in srgb, var(--gold) 70%, transparent); line-height: 12px; transform: translateY(8px); pointer-events: none; }
+.rl-from { position: absolute; top: 0; width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 9px solid var(--accent2); margin-left: -6px; pointer-events: none; }
+.song-lane { --lc: #c46bff; position: relative; height: 26px; cursor: copy; touch-action: pan-x pan-y;
+  background-image: linear-gradient(to right, var(--line2) 1px, transparent 1px), linear-gradient(to right, var(--line) 1px, transparent 1px);
+  background-size: calc(var(--w) * 4) 100%, var(--w) 100%; }
+.song-lane.off .song-blk { opacity: .35; }
+.song-blk { position: absolute; top: 2px; bottom: 2px; border-radius: 5px; background: var(--lc); color: #12091f; font-size: 11px; font-weight: 700; line-height: 22px; padding-left: 5px; overflow: hidden; white-space: nowrap; cursor: grab; box-shadow: inset 0 0 0 1px #ffffff55; touch-action: none; }
+.song-blk.cut { background: linear-gradient(to right, var(--lc) calc(100% - 6px), color-mix(in srgb, var(--lc) 40%, transparent) calc(100% - 6px)); }
+.song-playhead { position: absolute; top: 0; bottom: 0; left: 0; width: 2px; background: #fff; box-shadow: 0 0 6px #fff; pointer-events: none; z-index: 1; }
 
 /* ---------- chop ---------- */
 #chop-over { width: 100%; height: 38px; display: block; background: var(--bg2); border-radius: 6px 6px 0 0; cursor: pointer; touch-action: none; }
@@ -413,16 +458,18 @@ dialog h2 { margin: 0 0 8px; }
         </div>
         <div class="seq-col panel">
           <div class="toolbar">
-            <div class="seg" aria-label="Pattern">
-              <button class="pat-btn" data-p="0" title="Pattern A">A</button>
-              <button class="pat-btn" data-p="1" title="Pattern B">B</button>
-              <button class="pat-btn" data-p="2" title="Pattern C">C</button>
-              <button class="pat-btn" data-p="3" title="Pattern D">D</button>
+            <div class="pat-pick">
+              <div class="seg" id="pat-btns" role="group" aria-label="Pattern"></div>
+              <button id="pat-add" class="btn tiny" aria-label="Add a pattern">+</button>
+              <button id="pat-remove" class="btn tiny" hidden>−</button>
             </div>
-            <select id="seq-len" aria-label="Pattern length">
-              <option value="16">1 bar</option>
-              <option value="32">2 bars</option>
-            </select>
+            <div class="len-ctl" role="group" aria-label="Pattern length" title="How long this pattern is. Each pattern has its own length, from 1 to 128 bars.">
+              <button id="seq-bar-minus" class="btn tiny" aria-label="One bar shorter">−</button>
+              <input id="seq-bars" type="number" min="1" max="128" step="1" aria-label="Bars in this pattern">
+              <span class="len-unit">bars</span>
+              <button id="seq-bar-plus" class="btn tiny" aria-label="One bar longer">+</button>
+              <span id="seq-len-time" class="len-time"></span>
+            </div>
             <label class="inline" title="Pushes the off-beat notes later for a bouncier groove">Swing
               <input id="seq-swing" type="range" min="50" max="75" step="1" value="54">
               <span id="seq-swing-val">54%</span></label>
@@ -432,12 +479,38 @@ dialog h2 { margin: 0 0 8px; }
             </select>
             <button id="seq-rec" class="btn small rec" aria-pressed="false" title="Record pad hits into the pattern while it plays">● Record hits</button>
             <button id="seq-metro" class="btn small" aria-pressed="false" title="Click on every beat">Metronome</button>
-            <button id="seq-copy" class="btn small" title="Copy this pattern into the next letter">Copy → next</button>
+            <button id="seq-copy" class="btn small" title="Copy this pattern (all its bars and row mutes) into the next pattern; the last one copies into A">Copy → next</button>
             <button id="seq-clear" class="btn small">Clear</button>
-            <button id="seq-bounce" class="btn small accent" title="Render 2 loops of this pattern into a new sound (with Screw and effects)">Bounce to sound</button>
+            <button id="seq-bounce" class="btn small accent" title="Render this pattern into a new sound, with Screw and effects (a pattern of 2 bars or fewer plays twice)">Bounce to sound</button>
+          </div>
+          <div class="pager-row">
+          <div id="seq-pager" class="pager" hidden>
+            <button id="seq-prev" class="btn tiny" aria-label="Show the two bars before">◀</button>
+            <span id="seq-page" class="pager-at"></span>
+            <button id="seq-next" class="btn tiny" aria-label="Show the next two bars">▶</button>
+            <div id="seq-barmap" class="barmap" role="group" aria-label="Every bar of the pattern"></div>
+          </div>
+          <span class="spacer"></span>
+          <button id="seq-dup" class="btn tiny">Duplicate bars →</button>
+          <button id="seq-follow" class="btn tiny on" aria-pressed="true" title="While playing, the grid and the timeline turn to the bar that is playing">Follow</button>
           </div>
           <div id="seq-grid"></div>
-          <p class="hint">Click squares to add hits · drag to paint · Shift-click or right-click for a soft hit · switch patterns while playing and the change lands on the next bar.</p>
+          <p class="hint">Click squares to add hits · drag to paint · Shift-click or right-click for a soft hit · while a pattern loops, picking another letter switches at the next bar · a pattern longer than two bars shows two at a time; the arrows and bar squares move between them.</p>
+          <section id="song" class="song" aria-labelledby="song-title">
+            <div class="toolbar song-bar">
+              <h3 id="song-title" class="song-title">Song</h3>
+              <div class="seg" id="song-mode" role="group" aria-label="What Play plays">
+                <button data-m="pattern" title="Play loops the pattern open in the grid">Loop pattern</button>
+                <button data-m="song" title="Play runs the timeline from the start marker to the end">Play song</button>
+              </div>
+              <span id="song-len" class="song-len"></span>
+              <span class="spacer"></span>
+              <button id="song-bounce" class="btn small accent" title="Render the whole song, as it sounds now, into a new sound you can save as a WAV">Bounce song</button>
+              <button id="song-clear" class="btn small" title="Take every block off the timeline (your patterns stay)">Clear song</button>
+            </div>
+            <div id="song-scroll" class="song-scroll"><div id="song-tl" class="song-tl"></div></div>
+            <p class="hint">Each pattern has a lane · click or tap a lane to place that pattern there · with a mouse, drag along a lane to place more · drag a block to move it, click or tap it to remove it · lanes stacked at the same bar play together · click the ruler to choose where Play song starts.</p>
+          </section>
         </div>
       </div>
     </section>
@@ -514,6 +587,7 @@ dialog h2 { margin: 0 0 8px; }
   <ol class="steps">
     <li><b>Hear the starter beat.</b> Press <kbd>Space</kbd> or Play. Click squares in the grid to add or remove hits.</li>
     <li><b>Play the pads</b> with your keyboard: <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> · <kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd> · <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><kbd>F</kbd> · <kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd><kbd>V</kbd>. Turn on <i>Record hits</i> to finger-drum straight into the pattern.</li>
+    <li><b>Make it a song.</b> Set how many bars a pattern lasts (1 to 128), and add patterns up to H. On the <i>Song</i> timeline under the grid, click a lane to place its pattern; stack lanes at the same bar to layer them, then switch to <i>Play song</i>.</li>
     <li><b>Pick a genre.</b> The Genres tab holds 63 kits across 17 families, from boom bap, trap, and house to jazz, reggae, country, and metal. Press <i>Hear it</i>, then <i>Load kit</i> to put its sounds and a starter beat on the pads.</li>
     <li><b>Bring your own sounds.</b> Drop MP3, WAV, M4A, OGG, or FLAC files anywhere, or record with the mic. Drag any sound onto a pad or a deck.</li>
     <li><b>Chop.</b> Open a sound in the Chop tab, chop it evenly, on hits, or by beats (or tap <kbd>Enter</kbd> while it plays), then press <i>Send chops to pads</i>.</li>
@@ -894,17 +968,26 @@ CL.trimSilence = (ac, buf, thresh = 0.01) => {
 // Chop Lab — project state and defaults.
 'use strict';
 
-CL.MAX_STEPS = 32;
+CL.MAX_STEPS = 32; // the grid shows two bars (32 steps) at a time; a pattern holds bars * 16 steps
+CL.MAX_BARS = 128; // longest pattern
+CL.MAX_PATTERNS = 8; // A to H
+CL.MIN_PATTERNS = 4; // A to D are always there
+CL.PAT_NAMES = 'ABCDEFGH';
+CL.SONG_MAX_BARS = 256; // longest song on the timeline
 CL.samples = new Map(); // id -> { id, name, group, buffer, builtin, bpm, chops: [], cues: [] }
 
 // nudge: timing in ms (-50 early to +50 late) for the pad's sequenced steps; hand-played hits stay immediate.
 CL.blankPad = () => ({ sampleId: null, start: 0, end: null, name: '', gain: 0.9, pitch: 0, reverse: false, mode: 'oneshot', cut: 0, nudge: 0 });
 CL.NUDGE_MAX = 50;
-CL.blankPattern = (name) => ({
+CL.blankPattern = (name, bars = 2) => ({
   name,
-  steps: Array.from({ length: 16 }, () => new Array(CL.MAX_STEPS).fill(0)),
+  bars,
+  steps: Array.from({ length: 16 }, () => new Array(bars * 16).fill(0)),
   mutes: new Array(16).fill(false),
 });
+// Song timeline: blocks [{ p: pattern index, bar: start bar (0-based) }]; mode 'pattern' loops the pattern on screen,
+// 'song' plays the timeline. Lane mutes and solo (-1 = none) follow pattern indexes; from = the bar Play song starts at.
+CL.blankSong = () => ({ mode: 'pattern', blocks: [], mutes: new Array(CL.MAX_PATTERNS).fill(false), solo: -1, from: 0 });
 
 CL.PUMP_PADS = [8, 9, 10, 11, 12, 13, 14, 15]; // pads 9 to 16: the bass and keys rows of a kit
 
@@ -915,7 +998,7 @@ CL.defaultState = () => {
   kitOrder.forEach((id, i) => { pads[i].sampleId = id; });
   pads[4].cut = 2; pads[3].cut = 2; // open hat and closed hat cut each other
   pads[8].cut = 3; pads[9].cut = 3; // 808s cut each other
-  const patterns = ['A', 'B', 'C', 'D'].map(CL.blankPattern);
+  const patterns = ['A', 'B', 'C', 'D'].map((n) => CL.blankPattern(n));
   // Starter beat in pattern A so Play makes sound right away.
   const A = patterns[0].steps;
   [0, 7, 10].forEach((s) => { A[0][s] = 1; A[0][s + 16] = 1; });
@@ -927,7 +1010,8 @@ CL.defaultState = () => {
   A[8][0] = 1; A[8][10] = 1; A[9][16] = 1; A[9][26] = 1;
   return {
     version: 1,
-    seq: { bpm: 90, swing: 54, feel: '16', length: 32, pattern: 0, metro: false },
+    seq: { bpm: 90, swing: 54, feel: '16', pattern: 0, metro: false, follow: true },
+    song: CL.blankSong(),
     genre: { fam: 'hiphop', kit: null },
     patterns,
     pads,
@@ -954,6 +1038,7 @@ CL.padName = (i) => {
   return s ? s.name : 'Empty';
 };
 CL.currentPattern = () => CL.state.patterns[CL.state.seq.pattern];
+CL.patSteps = (pat) => pat.bars * 16;
 
 // Save-worthy changes call this; storage listens.
 CL.changed = () => CL.bus.emit('changed');
@@ -3974,7 +4059,7 @@ CL.renderKit = async () => {
     });
     return {
       specs, bufs, buffers, pads, rows: CL.kitRows(kit),
-      seq: { bpm: kit.bpm, swing: kit.sw || 50, feel: kit.feel || '16', length: 32 },
+      seq: { bpm: kit.bpm, swing: kit.sw || 50, feel: kit.feel || '16' },
       fx: Object.assign({}, CL.defaultState().fx, kit.fx || {}, CL.kitPump(kit)),
     };
   };
@@ -5212,12 +5297,28 @@ CL.renderPadEditor = () => {
 };
 
 /* ---- js/seq.js ---- */
-// Chop Lab — step sequencer: 16 rows (one per pad), 16 or 32 steps, swing, patterns, live record, bounce.
+// Chop Lab — step sequencer: 16 rows (one per pad), patterns of 1 to 128 bars (shown two bars at a time), up to
+// eight patterns (A to H), swing, live record, bounce, and the song timeline (one lane per pattern; lanes play together).
 'use strict';
 
-CL.seq = { playing: false, step: 0, nextTime: 0, timer: null, queued: null, queue: [], rec: false, skip: null, lastDrawn: -1 };
+// pos: the song step while a song plays; endAt: when the last scheduled step of a song has sounded.
+CL.seq = { playing: false, mode: 'pattern', step: 0, pos: 0, nextTime: 0, timer: null, queued: null, queue: [], rec: false,
+  skip: null, lastDrawn: '', endAt: null, warned: false };
+CL.view = { page: 0 }; // the two-bar page of the pattern the grid shows
+CL.SONG_W = 16; // timeline pixels per bar
+CL.LANE_COLORS = ['#c46bff', '#2ec4d6', '#ffc93d', '#ff5d8f', '#3ddc97', '#ff8a3d', '#4d9bff', '#ff6bd6'];
 
 CL.stepSec = (screw = CL.screw) => 60 / (CL.state.seq.bpm * screw) / 4;
+CL.barSec = () => CL.stepSec() * 16;
+// Lengths of patterns and songs: 5.3 s, 42 s, 3:04 (CL.fmtTime stays the m:ss.s clock of the decks and recorder).
+CL.fmtLen = (sec) => {
+  if (sec < 10) return sec.toFixed(1) + ' s';
+  if (sec < 60) return Math.round(sec) + ' s';
+  const m = Math.floor(sec / 60), s = Math.round(sec - m * 60);
+  return s === 60 ? (m + 1) + ':00' : m + ':' + String(s).padStart(2, '0');
+};
+CL.barsLabel = (n) => n + (n === 1 ? ' bar' : ' bars');
+
 // Swing pushes off-beat notes late: every second 16th, or with the 8ths feel every second 8th (a shuffle).
 CL.swingOffsetFor = (step, swing, feel, stepSec) => {
   const amt = (swing - 50) / 50;
@@ -5226,17 +5327,78 @@ CL.swingOffsetFor = (step, swing, feel, stepSec) => {
 };
 CL.swingOffset = (step, stepSec) => CL.swingOffsetFor(step, CL.state.seq.swing, CL.state.seq.feel, stepSec);
 
-// One step of a pattern at time t: swing, each pad's timing (nudge), and the pump, for live playback, bounces, and the
-// kit groove render alike. The pads and swing come from cs.pads and cs.seq when a render brings its own project
-// (otherwise the project's). cs.only plays that row alone; the silent rows still key the pump and still choke their
-// cut group, so the soloed row sounds exactly as it does in the mix.
-CL.scheduleStep = (pat, step, t, cs, stepSec) => {
+// ---------- what plays on one step ----------
+// One column of a pattern: the 16 rows' hits (0 none, 1 full, 2 soft) with the pattern's row mutes applied.
+CL.patternColumn = (pat, step) => {
+  const vals = new Array(16).fill(0);
+  for (let r = 0; r < 16; r++) if (!pat.mutes[r]) vals[r] = pat.steps[r][step] || 0;
+  return vals;
+};
+
+// Keep blocks sorted by bar, one block per lane and bar.
+CL.tidySong = (song) => {
+  const seen = new Set();
+  song.blocks = song.blocks.filter((b) => {
+    const k = b.p + ':' + b.bar;
+    if (seen.has(k)) return false;
+    seen.add(k); return true;
+  }).sort((a, b) => a.bar - b.bar || a.p - b.p);
+  return song;
+};
+// A block plays its pattern's full length, unless the next block in its lane starts first. blockEnds works out every
+// block's end in one pass (a Map from block to end bar); a block whose pattern is gone lasts 0 bars.
+CL.blockEnds = (song = CL.state.song, P = CL.state.patterns) => {
+  const ends = new Map(), last = {};
+  const order = song.blocks.slice().sort((a, b) => a.bar - b.bar);
+  for (const b of order) {
+    const prev = last[b.p];
+    if (prev && b.bar < ends.get(prev)) ends.set(prev, Math.max(prev.bar, b.bar));
+    ends.set(b, P[b.p] ? Math.min(b.bar + P[b.p].bars, CL.SONG_MAX_BARS) : b.bar);
+    last[b.p] = b;
+  }
+  return ends;
+};
+CL.blockEnd = (b, song = CL.state.song, P = CL.state.patterns) => CL.blockEnds(song, P).get(b);
+CL.songBars = (song = CL.state.song, P = CL.state.patterns, ends = CL.blockEnds(song, P)) => {
+  let m = 0;
+  for (const e of ends.values()) if (e > m) m = e;
+  return m;
+};
+CL.blockAt = (p, bar, song = CL.state.song, P = CL.state.patterns, ends = CL.blockEnds(song, P)) =>
+  song.blocks.find((b) => b.p === p && b.bar <= bar && bar < ends.get(b)) || null;
+CL.laneOn = (song, p) => !song.mutes[p] && (song.solo < 0 || song.solo === p);
+
+// One song step: every lane playing there, merged. A pad hit by two lanes on the same step plays once, at the louder
+// of the two hits. act maps each pattern playing there (muted lanes too) to its own step, for the playhead and Record.
+CL.songColumn = (pos, song = CL.state.song, P = CL.state.patterns, ends = CL.blockEnds(song, P)) => {
+  const bar = Math.floor(pos / 16), vals = new Array(16).fill(0), act = {};
+  for (const b of song.blocks) {
+    if (b.bar > bar || bar >= ends.get(b)) continue;
+    const pat = P[b.p], local = pos - b.bar * 16;
+    act[b.p] = local;
+    if (!CL.laneOn(song, b.p)) continue;
+    for (let r = 0; r < 16; r++) {
+      if (pat.mutes[r]) continue;
+      const v = pat.steps[r][local];
+      if (v === 1) vals[r] = 1;
+      else if (v === 2 && !vals[r]) vals[r] = 2;
+    }
+  }
+  return { vals, act };
+};
+
+// One step at time t: swing, each pad's timing (nudge), and the pump, for live playback, bounces, and the kit groove
+// render alike. The pads and swing come from cs.pads and cs.seq when a render brings its own project (otherwise the
+// project's). cs.only plays that row alone; the silent rows still key the pump and still choke their cut group, so the
+// soloed row sounds exactly as it does in the mix.
+CL.scheduleHits = (vals, step, t, cs, stepSec) => {
   const pads = cs.pads || CL.state.pads, seq = cs.seq || CL.state.seq;
   const off = CL.swingOffsetFor(step, seq.swing, seq.feel, stepSec);
   for (let r = 0; r < 16; r++) {
-    const val = pat.steps[r][step];
-    if (!val || pat.mutes[r]) continue;
-    if (CL.seq.skip && cs.live && CL.seq.skip.r === r && CL.seq.skip.step === step) { CL.seq.skip = null; continue; }
+    const val = vals[r];
+    if (!val) continue;
+    const sk = CL.seq.skip;
+    if (sk && cs.live && sk.r === r && Math.abs(sk.time - t) < 1e-6) { CL.seq.skip = null; continue; }
     const p = pads[r];
     if (!p.sampleId) continue;
     const when = t + off + CL.nudgeSec(p);
@@ -5250,6 +5412,7 @@ CL.scheduleStep = (pat, step, t, cs, stepSec) => {
     if (cs.live) CL.flashPad(r, when - CL.ac.currentTime);
   }
 };
+CL.scheduleStep = (pat, step, t, cs, stepSec) => CL.scheduleHits(CL.patternColumn(pat, step), step, t, cs, stepSec);
 
 CL.metroClick = (t, accent) => {
   const ac = CL.ac;
@@ -5262,19 +5425,41 @@ CL.metroClick = (t, accent) => {
   o.start(t); o.stop(t + 0.05);
 };
 
+// What the next step to be scheduled plays (pattern -> its step).
+CL.peekAct = () => {
+  const S = CL.seq;
+  if (S.mode === 'song') return CL.songColumn(S.pos).act;
+  return { [CL.state.seq.pattern]: S.step };
+};
+
 CL.seqTick = () => {
   const ac = CL.ac, S = CL.seq, st = CL.state.seq;
+  if (S.endAt != null) { if (ac.currentTime >= S.endAt) CL.seqStop(); return; }
+  const ends = S.mode === 'song' ? CL.blockEnds() : null, songEnd = ends ? CL.songBars(undefined, undefined, ends) * 16 : 0;
   while (S.nextTime < ac.currentTime + 0.12) {
     const stepSec = CL.stepSec();
-    const pat = CL.currentPattern();
     CL.liveCtx.dest = CL.padBus;
-    CL.scheduleStep(pat, S.step, S.nextTime, CL.liveCtx, stepSec);
-    if (st.metro && S.step % 4 === 0) CL.metroClick(S.nextTime, S.step === 0);
-    S.queue.push({ step: S.step, time: S.nextTime, pat: st.pattern });
+    let vals, act, beat;
+    if (S.mode === 'song') {
+      if (S.pos >= songEnd) { S.endAt = S.nextTime; return; } // the song is over once its last step sounds
+      ({ vals, act } = CL.songColumn(S.pos, undefined, undefined, ends));
+      beat = S.pos;
+    } else {
+      const pat = CL.currentPattern();
+      if (S.step >= CL.patSteps(pat)) S.step %= CL.patSteps(pat);
+      vals = CL.patternColumn(pat, S.step);
+      act = { [st.pattern]: S.step };
+      beat = S.step;
+    }
+    CL.scheduleHits(vals, beat, S.nextTime, CL.liveCtx, stepSec);
+    if (st.metro && beat % 4 === 0) CL.metroClick(S.nextTime, beat % 16 === 0);
+    S.queue.push({ time: S.nextTime, pos: beat, act });
     if (S.queue.length > 64) S.queue.shift();
     S.nextTime += stepSec;
+    if (S.mode === 'song') { S.pos++; continue; }
     S.step++;
-    if (S.step >= st.length) {
+    // a pattern picked while one plays starts at the next bar line
+    if (S.step >= CL.patSteps(CL.currentPattern()) || (S.queued != null && S.step % 16 === 0)) {
       S.step = 0;
       if (S.queued != null) { st.pattern = S.queued; S.queued = null; CL.bus.emit('pattern'); }
     }
@@ -5285,7 +5470,11 @@ CL.seqPlay = () => {
   const S = CL.seq;
   if (S.playing) return;
   CL.ac.resume();
-  S.playing = true; S.step = 0; S.queue = []; S.skip = null;
+  const song = CL.state.song, bars = CL.songBars();
+  S.mode = song.mode === 'song' && bars > 0 ? 'song' : 'pattern';
+  if (song.mode === 'song' && !bars) CL.toast('The song is empty, so Play loops pattern ' + CL.currentPattern().name + '. Click a lane below to place a pattern.');
+  S.playing = true; S.step = 0; S.queue = []; S.skip = null; S.endAt = null; S.warned = false; S.queued = null; S.playPage = null;
+  S.pos = song.from < bars ? song.from * 16 : 0;
   S.nextTime = CL.ac.currentTime + 0.06;
   CL.seqTick();
   S.timer = setInterval(CL.seqTick, 25);
@@ -5297,7 +5486,7 @@ CL.seqStop = () => {
   if (!S.playing) return;
   S.playing = false;
   clearInterval(S.timer);
-  S.queued = null;
+  S.queued = null; S.endAt = null; S.playPage = null;
   // cancel notes (and pump dips) scheduled for the future
   const now = CL.ac.currentTime;
   for (const v of CL.voices) if (v.src.__when > now) v.stop(now, 0.005);
@@ -5306,56 +5495,200 @@ CL.seqStop = () => {
 };
 CL.seqToggle = () => (CL.seq.playing ? CL.seqStop() : CL.seqPlay());
 
-// Live record: drop pad hits onto the nearest step of the playing pattern.
+// Live record: drop pad hits onto the nearest step. Looping a pattern, they go into it; playing the song, they go into
+// the pattern open in the grid, at the step its lane is playing.
 CL.bus.on('padhit', (r) => {
   const S = CL.seq;
   if (!S.playing || !S.rec) return;
   const ac = CL.ac;
   const heard = ac.currentTime - (ac.outputLatency || ac.baseLatency || 0);
-  const cands = S.queue.concat([{ step: S.step, time: S.nextTime, pat: CL.state.seq.pattern, future: true }]);
+  const cands = S.queue.concat([{ time: S.nextTime, act: CL.peekAct(), future: true }]);
   let best = null;
   for (const c of cands) if (!best || Math.abs(c.time - heard) < Math.abs(best.time - heard)) best = c;
   if (!best) return;
-  const pat = CL.state.patterns[best.pat];
-  pat.steps[r][best.step] = 1;
-  if (best.future) S.skip = { r, step: best.step };
+  const p = S.mode === 'song' ? CL.state.seq.pattern : +Object.keys(best.act)[0];
+  const local = best.act[p], pat = CL.state.patterns[p];
+  if (!pat || (local != null && local >= CL.patSteps(pat))) return; // the pattern just got shorter
+  if (local == null) {
+    if (!S.warned) CL.toast('Pattern ' + pat.name + ' sits out this point of the song, so this hit stays off the grid. To record here, click the letter of a lane playing now.');
+    S.warned = true;
+    return;
+  }
+  pat.steps[r][local] = 1;
+  if (best.future) S.skip = { r, time: best.time };
   CL.renderSeqCells();
   CL.changed();
 });
 
-CL.bus.on('tapestop', () => { if (CL.seq.playing) { CL.seq.playing = false; clearInterval(CL.seq.timer); CL.bus.emit('transport'); } });
+CL.bus.on('tapestop', () => {
+  const S = CL.seq;
+  if (S.playing) { S.playing = false; S.endAt = null; S.queued = null; S.playPage = null; clearInterval(S.timer); CL.bus.emit('transport'); }
+});
 CL.bus.on('panic', () => CL.seqStop());
 
-// ---------- bounce a pattern to a new sound (includes screw, pad timing, the pump, and master effects) ----------
-CL.bouncePattern = async (loops = 2) => {
-  const st = CL.state.seq;
-  const pat = CL.currentPattern();
+// ---------- bounce to a new sound (includes screw, pad timing, the pump, and master effects) ----------
+// steps(n) returns the vals and swing step for render step n. A pattern bounce is trimmed at both ends; a song
+// bounce (o.song) starts right on bar 1 (earlier only by the most any pad plays early) and keeps its 2.5 s tail.
+CL.BOUNCE_MAX_SEC = 12 * 60;
+CL.bounceSteps = async (count, steps, name, o = {}) => {
+  if (CL.bouncing) { CL.toast('A bounce is already running. It lands in Your sounds when done.'); return null; }
   const stepSec = CL.stepSec();
   const sr = 44100;
   const early = Math.max(0, ...CL.state.pads.map((p) => -CL.nudgeSec(p))); // room for pads set to play early
-  const lead = 0.02 + early;
-  const total = loops * st.length * stepSec + 2.5 + early;
-  const oc = new OfflineAudioContext(2, Math.ceil(total * sr), sr);
-  const fx = CL.buildFx(oc, CL.state.fx, () => stepSec * 4);
-  fx.output.connect(oc.destination);
-  const pump = oc.createGain(); pump.connect(fx.input);
-  const cs = { live: false, ac: oc, dest: fx.input, pump, screw: CL.screw, mono: {}, groups: {} };
-  for (let n = 0; n < loops * st.length; n++) CL.scheduleStep(pat, n % st.length, lead + n * stepSec, cs, stepSec);
-  CL.toast('Bouncing pattern ' + pat.name + '…');
-  const buf = await oc.startRendering();
-  const s = CL.addSample({ id: CL.uid(), name: 'Pattern ' + pat.name + ' bounce', buffer: CL.trimSilence(CL.ac, buf, 0.0005), bpm: Math.round(st.bpm * CL.screw * 10) / 10 });
-  CL.changed();
-  CL.toast('Bounce ready in Your sounds', { label: 'Save WAV', fn: () => CL.download(CL.wavBlob(s.buffer), CL.safeName(s.name) + '.wav') });
+  const lead = (o.song ? 0 : 0.02) + early;
+  const total = count * stepSec + 2.5 + lead;
+  if (total > CL.BOUNCE_MAX_SEC) {
+    CL.toast('Bounce handles up to 12 minutes, and this ' + name + ' runs ' + CL.fmtLen(total) + '. To fit, ' + (o.song ? 'take blocks off the song' : 'give the pattern fewer bars') + ', raise the BPM, or move Screw toward Sped up.');
+    return null;
+  }
+  CL.bouncing = true;
+  CL.$$('#seq-bounce, #song-bounce').forEach((b) => { b.disabled = true; });
+  CL.toast('Bouncing ' + name + '…');
+  await new Promise((r) => setTimeout(r, 30)); // let the message show before the work starts
+  try {
+    const oc = new OfflineAudioContext(2, Math.ceil(total * sr), sr);
+    const fx = CL.buildFx(oc, CL.state.fx, () => stepSec * 4);
+    fx.output.connect(oc.destination);
+    const pump = oc.createGain(); pump.connect(fx.input);
+    const cs = { live: false, ac: oc, dest: fx.input, pump, screw: CL.screw, mono: {}, groups: {} };
+    for (let n = 0; n < count; n++) { const s = steps(n); CL.scheduleHits(s.vals, s.step, lead + n * stepSec, cs, stepSec); }
+    const buf = await oc.startRendering();
+    const s = CL.addSample({ id: CL.uid(), name: name.charAt(0).toUpperCase() + name.slice(1) + ' bounce', buffer: o.song ? buf : CL.trimSilence(CL.ac, buf, 0.0005), bpm: Math.round(CL.state.seq.bpm * CL.screw * 10) / 10 });
+    CL.changed();
+    CL.toast('Bounce ready in Your sounds', { label: 'Save WAV', fn: () => CL.download(CL.wavBlob(s.buffer), CL.safeName(s.name) + '.wav') });
+    return s;
+  } catch (e) {
+    CL.toast('This device ran short of memory for that bounce. Try a shorter ' + name + '.');
+    return null;
+  } finally {
+    CL.bouncing = false;
+    CL.$('#seq-bounce').disabled = false;
+    CL.renderSong();
+  }
+};
+// A pattern of 2 bars or fewer plays twice, so the bounce loops; longer patterns play once.
+CL.bouncePattern = (loops) => {
+  const pat = CL.currentPattern(), n = CL.patSteps(pat);
+  if (loops == null) loops = pat.bars <= 2 ? 2 : 1;
+  return CL.bounceSteps(loops * n, (i) => ({ vals: CL.patternColumn(pat, i % n), step: i % n }), 'pattern ' + pat.name);
+};
+// The whole song from bar 1, as it sounds now (lane mutes and solo included).
+CL.bounceSong = () => {
+  const bars = CL.songBars();
+  if (!bars) { CL.toast('The song is empty. Click a lane on the timeline to place a pattern first.'); return null; }
+  const ends = CL.blockEnds();
+  return CL.bounceSteps(bars * 16, (i) => ({ vals: CL.songColumn(i, undefined, undefined, ends).vals, step: i }), 'song', { song: true });
+};
+
+// ---------- patterns: pick, add, remove, length ----------
+CL.selectPattern = (i) => {
+  const S = CL.seq, st = CL.state.seq;
+  if (i === st.pattern) return;
+  if (S.playing && S.mode === 'pattern') {
+    S.queued = i; CL.renderPatternButtons(); CL.renderSong();
+    CL.toast('Pattern ' + CL.state.patterns[i].name + ' starts at the next bar');
+    return;
+  }
+  st.pattern = i; CL.view.page = 0; S.playPage = null;
+  CL.renderSeq(); CL.renderSong(); CL.changed();
+};
+
+CL.refreshPatternLists = () => {
+  CL.renderSeq(); CL.renderSong();
+  if (CL.renderGenres && CL.$('#genre-pane')) CL.renderGenres();
+};
+
+CL.addPattern = () => {
+  const P = CL.state.patterns;
+  if (P.length >= CL.MAX_PATTERNS) { CL.toast('Eight patterns is the most (A to H).'); return; }
+  P.push(CL.blankPattern(CL.PAT_NAMES[P.length]));
+  const song = CL.state.song, i = P.length - 1;
+  song.mutes[i] = false; // a new lane starts audible
+  if (song.solo === i) song.solo = -1;
+  if (!CL.seq.playing || CL.seq.mode === 'song') { CL.state.seq.pattern = i; CL.view.page = 0; CL.seq.playPage = null; }
+  CL.refreshPatternLists(); CL.changed();
+  CL.toast('Added pattern ' + P[P.length - 1].name + ', with its own lane on the song timeline');
+};
+
+CL.removePattern = () => {
+  const P = CL.state.patterns, song = CL.state.song, i = P.length - 1;
+  if (P.length <= CL.MIN_PATTERNS) return;
+  const S = CL.seq;
+  if (S.playing && (S.mode === 'song' || CL.state.seq.pattern === i || S.queued === i)) CL.seqStop();
+  const before = JSON.stringify({ pat: P[i], blocks: song.blocks.filter((b) => b.p === i), mute: song.mutes[i], solo: song.solo === i, sel: CL.state.seq.pattern === i });
+  P.pop();
+  if (S.queued != null && S.queued >= P.length) S.queued = null;
+  song.blocks = song.blocks.filter((b) => b.p !== i);
+  song.mutes[i] = false;
+  if (song.solo === i) song.solo = -1;
+  if (CL.state.seq.pattern === i) { CL.state.seq.pattern = i - 1; CL.view.page = 0; S.playPage = null; }
+  CL.refreshPatternLists(); CL.changed();
+  CL.toast('Removed pattern ' + CL.PAT_NAMES[i], {
+    label: 'Undo',
+    fn: () => {
+      if (CL.state.patterns.length !== i) return;
+      const b = JSON.parse(before);
+      CL.state.patterns.push(b.pat);
+      song.blocks = song.blocks.concat(b.blocks); CL.tidySong(song);
+      song.mutes[i] = b.mute;
+      if (b.solo && song.solo === -1) song.solo = i;
+      if (b.sel && CL.state.seq.pattern === i - 1 && !(CL.seq.playing && CL.seq.mode === 'pattern')) { CL.state.seq.pattern = i; CL.view.page = 0; CL.seq.playPage = null; }
+      CL.refreshPatternLists(); CL.changed();
+    },
+  });
+};
+
+// Grow or shrink a pattern from its end; shrinking past hits offers Undo.
+CL.setPatternBars = (pat, bars) => {
+  bars = CL.clamp(Math.round(bars) || 1, 1, CL.MAX_BARS);
+  if (bars === pat.bars) { CL.renderSeq(); return; }
+  const n = bars * 16, before = { bars: pat.bars, steps: JSON.stringify(pat.steps), tail: pat.tail };
+  const lost = bars < pat.bars && pat.steps.some((row) => row.slice(n).some(Boolean));
+  const tail = pat.bars === 1 && pat.tail; // bar 2 kept from a save made with the old 1-bar setting
+  pat.steps = pat.steps.map((row, r) => (row.length >= n ? row.slice(0, n)
+    : row.concat(tail ? tail[r] : [], new Array(n - row.length - (tail ? 16 : 0)).fill(0))));
+  delete pat.tail;
+  pat.bars = bars;
+  if (CL.seq.step >= n && CL.seq.mode === 'pattern') CL.seq.step %= n;
+  CL.renderSeq(); CL.renderSong(); CL.changed();
+  if (lost) {
+    CL.toast('Pattern ' + pat.name + ' is ' + CL.barsLabel(bars) + ' now; the hits past bar ' + bars + ' went with it', {
+      label: 'Undo', fn: () => { pat.bars = before.bars; pat.steps = JSON.parse(before.steps); if (before.tail) pat.tail = before.tail; CL.renderSeq(); CL.renderSong(); CL.changed(); },
+    });
+  }
+};
+
+// Copy the bars on screen onto the end of the pattern, then show the copy (the quick way to build, then vary).
+CL.duplicatePage = () => {
+  const pat = CL.currentPattern();
+  if (pat.bars === 1 && pat.tail) {
+    CL.setPatternBars(pat, 2);
+    CL.toast('Pattern ' + pat.name + ' is 2 bars again, with the second bar it kept from an older save. Press Duplicate again to copy both.');
+    return;
+  }
+  const a = CL.view.page * 2, b = Math.min(a + 2, pat.bars), k = b - a;
+  if (pat.bars + k > CL.MAX_BARS) { CL.toast('A pattern holds up to ' + CL.MAX_BARS + ' bars. Place another pattern after it on the song timeline.'); return; }
+  const at = pat.bars;
+  pat.steps = pat.steps.map((row) => row.slice(0, at * 16).concat(row.slice(a * 16, b * 16)));
+  delete pat.tail;
+  pat.bars += k;
+  CL.view.page = Math.floor(at / 2);
+  CL.renderSeq(); CL.renderSong(); CL.changed();
+  const span = (x, y) => (y - x === 1 ? 'bar ' + (x + 1) : 'bars ' + (x + 1) + '–' + y);
+  CL.toast('Copied ' + span(a, b) + ' to ' + span(at, at + k) + ' of pattern ' + pat.name);
 };
 
 // ---------- grid ----------
+CL.pageCount = (pat) => Math.ceil(pat.bars / 2);
+
 CL.renderSeq = () => {
   const grid = CL.$('#seq-grid');
   if (!grid) return;
-  const st = CL.state.seq;
-  const pat = CL.currentPattern();
+  const pat = CL.currentPattern(), n = CL.patSteps(pat);
+  CL.view.page = CL.clamp(CL.view.page, 0, CL.pageCount(pat) - 1);
+  const s0 = CL.view.page * 32, cols = pat.bars === 1 ? 16 : 32;
   grid.textContent = '';
-  grid.style.setProperty('--steps', st.length);
+  grid.style.setProperty('--steps', cols);
   for (let r = 0; r < 16; r++) {
     const row = CL.el('div', { class: 'seq-row' + (pat.mutes[r] ? ' muted' : '') + (CL.state.pads[r].sampleId ? '' : ' empty') });
     row.style.setProperty('--c', CL.COLORS[r]);
@@ -5367,49 +5700,342 @@ CL.renderSeq = () => {
     const label = CL.el('button', { class: 'seq-label', title: 'Play this pad', onpointerdown: () => CL.hitPad(r) },
       CL.el('span', { class: 'dot' }), CL.el('span', { class: 'seq-name' }, CL.padName(r)), CL.el('span', { class: 'seq-key' }, CL.PAD_LABELS[r]));
     const cells = CL.el('div', { class: 'cells' });
-    for (let s = 0; s < st.length; s++) {
+    for (let c = 0; c < cols; c++) {
+      const s = s0 + c;
+      if (s >= n) { cells.append(CL.el('div', { class: 'cell past', title: 'Past the end of the pattern' })); continue; }
       const v = pat.steps[r][s];
-      const c = CL.el('div', { class: 'cell' + (v === 1 ? ' on' : v === 2 ? ' soft' : '') + (s % 4 === 0 ? ' beat' : ''), 'data-r': r, 'data-s': s });
-      cells.append(c);
+      cells.append(CL.el('div', { class: 'cell' + (v === 1 ? ' on' : v === 2 ? ' soft' : '') + (s % 4 === 0 ? ' beat' : ''), 'data-r': r, 'data-s': s }));
     }
     row.append(mute, label, cells);
     grid.append(row);
   }
-  CL.renderSeqCells();
+  CL.seq.lastDrawn = '';
+  CL.renderLenUI();
+  CL.renderBarMap();
   CL.renderPatternButtons();
 };
 
 // Refresh just cell states (fast; used while recording).
 CL.renderSeqCells = () => {
   const pat = CL.currentPattern();
-  CL.$$('#seq-grid .cell').forEach((c) => {
+  CL.$$('#seq-grid .cell[data-s]').forEach((c) => {
     const v = pat.steps[+c.dataset.r][+c.dataset.s];
     c.classList.toggle('on', v === 1);
     c.classList.toggle('soft', v === 2);
   });
+  CL.renderBarMap();
 };
 
-CL.renderPatternButtons = () => {
-  CL.$$('.pat-btn').forEach((b) => {
-    const i = +b.dataset.p;
-    b.classList.toggle('on', CL.state.seq.pattern === i);
-    b.classList.toggle('queued', CL.seq.queued === i);
-    const has = CL.state.patterns[i].steps.some((row) => row.some(Boolean));
-    b.classList.toggle('has', has);
+CL.renderLenUI = () => {
+  const pat = CL.currentPattern(), inp = CL.$('#seq-bars');
+  if (!inp) return;
+  if (document.activeElement !== inp) inp.value = pat.bars;
+  CL.$('.len-ctl .len-unit').textContent = pat.bars === 1 ? 'bar' : 'bars';
+  const P = CL.state.patterns, next = P[(CL.state.seq.pattern + 1) % P.length];
+  CL.$('#seq-copy').title = 'Copy pattern ' + pat.name + ' (all its bars and row mutes) into pattern ' + next.name;
+  CL.$('#seq-bar-minus').disabled = pat.bars <= 1;
+  CL.$('#seq-bar-plus').disabled = pat.bars >= CL.MAX_BARS;
+  CL.$('#seq-len-time').textContent = CL.fmtLen(pat.bars * CL.barSec());
+  const a = CL.view.page * 2 + 1, b = Math.min(a + 1, pat.bars);
+  const page = CL.$('#seq-page');
+  page.hidden = pat.bars <= 2;
+  page.textContent = a === b ? 'Bar ' + a : 'Bars ' + a + '–' + b;
+  CL.$('#seq-prev').disabled = CL.view.page <= 0;
+  CL.$('#seq-next').disabled = CL.view.page >= CL.pageCount(pat) - 1;
+  CL.$('#seq-dup').title = 'Copy ' + (a === b ? 'bar ' + a : 'bars ' + a + '–' + b) + ' onto the end of the pattern, then show the copy';
+};
+
+// One small square per bar (shown once a pattern is longer than the page): gold when it has hits, bright for the page
+// on screen. Click one to show it.
+CL.renderBarMap = () => {
+  const box = CL.$('#seq-barmap');
+  if (!box) return;
+  const pat = CL.currentPattern();
+  CL.$('#seq-pager').hidden = pat.bars <= 2;
+  if (pat.bars <= 2) { box.textContent = ''; return; }
+  if (box.children.length !== pat.bars) {
+    box.textContent = '';
+    for (let i = 0; i < pat.bars; i++) box.append(CL.el('button', { class: 'bar-sq', 'data-b': i, title: 'Show bar ' + (i + 1), 'aria-label': 'Bar ' + (i + 1) }));
+  }
+  Array.from(box.children).forEach((sq, i) => {
+    const has = pat.steps.some((row) => row.slice(i * 16, i * 16 + 16).some(Boolean)), on = Math.floor(i / 2) === CL.view.page;
+    sq.classList.toggle('has', has);
+    sq.classList.toggle('on', on);
+    sq.setAttribute('aria-label', 'Bar ' + (i + 1) + (has ? ', has hits' : ', empty'));
+    if (on) sq.setAttribute('aria-current', 'true'); else sq.removeAttribute('aria-current');
   });
 };
 
-CL.drawSeqPlayhead = () => {
-  const S = CL.seq;
-  let cur = -1;
-  if (S.playing) {
-    const heard = CL.ac.currentTime - (CL.ac.outputLatency || 0);
-    for (const q of S.queue) if (q.time <= heard && q.pat === CL.state.seq.pattern) cur = q.step;
+CL.showPage = (page) => {
+  const pat = CL.currentPattern();
+  const p = CL.clamp(page, 0, CL.pageCount(pat) - 1);
+  if (p === CL.view.page) return;
+  CL.view.page = p;
+  CL.renderSeq();
+};
+
+CL.renderPatternButtons = () => {
+  const box = CL.$('#pat-btns');
+  if (!box) return;
+  const P = CL.state.patterns;
+  if (box.children.length !== P.length) {
+    box.textContent = '';
+    P.forEach((p, i) => box.append(CL.el('button', { class: 'pat-btn', 'data-p': i, title: 'Pattern ' + p.name }, p.name)));
   }
-  if (cur === S.lastDrawn) return;
-  S.lastDrawn = cur;
-  CL.$$('#seq-grid .cell.now').forEach((c) => c.classList.remove('now'));
-  if (cur >= 0) CL.$$('#seq-grid .cell[data-s="' + cur + '"]').forEach((c) => c.classList.add('now'));
+  Array.from(box.children).forEach((b) => {
+    const i = +b.dataset.p;
+    b.classList.toggle('on', CL.state.seq.pattern === i);
+    b.classList.toggle('queued', CL.seq.queued === i);
+    b.classList.toggle('has', P[i].steps.some((row) => row.some(Boolean)));
+    b.setAttribute('aria-pressed', CL.state.seq.pattern === i ? 'true' : 'false');
+  });
+  const add = CL.$('#pat-add'), rem = CL.$('#pat-remove');
+  add.disabled = P.length >= CL.MAX_PATTERNS;
+  add.title = P.length >= CL.MAX_PATTERNS ? 'Eight patterns is the most' : 'Add pattern ' + CL.PAT_NAMES[P.length];
+  rem.hidden = P.length <= CL.MIN_PATTERNS;
+  rem.title = 'Remove pattern ' + CL.PAT_NAMES[P.length - 1] + ' and its lane';
+  rem.setAttribute('aria-label', rem.title);
+};
+
+// The latest step that has reached the speakers.
+CL.heardStep = () => {
+  const S = CL.seq;
+  if (!S.playing) return null;
+  const heard = CL.ac.currentTime - (CL.ac.outputLatency || 0);
+  let cur = null;
+  for (const q of S.queue) if (q.time <= heard) cur = q;
+  return cur;
+};
+
+CL.drawSeqPlayhead = () => {
+  const S = CL.seq, q = CL.heardStep();
+  const local = q ? q.act[CL.state.seq.pattern] : undefined;
+  const cur = local == null ? -1 : local;
+  const pp = cur >= 0 ? Math.floor(cur / 32) : -1;
+  if (pp !== S.playPage && !CL.view.painting) {
+    S.playPage = pp;
+    if (pp >= 0 && CL.state.seq.follow && pp !== CL.view.page) CL.showPage(pp);
+  }
+  const key = cur + ':' + CL.view.page;
+  if (key !== S.lastDrawn) {
+    S.lastDrawn = key;
+    CL.$$('#seq-grid .cell.now').forEach((c) => c.classList.remove('now'));
+    if (cur >= 0) CL.$$('#seq-grid .cell[data-s="' + cur + '"]').forEach((c) => c.classList.add('now'));
+    const bar = cur >= 0 ? Math.floor(cur / 16) : -1;
+    CL.$$('#seq-barmap .bar-sq').forEach((b, i) => b.classList.toggle('now', i === bar));
+  }
+  CL.drawSongPlayhead(q && S.mode === 'song' ? q.pos : -1);
+};
+
+// ---------- song timeline ----------
+// Bars shown: the song plus 16 spare, and at least enough for 3½ minutes at this tempo.
+CL.songViewBars = (bars = CL.songBars()) => {
+  const want = Math.max(bars + 16, Math.ceil(210 / CL.barSec()), 32);
+  return Math.min(CL.SONG_MAX_BARS, Math.ceil(want / 8) * 8);
+};
+
+CL.renderSong = () => {
+  const tl = CL.$('#song-tl');
+  if (!tl) return;
+  const song = CL.state.song, P = CL.state.patterns, W = CL.SONG_W;
+  const ends = CL.blockEnds(song, P), bars = CL.songBars(song, P, ends), view = CL.songViewBars(bars), barSec = CL.barSec();
+  CL.$('#song-len').textContent = bars ? 'Song ' + CL.fmtLen(bars * barSec) + ' · ' + CL.barsLabel(bars) : 'Song: empty';
+  CL.$$('#song-mode button').forEach((b) => {
+    const on = b.dataset.m === song.mode;
+    b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  CL.$('#song-bounce').disabled = !bars || !!CL.bouncing;
+  CL.$('#song-clear').disabled = !song.blocks.length;
+  tl.textContent = '';
+  tl.style.setProperty('--w', W + 'px');
+  const heads = CL.el('div', { class: 'song-heads' });
+  const tracks = CL.el('div', { class: 'song-tracks', style: { width: view * W + 'px' } });
+
+  // ruler: bar numbers every 4 bars, a marker at each whole minute, and where Play song starts
+  heads.append(CL.el('div', { class: 'song-head ruler-head', title: 'Click the ruler to choose where Play song starts' }, 'Bar'));
+  const ruler = CL.el('div', { class: 'song-ruler', title: 'Click to start Play song from this bar' });
+  for (let b = 0; b < view; b += 4) ruler.append(CL.el('span', { class: 'rl-bar', style: { left: b * W + 'px' } }, String(b + 1)));
+  for (let m = 1; m * 60 / barSec < view; m++) {
+    ruler.append(CL.el('span', { class: 'rl-min', style: { left: (m * 60 / barSec) * W + 'px' }, title: m + ':00 into the song' }, m + ':00'));
+  }
+  if (song.from > 0 && song.from < bars) ruler.append(CL.el('span', { class: 'rl-from', style: { left: song.from * W + 'px' }, title: 'Play song starts at bar ' + (song.from + 1) }));
+  tracks.append(ruler);
+
+  P.forEach((pat, p) => {
+    const color = CL.LANE_COLORS[p];
+    const sel = CL.state.seq.pattern === p;
+    const head = CL.el('div', { class: 'song-head' + (sel ? ' sel' : '') + (CL.laneOn(song, p) ? '' : ' off') });
+    head.style.setProperty('--lc', color);
+    head.append(
+      CL.el('button', { class: 'lane-name', title: 'Edit pattern ' + pat.name + ' in the grid', 'aria-pressed': sel ? 'true' : 'false', onclick: () => CL.selectPattern(p) },
+        pat.name, CL.el('small', {}, CL.barsLabel(pat.bars))),
+      CL.el('button', {
+        class: 'mute' + (song.mutes[p] ? ' on' : ''), title: song.mutes[p] ? 'Unmute lane ' + pat.name : 'Mute lane ' + pat.name,
+        'aria-label': 'Mute lane ' + pat.name, 'aria-pressed': song.mutes[p] ? 'true' : 'false', onclick: () => { song.mutes[p] = !song.mutes[p]; CL.renderSong(); CL.changed(); },
+      }, 'M'),
+      CL.el('button', {
+        class: 'mute solo' + (song.solo === p ? ' on' : ''), title: song.solo === p ? 'Stop soloing lane ' + pat.name : 'Hear lane ' + pat.name + ' alone',
+        'aria-label': 'Solo lane ' + pat.name, 'aria-pressed': song.solo === p ? 'true' : 'false', onclick: () => { song.solo = song.solo === p ? -1 : p; CL.renderSong(); CL.changed(); },
+      }, 'S'));
+    heads.append(head);
+    const lane = CL.el('div', { class: 'song-lane' + (CL.laneOn(song, p) ? '' : ' off'), 'data-p': p, title: 'Click or tap to place pattern ' + pat.name + ' here · with a mouse, drag to place more' });
+    lane.style.setProperty('--lc', color);
+    song.blocks.forEach((b, bi) => {
+      if (b.p !== p) return;
+      const end = ends.get(b), len = end - b.bar;
+      lane.append(CL.el('div', {
+        class: 'song-blk' + (len < pat.bars ? ' cut' : ''), 'data-i': bi, style: { left: b.bar * W + 'px', width: len * W - 2 + 'px' },
+        title: 'Pattern ' + pat.name + ' · ' + (len === 1 ? 'bar ' + (b.bar + 1) : 'bars ' + (b.bar + 1) + '–' + end) + (len < pat.bars ? ' (the next block cuts it short)' : '') + ' · click to remove, drag to move',
+      }, len >= 2 ? pat.name : ''));
+    });
+    tracks.append(lane);
+  });
+  tracks.append(CL.el('div', { class: 'song-playhead', hidden: true }));
+  tl.append(heads, tracks);
+  CL.songHeadAt = null;
+};
+
+CL.drawSongPlayhead = (pos) => {
+  if (pos === CL.songHeadAt) return;
+  CL.songHeadAt = pos;
+  const ph = CL.$('#song-tl .song-playhead');
+  if (!ph) return;
+  ph.hidden = pos < 0;
+  if (pos < 0) return;
+  const x = (pos / 16) * CL.SONG_W;
+  ph.style.transform = 'translateX(' + x + 'px)';
+  if (CL.state.seq.follow && pos % 16 === 0 && !CL.songDragging) { // keep the playhead in view
+    const sc = CL.$('#song-scroll'), headW = CL.$('#song-tl .song-heads').offsetWidth;
+    if (x < sc.scrollLeft || x > sc.scrollLeft + sc.clientWidth - headW - 40) sc.scrollLeft = Math.max(0, x - 80);
+  }
+};
+
+CL.setSongMode = (mode) => {
+  const song = CL.state.song;
+  if (mode === song.mode) return;
+  if (mode === 'song' && !CL.songBars()) { CL.toast('Click a lane below to place a pattern, then Play song plays the timeline.'); return; }
+  const was = CL.seq.playing;
+  if (was) CL.seqStop();
+  song.mode = mode;
+  CL.renderSong(); CL.changed();
+  if (was) CL.seqPlay();
+};
+
+CL.initSong = () => {
+  const tl = CL.$('#song-tl'), W = CL.SONG_W, song = () => CL.state.song;
+  const barAt = (el, e) => Math.floor((e.clientX - el.getBoundingClientRect().left) / W);
+  const scroller = CL.$('#song-scroll');
+  let drag = null, pointerType = 'mouse', downOnBlock = false;
+  // Placing by drag lays blocks end to end from the first one, both ways, skipping room another block already uses.
+  const placeRun = (p, anchor, len, toBar) => {
+    const k = Math.floor((toBar - anchor) / len);
+    let added = false;
+    for (let j = Math.min(0, k); j <= Math.max(0, k); j++) {
+      const at = anchor + j * len;
+      if (at < 0 || at >= CL.SONG_MAX_BARS) continue;
+      const ends = CL.blockEnds();
+      if (song().blocks.some((o) => o.p === p && o.bar < at + len && ends.get(o) > at)) continue;
+      song().blocks.push({ p, bar: at });
+      CL.tidySong(song());
+      added = true;
+    }
+    return added;
+  };
+  tl.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    pointerType = e.pointerType;
+    downOnBlock = false;
+    if (e.target.closest('.song-ruler')) return; // the ruler answers to a click, so a swipe there only scrolls
+    const lane = e.target.closest('.song-lane');
+    if (!lane) return;
+    const p = +lane.dataset.p, blk = e.target.closest('.song-blk');
+    const bar = barAt(lane, e);
+    const b = blk ? song().blocks[+blk.dataset.i] : CL.blockAt(p, bar); // the gap at a block's end is still the block
+    downOnBlock = !!b;
+    if (b) {
+      e.preventDefault();
+      drag = { kind: 'move', b, x0: e.clientX, sl0: scroller.scrollLeft, bar0: b.bar, moved: false };
+      CL.songDragging = true;
+      return;
+    }
+    if (e.pointerType === 'touch') return; // a tap places one block (click below); a swipe scrolls the timeline
+    e.preventDefault();
+    if (bar < 0 || bar >= CL.SONG_MAX_BARS) return;
+    song().blocks.push({ p, bar });
+    CL.tidySong(song());
+    drag = { kind: 'place', p, anchor: bar, len: CL.state.patterns[p].bars };
+    CL.songDragging = true;
+    CL.renderSong();
+  });
+  tl.addEventListener('click', (e) => {
+    const ruler = e.target.closest('.song-ruler');
+    if (ruler) {
+      song().from = CL.clamp(barAt(ruler, e), 0, CL.SONG_MAX_BARS - 1);
+      CL.renderSong(); CL.changed();
+      return;
+    }
+    const lane = e.target.closest('.song-lane');
+    if (!lane || pointerType !== 'touch' || downOnBlock || e.target.closest('.song-blk')) return;
+    const p = +lane.dataset.p, bar = barAt(lane, e);
+    if (bar < 0 || bar >= CL.SONG_MAX_BARS || CL.blockAt(p, bar)) return;
+    song().blocks.push({ p, bar });
+    CL.tidySong(song());
+    CL.renderSong(); CL.changed();
+  });
+  // on window, since each step of a drag redraws the lanes under the pointer
+  window.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    if (drag.kind === 'move') {
+      const dx = e.clientX - drag.x0 + (scroller.scrollLeft - drag.sl0);
+      if (Math.abs(dx) > 4) drag.moved = true;
+      if (!drag.moved) return;
+      const nb = CL.clamp(drag.bar0 + Math.round(dx / W), 0, CL.SONG_MAX_BARS - 1);
+      if (nb === drag.b.bar || song().blocks.some((o) => o !== drag.b && o.p === drag.b.p && o.bar === nb)) return;
+      drag.b.bar = nb;
+      song().blocks.sort((a, b) => a.bar - b.bar || a.p - b.p);
+      CL.renderSong();
+      return;
+    }
+    const lane = CL.$('#song-tl .song-lane[data-p="' + drag.p + '"]');
+    if (placeRun(drag.p, drag.anchor, drag.len, barAt(lane, e))) CL.renderSong();
+  });
+  const end = (e) => {
+    if (!drag) return;
+    // a click on a block removes it; a cancelled touch leaves it be
+    if (drag.kind === 'move' && !drag.moved && e.type !== 'pointercancel') song().blocks.splice(song().blocks.indexOf(drag.b), 1);
+    drag = null;
+    CL.songDragging = false;
+    CL.tidySong(song());
+    CL.renderSong(); CL.changed();
+  };
+  window.addEventListener('pointerup', end);
+  window.addEventListener('pointercancel', end);
+
+  CL.$$('#song-mode button').forEach((b) => b.addEventListener('click', () => CL.setSongMode(b.dataset.m)));
+  CL.$('#song-bounce').addEventListener('click', () => CL.bounceSong());
+  CL.$('#song-clear').addEventListener('click', () => {
+    const s = song(), before = JSON.stringify(s);
+    if (CL.seq.playing && CL.seq.mode === 'song') CL.seqStop();
+    s.blocks = []; s.from = 0; s.mode = 'pattern';
+    CL.renderSong(); CL.changed();
+    CL.toast('Song cleared (your patterns stay)', {
+      label: 'Undo',
+      fn: () => {
+        const b = JSON.parse(before), n = CL.state.patterns.length, mode = b.mode;
+        s.blocks = s.blocks.concat(b.blocks.filter((x) => x.p < n));
+        CL.tidySong(s);
+        s.mutes = s.mutes.map((m, i) => i < n && (m || !!b.mutes[i]));
+        if (s.solo < 0 && b.solo >= 0 && b.solo < n) s.solo = b.solo;
+        if (s.from === 0) s.from = b.from;
+        if (mode === 'song' && CL.songBars()) CL.setSongMode('song'); // restarts playback in song mode when it plays
+        CL.renderSong(); CL.changed();
+      },
+    });
+  });
+  const redraw = () => { CL.renderLenUI(); CL.renderSong(); };
+  CL.bus.on('screw', redraw);
+  CL.bus.on('tempo', redraw);
+  CL.renderSong();
 };
 
 CL.initSeq = () => {
@@ -5423,29 +6049,53 @@ CL.initSeq = () => {
   };
   grid.addEventListener('contextmenu', (e) => { if (e.target.classList.contains('cell')) e.preventDefault(); });
   grid.addEventListener('pointerdown', (e) => {
-    const c = e.target.closest('.cell');
+    const c = e.target.closest('.cell[data-s]');
     if (!c) return;
     e.preventDefault();
     const cur = CL.currentPattern().steps[+c.dataset.r][+c.dataset.s];
     const soft = e.shiftKey || e.button === 2;
     paint = soft ? (cur === 2 ? 0 : 2) : (cur ? 0 : 1);
+    CL.view.painting = true;
     apply(c);
     if (paint && !CL.seq.playing) { CL.ac.resume(); CL.liveCtx.dest = CL.padBus; CL.padVoice(+c.dataset.r, { vel: paint === 2 ? 0.5 : 1 }, CL.liveCtx); }
   });
   grid.addEventListener('pointerover', (e) => {
     if (paint == null || !(e.buttons & 3)) return;
-    const c = e.target.closest('.cell');
+    const c = e.target.closest('.cell[data-s]');
     if (c) apply(c);
   });
-  window.addEventListener('pointerup', () => { if (paint != null) { paint = null; CL.renderPatternButtons(); CL.changed(); } });
+  const paintEnd = () => {
+    CL.view.painting = false;
+    if (paint == null) return;
+    paint = null; CL.renderPatternButtons(); CL.renderBarMap(); CL.changed();
+  };
+  window.addEventListener('pointerup', paintEnd);
+  window.addEventListener('pointercancel', paintEnd);
 
-  CL.$$('.pat-btn').forEach((b) => b.addEventListener('click', () => {
-    const i = +b.dataset.p;
-    if (CL.seq.playing && i !== CL.state.seq.pattern) { CL.seq.queued = i; CL.renderPatternButtons(); CL.toast('Pattern ' + CL.state.patterns[i].name + ' starts at the next bar'); return; }
-    CL.state.seq.pattern = i; CL.renderSeq(); CL.changed();
-  }));
-  CL.bus.on('pattern', () => CL.renderSeq());
-  CL.$('#seq-len').addEventListener('change', (e) => { CL.state.seq.length = +e.target.value; if (CL.seq.step >= CL.state.seq.length) CL.seq.step = 0; CL.renderSeq(); CL.changed(); });
+  CL.$('#pat-btns').addEventListener('click', (e) => { const b = e.target.closest('.pat-btn'); if (b) CL.selectPattern(+b.dataset.p); });
+  CL.$('#pat-add').addEventListener('click', CL.addPattern);
+  CL.$('#pat-remove').addEventListener('click', CL.removePattern);
+  CL.bus.on('pattern', () => { CL.view.page = 0; CL.seq.playPage = null; CL.renderSeq(); CL.renderSong(); });
+
+  const bars = CL.$('#seq-bars');
+  bars.addEventListener('change', () => {
+    const v = bars.value.trim(), n = Number(v);
+    if (v !== '' && Number.isFinite(n)) CL.setPatternBars(CL.currentPattern(), n);
+    bars.value = CL.currentPattern().bars;
+  });
+  CL.$('#seq-bar-minus').addEventListener('click', () => CL.setPatternBars(CL.currentPattern(), CL.currentPattern().bars - 1));
+  CL.$('#seq-bar-plus').addEventListener('click', () => CL.setPatternBars(CL.currentPattern(), CL.currentPattern().bars + 1));
+  CL.$('#seq-prev').addEventListener('click', () => CL.showPage(CL.view.page - 1));
+  CL.$('#seq-next').addEventListener('click', () => CL.showPage(CL.view.page + 1));
+  CL.$('#seq-dup').addEventListener('click', CL.duplicatePage);
+  CL.$('#seq-barmap').addEventListener('click', (e) => { const b = e.target.closest('.bar-sq'); if (b) CL.showPage(Math.floor(+b.dataset.b / 2)); });
+  const follow = CL.$('#seq-follow');
+  follow.addEventListener('click', () => {
+    CL.state.seq.follow = !CL.state.seq.follow;
+    follow.classList.toggle('on', CL.state.seq.follow); follow.setAttribute('aria-pressed', CL.state.seq.follow);
+    CL.changed();
+  });
+
   const swing = CL.$('#seq-swing');
   swing.addEventListener('input', () => { CL.state.seq.swing = +swing.value; CL.$('#seq-swing-val').textContent = swing.value + '%'; CL.changed(); });
   CL.$('#seq-feel').addEventListener('change', (e) => { CL.state.seq.feel = e.target.value; CL.changed(); });
@@ -5463,20 +6113,34 @@ CL.initSeq = () => {
   });
   CL.$('#seq-clear').addEventListener('click', () => {
     const pat = CL.currentPattern();
-    const before = JSON.stringify(pat.steps);
+    const before = JSON.stringify({ steps: pat.steps, bars: pat.bars, tail: pat.tail });
     pat.steps.forEach((row) => row.fill(0));
+    delete pat.tail;
     CL.renderSeq(); CL.changed();
-    CL.toast('Pattern ' + pat.name + ' cleared', { label: 'Undo', fn: () => { pat.steps = JSON.parse(before); CL.renderSeq(); CL.changed(); } });
+    CL.toast('Pattern ' + pat.name + ' cleared (' + (pat.bars === 1 ? '' : 'all ') + CL.barsLabel(pat.bars) + ')', {
+      label: 'Undo',
+      fn: () => {
+        const b = JSON.parse(before);
+        pat.steps = b.steps; pat.bars = b.bars;
+        if (b.tail) pat.tail = b.tail;
+        CL.renderSeq(); CL.renderSong(); CL.changed();
+      },
+    });
   });
   CL.$('#seq-copy').addEventListener('click', () => {
-    const from = CL.state.seq.pattern, to = (from + 1) % 4;
-    const P = CL.state.patterns;
+    const P = CL.state.patterns, from = CL.state.seq.pattern, to = (from + 1) % P.length;
+    const before = JSON.stringify(P[to]);
     P[to].steps = JSON.parse(JSON.stringify(P[from].steps));
     P[to].mutes = P[from].mutes.slice();
-    CL.renderPatternButtons(); CL.changed();
-    CL.toast('Copied pattern ' + P[from].name + ' to ' + P[to].name);
+    P[to].bars = P[from].bars;
+    if (P[from].tail) P[to].tail = JSON.parse(JSON.stringify(P[from].tail)); else delete P[to].tail;
+    CL.renderPatternButtons(); CL.renderSong(); CL.changed();
+    CL.toast('Copied pattern ' + P[from].name + ' to ' + P[to].name, {
+      label: 'Undo', fn: () => { if (P[to] && P === CL.state.patterns) { delete P[to].tail; Object.assign(P[to], JSON.parse(before)); CL.renderSeq(); CL.renderSong(); CL.changed(); } },
+    });
   });
-  CL.$('#seq-bounce').addEventListener('click', () => CL.bouncePattern(2));
+  CL.$('#seq-bounce').addEventListener('click', () => CL.bouncePattern());
+  CL.initSong();
 };
 
 /* ---- js/chop.js ---- */
@@ -6245,6 +6909,7 @@ CL.setBpm = (bpm) => {
   CL.$('#bpm').value = CL.state.seq.bpm;
   CL.fx.update(CL.state.fx);
   CL.updateScrewUI();
+  CL.bus.emit('tempo');
   CL.changed();
 };
 
@@ -6603,13 +7268,13 @@ CL.applyProjectUI = () => {
   CL.$('#seq-swing').value = st.swing;
   CL.$('#seq-swing-val').textContent = st.swing + '%';
   CL.$('#seq-feel').value = st.feel || '16';
-  CL.$('#seq-len').value = st.length;
   CL.fx.update(CL.state.fx);
   CL.refreshFxUI();
   CL.updateScrewUI();
   CL.renderPads();
   CL.renderPadEditor();
   CL.renderSeq();
+  CL.renderSong();
   CL.renderGenres();
 };
 
@@ -6619,24 +7284,32 @@ CL.loadKit = async (kit, slot) => {
   CL.stopGenrePreview();
   const k = await CL.kitSetup(kit);
   const S = CL.state, pat = S.patterns[slot];
-  const before = JSON.stringify({ pads: S.pads, steps: pat.steps, mutes: pat.mutes, seq: S.seq, fx: S.fx, kit: S.genre.kit });
+  const before = JSON.stringify({ pads: S.pads, steps: pat.steps, bars: pat.bars, tail: pat.tail, mutes: pat.mutes, seq: S.seq, fx: S.fx, kit: S.genre.kit });
   S.pads = k.pads;
   pat.steps = k.rows;
+  pat.bars = 2; // a starter beat is 2 bars
+  delete pat.tail;
   pat.mutes = new Array(16).fill(false);
   Object.assign(S.seq, k.seq, { pattern: slot });
   Object.assign(S.fx, k.fx, { volume: S.fx.volume });
   S.genre.kit = kit.id;
   S.selectedPad = 0;
   CL.seq.queued = null;
+  CL.view.page = 0;
   CL.pumpReset(); // the previous project's dips stay with it
   CL.applyProjectUI();
   CL.changed();
-  CL.toast(kit.name + ' is on the pads and in pattern ' + 'ABCD'[slot] + '. Press Space to play.', {
+  const songOn = S.song.mode === 'song' && CL.songBars() > 0;
+  CL.toast(kit.name + ' is on the pads and in pattern ' + pat.name + (songOn ? '. Switch to Loop pattern, then press Space to hear it.' : '. Press Space to play.'), {
     label: 'Undo',
     fn: () => {
       const b = JSON.parse(before);
-      S.pads = b.pads; pat.steps = b.steps; pat.mutes = b.mutes;
-      Object.assign(S.seq, b.seq);
+      S.pads = b.pads;
+      if (S.patterns.includes(pat)) { pat.steps = b.steps; pat.bars = b.bars; pat.mutes = b.mutes; if (b.tail) pat.tail = b.tail; }
+      Object.assign(S.seq, b.seq, { metro: S.seq.metro, follow: S.seq.follow }); // the toggles stay as you set them
+      S.seq.pattern = CL.clamp(S.seq.pattern, 0, S.patterns.length - 1);
+      if (CL.seq.queued != null && CL.seq.queued >= S.patterns.length) CL.seq.queued = null;
+      CL.view.page = 0;
       Object.assign(S.fx, b.fx);
       S.genre.kit = b.kit;
       CL.pumpReset();
@@ -6715,7 +7388,7 @@ CL.renderGenres = () => {
   pane.setAttribute('aria-labelledby', 'fam-' + fam.id);
   pane.textContent = '';
   const slot = CL.el('select', { id: 'kit-slot', 'aria-label': 'Pattern the starter beat goes into' },
-    ...'ABCD'.split('').map((l, i) => CL.el('option', { value: i, selected: i === CL.state.seq.pattern }, 'pattern ' + l)));
+    ...CL.state.patterns.map((p, i) => CL.el('option', { value: i, selected: i === CL.state.seq.pattern }, 'pattern ' + p.name)));
   pane.append(
     CL.el('div', { class: 'genre-head' },
       CL.el('div', {}, CL.el('h3', {}, fam.name), CL.el('p', { class: 'muted' }, fam.blurb)),
@@ -6930,14 +7603,44 @@ CL.mergeState = (saved) => {
   st.seq = Object.assign(CL.defaultState().seq, saved.seq || {});
   st.fx = Object.assign(CL.defaultState().fx, saved.fx || {});
   st.pads = Array.from({ length: 16 }, (_, i) => Object.assign(CL.blankPad(), (saved.pads || [])[i] || {}));
-  st.patterns = ['A', 'B', 'C', 'D'].map((n, i) => {
-    const p = (saved.patterns || [])[i];
-    const blank = CL.blankPattern(n);
+  // Saves made before patterns had their own length shared one length (seq.length: 16 or 32 steps).
+  const oldBars = saved.seq && saved.seq.length === 16 ? 1 : 2;
+  delete st.seq.length;
+  const savedPats = Array.isArray(saved.patterns) ? saved.patterns.slice(0, CL.MAX_PATTERNS) : [];
+  const count = Math.max(CL.MIN_PATTERNS, savedPats.length);
+  st.patterns = Array.from({ length: count }, (_, i) => {
+    const p = savedPats[i];
+    const bars = p && Number.isInteger(p.bars) ? CL.clamp(p.bars, 1, CL.MAX_BARS) : oldBars;
+    const blank = CL.blankPattern(CL.PAT_NAMES[i], bars);
     if (!p) return blank;
-    blank.steps = blank.steps.map((row, r) => row.map((_, s) => (p.steps && p.steps[r] && p.steps[r][s]) || 0));
+    blank.steps = blank.steps.map((row, r) => row.map((_, s) => {
+      const v = p.steps && p.steps[r] && p.steps[r][s];
+      return v === 1 || v === 2 ? v : 0;
+    }));
     blank.mutes = blank.mutes.map((_, r) => !!(p.mutes && p.mutes[r]));
+    // The old 1-bar setting only hid bar 2; keep it (tail) so making the pattern 2 bars brings it back.
+    const okRow = (row) => Array.isArray(row) && row.length === 16;
+    let tail = null;
+    if (bars === 1 && !Number.isInteger(p.bars) && p.steps) tail = blank.steps.map((_, r) => Array.from({ length: 16 }, (_, s) => (p.steps[r] && p.steps[r][16 + s]) || 0));
+    else if (bars === 1 && Array.isArray(p.tail) && p.tail.length === 16 && p.tail.every(okRow)) tail = p.tail;
+    if (tail) tail = tail.map((row) => row.map((v) => (v === 1 || v === 2 ? v : 0)));
+    if (tail && tail.some((row) => row.some(Boolean))) {
+      blank.tail = tail;
+      if (!Number.isInteger(p.bars)) CL.hiddenBar2 = (CL.hiddenBar2 || []).concat(i);
+    }
     return blank;
   });
+  st.seq.pattern = CL.clamp(Math.round(+st.seq.pattern) || 0, 0, count - 1);
+  const sg = saved.song || {};
+  st.song = CL.blankSong();
+  st.song.mode = sg.mode === 'song' ? 'song' : 'pattern';
+  st.song.blocks = (Array.isArray(sg.blocks) ? sg.blocks : [])
+    .filter((b) => b && Number.isInteger(b.p) && b.p >= 0 && b.p < count && Number.isInteger(b.bar) && b.bar >= 0 && b.bar < CL.SONG_MAX_BARS)
+    .map((b) => ({ p: b.p, bar: b.bar }));
+  st.song.mutes = st.song.mutes.map((_, i) => i < count && !!(sg.mutes && sg.mutes[i]));
+  st.song.solo = Number.isInteger(sg.solo) && sg.solo >= 0 && sg.solo < count ? sg.solo : -1;
+  st.song.from = Number.isInteger(sg.from) ? CL.clamp(sg.from, 0, CL.SONG_MAX_BARS - 1) : 0;
+  CL.tidySong(st.song);
   st.decks = [0, 1].map((i) => Object.assign({ sampleId: null, pitch: 0, range: 16 }, (saved.decks || [])[i] || {}));
   st.meta = saved.meta || {};
   st.genre = Object.assign(CL.defaultState().genre, saved.genre || {});
@@ -7013,11 +7716,12 @@ CL.boot = async () => {
   CL.initRec();
   CL.initStore();
   CL.initKeys();
-  CL.$('#seq-len').value = CL.state.seq.length;
   CL.$('#seq-swing').value = CL.state.seq.swing;
   CL.$('#seq-swing-val').textContent = CL.state.seq.swing + '%';
   CL.$('#seq-feel').value = CL.state.seq.feel || '16';
   CL.$('#seq-metro').classList.toggle('on', CL.state.seq.metro);
+  CL.$('#seq-follow').classList.toggle('on', CL.state.seq.follow);
+  CL.$('#seq-follow').setAttribute('aria-pressed', CL.state.seq.follow ? 'true' : 'false');
   CL.$$('#tabs [data-tab]').forEach((b) => b.addEventListener('click', () => CL.showTab(b.dataset.tab)));
   CL.$('#btn-help').addEventListener('click', () => CL.$('#help-dialog').showModal());
   CL.$$('[data-close]').forEach((b) => b.addEventListener('click', () => b.closest('dialog').close()));
@@ -7039,6 +7743,15 @@ CL.boot = async () => {
   CL.updateScrewUI();
   CL.$('#loading').remove();
   if (!CL.store.ok) CL.toast('This browser keeps storage switched off here. Use Save project to keep your work as a file.');
+  if (CL.hiddenBar2 && CL.hiddenBar2.length) { // a save from before patterns had their own length, set to 1 bar
+    const list = CL.hiddenBar2.filter((i) => CL.state.patterns[i] && CL.state.patterns[i].tail);
+    const names = list.map((i) => CL.state.patterns[i].name);
+    const named = names.length === 1 ? 'Pattern ' + names[0] + ' keeps' : 'Patterns ' + (names.length === 2 ? names.join(' and ') : names.slice(0, -1).join(', ') + ', and ' + names[names.length - 1]) + ' keep';
+    if (list.length) CL.toast(named + ' a second bar from the old 1-bar setting. Make ' + (list.length === 1 ? 'it' : 'them') + ' 2 bars to hear it.', {
+      label: 'Make 2 bars', fn: () => list.forEach((i) => { const p = CL.state.patterns[i]; if (p && p.bars === 1) CL.setPatternBars(p, 2); }),
+    });
+    CL.hiddenBar2 = null;
+  }
   try { if (!localStorage.getItem('chop-lab-seen')) { CL.$('#help-dialog').showModal(); localStorage.setItem('chop-lab-seen', '1'); } } catch (e) { /* storage off */ }
   requestAnimationFrame(CL.loop);
   CL.ready = true;
