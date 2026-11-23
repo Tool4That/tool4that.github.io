@@ -2,7 +2,7 @@
 <html lang="en">
 <head><meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-fnLzbBz7tX6+joSOgT0JB+qdkaVZuO2jlDf6UrfZr50='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-QCDdJx+5PY/wqHOgkVMkRva51Qu8RnKsz5eSHouZ7/g='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/lockdown-range/linux/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%96%A5%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -2404,7 +2404,7 @@ def('stat', c => {
   return code;
 });
 function tzOffset() { const o = -new Date().getTimezoneOffset(); const s = o < 0 ? '-' : '+'; const a = Math.abs(o); return s + two(Math.floor(a / 60)) + two(a % 60); }
-def('file', c => { const o = opts(c, 'bi', ''); if (o.err) { c.err(o.err); return 1; } let code = 0; for (const f of o._) { const abs = FS.norm(f, c.cwd); const st = FS.stat(abs, c.ctx); if (!st.ok) { c.out(f + ': cannot open `' + f + "' (" + st.err + ')\n'); code = 1; continue; } const n = FS.get(abs, true) || st.node; const ext = (f.split('.').pop() || '').toLowerCase(); let d; if (n.t === 'd') d = 'directory'; else if (n.t === 'l') d = 'symbolic link to ' + n.ln; else if (n.arc) d = n.zip ? 'Zip archive data, at least v2.0 to extract, compression method=deflate' : 'gzip compressed data, from Unix, original size modulo 2^32 ' + (n.arc.reduce((s, x) => s + x[3], 0) + 10240); else if (n.bin) d = 'ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, stripped'; else d = ({ mp3: 'Audio file with ID3 version 2.4.0', mp4: 'ISO Media, MP4 Base Media v1 [ISO 14496-12:2003]', jpg: 'JPEG image data, JFIF standard 1.01', png: 'PNG image data, 1920 x 1080, 8-bit/color RGBA, non-interlaced', deb: 'Debian binary package (format 2.0)', html: 'HTML document, ASCII text' })[ext] || ((n.c || '').startsWith('#!') ? 'Bourne-Again shell script, ASCII text executable' : n.c === '' ? 'empty' : 'ASCII text'); c.out((o.b ? '' : f + ': ') + d + '\n'); } return code; });
+def('file', c => { const o = opts(c, 'bi', ''); if (o.err) { c.err(o.err); return 1; } let code = 0; for (const f of o._) { const abs = FS.norm(f, c.cwd); const st = FS.stat(abs, c.ctx); if (!st.ok) { c.out(f + ': cannot open `' + f + "' (" + st.err + ')\n'); code = 1; continue; } const n = FS.get(abs, true) || st.node; const ext = (f.split('.').pop() || '').toLowerCase(); let d; if (n.t === 'd') d = 'directory'; else if (n.t === 'l') d = 'symbolic link to ' + n.ln; else if (n.arc) d = n.zip ? 'Zip archive data, at least v2.0 to extract, compression method=deflate' : n.cz === 'bz2' ? 'bzip2 compressed data, block size = 900k' : n.cz === 'xz' ? 'XZ compressed data, checksum CRC64' : n.cz === 'lzma' ? 'LZMA compressed data, streamed' : n.cz === 'zst' ? 'Zstandard compressed data (v0.8+), Dictionary ID: None' : 'gzip compressed data, from Unix, original size modulo 2^32 ' + (n.arc.reduce((s, x) => s + x[3], 0) + 10240); else if (n.bin) d = 'ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, stripped'; else d = ({ mp3: 'Audio file with ID3 version 2.4.0', mp4: 'ISO Media, MP4 Base Media v1 [ISO 14496-12:2003]', jpg: 'JPEG image data, JFIF standard 1.01', png: 'PNG image data, 1920 x 1080, 8-bit/color RGBA, non-interlaced', deb: 'Debian binary package (format 2.0)', html: 'HTML document, ASCII text' })[ext] || ((n.c || '').startsWith('#!') ? 'Bourne-Again shell script, ASCII text executable' : n.c === '' ? 'empty' : 'ASCII text'); c.out((o.b ? '' : f + ': ') + d + '\n'); } return code; });
 /* ---- md5sum / sha256sum: digests over the UTF-8 bytes of the file text ---- */
 function utf8Bytes(s) { return Array.from(new TextEncoder().encode(s)); }
 function sha256Hex(s) {
@@ -3076,6 +3076,26 @@ def('userdel', c => {
 /* deluser (adduser 3.137ubuntu1, noble): the Getopt::Long options it accepts; =s takes a value */
 const DELUSER_OPTS = { quiet: 0, q: 0, debug: 0, verbose: 0, stdoutmsglevel: 1, stderrmsglevel: 1, logmsglevel: 1, version: 0, v: 0, help: 0, h: 0, group: 0, conf: 1, c: 1, system: 0, 'only-if-empty': 0, 'remove-home': 0, 'remove-all-files': 0, backup: 0, 'backup-to': 1, 'backup-suffix': 1, 'no-preserve-root': 0 };
 const DELUSER_USAGE = 'deluser USER\n  remove a normal user from the system\n  example: deluser mike\n\n  --remove-home             remove the users home directory and mail spool\n  --remove-all-files        remove all files owned by user\n\ndelgroup GROUP\ndeluser --group GROUP\n  remove a group from the system\n\ndeluser USER GROUP\n  remove the user from a group\n  example: deluser mike students\n';
+/* deluser --backup and --backup-to DIR (which sets --backup): tar --directory / --auto-compress -cf DIR/USER.tar.SUFFIX
+   --files-from LIST, then mode 0600 and root:root. The archive is a file whose members tar -tvf lists (regular files and
+   links, paths without the leading slash). A suffix tar has no compressor for falls back to .gz, as check_backup_suffix
+   does; a folder tar cannot write to ends deluser before anything is removed */
+const DELUSER_SUFFIX = { gz: 'gz', tgz: 'gz', taz: 'gz', bz2: 'bz2', tbz: 'bz2', tbz2: 'bz2', tz2: 'bz2', xz: 'xz', txz: 'xz', lzma: 'lzma', tlz: 'lzma', zst: 'zst', tzst: 'zst' };
+function deluserBackup(c, name, own, flags) {
+  const to = flags['backup-to'] || '.';
+  c.out('info: Backing up files to be removed to ' + to + ' ...\n');
+  let suf = String(flags['backup-suffix'] || 'gz').replace(/^\./, '');
+  if (!DELUSER_SUFFIX[suf]) { c.flush(); c.err('warn: Backup suffix .' + suf + ' unavailable, using gzip.\n'); suf = 'gz'; }
+  const shown = to + '/' + name + '.tar.' + suf, path = FS.norm(shown, c.cwd), dir = FS.get(FS.norm(to, c.cwd));
+  if (!dir || dir.t !== 'd') {
+    c.flush(); c.err('tar (child): ' + shown + ': Cannot open: ' + (dir ? 'Not a directory' : 'No such file or directory') + '\ntar (child): Error is not recoverable: exiting now\ntar: Child returned status 2\ntar: Error is not recoverable: exiting now\n');
+    return { fatal: "`/usr/bin/tar --directory / --auto-compress -cf " + shown + ' --files-from /tmp/deluser.' + ('0000' + ((c.sh.pid * 48271) % 60466176).toString(36)).slice(-5) + "' returned error code 2. Exiting." };
+  }
+  const arc = []; let sz = 120;
+  for (const k of own) { const n = S.fs[k]; if (!n || n.t === 'd') continue; const size = FS.size(n); arc.push([k.slice(1), n.m, U.nameOfUid(n.u) + '/' + U.nameOfGid(n.g), size, n.mt]); sz += Math.ceil(size * (n.bin ? 0.985 : 0.4)) + 60; }
+  FS.mk(path, { t: 'f', m: 0o600, u: 0, g: 0, bin: 1, sz, mt: nowSec(), arc, cz: DELUSER_SUFFIX[suf] });
+  return { path };
+}
 /* deluser and delgroup (adduser 3.137ubuntu1): root first, then a prompt for a missing name; info: lines on stdout, warn: and
    fatal: lines on stderr, with AdduserRetvalues' exit codes */
 def(['deluser', 'delgroup'], async c => {
@@ -3105,11 +3125,24 @@ def(['deluser', 'delgroup'], async c => {
   if (u.uid === 0 && !flags['no-preserve-root']) { c.err('fatal: WARNING: You are just about to delete the root account (uid 0). Usually this is never required as it may render the whole system unusable. If you really want this, call deluser with parameter --no-preserve-root. Stopping now without having performed any action\n'); return 55; }
   const busy = userBusy(c, name);
   const files = flags['remove-home'] || flags['remove-all-files'];
-  // noble deluser removes the files and the crontab first, then userdel checks for running processes
-  c.out((files ? 'info: Looking for files to backup/remove ...\ninfo: Removing files ...\n' : '') + (S.pkgs.cron ? 'info: Removing crontab ...\n' : '')); if (!S.pkgs.cron) { c.flush(); c.err("warn: `/usr/bin/crontab' not executed. Skipping crontab removal. Package `cron' required.\n"); }
+  // noble deluser backs the files up (--backup or --backup-to, beside --remove-home or --remove-all-files alone), removes
+  // them and the crontab, then userdel checks for running processes
+  let kept = null;
+  if (files) {
+    c.out('info: Looking for files to backup/remove ...\n');
+    const pre = u.home === '/' ? '/' : u.home + '/', own = Object.keys(S.fs).filter(k => k === u.home || k.startsWith(pre)).sort(cmpStr);
+    if (S.fs['/var/mail/' + name]) own.push('/var/mail/' + name);
+    if (flags.backup || flags['backup-to']) { const r = deluserBackup(c, name, own, flags); if (r.fatal) { F(r.fatal); return 82; } if (r.path.startsWith(pre)) kept = r.path; }
+    if (own.length) c.out('info: Removing files ...\n');
+  }
+  // an archive written inside the home stays, with the folders that hold it (rmdir leaves a folder that still has a file)
+  const keep = kept ? [kept].concat(u.home === '/' ? [] : [u.home], Object.keys(S.fs).filter(k => k.startsWith(u.home + '/') && kept.startsWith(k + '/'))).map(k => [k, S.fs[k]]) : [];
+  const rmFiles = () => { FS.rmTree(u.home); delete S.fs['/var/mail/' + name]; for (const [k, n] of keep) S.fs[k] = n; };
+  c.out(S.pkgs.cron ? 'info: Removing crontab ...\n' : ''); if (!S.pkgs.cron) { c.flush(); c.err("warn: `/usr/bin/crontab' not executed. Skipping crontab removal. Package `cron' required.\n"); }
   c.out("info: Removing user `" + name + "' ...\n");
-  if (busy) { if (files) { FS.rmTree(u.home); delete S.fs['/var/mail/' + name]; } c.flush(); c.err('userdel: user ' + name + ' is currently used by process ' + busy + '\n'); F("`/usr/sbin/userdel " + name + "' returned error code 8. Exiting."); return 82; }
-  U.delUser(name, !!files);
+  if (busy) { if (files) rmFiles(); c.flush(); c.err('userdel: user ' + name + ' is currently used by process ' + busy + '\n'); F("`/usr/sbin/userdel " + name + "' returned error code 8. Exiting."); return 82; }
+  if (files) rmFiles();
+  U.delUser(name, false);
   authLog('userdel[' + (c.sh.pid + 60) + ']: delete user \'' + name + '\'');
   if (name === S.login.user) S.login.deleted = true;
   return 0;
@@ -5461,7 +5494,8 @@ def('strings', c => {
   }
   return code;
 });
-/* ---- tar 1.35: lists the archives the lab plants (tar -tvf); creating and extracting stay outside the model ---- */
+/* ---- tar 1.35: lists the archives the lab plants and the ones deluser --backup writes (tar -tvf); creating and
+   extracting stay outside the model ---- */
 def('tar', c => {
   const a = c.args.slice(); let mode = '', file = null, verbose = false;
   const first = a[0] && a[0][0] !== '-' ? '-' + a.shift() : null; if (first) a.unshift(first);

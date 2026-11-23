@@ -1046,6 +1046,10 @@ Account management
   sudo cat /etc/shadow            field 2 = hash; "!" or "*" locked; EMPTY =
                                   no password at all
   sudo userdel -r NAME            remove the user and the home directory
+  sudo deluser --remove-home --backup-to DIR NAME
+                                  the same, and first saves the home as
+                                  DIR/NAME.tar.gz for root alone (create DIR
+                                  first; list it: sudo tar -tvf FILE)
   sudo userdel -f NAME            an extra UID 0 account; read its home with
                                   getent passwd NAME and add -r only when
                                   that home is its own
