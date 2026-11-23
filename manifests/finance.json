@@ -35,12 +35,15 @@
           ]
         ],
         "allow_script": [
-          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/",
+          "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.5.438/legacy/build/pdf.min.mjs",
+          "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.5.438/legacy/build/pdf.worker.min.mjs",
           "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/",
           "https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/"
         ],
         "allow_connect": [
-          "https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int/"
+          "https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int/",
+          "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.5.438/wasm/jbig2.wasm",
+          "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.5.438/wasm/openjpeg.wasm"
         ],
         "allow_connect_data": true,
         "allow_wasm": true,
@@ -65,8 +68,10 @@
               "aca1229639fc9907d86f96e825955a2b7c5716d17f3bc3acd71f9c7ab66181fc",
               "ce20eda9533cbed1e6c2b4276fbae1e0adc61b6754b5513084be601787b457cf",
               "45b4cb346724ac1774f1c36f42f182b887bcdb28ebe63e6fff90ac41f3fcff91",
-              "5b5799e6f8c680663207ac5b42ee14eed2a406fa7af48f50c154f0c0b1566946",
-              "feabdf309770ed24bba31a5467836cdc8cf639c705af27d52b585b041bb8527b"
+              "522ad2c83bc8a0010e7f0cc60d0892b77c8d2bf2c9702dc12288311d94270f42",
+              "b4c8353ded0d88d2e2009574a29eb4e0c3ff7e942ecdf51ef5f71566a9667f31",
+              "466f45c2a61a698152fb5400c27e56ff2ceb73dcb71fde3fc366a502308eaab0",
+              "7ea4b2b04613370ad4e9c1162da750cc88b4b176eac0d0c164b3caff23fc0a46"
             ],
             "allow_connect_data": true,
             "allow_wasm": true,

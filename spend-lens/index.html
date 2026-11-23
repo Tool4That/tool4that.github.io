@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-4Q8ZOMBhBiT9vsTC975mkJHXUALUBXZf4TyVqOVq2NI=' 'sha256-eRyzXa7mwZp7JkI4L5RG4yB106JzuyK2RvoTErF3ESs=' 'sha256-ltkjnw66bIy7opiUE9KThzttAvGthjR29/4l9KdBAjs=' 'wasm-unsafe-eval' https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/ https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/ https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/; connect-src data: https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int/; worker-src blob:; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-eRyzXa7mwZp7JkI4L5RG4yB106JzuyK2RvoTErF3ESs=' 'sha256-ltkjnw66bIy7opiUE9KThzttAvGthjR29/4l9KdBAjs=' 'sha256-tfpHRsnjWD58IJFUkqmzW25l1gxx3LnXY0MnLzrsjK4=' 'wasm-unsafe-eval' https://cdn.jsdelivr.net/npm/pdfjs-dist@6.5.438/legacy/build/pdf.min.mjs https://cdn.jsdelivr.net/npm/pdfjs-dist@6.5.438/legacy/build/pdf.worker.min.mjs https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/ https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/; connect-src data: https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int/ https://cdn.jsdelivr.net/npm/pdfjs-dist@6.5.438/wasm/jbig2.wasm https://cdn.jsdelivr.net/npm/pdfjs-dist@6.5.438/wasm/openjpeg.wasm; worker-src blob:; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="See where your money goes. Add transactions by hand, paste text, or import bank, card, and investment statements (CSV, PDF, scanned PDFs, and screenshots, read on your device), then get a money-in, money-out Home summary, a paycheck plan, a 30-day look ahead, and a plain-language checkup. Everything stays on your device.">
 <link rel="canonical" href="https://freeapp4that.store/spend-lens/">
@@ -545,7 +545,7 @@ footer { margin-top: 40px; color: var(--ink-3); font-size: 0.8rem; }
           <div class="formats"><span>PDF statements, incl. scanned</span><span>Screenshots &amp; photos</span><span>CSV</span><span>TSV</span><span>OFX / QFX</span><span>QIF</span><span>JSON backup</span></div>
         </label>
         <div class="actions" id="folderRow" hidden><button class="btn" type="button" id="folderBtn">Choose a folder</button><input type="file" id="folderInput" webkitdirectory multiple hidden></div>
-        <p class="hint" id="fileHint" style="margin-top:10px">Files are read in your browser and stay on this device. Bank, card, and investment statements all work: PDFs use pdf.js (fetched from cdnjs), and screenshots or scanned PDFs use Tesseract, the open-source OCR engine (fetched once from jsDelivr, with your OK first). The <a href="https://freeapp4that.store/finance/" target="_blank" rel="noopener">offline download</a> builds both in.</p>
+        <p class="hint" id="fileHint" style="margin-top:10px">Files are read in your browser and stay on this device. Bank, card, and investment statements all work: PDFs use pdf.js (fetched from jsDelivr), and screenshots or scanned PDFs use Tesseract, the open-source OCR engine (fetched once from jsDelivr, with your OK first). The <a href="https://freeapp4that.store/finance/" target="_blank" rel="noopener">offline download</a> builds both in.</p>
         <div class="busy" id="busy" hidden></div>
       </div>
 
@@ -5128,14 +5128,17 @@ const $$ = (s, el) => Array.from((el || document).querySelectorAll(s));
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const STORE_KEY = 'pfat.v1';
 const OLD_STORE_KEY = 'spendlens.v1';
-const PDFJS_BASE = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+// pdf.js, its backward-compatible build (older phones and browsers read PDFs too); its two image decoders for scanned
+// pages (fax and JBIG2 images; JPEG 2000) come from wasm/
+const PDFJS_BASE = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.5.438/';
 // The offline edition: build.py --offline sets this flag to true and appends the vendor files listed in vendor.json.
 const PFAT_OFFLINE = false;
 // The offline edition's built-in files, by SHA-256 (build.py --offline writes them from vendor.json).
 const VENDOR_SHA = {};
-// The three library files the online page runs from the CDNs, by SHA-256 (subresource integrity: the browser runs a file
-// only when its bytes match; build.py checks these against vendor.json)
-const CDN_SRI = { pdf: 'sha256-W1eZ5vjGgGYyB6xbQu4U7tKkBvp69I9QwVTwwLFWaUY=', pdfworker: 'sha256-/qvfMJdw7SS7oxpUZ4Ns3Iz2OccFryfVK1hbBBu4Uns=', tesseract: 'sha256-qOKZGNCYsrBuEBK9rv+0rsBEXF1WVHCQI+C9H0QqgOg=' };
+// The files the online page runs from the CDN directly, by SHA-256 (subresource integrity: the browser runs or hands over a
+// file only when its bytes match; build.py checks these against vendor.json): pdf.js and its worker, its two image
+// decoders, and tesseract.js
+const CDN_SRI = { pdf: 'sha256-UirSyDvIoAEOfwzGDQiSt3yNK/LJcC3BIogxHZQnD0I=', pdfworker: 'sha256-tMg1Pe0NiNLiAJV0op604MP/fpQuzfUe9fcVZqlmfzE=', jbig: 'sha256-Rm9FwqYaaYFS+1QAwn5W/yzrc9y3H94/w2alAjCOqrA=', openjpeg: 'sha256-fqSysEYTNwrU6cEWLadQzIi0sXbqwNDBZLPK/yP8CkY=', tesseract: 'sha256-qOKZGNCYsrBuEBK9rv+0rsBEXF1WVHCQI+C9H0QqgOg=' };
 const PFAT_DOWNLOADS = 'https://freeapp4that.store/finance/'; // PFAT's hub card, with both downloads
 
 const state = {
@@ -5713,28 +5716,57 @@ async function readTextFile(file) {
   return text.replace(/^\uFEFF/, '');
 }
 let pdfjsPromise = null;
-function loadScript(src, sri) { return new Promise((res, rej) => { const s = document.createElement('script'); if (sri) { s.integrity = sri; s.crossOrigin = 'anonymous'; } s.src = src; s.async = true; s.onload = res; s.onerror = () => rej(new Error('The browser stopped loading ' + src)); document.head.appendChild(s); }); }
+// module: a JavaScript module (pdf.js), which the browser checks against its integrity value just the same
+function loadScript(src, sri, module) { return new Promise((res, rej) => { const s = document.createElement('script'); if (module) s.type = 'module'; if (sri) { s.integrity = sri; s.crossOrigin = 'anonymous'; } s.src = src; s.async = true; s.onload = res; s.onerror = () => rej(new Error('The browser stopped loading ' + src)); document.head.appendChild(s); }); }
+// pdf.js runs here on the page (its worker module defines pdfjsWorker first, so no separate worker starts); each module
+// sets its global as it runs
 function loadPdfJs() {
   if (window.pdfjsLib && window.pdfjsWorker) return Promise.resolve();
   if (!pdfjsPromise) {
-    let workerSrc = '';
-    pdfjsPromise = Promise.resolve().then(() => PFAT_OFFLINE ? vendorVerify(['pdfworker', 'pdf']) : null).then(() => {
-      workerSrc = PFAT_OFFLINE ? vendorURL(['pdfworker']) : PDFJS_BASE + 'pdf.worker.min.js';
-      return loadScript(workerSrc, PFAT_OFFLINE ? '' : CDN_SRI.pdfworker);
-    }).then(() => loadScript(PFAT_OFFLINE ? vendorURL(['pdf']) : PDFJS_BASE + 'pdf.min.js', PFAT_OFFLINE ? '' : CDN_SRI.pdf)).then(() => {
-      if (!window.pdfjsLib) throw new Error('PDF engine unavailable');
-      try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc; } catch (e) { /* ignore */ }
-    }).catch(e => {
-      pdfjsPromise = null;
-      const x = new Error(PFAT_OFFLINE ? 'A fresh copy of this file from the Tool4That finance page restores its built-in PDF reader.' : 'The PDF reader loads from cdnjs the first time.');
-      x.pdfLoadFail = true; throw x;
-    });
+    pdfjsPromise = Promise.resolve().then(() => PFAT_OFFLINE ? vendorVerify(['pdfworker', 'pdf']) : null)
+      .then(() => loadScript(PFAT_OFFLINE ? vendorURL(['pdfworker']) : PDFJS_BASE + 'legacy/build/pdf.worker.min.mjs', PFAT_OFFLINE ? '' : CDN_SRI.pdfworker, true))
+      .then(() => loadScript(PFAT_OFFLINE ? vendorURL(['pdf']) : PDFJS_BASE + 'legacy/build/pdf.min.mjs', PFAT_OFFLINE ? '' : CDN_SRI.pdf, true)).then(() => {
+        if (!window.pdfjsLib || !window.pdfjsWorker) throw new Error('PDF engine unavailable');
+      }).catch(e => {
+        pdfjsPromise = null;
+        const x = new Error(PFAT_OFFLINE ? 'A fresh copy of this file from the Tool4That finance page restores its built-in PDF reader.' : 'The PDF reader loads from jsDelivr the first time.');
+        x.pdfLoadFail = true; throw x;
+      });
   }
   return pdfjsPromise;
 }
+// The two image decoders pdf.js asks for when a scanned page holds a fax or JBIG2 image (jbig2.wasm) or a JPEG 2000 image
+// (openjpeg.wasm). Each one reaches pdf.js only after its SHA-256 matches its pin: online, pdf.js downloads it with its own
+// fetchData from the one pinned address and the page compares the bytes with CDN_SRI; offline, the page checks its
+// built-in copy. Every other file pdf.js may ask for (font data, character maps, color profiles) stays unloaded, and
+// pdf.js carries on without it.
+const PDF_WASM = { 'jbig2.wasm': 'jbig', 'openjpeg.wasm': 'openjpeg' };
+const pdfWasmP = {};
+async function sha256b64(bytes) {
+  if (!(window.crypto && crypto.subtle)) throw new Error('This browser lacks the built-in check (Web Crypto) that confirms the PDF reader\'s image decoders.');
+  return btoa(String.fromCharCode(...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))));
+}
+// pdf.js calls this object's fetch method for each file it wants; the method is set on the prototype so the hub's scan for
+// network calls (fetch followed by a parenthesis) keeps meaning what it says: this page code makes no request of its own
+function PdfDecoders() {}
+PdfDecoders.prototype.fetch = async function ({ kind, filename }) {
+    const id = kind === 'wasmUrl' && Object.prototype.hasOwnProperty.call(PDF_WASM, filename) ? PDF_WASM[filename] : null;
+    if (!id) throw new Error('PFAT leaves this pdf.js file unloaded: ' + kind + ' ' + filename);
+    if (!pdfWasmP[id]) {
+      pdfWasmP[id] = PFAT_OFFLINE ? vendorVerify([id]).then(() => vendorBytes(id))
+        : window.pdfjsLib.fetchData(PDFJS_BASE + 'wasm/' + filename, 'bytes').then(async b => {
+          const bytes = b instanceof Uint8Array ? b : new Uint8Array(b);
+          if ('sha256-' + await sha256b64(bytes) !== CDN_SRI[id]) throw new Error('The PDF reader\'s ' + filename + ' differs from its pinned copy.');
+          return bytes;
+        });
+      pdfWasmP[id].catch(() => { delete pdfWasmP[id]; });
+    }
+    return (await pdfWasmP[id]).slice(); // a copy each time, so the pinned bytes stay whole if pdf.js hands its copy on
+};
 async function openPdf(buf) {
   await loadPdfJs();
-  return window.pdfjsLib.getDocument({ data: new Uint8Array(buf), isEvalSupported: false, disableFontFace: true }).promise;
+  // verbosity 0: pdf.js logs errors only (its notes about running here on the page, and about the files it leaves unloaded, stay quiet)
+  return window.pdfjsLib.getDocument({ data: new Uint8Array(buf), disableFontFace: true, BinaryDataFactory: PdfDecoders, verbosity: 0 }).promise;
 }
 async function extractPdfText(pdf) {
   const lines = [];
@@ -6347,8 +6379,8 @@ function renderData() {
   h += '<section class="section"><h2>Sample data</h2><p class="sub">Four months of made-up transactions for trying things out.</p><div class="actions">' + (hasSample ? '<button class="btn" data-act="removeSample">Remove sample data</button>' : '<button class="btn" data-act="sample">Load sample data</button>') + '</div></section>';
   h += '<section class="section"><h2>Appearance</h2><div class="grid2"><label>Theme <select id="theme"><option value="auto"' + (state.settings.theme === 'auto' ? ' selected' : '') + '>Match device</option><option value="light"' + (state.settings.theme === 'light' ? ' selected' : '') + '>Light</option><option value="dark"' + (state.settings.theme === 'dark' ? ' selected' : '') + '>Dark</option></select></label><label>Currency symbol <input type="text" id="currency" maxlength="4" value="' + esc(state.settings.currency) + '"></label><label>Call the first tab <select id="hudLabel"><option value="Home"' + (homeName() === 'Home' ? ' selected' : '') + '>Home</option><option value="HUD"' + (homeName() === 'HUD' ? ' selected' : '') + '>HUD</option></select></label></div><label class="check"><input type="checkbox" id="dayFirst"' + (state.settings.dayFirst ? ' checked' : '') + '> My bank writes dates day-first (DD/MM/YYYY)</label></section>';
   h += '<section class="section"><h2>Privacy</h2><div class="privacy"><p>Everything you add is parsed and analyzed in this browser tab and stays on this device.' + (PFAT_OFFLINE ? ' This file works completely offline.' : '') + '</p><p>If you keep data between visits, it lives in this browser\'s local storage on this device only. Data saved in a private window disappears when that window closes, and clearing site data removes it.</p>' +
-    (PFAT_OFFLINE ? '<p>Two open-source libraries are built into this file and run on this device: pdf.js 3.11.174 (Apache-2.0) reads PDFs, and Tesseract (tesseract.js and tesseract.js-core 5.1.1, Apache-2.0, with the English model from @tesseract.js-data/eng 1.0.0, MIT) reads screenshots and scanned statements. Their license notices, with those of the libraries built into them, sit at the end of this file; open it in a text editor to read them.</p>'
-      : '<p>Two open-source libraries can be fetched when you need them: pdf.js from cdnjs to read PDFs, and Tesseract (Apache 2.0) from jsDelivr to read screenshots and scanned statements. Only the libraries and the English model download; your files stay on this device. The <a href="' + PFAT_DOWNLOADS + '" target="_blank" rel="noopener">offline download</a> builds both in and reads PDFs and pictures completely offline.</p>') + (!PFAT_OFFLINE && state.settings.ocrOk ? '<p>You agreed to read pictures with Tesseract. <button class="btn small" id="ocrWithdraw">Stop reading pictures</button> (PFAT asks again next time).</p>' : '') + '</div></section>';
+    (PFAT_OFFLINE ? '<p>Two open-source libraries are built into this file and run on this device: pdf.js 6.5.438 (Apache-2.0, with its two image decoders for scanned pages, BSD licenses) reads PDFs, and Tesseract (tesseract.js and tesseract.js-core 5.1.1, Apache-2.0, with the English model from @tesseract.js-data/eng 1.0.0, MIT) reads screenshots and scanned statements. Their license notices, with those of the libraries built into them, sit at the end of this file; open it in a text editor to read them.</p>'
+      : '<p>Two open-source libraries can be fetched when you need them: pdf.js from jsDelivr to read PDFs, and Tesseract (Apache 2.0) from jsDelivr to read screenshots and scanned statements. Only the libraries and the English model download; your files stay on this device. The <a href="' + PFAT_DOWNLOADS + '" target="_blank" rel="noopener">offline download</a> builds both in and reads PDFs and pictures completely offline.</p>') + (!PFAT_OFFLINE && state.settings.ocrOk ? '<p>You agreed to read pictures with Tesseract. <button class="btn small" id="ocrWithdraw">Stop reading pictures</button> (PFAT asks again next time).</p>' : '') + '</div></section>';
   el.innerHTML = h;
 }
 async function saveFile(filename, text, mime) {
@@ -7349,7 +7381,7 @@ function renderGuide() {
   h += step(6, 'Run the checkup', '<p><b>Checkup</b> covers what bank data cannot show: a pay-stub breakdown (effective tax rate and true savings rate), net-worth snapshots over time, card utilization, an insurance checklist, pension and Social Security against the nest egg you actually need, and a plain list of when a professional is the right call.</p>', 'check', 'Go to Checkup');
   h += step(7, 'Monthly routine', '<ul class="insights"><li>Import last month\'s statements (duplicates are caught automatically).</li><li>Glance at ' + theHome() + ' and Alerts.</li><li>Update balances on ' + theHome() + ' and Plan; take a net-worth snapshot.</li><li>Download a backup from Data.</li></ul>', 'data', 'Go to Data');
   h += '<section class="section"><h2>Five-minute demo path</h2><p class="sub">If you are showing someone the tool with no data on hand.</p><ol class="steps"><li>Data → Load sample data.</li><li>' + homeName() + ': switch the period to Last month; point out expected vs actual and the card balance field.</li><li>Plan: enter an age, pay, and a couple of accounts; watch the guideline colors and the year-end / 67 forecast appear.</li><li>Next 30 days → Safe to spend: enter a balance; show what is safe to spend.</li><li>Next 30 days → Debt payoff: type an APR and an extra $100; show the months and interest change.</li><li>Data → Remove sample data, then Add their own file.</li></ol></section>';
-  h += '<section class="section"><h2>Good to know</h2><ul class="insights"><li>' + (PFAT_OFFLINE ? 'This file works completely offline. pdf.js reads PDFs and the Tesseract engine reads pictures, both built into this file and running on this device. Your files stay on this device.' : 'The app works offline once loaded. Two libraries can download, only when you need them: pdf.js from cdnjs when you open a PDF, and, after you agree, the Tesseract engine and its English model from jsDelivr when you read a picture. The browser runs each library file only when its bytes match the pinned version. Your files stay on this device. The <a href="' + PFAT_DOWNLOADS + '" target="_blank" rel="noopener">offline download</a> builds both in, for reading PDFs and pictures completely offline.') + '</li><li>Data lives in this browser only. Clearing site data or switching devices starts fresh; restore a backup to bring your data back (Add → From a file → the backup JSON).</li><li>Guidelines are general rules of thumb, separate from personal advice. Checkup → When to see a human says where the line is.</li></ul></section>';
+  h += '<section class="section"><h2>Good to know</h2><ul class="insights"><li>' + (PFAT_OFFLINE ? 'This file works completely offline. pdf.js reads PDFs and the Tesseract engine reads pictures, both built into this file and running on this device. Your files stay on this device.' : 'The app works offline once loaded. Two libraries can download, only when you need them: pdf.js from jsDelivr when you open a PDF, and, after you agree, the Tesseract engine and its English model from jsDelivr when you read a picture. The browser runs each library file only when its bytes match the pinned version. Your files stay on this device. The <a href="' + PFAT_DOWNLOADS + '" target="_blank" rel="noopener">offline download</a> builds both in, for reading PDFs and pictures completely offline.') + '</li><li>Data lives in this browser only. Clearing site data or switching devices starts fresh; restore a backup to bring your data back (Add → From a file → the backup JSON).</li><li>Guidelines are general rules of thumb, separate from personal advice. Checkup → When to see a human says where the line is.</li></ul></section>';
   el.innerHTML = h;
 }
 
