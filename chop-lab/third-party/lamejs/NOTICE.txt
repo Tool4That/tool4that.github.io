@@ -1,0 +1,55 @@
+Chop Lab includes lamejs 1.2.1
+==============================
+
+Chop Lab (chop-lab.html, one self-contained page) makes the MP3 files of a music pack with lamejs, a JavaScript
+port of LAME, the MP3 encoder. The page carries the minified build of lamejs (lame.min.js from the npm package
+"lamejs", version 1.2.1) unchanged, inside an embedded data block (<script type="application/octet-stream"
+id="vendor-lame">, base64). A comment with these notices sits ahead of it in that block. The page starts the encoder
+only when an export begins, and calls it only through lamejs.Mp3Encoder(channels, sampleRate, kbps),
+encodeBuffer(left, right), and flush(), so you can swap in your own build: put its base64 in that block (or load it as
+window.lamejs ahead of Chop Lab's script).
+
+License
+-------
+lamejs is published under the GNU Lesser General Public License, version 3 (LGPL-3.0), as its package states
+(package/package.json, "license": "LGPL-3.0"). Its files ported from LAME carry their own license headers. Six of
+them (package/src/js/NewMDCT.js, PsyModel.js, Quantize.js, QuantizePVT.js, Reservoir.js, and Takehiro.js) read:
+  "This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser
+  General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your
+  option) any later version."
+and refer to the GNU Library General Public License for more details. One (package/src/js/GainAnalysis.js) reads the
+same with "either version 2.1 of the License, or (at your option) any later version." Those terms let these files be
+used under version 2.1 or any later version as well. All three license texts sit next to this file:
+LGPL-2.1.txt, LGPL-3.0.txt, and GPL-3.0.txt (the LGPL version 3 builds on the GPL version 3, so the two travel
+together). Chop Lab's own code is under the MIT License; these licenses cover lamejs alone.
+The texts are the plain-text copies from https://www.gnu.org/licenses/ :
+  LGPL-2.1.txt  sha256 20e50fe7aae3e56378ebf0417d9de904f55a0e61e4df315333e632a4d3555d95
+  LGPL-3.0.txt  sha256 e3a994d82e644b03a792a930f574002658412f62407f5fee083f2555c5f23118
+  GPL-3.0.txt   sha256 3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986
+
+Source code
+-----------
+lamejs-1.2.1.tgz, next to this file, is the exact package as published on the npm registry:
+  https://registry.npmjs.org/lamejs/-/lamejs-1.2.1.tgz
+  sha1      0f92d38729213f106d4a19ded20821da7e89c8e4  (the registry's "shasum")
+  sha512    s7bxvjvYthw6oPLCm5pFxvA84wUROODB8jEO2+CE1adhKgrIvVOlmMgY8zyugxGrvRaDHNJanOiS21/emty6dQ== (base64)
+  sha256    d8d099ef788808c15bc9b4a407dd23ae935feb1152e6bb0efdcd24e3e91c2a2d
+Its readable source is in package/src/js/, its unminified build in package/lame.all.js, and the build Chop Lab carries
+in package/lame.min.js (sha256 15d285e2587b3bdbfd18a68de6ce07cc074f7480a82c3815da2dc1c348ec6df4).
+The lamejs project: https://github.com/zhuker/lamejs
+LAME, the encoder lamejs ports: https://lame.sourceforge.io/
+
+Copyright notices carried by the lamejs source files
+----------------------------------------------------
+Copyright (c) 1999-2000 Mark Taylor
+Copyright (c) 1999-2000, 1999-2002, 1999-2003, 1999-2005, 2000-2003 Takehiro Tominaga
+Copyright (c) 2000-2002, 2000-2007, 2000-2008 Robert Hegemann
+Copyright (c) 2000-2005, 2001-2005, 2002-2005 Gabriel Bouvigne
+Copyright (c) 2000-2005 Alexander Leidinger
+Copyright (c) 2001, 2001-2002 Naoki Shibata
+Copyright (C) 2001 David Robinson and Glen Sawyer
+lamejs port: Alex Zhukov
+
+This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+details.

@@ -549,7 +549,7 @@
       "slug": "chop-lab",
       "name": "Chop Lab",
       "tagline": "Make beats. Chop samples. Scratch.",
-      "description": "A music studio in your browser: 16 pads, a step sequencer with patterns up to 128 bars, a song timeline for layering patterns into full tracks, a kit for each pattern, 63 genre kits from boom bap and house to jazz, reggae, country, and metal, a sample chopper, a Screw control that slows and deepens everything, two DJ decks with scratching, and recording to WAV.",
+      "description": "A music studio in your browser: 16 pads, a step sequencer with patterns up to 128 bars, a song timeline for layering patterns into full tracks, a kit for each pattern, 63 genre kits from boom bap and house to jazz, reggae, country, and metal, a sample chopper, a Screw control that slows and deepens everything, two DJ decks with scratching, recording to WAV, and music packs of seamless MP3 loops.",
       "badges": [
         "Music",
         "Beat making",
@@ -562,8 +562,8 @@
       "download_as": "chop-lab.html",
       "icon": "vinyl",
       "category": "imagination-land",
-      "sha256": "a6450302db9b079fb237f8c17e29e5fa2d90d5af564487278c0810dfe846a129",
-      "updated": "2026-11-22"
+      "sha256": "3e869308f95022c26231cd72812b4705ee1ba5b984e31cabcaa2716ab8f38801",
+      "updated": "2026-11-23"
     }
   ]
 }

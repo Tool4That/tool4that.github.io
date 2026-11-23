@@ -19,3 +19,13 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+Third-party software
+
+Chop Lab (chop-lab/) carries lamejs 1.2.1, a JavaScript port of the LAME MP3
+encoder, inside the page as the data block vendor-lame. lamejs is published
+under the GNU Lesser General Public License version 3, as its package states;
+its files ported from LAME carry LGPL grants of version 2 (one file: version
+2.1) or any later version. Its notices, the LGPL-2.1, LGPL-3.0, and GPL-3.0
+texts, and its exact source package are in chop-lab/third-party/lamejs/. These
+licenses cover lamejs alone.
