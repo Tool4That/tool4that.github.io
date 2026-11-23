@@ -132,8 +132,8 @@ Scenario Brief summary
   Authorized administrators: labuser (you) - password: Easy!2026; nalani
   Authorized users: kekoa, ailani, moana, leilani
   Required services and settings:
-    - No remote access of any kind is needed on this PC (no Remote Desktop, no
-      remote registry).
+    - This PC is used only in person: Remote Desktop and Remote Registry stay
+      off.
     - The firewall must be on and Microsoft Defender must stay on.
     - Windows Update must be allowed to install updates.
   Security policy:
@@ -974,7 +974,10 @@ How layouts work
   - Codes use the 31 characters 23456789ABCDEFGHJKMNPQRSTUVWXYZ (the digits 2 to
     9 and the letters A to Z without I, L, or O). The sixth character checks the
     other five, so a mistyped code is refused instead of building a different
-    machine. Lower case and spaces are accepted.
+    machine. Lower case, spaces, and hyphens work too, so 3up-6ve is the same
+    code as 3UP6VE. All three Ranges (Windows, Linux, and Cisco) use this rule,
+    so a code that one Range accepts is a code in the other two; each Range
+    builds its own machine from it.
   - The page turns the code into the machine with a seeded generator, never a
     random one, so the same code builds the identical machine in any browser. A
     teacher can write one code on the board and give a whole class the same

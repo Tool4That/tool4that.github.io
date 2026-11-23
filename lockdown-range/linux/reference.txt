@@ -18,8 +18,13 @@ CONTENTS
 
 Format of the check lists below:
   [points] Check title as it appears in the Progress Check   (hardening area)
-           fix: the command or click-path (continuation lines end with \)
+           fix: the command or click-path
            why: one line on why it matters
+A long command is printed across two or three lines, and each line but the
+last ends with \ (a backslash). Type the lines one after another: the
+terminal waits at its > prompt for the rest, as a real shell does. The same
+command typed as one line, with the \ left out, works too, and so does a
+pasted copy of all its lines.
 
 Hardening areas: Account management, Access control, Secure
 configuration, Patching, Malware defenses, Audit logging, and Data
@@ -128,9 +133,10 @@ Scenario Brief summary
   Authorized users: noe, pika, leilani, malia, tiko
   Policy: only the two admins have sudo; every account has a password of at
   least 10 characters that expires within 90 days and stays unchanged for
-  at least 7 days after each change; no media files; no file-sharing
-  clients or network scanners; firewall on; automatic security updates;
-  nobody logged in automatically; the clock stays synchronized.
+  at least 7 days after each change; media files, file-sharing clients,
+  and network scanners stay off the machine; firewall on; automatic
+  security updates; nobody logged in automatically; the clock stays
+  synchronized.
 
 Investigation
   Q1  Which account has an empty password?        ANSWER: tiko
@@ -261,11 +267,12 @@ Scenario Brief summary
   network services are required.
   Authorized administrators: labuser, mkoa
   Authorized users: hina, keanu, jace, nalu, aria
-  Policy: only admins have sudo; never auto-login and no guest session;
-  every account has a 10+ character password, no reuse of the last 5,
-  lockout after repeated failures; no media; no miners or remote-shell
-  servers; only approved apps (Flatpak apps included); every AppArmor
-  profile in enforce mode; firewall on; automatic security updates.
+  Policy: only admins have sudo; automatic login and the guest session
+  stay off; every account has a 10+ character password that differs from
+  its last 5, with lockout after repeated failures; media files, miners,
+  and remote-shell servers stay off the machine; only approved apps
+  (Flatpak apps included); every AppArmor profile in enforce mode;
+  firewall on; automatic security updates.
 
 Investigation
   Q1  Account other than root with UID 0?         ANSWER: sysadm
@@ -683,9 +690,29 @@ smoothest start). Every attempt builds a different machine, so you
 practice skills instead of a memorized walkthrough.
 
 How layouts work
-  - A layout code is 6 characters from A C D E F H J K M N P R T V W X Y
-    3 4 6 7 9 (look-alikes such as 0, O, 1, I, L, 5, S, 8, and B are left
-    out). Lower case works too.
+  - A layout code is 6 characters: the digits 2 to 9 and the letters A to
+    Z without I, L, or O (the look-alikes 0, 1, I, L, and O are left out).
+    The first five characters are free, and the sixth is a check character
+    worked out from them. Lower case, spaces, and hyphens work too, so
+    3up-6ve is the same code as 3UP6VE.
+  - The check character catches typing mistakes. A code with one character
+    changed, or with two neighboring characters swapped, is refused:
+      "3UP6VF" is not a layout code. Compare it with the code you were
+      given, one character at a time: codes use the digits 2 to 9 and
+      the letters A to Z without I, L, or O, and the last character
+      checks the others. Look closely at 5 and S, 8 and B, and 2 and Z.
+    An entry of another length is told so ("this entry has five"). The
+    machine you have stays as it is until a code is accepted.
+  - All three Ranges (Windows, Linux, and Cisco) use this rule, so a code
+    that one Range accepts is a code in the other two; each Range builds
+    its own machine from it.
+  - A code from before the check character (such as TEWCCF) is refused
+    when typed. Work saved in this browser under one stays: the attempt
+    opens with its machine, points, and Debrief, Reset lab rebuilds the
+    same layout, and the best score keeps its code. The Progress Check
+    marks such a code as a layout from an earlier version of the page,
+    and the dialog answers it with that reason. New layout then draws a
+    code under the rule above, one a whole class can share.
   - The code seeds a small random-number generator inside the page. It
     picks the machine (computer-lab desktop, teacher laptop, library PC,
     front-office PC, or web server), the flavor (Ubuntu 24.04 desktop,
@@ -867,124 +894,143 @@ The fault pool (only what Levels 1-3 teach), by hardening area
       decides, so an inserted deny can cut off a service the brief needs.
     auth.log and last agree on when each account signed in.
 
-Worked example: layout code TEWCCF
-  Level 4 pill > Enter a layout code > TEWCCF builds phn-lib-06, a Linux
-  Mint 22.3 shared PC at 10.20.4.185. Try it on your own first; another
-  code builds a different machine, so read your own brief and machine.
+Worked example: layout code 3UP6VE
+  Level 4 pill > Enter a layout code > 3UP6VE (or 3up-6ve) builds
+  phn-lab-30, an Ubuntu 24.04 desktop at 10.20.4.169. The Windows Range and
+  the Cisco Range accept the same code, and each builds its own machine
+  from it. Try it on your own first; another code builds a different
+  machine, so read your own brief and machine.
 
 Scenario Brief summary
-  The library shared PC in the library study corner. Students sign in with
-  their own accounts to research and print. Keoni, the school sysadmin,
-  manages it. A former help-desk tech set it up and left in a hurry.
-  Authorized administrators: labuser, keoni, hoku
-  Authorized users: lokelani (Lokelani, the librarian); pono, malia,
-  kainoa, kaimi (Kaʻimi), and makoa (students)
-  Critical services: the attendance upload agent phn-attendance (school
-  software in /opt/phn/attendd) and the nightly backup job in
-  /etc/cron.d/phn-backup (keep cron running). Every network service is
-  optional.
-  Policy: sudo for the administrators only, through any sudoers file; only
-  the listed people have accounts; passwords at least 10 characters that
-  never reuse the last 5; lockout after 10 or fewer failures; named
-  accounts only at the sign-in screen (guest session off); /etc/shadow
-  readable by root and shadow only; password crackers banned, packages and
-  copies alike; Telnet and Flatpak games off the machine; every service
-  and scheduled job runs a program from a package or the brief; all
-  pending updates; music and video files off the machine; auditd watches
-  /etc/sudoers; the journal survives a reboot.
+  The computer-lab desktop in the Room B201 computer lab. Students sign in
+  with their own accounts for class projects. Hoku, the help-desk tech,
+  manages it remotely over SSH. The help desk got a report that an account
+  signed in after school hours.
+  Authorized administrators: labuser, hoku
+  Authorized users: hiwa, nalani (Nālani), and keahi (students); keola
+  (Keola, a teacher)
+  Critical services: SSH (openssh-server), which Hoku uses from the office
+  network (10.20.4.0/24), and the nightly backup job in
+  /etc/cron.d/phn-backup (keep cron running).
+  Policy: sudo for the administrators only; only the listed people have
+  accounts; passwords never reuse the last 5; an empty password never
+  signs in; root stays off SSH; every sign-in takes a person and a
+  password (automatic login off); setuid programs and file capabilities
+  come only from packages; cryptocurrency miners banned, packages and
+  copies alike; IP forwarding off; software only from the official Ubuntu
+  repositories; all pending updates; the firewall on, with the critical
+  services let through; music and video files off the machine; the clock
+  synchronized.
 
 Investigation
-  Q1  Which program does root's crontab start?   ANSWER: /var/tmp/.fsck-helper
-      (sudo crontab -l shows "echo ... | base64 -d | sh"; echo THE-STRING
-      | base64 -d prints /var/tmp/.fsck-helper -l 1337 -e /bin/sh)
-  Q2  Port of the unit no package installed?      ANSWER: 5555
-      (ls -l /etc/systemd/system lists kbdlight-helper.service and
-      phn-attendance.service; dpkg -S on each ExecStart program says "no
-      path found", and only phn-attendance is in the brief; sudo ss -tulpn
-      shows kbdlightd on port 5555)
+  Q1  Full path of the planted setuid program?
+      ANSWER: /usr/local/sbin/pyhelper
+      (sudo find / -perm -4000 -type f 2>/dev/null lists nine programs in
+      /usr/bin and this one; dpkg -S /usr/local/sbin/pyhelper says "no path
+      found". phn-backup beside it belongs to the backup job and carries
+      the ordinary mode -rwxr-xr-x.)
+  Q2  Address the unlisted account kekoa last signed in from?
+      ANSWER: 10.20.4.182
+      (last shows kekoa on pts/1 from 10.20.4.182, and sudo grep kekoa
+      /var/log/auth.log shows "Accepted password for kekoa from
+      10.20.4.182")
 
 Checks (100 points)
-  [7]  Unauthorized user koa removed                    (Account management)
-       fix: sudo userdel -r koa   (koa is a student name, but not on this
-            brief: the brief decides who is authorized)
-  [7]  Minimum password length of 10 or more enforced via pam_pwquality
-                                                          (Account management)
-       fix: the pam_pwquality.so line in /etc/pam.d/common-password has no
-            minlen: sudo nano it to
-            password requisite pam_pwquality.so retry=3 minlen=12
-  [4]  Password history enforced (remember=5 or more)   (Account management)
-       fix: add remember=5 to the pam_unix.so password line
-  [6]  Account lockout policy configured (pam_faillock, deny 10 or fewer)
-                                                          (Account management)
-       fix: in /etc/pam.d/common-auth, before the pam_unix.so line:
-            auth required pam_faillock.so preauth silent deny=5 unlock_time=900
-            and right after it:
-            auth [default=die] pam_faillock.so authfail deny=5 unlock_time=900
-            auth sufficient pam_faillock.so authsucc
-  [7]  Unauthorized sudo rule for kaimi removed (/etc/sudoers.d)
+  [7]  Unauthorized user kekoa removed                  (Account management)
+       fix: sudo userdel -r kekoa   (kekoa is a teacher's name on the
+            school roster, but not on this brief: the brief decides who
+            is authorized)
+  [7]  keahi removed from the sudo group (not an authorized administrator)
                                                               (Access control)
-       fix: sudo grep -rn NOPASSWD /etc/sudoers.d names 50-lab-helpers;
-            sudo rm /etc/sudoers.d/50-lab-helpers
-  [6]  /etc/shadow permissions restored (640 root:shadow)     (Access control)
-       fix: sudo chmod 640 /etc/shadow && sudo chown root:shadow /etc/shadow
-            (ls -l showed -rw----r--, mode 604)
-  [6]  Guest session disabled in LightDM (allow-guest=false)  (Access control)
-       fix: sudo sed -i 's/^allow-guest=.*/allow-guest=false/' \
-                /etc/lightdm/lightdm.conf
-  [5]  Unauthorized software cracklite removed (password cracker: the
-       package and its hidden copy)                     (Secure configuration)
-       fix: sudo apt purge -y cracklite, then
-            sudo find /home -type f -name cracklite -delete   (the copy sits
-            in malia's hidden ~/.cache-x folder; lokelani's ~/.notes is a
-            decoy)
-  [5]  Telnet server removed (nothing listening on port 23)
-                                                        (Secure configuration)
-       fix: sudo apt purge -y telnetd inetutils-telnetd
-  [3]  Unauthorized Flatpak app removed (KartBlitz)     (Secure configuration)
-       fix: sudo flatpak uninstall -y io.example.KartBlitz
-  [5]  System updates installed (apt upgrade)                      (Patching)
-       fix: apt-mark showhold names sudo: sudo apt-mark unhold sudo, then
-            sudo apt update && sudo apt upgrade -y
-  [8]  Rogue service kbdlight-helper disabled or removed (Malware defenses)
-       fix: sudo systemctl disable --now kbdlight-helper
-            sudo rm /etc/systemd/system/kbdlight-helper.service && \
-                sudo rm -r /opt/.upd6 && sudo systemctl daemon-reload
-            (leave phn-attendance alone: the brief needs it)
-  [7]  Planted root cron job removed                       (Malware defenses)
-       fix: sudo crontab -r (or sudo crontab -e and delete the line), then
-            sudo rm -f /var/tmp/.fsck-helper and
-            sudo pkill -f fsck-helper   (/etc/cron.d/phn-backup stays)
-  [5]  Prohibited media files removed from user home directories
+       fix: getent group sudo shows labuser, hoku, and keahi;
+            sudo gpasswd -d keahi sudo   (keahi keeps the account: the
+            brief lists keahi as a user)
+  [5]  Password history enforced (remember=5 or more)   (Account management)
+       fix: add remember=5 to the pam_unix.so line of
+            /etc/pam.d/common-password in sudo nano, or
+            sudo sed -i '/^password.*pam_unix\.so/ s/$/ remember=5/' \
+                /etc/pam.d/common-password
+  [5]  Empty passwords rejected at sign-in (nullok removed from common-auth)
+                                                          (Account management)
+       fix: grep nullok /etc/pam.d/common-auth shows it on the pam_unix.so
+            line;
+            sudo sed -i -E \
+                's/[[:space:]]+nullok(_secure)?([[:space:]]|$)/\2/' \
+                /etc/pam.d/common-auth
+  [7]  SSH root login disabled (PermitRootLogin no)           (Access control)
+       fix: sudo sshd -T | grep -i permitroot shows yes;
+            sudo sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' \
+                /etc/ssh/sshd_config && sudo systemctl restart ssh
+            (restart it and leave it running: the brief needs SSH)
+  [7]  Setuid bit removed from /usr/local/sbin/pyhelper       (Access control)
+       fix: sudo chmod u-s /usr/local/sbin/pyhelper
+            (deleting the file passes too)
+  [6]  cap_setuid removed from python3.12                     (Access control)
+       fix: sudo getcap -r / 2>/dev/null lists ping with cap_net_raw (it
+            ships that way) and python3.12 with cap_setuid;
+            sudo setcap -r /usr/bin/python3.12
+  [6]  Automatic login disabled in GDM                        (Access control)
+       fix: cat /etc/gdm3/custom.conf shows TimedLoginEnable = true, which
+            signs labuser in after 46 seconds;
+            sudo sed -i 's/^TimedLoginEnable.*/TimedLoginEnable = false/' \
+                /etc/gdm3/custom.conf
+  [7]  Firewall (ufw) enabled                           (Secure configuration)
+       fix: sudo ufw allow 22/tcp
+            sudo ufw enable   (answer y)
+            SSH goes first. With the firewall on and port 22 closed, the
+            Progress Check raises the must-fix flag "Firewall blocks the
+            required SSH service (port 22)", the points hold, and Finish
+            waits until sudo ufw allow 22/tcp lets SSH through.
+  [5]  IPv4 forwarding disabled at boot (sysctl files)  (Secure configuration)
+       fix: grep -rn ip_forward /etc/sysctl.conf /etc/sysctl.d/ names line
+            24 of /etc/sysctl.conf;
+            sudo sed -i 's/^net.ipv4.ip_forward=1/net.ipv4.ip_forward=0/' \
+                /etc/sysctl.conf && sudo sysctl --system
+  [6]  System updates installed (apt upgrade)                      (Patching)
+       fix: do the next check first. While fastdl.list is in place, sudo
+            apt update ends with the error "does not have a Release file",
+            and && stops before the upgrade. Then
+            sudo apt update && sudo apt upgrade -y   (apt-mark showhold
+            prints an empty list here, so every package upgrades)
+  [5]  Untrusted third-party repository removed                    (Patching)
+       fix: grep -rn trusted=yes /etc/apt/ names fastdl.list;
+            sudo rm /etc/apt/sources.list.d/fastdl.list && sudo apt update
+  [7]  Unauthorized software minerd-x removed (cryptocurrency miner)
+                                                            (Malware defenses)
+       fix: dpkg -l | grep minerd shows the package, and ps aux | grep -i
+            miner shows it running as root;
+            sudo apt purge -y minerd-x   (the purge stops the process too)
+  [6]  Prohibited media files removed from user home directories
                                                              (Data protection)
-       fix: the find command in the quick reference; it removes
-            makoa's Videos/skate-clip-6.mp4 and lokelani's
-            Downloads/lunch-playlist-5.flac (playlist-ideas.txt is text)
-  [5]  Audit daemon running with a rule that watches /etc/sudoers (auditd)
-                                                               (Audit logging)
-       fix: sudo apt install -y auditd
-            printf "%s\n" "-w /etc/sudoers -p wa -k sudoers" | \
-                sudo tee /etc/audit/rules.d/50-sudoers.rules
-            sudo augenrules --load && sudo systemctl enable --now auditd
-  [4]  System journal kept across reboots (journald Storage=persistent)
-                                                               (Audit logging)
-       fix: sudo sed -i 's/^Storage=.*/Storage=persistent/' \
-                /etc/systemd/journald.conf
-            sudo systemctl restart systemd-journald
+       fix: sudo find /home -type f \( -iname "*.mp3" -o -iname "*.mp4" \
+                -o -iname "*.m4a" \) -delete
+            It removes keola's Music/talent-show-3.mp3 and
+            Music/game-highlights-6.mp3 and hiwa's
+            Downloads/skate-clip-2.m4a. hiwa's
+            Documents/playlist-ideas.txt is text, and hiwa's hidden
+            ~/.backup-docs holds week-2-plan.txt: both are decoys and stay.
+  [4]  Clock synchronization on (systemd-timesyncd)           (Audit logging)
+       fix: timedatectl status shows "NTP service: inactive";
+            sudo timedatectl set-ntp true
   [5]  Investigation 1 answered                                (Investigation)
   [5]  Investigation 2 answered                                (Investigation)
 
 Availability checks (must-fix flags)
-  - Authorized user removed (keoni, hoku, lokelani, pono, malia, kainoa,
-    kaimi, makoa)
+  - Authorized user removed (hoku, hiwa, nalani, keahi, keola)
        restore: sudo useradd -m -s /bin/bash NAME, then sudo passwd NAME
                 (re-creating an account earns nothing for this attempt)
-  - Authorized administrator removed from sudo (keoni, hoku)
+  - Authorized administrator removed from sudo (hoku)
        restore: sudo usermod -aG sudo NAME
-  - Required service phn-attendance stopped, disabled, or removed
-       restore: sudo systemctl enable --now phn-attendance. If its unit file
-                or its program is gone, Reset lab is the way back.
+  - Required service SSH stopped, disabled, or removed
+       restore: sudo systemctl enable --now ssh. If the package is gone,
+                sudo apt install openssh-server first.
+  - Firewall blocks the required SSH service (port 22)
+       restore: sudo ufw allow 22/tcp, then check with sudo ufw status. A
+                DENY rule for port 22 listed above the ALLOW rule still
+                blocks it: delete it as the status lists it, for example
+                sudo ufw delete deny 22/tcp.
   - Required nightly backup job removed or stopped
-       restore: echo "4 4 * * * root /usr/local/sbin/phn-backup" | sudo tee
+       restore: echo "1 2 * * * root /usr/local/sbin/phn-backup" | sudo tee
                 /etc/cron.d/phn-backup, and sudo systemctl enable --now cron.
                 If /usr/local/sbin/phn-backup is gone too, Reset lab is the
                 way back.
@@ -1201,6 +1247,9 @@ Editors
     prompt), NAME=value variables, and set -e, -u, -x, and -o pipefail, as
     bash does. if, while, until, case, and select blocks, command
     substitution with $( ), and scripts run on a real shell.
+  - A line that ends with \ continues at the "> " prompt, as in bash. A
+    quote left open at the end of a line is an error here; bash would
+    wait at "> " for the closing quote.
   - systemctl --user reaches the signed-in account's own user manager. For
     other accounts, read the files in their ~/.config/systemd/user: their
     managers run only while they are signed in.

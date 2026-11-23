@@ -514,7 +514,7 @@ Checks (27, 100 points):
    9. Domain name set and 2048-bit RSA key generated (4 pts) [Access control]
         S1(config)# ip domain-name pualane.lan
         S1(config)# crypto key generate rsa general-keys modulus 2048
-        why: No key, no SSH server.
+        why: The SSH server needs a key before it can start.
   10. SSH version 2 enforced (3 pts) [Access control]
         S1(config)# ip ssh version 2
         why: Disables the weaker protocol version.
@@ -1302,18 +1302,33 @@ with its restore step, and holds Finish until it works again):
   (https://freeapp4that.store/defense-ladder/#junior/j4).
 
 How layouts work:
-  - Each attempt builds Site B from a layout code: six characters from
-    A C D E F H J K M N P R T U V W X Y 3 4 7 (letters and digits that are
-    hard to mix up). The code seeds a small random-number generator inside
-    the page, so the same code builds the identical Site B in any browser,
-    on any day. A teacher can hand a whole class one code.
-  - The code shows in the scenario header, the Progress Check, the Debrief,
-    and the copied Debrief text. "New layout" builds a different Site B;
-    "Enter a layout code" builds the one you type (case and spaces do not
-    matter). Reset lab rebuilds the same layout as delivered.
-  - The reserved code CLASSIC is the original build from factory defaults
-    in section 3.4. A Level 4 save from before layouts existed opens as
+  - Each attempt builds Site B from a layout code: six characters from the
+    digits 2 to 9 and the letters A to Z without I, L, or O (31 characters that
+    are hard to mix up). The first five pick the layout, and the sixth is a
+    check character worked out from them. The Windows Range and the Linux Range
+    read codes by the same rule, so a code that is valid in one Range is valid
+    in all three, and each Range builds its own machine from it.
+  - The code seeds a small random-number generator inside the page, so the same
+    code builds the identical Site B in any browser, on any day. A teacher can
+    hand a whole class one code.
+  - The code shows in the scenario header, the Progress Check, the Debrief, and
+    the copied Debrief text. "New layout" builds a different Site B. "Enter a
+    layout code" builds the one you type; lower case, spaces, and hyphens are
+    fine. One changed character, or two neighboring characters swapped, fails
+    the check character: the dialog names what you typed, asks you to compare it
+    with the code you were given, one character at a time, and keeps your
+    current layout. An entry of another length is told how many characters it
+    has. Reset lab rebuilds the same layout as delivered.
+  - The reserved code CLASSIC is the original build from factory defaults in
+    section 3.4. It is a word the page accepts as it is, outside the
+    check-character rule. A Level 4 save from before layouts existed opens as
     CLASSIC, so it keeps working.
+  - An attempt or a best score saved under a code from an earlier version of
+    this page (six characters from before the check character) stays safe: it
+    opens with the same Site B, points, and Debrief, and Reset lab rebuilds it.
+    Typed into the dialog, such a code is refused with that reason (it comes
+    from an earlier version of the page), so finish that attempt where it is,
+    and use "New layout" for a code to share.
   - The Level 4 pill keeps one best score for Level 4 as a whole, with the
     layout it came from, and the page remembers the last layout code.
   - What stays fixed in every layout: the topology, the Site A / Site B
@@ -1455,126 +1470,157 @@ The fault pool, by hardening area (how to find each kind, then the fix):
   time-out 60 with authentication-retries 2, and a parked port described
   "Spare - library cart".
 
-Worked example: layout 3RUMKU
-  Enter it with "Enter a layout code". The brief says Student-B uses SwB
-  Fa0/4 and Teacher-B (Keola's classroom PC) uses SwB Fa0/11, netadmin is
-  the only authorized account on SwB and RtrB, and all three paths fail
-  today. Handover note: SwB console password Akala-Pueo-49@, enable
-  Mauna-Lehua-10@, netadmin secret Honu-Naio-79!; RtrB console password
-  phn123 (short), enable Mamo-Iwa-13#, netadmin secret Pueo-Mamo-41#; the
-  SwB RSA key was generated at 1024 bits.
+Worked example: layout 3UP6VE
+  Enter it with "Enter a layout code". The brief says Student-B uses SwB Fa0/8
+  and Teacher-B (Nohea's classroom PC) uses SwB Fa0/2. netadmin is authorized on
+  SwB and RtrB, and kanoa (the complex-area sysadmin) on SwB. Two paths fail
+  today: Student-B cannot reach Teacher-B, and Teacher-B cannot reach Teacher-A.
+  Handover note: SwB console password Hala-Honu-10#, enable Hala-Ohia-35#,
+  netadmin secret Akala-Kolea-16%; RtrB console password console (short), enable
+  Honu-Naio-34!, netadmin secret Ulu-Akala-75%.
+  What the devices show when you arrive (read first, change nothing yet):
+    RtrB# show running-config | include username
+      username koa privilege 15 password 7 ...   (koa is a student)
+      username netadmin privilege 15 secret 5 ...
+    RtrB# show access-lists 20
+      10 permit 10.1.20.0, wildcard bits 0.0.0.255
+      20 permit 10.2.20.0, wildcard bits 0.0.0.255
+      30 permit 10.2.10.0, wildcard bits 0.0.0.255   (Site B Students)
+    RtrB# show running-config | section line vty
+      line vty 5 15 ends with transport input telnet
+    RtrB# show ip ssh
+      SSH Enabled - version 1.99   (version 1 still answers)
+    SwB# show vlan brief
+      10   STUDENTS   active   Fa0/2, Fa0/8   (Fa0/2 belongs in VLAN 20)
+    SwB# show running-config | section line vty
+      line vty 0 4 carries exec-timeout 0 0
+    SwB# show running-config interface fa0/8
+      switchport port-security, with the mac-address sticky line missing
+    SwB# show cdp interface
+      lists Fa0/2 (CDP still on); Fa0/8 is absent, as the policy wants
+    SwB# show running-config | include banner
+      prints the login banner only: the MOTD banner is missing
+    SwB# show running-config | include min-length
+      prints nothing: the minimum length is unset
   Investigation answers (answer them first):
-    1. Which VLAN is SwB Fa0/11 (Teacher-B) in when you arrive?  10
-    2. Unauthorized account on RtrB?  vendor
-    3. Which RtrB subinterface is administratively down?
-       GigabitEthernet0/0.10
-  Checks (19, 100 points):
-     1. Unauthorized account "vendor" removed from RtrB (8 pts) [Account
-        management]  RtrB(config)# no username vendor
-     2. Minimum password length 10 or more on RtrB (4 pts) [Account
-        management]  RtrB(config)# security passwords min-length 10
-     3. login local on every RtrB VTY line (6 pts) [Access control]
-        RtrB(config)# line vty 0 15
-        RtrB(config-line)# login local
-     4. Short console password on RtrB replaced with a passphrase of 10+
+    1. Unauthorized account on RtrB?  koa
+    2. Access list 20 on RtrB permits one source outside the Teachers
+       subnets. Which one?  10.2.10.0
+    3. Which VLAN is SwB Fa0/2 (Teacher-B) in when you arrive?  10
+  Checks (17, 100 points):
+     1. Unauthorized account "koa" removed from RtrB (9 pts) [Account
+        management]
+        RtrB(config)# no username koa
+     2. Minimum password length 10 or more on SwB (5 pts) [Account management]
+        SwB(config)# security passwords min-length 10
+     3. Short console password on RtrB replaced with a passphrase of 10+
         characters (6 pts) [Access control]
         RtrB(config)# line console 0
         RtrB(config-line)# password <a new passphrase of 10+ characters>
         RtrB(config-line)# login
-     5. DNS lookups off on RtrB (no ip domain-lookup) (3 pts) [Secure
-        configuration]  RtrB(config)# no ip domain-lookup
-     6. PortFast and BPDU guard on both SwB PC ports, with the G0/1 trunk
-        free of PortFast (6 pts) [Secure configuration]
-        SwB(config)# interface g0/1
-        SwB(config-if)# no spanning-tree portfast trunk
-     7. Exec timeout under 10 minutes on every RtrB console and VTY line (4
-        pts) [Access control]  (the console had exec-timeout 30 0)
-        RtrB(config)# line console 0
-        RtrB(config-line)# exec-timeout 5 0
-     8. SwB G0/1 native VLAN 99, matching RtrB G0/0.99 (5 pts) [Secure
-        configuration]
-        SwB(config)# interface g0/1
-        SwB(config-if)# switchport trunk native vlan 99
-     9. SwB SSH uses a 2048-bit RSA key and version 2 only (7 pts) [Access
-        control]
-        SwB(config)# crypto key generate rsa general-keys modulus 2048
-        (answer yes to replace the key)
-        SwB(config)# ip ssh version 2
-    10. SNMP community "private" removed from RtrB (5 pts) [Secure
-        configuration]  RtrB(config)# no snmp-server community private
-    11. RtrB GigabitEthernet0/0.10 enabled (no shutdown) (7 pts)
-        [Troubleshooting]
-        RtrB(config)# interface g0/0.10
-        RtrB(config-subif)# no shutdown
-    12. SwB Fa0/11 (Teacher-B) back in VLAN 20 (7 pts) [Troubleshooting]
-        SwB(config)# interface fa0/11
+     4. SSH only on every RtrB VTY line (transport input ssh) (8 pts) [Access
+        control]  (line vty 5 15 had transport input telnet)
+        RtrB(config)# line vty 0 15
+        RtrB(config-line)# transport input ssh
+     5. Port security on SwB Fa0/8 (Student-B): sticky, maximum 1 or 2,
+        violation shutdown or restrict (6 pts) [Access control]  (the sticky
+        line was missing)
+        SwB(config)# interface fa0/8
+        SwB(config-if)# switchport port-security mac-address sticky
+     6. RtrB VTY lines filtered by access list 20: Teachers subnets only,
+        access-class 20 in on every line (8 pts) [Access control]  (entry 30 let
+        the Site B Students subnet in)
+        RtrB(config)# ip access-list standard 20
+        RtrB(config-std-nacl)# no 30
+     7. MOTD banner on SwB (without "welcome") (5 pts) [Secure configuration]
+        SwB(config)# banner motd #Authorized school staff only. Activity is
+            monitored.#
+     8. CDP off on both SwB PC ports (no cdp enable) (3 pts) [Secure
+        configuration]  (Fa0/2 still sent CDP)
+        SwB(config)# interface fa0/2
+        SwB(config-if)# no cdp enable
+     9. Exec timeout under 10 minutes on every SwB console and VTY line (4 pts)
+        [Access control]  (line vty 0 4 had exec-timeout 0 0)
+        SwB(config)# line vty 0 15
+        SwB(config-line)# exec-timeout 5 0
+    10. RtrB SSH uses a 2048-bit RSA key and version 2 only (8 pts) [Access
+        control]  (the 2048-bit key was already there)
+        RtrB(config)# ip ssh version 2
+    11. SwB Fa0/2 (Teacher-B) back in VLAN 20 (8 pts) [Troubleshooting]
+        SwB(config)# interface fa0/2
         SwB(config-if)# switchport access vlan 20
-    13. Student-B reaches Teacher-B again (5 pts) [Troubleshooting]
+    12. Student-B reaches Teacher-B again (6 pts) [Troubleshooting]
         Student-B> ping 10.2.20.10
-    14. Teacher-B reaches Teacher-A across the inter-site link again (5
-        pts) [Troubleshooting]  Teacher-B> ping 10.1.20.10
-    15. Student-B reaches the resolver at 8.8.8.8 again (5 pts)
-        [Troubleshooting]  Student-B> ping 8.8.8.8
-    16. Every fix saved on SwB and RtrB (copy running-config
-        startup-config) (5 pts) [Secure configuration]
+    13. Teacher-B reaches Teacher-A across the inter-site link again (6 pts)
+        [Troubleshooting]
+        Teacher-B> ping 10.1.20.10
+    14. Every fix saved on SwB and RtrB (copy running-config startup-config) (6
+        pts) [Secure configuration]
         # copy running-config startup-config (on both devices)
-    17-19. Investigation 1, 2, and 3 answered (4 pts each).
-  Decoy: SwB Fa0/14 carries the description "Spare - library cart" and
-  stays shut and parked, as the policy wants.
-  Availability checks for this layout (must fix). The first two match 3.4:
-  "Site A device (SwA or RtrA) or the ISP router changed" and "Site A
-  Teachers locked out of SSH to SwB or RtrB", with the same restore steps.
-  The three paths fail when you arrive, so they raise no flag until they work;
-  after that, breaking one again is a must-fix flag. Teacher-A's SSH to SwB
-  and RtrB works when you arrive, so those two checks protect it from the
-  start.
+    15-17. Investigation 1, 2, and 3 answered (4 pts each).
+  Checks 12 and 13 pass the moment the VLAN fix of check 11 lands, because one
+  fault broke both paths; the two pings confirm them. Solved in this order, the
+  Progress Check reads 12 after the three answers, then 21, 26, 32, 40, 46, 54,
+  59, 62, 66, 74, 94 after the VLAN fix, and 100 once both devices are saved.
+  Decoys: kanoa on SwB is in the brief's Authorized Administrators, so the
+  account stays (removing it raises a must-fix flag). SwB also carries ip ssh
+  time-out 60 and ip ssh authentication-retries 2: tuned SSH timers, which the
+  policy allows.
+  Availability checks for this layout (must fix). The first two match 3.4: "Site
+  A device (SwA or RtrA) or the ISP router changed" and "Site A Teachers locked
+  out of SSH to SwB or RtrB", with the same restore steps. Student-B's path to
+  Teacher-B and Teacher-B's path to Teacher-A fail when you arrive, so they
+  start without a flag; once they work, breaking one again is a must-fix flag.
+  Student-B's path to the resolver and Teacher-A's SSH to SwB and RtrB work
+  when you arrive, so those three checks protect them from the start.
   - Fails if: Authorized account "netadmin" removed from SwB
-        restore: Add the account back on SwB: configure terminal, then
-        username netadmin privilege 15 secret <a secret of 10+ characters>,
-        and save with copy running-config startup-config. A console that uses
-        login local needs the account to sign in, so add it before you log
-        out.
+        restore: Add the account back on SwB: configure terminal, then username
+        netadmin privilege 15 secret <a secret of 10+ characters>, and save with
+        copy running-config startup-config. A console that uses login local
+        needs the account to sign in, so add it before you log out.
   - Fails if: Authorized account "netadmin" removed from RtrB
-        restore: Add the account back on RtrB: configure terminal, then
-        username netadmin privilege 15 secret <a secret of 10+ characters>,
-        and save with copy running-config startup-config. A console that uses
-        login local needs the account to sign in, so add it before you log
-        out.
+        restore: Add the account back on RtrB: configure terminal, then username
+        netadmin privilege 15 secret <a secret of 10+ characters>, and save with
+        copy running-config startup-config. A console that uses login local
+        needs the account to sign in, so add it before you log out.
+  - Fails if: Authorized account "kanoa" removed from SwB
+        restore: Add the account back on SwB: configure terminal, then username
+        kanoa privilege 15 secret <a secret of 10+ characters>, and save with
+        copy running-config startup-config. A console that uses login local
+        needs the account to sign in, so add it before you log out.
   - Fails if: Required path broken: Student-B cannot reach Teacher-B
-        restore: Keep each piece of the path up: SwB Fa0/4 and Fa0/11 up as
+        restore: Keep each piece of the path up: SwB Fa0/8 and Fa0/2 up as
         access ports in VLANs 10 and 20, the SwB G0/1 trunk allowing
         10,20,30,99, and RtrB g0/0.10 and g0/0.20 up. After a VLAN change, run
-        ipconfig /renew on Student-B. Test with ping 10.2.20.10 from
-        Student-B.
+        ipconfig /renew on Student-B. Test with ping 10.2.20.10 from Student-B.
   - Fails if: Required path broken: Teacher-B cannot reach Teacher-A
-        restore: Keep each piece of the path up: SwB Fa0/11 up in VLAN 20,
-        Teacher-B's gateway 10.2.20.1, the SwB G0/1 trunk allowing VLAN 20,
-        and RtrB g0/0.20 and G0/2 up with its OSPF process as delivered. Test
-        with ping 10.1.20.10 from Teacher-B.
+        restore: Keep each piece of the path up: SwB Fa0/2 up in VLAN 20,
+        Teacher-B's gateway 10.2.20.1, the SwB G0/1 trunk allowing VLAN 20, and
+        RtrB g0/0.20 and G0/2 up with its OSPF process as delivered. Test with
+        ping 10.1.20.10 from Teacher-B.
   - Fails if: Required path broken: Student-B cannot reach the resolver at
     8.8.8.8
-        restore: Keep each piece of the path up: SwB Fa0/4 up in VLAN 10, the
+        restore: Keep each piece of the path up: SwB Fa0/8 up in VLAN 10, the
         SwB G0/1 trunk allowing VLAN 10, RtrB g0/0.10 and G0/1 up, the EDGE-IN
         list and the host route to 8.8.8.8 as delivered. After a VLAN change,
-        run ipconfig /renew on Student-B. Test with ping 8.8.8.8 from
-        Student-B.
+        run ipconfig /renew on Student-B. Test with ping 8.8.8.8 from Student-B.
   - Fails if: Required service broken: Teacher-A cannot SSH to SwB (10.2.20.2)
     as netadmin
-        restore: Put back each piece Teacher-A uses to reach SwB: interface
-        vlan 20 up at 10.2.20.2 with ip default-gateway 10.2.20.1, the SwB
-        G0/1 trunk allowing VLAN 20, and RtrB g0/0.20 and G0/2 up, a 2048-bit
-        RSA key with ip ssh version 2, every VTY line with transport input
-        ssh, login local, and access-class 20 in, access list 20 permitting
-        both Teachers subnets, and the netadmin account. Test with ssh -l
-        netadmin 10.2.20.2 from Teacher-A.
-  - Fails if: Required service broken: Teacher-A cannot SSH to RtrB
-    (10.2.20.1) as netadmin
-        restore: Put back each piece Teacher-A uses to reach RtrB: RtrB
-        g0/0.20 (10.2.20.1) and G0/2 up with its OSPF process as delivered, a
-        2048-bit RSA key with ip ssh version 2, every VTY line with transport
-        input ssh, login local, and access-class 20 in, access list 20
-        permitting both Teachers subnets, and the netadmin account. Test with
-        ssh -l netadmin 10.2.20.1 from Teacher-A.
+        restore: Put back each piece Teacher-A uses to reach SwB: interface vlan
+        20 up at 10.2.20.2 with ip default-gateway 10.2.20.1, the SwB G0/1 trunk
+        allowing VLAN 20, and RtrB g0/0.20 and G0/2 up, a 2048-bit RSA key with
+        ip ssh version 2, every VTY line with transport input ssh, login local,
+        and access-class 20 in, access list 20 permitting both Teachers subnets,
+        and the netadmin account. Test with ssh -l netadmin 10.2.20.2 from
+        Teacher-A.
+  - Fails if: Required service broken: Teacher-A cannot SSH to RtrB (10.2.20.1)
+    as netadmin
+        restore: Put back each piece Teacher-A uses to reach RtrB: RtrB g0/0.20
+        (10.2.20.1) and G0/2 up with its OSPF process as delivered, a 2048-bit
+        RSA key with ip ssh version 2, every VTY line with transport input ssh,
+        login local, and access-class 20 in, access list 20 permitting both
+        Teachers subnets, and the netadmin account. Test with ssh -l netadmin
+        10.2.20.1 from Teacher-A.
   Other layouts follow the same pattern: one "Authorized account" check per
   account and device in the brief, the three path checks with that layout's
   ports in their restore steps, and the two Teacher-A SSH checks.

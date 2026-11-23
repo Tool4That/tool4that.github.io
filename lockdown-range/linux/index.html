@@ -2,7 +2,7 @@
 <html lang="en">
 <head><meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-FA0K7MmmBJ+gLvTM24S7yL5Ia7Y8QxTD9uuBnO37Hi0='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-fnLzbBz7tX6+joSOgT0JB+qdkaVZuO2jlDf6UrfZr50='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/lockdown-range/linux/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%96%A5%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -21,20 +21,26 @@
 
 :root{
   --bg:#EDF0F4; --panel:#FFFFFF; --ink:#16212D; --muted:#5F6E7E; --line:#CFD7E0; --soft:#F4F6F9;
-  --term:#0E1A2B; --termink:#D9E4F1; --prompt:#7FA6D6; --accent:#B8690E; --accent-ink:#FFFFFF; --pill-on:#965509;
-  --ok:#1C8A57; --okbg:#E3F5EB; --bad:#C03A3A; --badbg:#FBE7E7; --warn:#A8690F; --warnbg:#FBF0DA; --focus:#FFB300;
+  --term:#0E1A2B; --termink:#D9E4F1; --prompt:#7FA6D6; --accent:#B8690E; --accent-ink:#FFFFFF; --pill-on:#965509; --accent-fill:#AA600B; --accent-text:#965509; --warn-ink:#8F5A0C;
+  --ok:#1C8A57; --okbg:#E3F5EB; --bad:#C03A3A; --badbg:#FBE7E7; --warn:#A8690F; --warnbg:#FBF0DA; --ring:#16212D; --ring-halo:#FFB300; --focus:var(--ring); --focus-halo:var(--ring-halo);
   --sans:"Segoe UI Variable Text","Segoe UI","Avenir Next",Avenir,Roboto,"Helvetica Neue",Arial,sans-serif;
   --mono:"Cascadia Mono","JetBrains Mono","Fira Code","SF Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
   box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
-@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){ --bg:#111922; --panel:#182330; --ink:#E7EEF6; --muted:#9DACBC; --line:#2B3A4B; --soft:#1F2B3A; --term:#0A121D; --termink:#D6E2F0; --okbg:#143524; --badbg:#3A1B1B; --warnbg:#3A2C12; } }
-:root[data-theme="dark"]{ --bg:#111922; --panel:#182330; --ink:#E7EEF6; --muted:#9DACBC; --line:#2B3A4B; --soft:#1F2B3A; --term:#0A121D; --termink:#D6E2F0; --okbg:#143524; --badbg:#3A1B1B; --warnbg:#3A2C12; }
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){ --bg:#111922; --panel:#182330; --ink:#E7EEF6; --muted:#9DACBC; --line:#2B3A4B; --soft:#1F2B3A; --term:#0A121D; --termink:#D6E2F0; --okbg:#143524; --badbg:#3A1B1B; --warnbg:#3A2C12; --accent-text:#E8A04C; --warn-ink:#E3A64B; --ring:#FFB300; --ring-halo:#0B1118; } }
+:root[data-theme="dark"]{ --bg:#111922; --panel:#182330; --ink:#E7EEF6; --muted:#9DACBC; --line:#2B3A4B; --soft:#1F2B3A; --term:#0A121D; --termink:#D6E2F0; --okbg:#143524; --badbg:#3A1B1B; --warnbg:#3A2C12; --accent-text:#E8A04C; --warn-ink:#E3A64B; --ring:#FFB300; --ring-halo:#0B1118; }
 *,*::before,*::after{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font:16px/1.5 var(--sans);min-height:100vh}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
-:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+/* the keyboard focus ring has two tones, so one of them reads on any surface: the ring itself (--focus) and a second
+   color between the ring and the control (--focus-halo). On the page's own surfaces the ring is dark in the light
+   theme and amber in the dark theme; the dark parts of the machine screen keep the amber ring in both themes */
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px;box-shadow:0 0 0 2px var(--focus-halo)}
+.login,.desk,.term{--focus:#FFB300;--focus-halo:#0B1118}
+.win-body,.dlg{--focus:var(--ring);--focus-halo:var(--ring-halo)}
+a{color:var(--accent-text)}
 [hidden]{display:none !important}
 code{font:.9em var(--mono);background:var(--soft);border-radius:4px;padding:0 .25em;word-break:break-word}
 /* header */
@@ -45,10 +51,11 @@ header.top{position:sticky;top:0;z-index:60;background:var(--panel);border-botto
 .levels{display:flex;gap:.35rem;margin-left:auto;flex-wrap:wrap}
 .levels button,.theme,.ghost,.ubtn,.dlg button,.win-body .tool button,.mtool button,.report .fin{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:.2rem .8rem;min-height:32px;color:var(--ink)}
 .levels button{border-radius:999px;background:var(--soft)}
-.levels button[aria-selected="true"],.ubtn.primary,.dlg button.primary,.win-body .tool button.primary,.report .fin{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+/* white text on orange: --accent-fill gives 4.5:1 or better in both themes (--accent itself stays for borders and bars) */
+.levels button[aria-selected="true"],.ubtn.primary,.dlg button.primary,.win-body .tool button.primary,.report .fin{background:var(--accent-fill);color:var(--accent-ink);border-color:var(--accent-fill)}
 .levels .adv-pill{border-style:dashed}
 /* the selected level pill: a deeper orange, so its white text reads at 4.5:1 or better in both themes */
-.levels button[aria-selected="true"]{background:var(--pill-on);border-color:var(--pill-on)}
+.levels button[aria-selected="true"]{background:var(--pill-on);border-color:var(--accent-text)}
 .report .adv-note{font-size:.85rem;color:var(--muted);margin:.15rem 0 .5rem;line-height:1.4}
 .mtool .adv-chip{font-weight:700;letter-spacing:.04em}
 .score{font-variant-numeric:tabular-nums;font-weight:700;padding:0 .75rem;border-radius:8px;background:var(--soft);min-height:32px;display:flex;align-items:center;white-space:nowrap}
@@ -58,7 +65,7 @@ header.top{position:sticky;top:0;z-index:60;background:var(--panel);border-botto
 .score .held-tag{font-size:.78rem;font-weight:600;line-height:1.3;color:var(--ink);background:var(--warnbg);border:1px solid var(--warn);border-radius:6px;padding:1px 6px}
 nav.series{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;padding:.3rem 1rem .4rem;border-top:1px solid var(--line);font-size:.82rem;color:var(--muted)}
 nav.series .jack{border:1px solid var(--line);border-radius:999px;padding:1px 10px;background:var(--soft);color:var(--ink);text-decoration:none}
-nav.series .jack.on,nav.series .jack.here{border-color:var(--accent);color:var(--accent);font-weight:600}
+nav.series .jack.on,nav.series .jack.here{border-color:var(--accent);color:var(--accent-text);font-weight:600}
 nav.series a.jack:hover,nav.series a.jack:focus-visible{border-color:var(--accent);text-decoration:none}
 /* layout */
 .wrap{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:1rem;padding:1rem;max-width:1640px;margin:0 auto;align-items:start}
@@ -167,7 +174,7 @@ footer button{border:1px solid var(--bad);color:var(--bad);background:var(--pane
 .ed .bar1{white-space:pre;overflow:hidden;font-weight:600}
 .ed .status{min-height:1.35em}
 .ed .status.left{text-align:left;background:transparent;color:inherit}
-.ed textarea{flex:1;min-height:0;background:transparent;color:inherit;border:0;resize:none;outline:0;font:inherit;padding:2px 6px;white-space:pre;overflow:auto;line-height:1.35}
+.ed textarea{flex:1;min-height:0;background:transparent;color:inherit;border:0;resize:none;outline:0;box-shadow:none;font:inherit;padding:2px 6px;white-space:pre;overflow:auto;line-height:1.35}
 .ed textarea.ro{caret-color:transparent}
 .ed .keys{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:0 4px;padding:0 6px;font-size:.85em;white-space:nowrap;overflow:hidden}
 .ed .keys b{background:var(--termink);color:var(--term);font-weight:600;padding:0 2px;margin-right:4px}
@@ -176,12 +183,12 @@ footer button{border:1px solid var(--bad);color:var(--bad);background:var(--pane
 .files{display:flex;flex:1;min-height:0}
 .files .side{width:150px;flex:0 0 150px;border-right:1px solid var(--line);background:var(--soft);padding:6px 0;overflow:auto}
 .files .side button{display:block;width:100%;text-align:left;border:0;background:none;padding:5px 12px;min-height:30px}
-.files .side button.on{background:var(--accent);color:var(--accent-ink)}
+.files .side button.on{background:var(--accent-fill);color:var(--accent-ink)}
 .files .list{flex:1;overflow:auto;min-width:0}
 .files table{width:100%;border-collapse:collapse;font-size:13px}
 .files th{text-align:left;font-weight:600;color:var(--muted);padding:4px 8px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel)}
 .files td{padding:4px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px}
-.files tr.sel td{background:var(--accent);color:var(--accent-ink)}
+.files tr.sel td{background:var(--accent-fill);color:var(--accent-ink)}
 .files td.n{display:flex;align-items:center;gap:8px}
 .files td.n svg{width:18px;height:18px;flex:0 0 18px}
 .files .empty{padding:20px;color:var(--muted);text-align:center}
@@ -190,7 +197,7 @@ footer button{border:1px solid var(--bad);color:var(--bad);background:var(--pane
 .ctx button:hover{background:var(--soft)}
 .ctx hr{border:0;border-top:1px solid var(--line);margin:3px 0}
 /* text editor, scenario brief, updater */
-.ta{flex:1;min-height:0;width:100%;border:0;resize:none;outline:0;padding:8px 10px;font:.9rem/1.4 var(--mono);background:var(--panel);color:var(--ink);white-space:pre;overflow:auto}
+.ta{flex:1;min-height:0;width:100%;border:0;resize:none;outline:0;box-shadow:none;padding:8px 10px;font:.9rem/1.4 var(--mono);background:var(--panel);color:var(--ink);white-space:pre;overflow:auto}
 .doc{flex:1;overflow:auto;padding:14px 18px;font-size:14px;line-height:1.5;-webkit-user-select:text;user-select:text}
 .doc h1{font-size:1.35rem;margin:.2rem 0 .6rem}.doc h2{font-size:1.05rem;margin:1rem 0 .3rem;border-bottom:1px solid var(--line)}
 .doc .warn{background:var(--warnbg);border-left:4px solid var(--warn);padding:6px 10px;margin:.6rem 0}
@@ -237,7 +244,7 @@ ul.mustfix li .restore{display:block;color:var(--ink);font-size:.86rem;margin-to
 .dbr-avail ul{margin:.25rem 0 0;padding-left:1.1rem}
 .dbr-avail li{margin:.2rem 0;overflow-wrap:anywhere}
 .rate-strong{color:var(--ok)}
-.rate-revisit{color:var(--warn)}
+.rate-revisit{color:var(--warn-ink)}
 .report .todo li{color:var(--muted)}
 .report .hintbtn{border:1px solid var(--line);background:var(--soft);border-radius:6px;padding:0 .5rem;font-size:.78rem;min-height:26px;margin-left:.4rem;color:var(--ink)}
 .report .hint{display:block;margin-top:.25rem;font-size:.85rem;color:var(--ink);background:var(--soft);border-radius:6px;padding:.3rem .5rem}
@@ -1205,12 +1212,33 @@ function ps1(sh) {
 }
 
 /* ---- running a line ---- */
+/* a line that ends in a backslash continues on the next line: bash reads the rest at the "> " prompt and drops the
+   backslash and the line break (inside single quotes a backslash is an ordinary character) */
+function lineContinues(line) {
+  let q = 'n';
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (q === 's') { if (c === "'") q = 'n'; continue; }
+    if (c === '\\') { if (i === line.length - 1) return true; i++; continue; }
+    if (c === "'" && q === 'n') q = 's'; else if (c === '"') q = q === 'd' ? 'n' : 'd';
+  }
+  return false;
+}
+function joinContinued(text) { return String(text).replace(/\\\r?\n/g, ''); }
+async function readContinued(term, line) {
+  while (line != null && line !== '\u0004' && lineContinues(line)) {
+    const more = await term.readLine({ prompt: '> ' });
+    line = line.slice(0, -1) + (more == null ? '' : more);
+    if (more == null) break;
+  }
+  return line;
+}
 async function runLine(term, sh, line) {
   sh.aborted = false;
   let parsed = parseLine(line);
   // a loop or block still open at the end of the line: bash reads the rest at the "> " prompt
   while (!parsed.err && blocksOpen(parsed.list)) {
-    const more = await term.readLine({ prompt: '> ' });
+    const more = await readContinued(term, await term.readLine({ prompt: '> ' }));
     if (more == null) { term.write('bash: syntax error: unexpected end of file\n'); sh.last = 2; return 2; }
     line += '\n' + more; parsed = parseLine(line);
   }
@@ -1421,7 +1449,7 @@ class Term {
     this.el.addEventListener('touchend', () => { if (!this.overlay) this.focus(); });
     this.kbd.addEventListener('keydown', e => this.onKey(e));
     this.kbd.addEventListener('input', () => { const v = this.kbd.value; this.kbd.value = ''; if (v && this.read && !this.read.pending) this.insert(v.replace(/[\r\n]/g, '')); });
-    this.kbd.addEventListener('paste', e => { e.preventDefault(); let t = (e.clipboardData || window.clipboardData).getData('text') || ''; const nl = t.indexOf('\n'); if (nl >= 0) t = t.slice(0, nl); this.insert(t.replace(/\r/g, '')); });
+    this.kbd.addEventListener('paste', e => { e.preventDefault(); let t = joinContinued((e.clipboardData || window.clipboardData).getData('text') || ''); const nl = t.indexOf('\n'); if (nl >= 0) t = t.slice(0, nl); this.insert(t.replace(/\r/g, '')); });
     this.kbd.addEventListener('focus', () => this.el.classList.remove('blur'));
     this.kbd.addEventListener('blur', () => this.el.classList.add('blur'));
   }
@@ -7231,7 +7259,8 @@ async function shellLoop(term) {
     if (term.dead) return;
     const p = ps1(sh); if (term.onPrompt) term.onPrompt(p.title);
     let line;
-    try { line = await term.readLine({ prompt: p.text, shell: true }); }
+    // a line that ends in a backslash continues at the "> " prompt (readContinued), as a command printed across lines does
+    try { line = await readContinued(term, await term.readLine({ prompt: p.text, shell: true })); }
     catch (e) { if (e && e.abort) { continue; } throw e; }
     if (line === '\u0004') { term.write('logout\n'); if (sh.stack.length > 1) { popLevel(term, sh); continue; } shReset(sh); return 'exit'; }
     line = line.trim();
@@ -8002,7 +8031,7 @@ const SCENARIOS = [
   {
     id: 'operator', level: 2, name: 'Operator', title: 'Lanikai Book Nook — patron PC', flavor: 'mint', gui: true, hostname: 'mint-lab', flavorLabel: 'Linux Mint ' + FLAVORS.mint.release + ' Shared Workstation',
     student: { user: 'labuser', pw: 'Medium!2026' }, admins: ['labuser', 'mkoa'], authorizedUsers: ['hina', 'keanu', 'jace', 'nalu', 'aria'], studentHome: '/home/labuser',
-    brief: { company: 'Lanikai Book Nook, a bookshop with patron computers (reading-corner PC #3)', blurb: 'Patrons sign in with their own accounts to use this shared Linux Mint PC in the reading corner. The shop technician (mkoa) maintains it. Several patrons complained that the computer was already logged in when they sat down, and the technician found a strange "update helper" running.', services: ['No network services are required on this machine. It only needs to stay usable for patrons.'], policy: ['Only the Authorized Administrators may have sudo rights.', 'Shared computers must never log in automatically and must not offer a guest session.', 'Every account needs a password; passwords must be at least 10 characters, cannot reuse the last 5, and accounts lock after repeated failed logins.', 'No media files and no unauthorized software (cryptocurrency miners, remote-shell servers).', 'The firewall must be on and security updates must install automatically.', 'Only approved apps stay installed, Flatpak apps included, and every AppArmor profile runs in enforce mode.'] },
+    brief: { company: 'Lanikai Book Nook, a bookshop with patron computers (reading-corner PC #3)', blurb: 'Patrons sign in with their own accounts to use this shared Linux Mint PC in the reading corner. The shop technician (mkoa) maintains it. Several patrons complained that the computer was already logged in when they sat down, and the technician found a strange "update helper" running.', services: ['No network services are required on this machine. It only needs to stay usable for patrons.'], policy: ['Only the Authorized Administrators may have sudo rights.', 'Shared computers must never log in automatically and must not offer a guest session.', 'Every account needs a password; passwords must be at least 10 characters, cannot reuse the last 5, and accounts lock after repeated failed logins.', 'Media files and unauthorized software (cryptocurrency miners, remote-shell servers) stay off this machine.', 'The firewall must be on and security updates must install automatically.', 'Only approved apps stay installed, Flatpak apps included, and every AppArmor profile runs in enforce mode.'] },
     loginDefs: { PASS_MAX_DAYS: 180, PASS_MIN_DAYS: 1, PASS_WARN_AGE: 7 }, pwqualityLine: 'pam_pwquality.so retry=3', autoUpgrades: { lists: '1', unattended: '0' },
     lightdm: '[Seat:*]\nautologin-user=labuser\nautologin-user-timeout=0\nallow-guest=true\nuser-session=cinnamon\n',
     packages: ['libpam-pwquality', 'minerd-x', 'telnetd'],
@@ -8027,7 +8056,7 @@ const SCENARIOS = [
     lastLog: [{ u: 'sysadm', tty: 'pts/1', from: '', ago: 70000, dur: '(00:09)' }, { u: 'dax', tty: 'tty7', from: ':0', ago: 260000, dur: '(02:30)' }],
     questions: [{ text: 'Which user account other than root has a UID of 0?', hint: "Hint: awk -F: '$3 == 0' /etc/passwd", answers: ['sysadm'] }, { text: 'A patron hid a folder of unauthorized tools inside their home directory. What is the full path of that hidden directory?', hint: 'Hint: ls -la shows hidden entries; try sudo ls -la /home/*', answers: ['/home/jace/.hidden_tools', '/home/jace/.hidden_tools/'] }],
     checks: [CK.userGone('dax', 5), CK.demote('keanu', 6), CK.uid0('sysadm', 6), CK.blankPw('aria', 6),
-      { id: 'guest', title: 'Guest session disabled in LightDM (allow-guest=false)', pts: 5, cat: AREA.access, test: () => !guestAllowed(), hint: 'sudo nano /etc/lightdm/lightdm.conf and set allow-guest=false under [Seat:*].', fix: "sudo sed -i 's/^allow-guest=.*/allow-guest=false/' /etc/lightdm/lightdm.conf", why: 'A guest session is an anonymous login: no password, no accountability.' },
+      { id: 'guest', title: 'Guest session disabled in LightDM (allow-guest=false)', pts: 5, cat: AREA.access, test: () => !guestAllowed(), hint: 'sudo nano /etc/lightdm/lightdm.conf and set allow-guest=false under [Seat:*].', fix: "sudo sed -i 's/^allow-guest=.*/allow-guest=false/' /etc/lightdm/lightdm.conf", why: 'A guest session is an anonymous login, open without a password and untraceable to any person.' },
       { id: 'autologin', title: 'Automatic login disabled in LightDM', pts: 5, cat: AREA.access, test: () => !autoLoginUser(), hint: 'Remove or blank the autologin-user= line in /etc/lightdm/lightdm.conf.', fix: "sudo sed -i '/^autologin-user/d' /etc/lightdm/lightdm.conf", why: 'Automatic login hands an administrator session to the next person who sits down.' },
       CK.minlen(6), CK.remember(4), Object.assign(CK.lockout(5), { fix: CK.lockout(5).fix + '\n(or the managed way: on Ubuntu 24.04 and Mint 22 the faillock profiles are yours to write, and a name works once its profile exists: write faillock and faillock_notify in /usr/share/pam-configs/, then sudo pam-auth-update --enable faillock faillock_notify)' }),
       { id: 'nullok', title: 'Empty passwords rejected at sign-in (nullok removed from common-auth)', pts: 3, cat: AREA.acct, test: () => !pamLines('/etc/pam.d/common-auth').some(l => l.module === 'pam_unix.so' && l.args.some(a => a === 'nullok' || a === 'nullok_secure')), hint: 'grep -n nullok /etc/pam.d/common-auth. nullok on the pam_unix line lets an account with an empty password sign in. Delete that one word (the success=N number differs between machines), then test with su - labuser while a root terminal stays open.', fix: "sudo sed -i -E 's/[[:space:]]+nullok(_secure)?([[:space:]]|$)/\\2/' /etc/pam.d/common-auth", why: 'nullok is the PAM switch that turns a blank /etc/shadow field into a working login.' },
@@ -8151,22 +8180,40 @@ function initialState(id, code) {
 }
 
 /* ---------------- Level 4 · Advanced · extra credit: a new machine from a layout code ----------------
-   Six characters from an unambiguous alphabet seed a small PRNG (mulberry32 over FNV-1a), which picks the machine kind,
-   its flavor, the people, the addresses, the decoys, and a set of faults drawn from the families Levels 1-3 teach. The
-   same code builds the same machine in any browser, so a teacher can give a whole class one machine. The Scenario Brief
-   comes from the same choices: every requirement it states is what a check or an availability check tests (policyMap
-   and serviceMap name them). Levels 1-3 keep their own data, saves, and ids. */
-const ADV_ID = 'advanced', ADV_REV = 1, ADV_PW = 'Advanced!2026', ADV_ALPHA = 'ACDEFHJKMNPRTVWXY34679', ADV_LEN = 6;
+   A layout code is six characters from an alphabet without look-alikes: five free characters and one check character,
+   the same rule in all three Ranges, so a code that is valid in one is valid in each. The code seeds a small PRNG
+   (mulberry32 over FNV-1a), which picks the machine kind, its flavor, the people, the addresses, the decoys, and a set
+   of faults drawn from the families Levels 1-3 teach. The same code builds the same machine in any browser, so a
+   teacher can give a whole class one machine. The Scenario Brief comes from the same choices: every requirement it
+   states is what a check or an availability check tests (policyMap and serviceMap name them). Levels 1-3 keep their
+   own data, saves, and ids. */
+const ADV_ID = 'advanced', ADV_REV = 1, ADV_PW = 'Advanced!2026', ADV_LEN = 6;
+const ADV_ALPHA = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';  // 31 characters: the digits 2 to 9 and the letters without I, L, or O
+const ADV_ALPHA_OLD = 'ACDEFHJKMNPRTVWXY34679';       // codes made before the check character: saved labs under them keep loading
+const ADV_EXAMPLE = '3UP6VE';                          // the layout the solution walkthrough works through in full
 const ADV_LABEL = '4 · Advanced · extra credit';
 const ADV_LOG_SPAN = 3600 * 26; // buildBase starts auth.log 26 hours ago; an entry at dt seconds after that is ADV_LOG_SPAN - dt seconds ago
-function advNorm(t) { return String(t == null ? '' : t).toUpperCase().replace(/[\s-]+/g, ''); }
-function advValid(code) { return typeof code === 'string' && code.length === ADV_LEN && [...code].every(ch => ADV_ALPHA.includes(ch)); }
-/* a fresh code for "New layout": the browser's random source picks the code; the machine itself comes only from the code */
+function advCheckChar(body) { let s = 0; for (let i = 0; i < body.length; i++) s += (ADV_ALPHA.indexOf(body[i]) + 1) * (i + 2); return ADV_ALPHA[s % ADV_ALPHA.length]; }
+function advNormalize(t) { return String(t == null ? '' : t).toUpperCase().replace(/[\s-]+/g, ''); }
+/* the rule for a typed code and for New layout: six characters of the alphabet, the sixth checking the first five */
+function advValid(t) { const c = advNormalize(t); return c.length === ADV_LEN && c.split('').every(ch => ADV_ALPHA.indexOf(ch) >= 0) && advCheckChar(c.slice(0, ADV_LEN - 1)) === c[ADV_LEN - 1]; }
+/* a code this browser already holds (the layout of a saved attempt, the last code): the rule above, or the earlier
+   format (six characters of the earlier alphabet), so work saved before the check character keeps its machine */
+function advKnown(code) {
+  if (typeof code !== 'string' || code.length !== ADV_LEN) return false;
+  return (advNormalize(code) === code && advValid(code)) || code.split('').every(ch => ADV_ALPHA_OLD.indexOf(ch) >= 0);
+}
+/* an earlier-format code this browser still holds: the page says so beside the code and when it is typed */
+function advEarlier(code) { return advKnown(code) && !advValid(code); }
+const ADV_EARLIER_NOTE = 'a layout from an earlier version of this page: it stays here for you to finish, and New layout builds one with a code a whole class can share';
+const ADV_COUNT = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+/* a fresh code for "New layout": the browser's random source picks the five free characters, and the check character
+   follows from them; the machine itself comes only from the code */
 function advNewCode() {
-  let buf = null; try { buf = new Uint32Array(ADV_LEN); crypto.getRandomValues(buf); } catch (e) { buf = null; }
+  let buf = null; try { buf = new Uint32Array(ADV_LEN - 1); crypto.getRandomValues(buf); } catch (e) { buf = null; }
   let h = hash32(String(Date.now()) + ':' + (typeof performance !== 'undefined' ? performance.now() : 0)), out = '';
-  for (let i = 0; i < ADV_LEN; i++) { let v; if (buf) v = buf[i]; else { h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d) >>> 0; v = h; } out += ADV_ALPHA[v % ADV_ALPHA.length]; }
-  return out;
+  for (let i = 0; i < ADV_LEN - 1; i++) { let v; if (buf) v = buf[i]; else { h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d) >>> 0; v = h; } out += ADV_ALPHA[v % ADV_ALPHA.length]; }
+  return out + advCheckChar(out);
 }
 function advRng(code) {
   let a = hash32('pohinahina-l4:' + code) || 1;
@@ -8339,7 +8386,7 @@ function advRegister(spec) {
 }
 let ADV_MEMO = null;
 function advScenario(code) {
-  if (!advValid(code)) code = 'ACDEFH';
+  if (!advKnown(code)) code = ADV_EXAMPLE;
   if (!ADV_MEMO || ADV_MEMO.code !== code) { const spec = advSpec(code); ADV_MEMO = { code, spec, sc: advBuild(spec) }; }
   advRegister(ADV_MEMO.spec);
   return ADV_MEMO.sc;
@@ -8698,7 +8745,7 @@ function renderReport() {
   const R = lastResult; if (!R) return;
   const sc = scenario(); const rep = $('#report'); rep.textContent = '';
   rep.append(el('h2', { text: 'Progress Check' }), el('p', { class: 'scn', text: sc.title + ' (' + sc.name + ')' }));
-  if (sc.advanced) rep.append(el('p', { class: 'adv-note', text: 'Layout code ' + sc.code + '. Level 4 sits outside the three tiers (Recruit, Operator, and Captain): extra credit for learners who finished them, and open to everyone. Finishing Captain first gives the smoothest start.' + (advTypedCode === sc.code ? ' You typed this code: compare ' + sc.code + ' with the code you were given, because one changed character builds a different machine.' : '') }));
+  if (sc.advanced) rep.append(el('p', { class: 'adv-note', text: 'Layout code ' + sc.code + (advEarlier(sc.code) ? ' (' + ADV_EARLIER_NOTE + ')' : '') + '. Level 4 sits outside the three tiers (Recruit, Operator, and Captain): extra credit for learners who finished them, and open to everyone. Finishing Captain first gives the smoothest start.' }));
   rep.append(coachControl(sc.level));
   const mode = coachMode(sc.level);
   rep.append(el('div', { class: 'tot', text: 'Progress: ' + R.total + ' / ' + R.max + ' points' }), el('p', { class: 'sub', text: 'Checks passed: ' + R.earned.length + ' of ' + sc.checks.length }));
@@ -8775,10 +8822,10 @@ function openDebrief() {
 }
 /* the page dialog (#modal): opening one remembers where focus was and marks it modal; Tab and Shift+Tab stay inside it
    (modalTrap), and closing it puts focus back on that control, or on the control with the same id when the page rebuilt it */
-var modalPrev = null, modalOpener = null;
+var modalPrev = null, modalOpener = null, modalLast = null;
 function modalOpen(modal) {
   if (modal.hidden || !modal.contains(document.activeElement)) modalPrev = modalOpener || document.activeElement;
-  modalOpener = null;
+  modalOpener = null; modalLast = null;
   modal.hidden = false; modal.textContent = '';
   queueMicrotask(() => { const c = modal.querySelector('.modal-card'); if (c) c.setAttribute('aria-modal', 'true'); });
 }
@@ -8789,8 +8836,16 @@ function modalTrap(e) {
   const i = f.indexOf(document.activeElement);
   if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); } else if (!e.shiftKey && (i < 0 || i === f.length - 1)) { e.preventDefault(); f[0].focus(); }
 }
+/* while the dialog is open the keyboard stays in it: a machine that finishes booting behind the dialog asks for the
+   keyboard (its console or its sign-in box), and the dialog takes it straight back, so typing keeps landing in the dialog */
+function modalHold(e) {
+  const modal = $('#modal'); if (modal.hidden) return;
+  if (modal.contains(e.target)) { modalLast = e.target; return; }
+  const back = modalLast && modal.contains(modalLast) ? modalLast : modal.querySelector('input, button');
+  if (back) { try { back.focus({ preventScroll: true }); } catch (x) { } }
+}
 function closeModal() {
-  const modal = $('#modal'); const wasOpen = !modal.hidden; modal.hidden = true; modal.textContent = '';
+  const modal = $('#modal'); const wasOpen = !modal.hidden; modal.hidden = true; modal.textContent = ''; modalLast = null;
   let t = modalPrev; modalPrev = null; if (!wasOpen) return;
   if (t && !t.isConnected) t = t.id ? document.getElementById(t.id) : null;
   if (t && t.focus && t !== document.body) { try { t.focus({ preventScroll: true }); } catch (e) { } }
@@ -8811,9 +8866,9 @@ function openHelp() {
     '<li><b>Hints:</b> a hint opens in two steps: the hardening area and the principle, then the command.</li>' +
     '<li><b>Availability:</b> breaking something the Scenario Brief says the business needs keeps your points where they are and shows a must-fix item in red with its restore step. Finish waits until it works again, because an outage is an incident you fix before you are done.</li>' +
     '<li><b>Levels:</b> Recruit = Ubuntu desktop, Operator = Linux Mint shared PC, Captain = Ubuntu Server (terminal only). Progress is saved per level in this browser.</li>' +
-    '<li><b>Level 4 · Advanced · extra credit:</b> for learners who finished the three levels (open to everyone). Each layout code builds a different Pōhinahina High School machine from the faults Levels 1-3 teach, with its own people, services, and decoys, so you use your skills rather than a memorized walkthrough. <b>New layout</b> builds a fresh one; <b>Enter a layout code</b> builds the machine a teacher or classmate shares (the same code builds the same machine in any browser). The sign-in is <code>labuser</code> / <code>' + ADV_PW + '</code>. Your best Level 4 score and your last layout code are saved.</li>' +
+    '<li><b>Level 4 · Advanced · extra credit:</b> for learners who finished the three levels (open to everyone). Each layout code builds a different Pōhinahina High School machine from the faults Levels 1-3 teach, with its own people, services, and decoys, so you use your skills rather than a memorized walkthrough. <b>New layout</b> builds a fresh one; <b>Enter a layout code</b> builds the machine a teacher or classmate shares (the same code builds the same machine in any browser). A code is six characters, and the last one checks the other five, so a code with one wrong character is refused. The sign-in is <code>labuser</code> / <code>' + ADV_PW + '</code>. Your best Level 4 score and your last layout code are saved.</li>' +
     '<li><b>Versions:</b> the machines follow Ubuntu ' + FLAVORS.ubuntu.release + ' LTS and Linux Mint ' + FLAVORS.mint.release + '. On Ubuntu 26.04 LTS the default sudo is sudo-rs, so its password prompt and messages look slightly different.</li></ul>' +
-    '<p>Solution walkthrough for every scenario: <code>linux-range-reference.txt</code> beside this page. Try each scenario on your own first.</p>' +
+    '<p>Solution walkthrough for every scenario: the <b>Walkthrough .txt</b> button on this tool’s card at the Tool4That hub downloads it as <code>linux-range-walkthrough.txt</code>, and its Level 4 section works layout <code>' + ADV_EXAMPLE + '</code> in full. Try each scenario on your own first.</p>' +
     '<p>Want more practice? The OverTheWire Bandit wargame builds shell skills, and picoCTF offers broader security challenges.</p>' +
     '<p style="color:var(--muted)">All organizations, people, and addresses in the scenarios are fictional.</p>';
   card.prepend(close); modal.append(card); close.focus();
@@ -8837,8 +8892,9 @@ function resetLab() {
 }
 /* Level 4 keeps its best score, the layout code of that best, and the reflection when its machine is rebuilt */
 function advKeep(id, rec) { const old = STORE.scenarios[id] || {}; if (id === ADV_ID) { rec.lastCode = S.layout; if (old.bestCode) rec.bestCode = old.bestCode; if (old.bestHints != null) rec.bestHints = old.bestHints; if (old.bestCoach) rec.bestCoach = old.bestCoach; } return rec; }
-/* a saved lab reloads only when it was built from the current scenario revision (older ones are rebuilt) */
-function savedFits(rec, id) { return !!(rec && rec.S && rec.S.fs && rec.S.id === id && rec.S.rev === SCENARIO_REV && (id !== ADV_ID || (rec.S.l4 === ADV_REV && advValid(rec.S.layout)))); }
+/* a saved lab reloads only when it was built from the current scenario revision (older ones are rebuilt). A saved
+   Level 4 lab keeps its layout code, in today's format or the earlier one (advKnown) */
+function savedFits(rec, id) { return !!(rec && rec.S && rec.S.fs && rec.S.id === id && rec.S.rev === SCENARIO_REV && (id !== ADV_ID || (rec.S.l4 === ADV_REV && advKnown(rec.S.layout)))); }
 /* Level 4: build the machine for a layout code (a new one, or one a teacher or classmate shares) */
 function advStart(code) {
   for (const w of M.wins.slice()) w.close(true);
@@ -8858,18 +8914,29 @@ function advNewLayout() {
   const yes = el('button', { class: 'ubtn primary', id: 'advNewConfirm', text: 'New layout' }); yes.addEventListener('click', () => { closeModal(); advStart(advNewCode()); });
   acts.append(no, yes); card.append(acts); modal.append(card); yes.focus();
 }
-var advTypedCode = null; // the last code typed in Enter a layout code, so the Progress Check can ask the learner to compare it
+/* why the dialog refused an entry, in the words all three Ranges use. c is the entry as read (upper case, spaces and
+   hyphens dropped). A code this browser holds from the earlier format gets its own sentence, because every character
+   of it is right: the machine it built stays, and New layout draws a code in today's format */
+function advRefusal(c) {
+  if (!c) return 'Type the six characters of the layout code.';
+  const lead = '"' + c + '" is not a layout code', rule = 'Compare it with the code you were given, one character at a time: codes use the digits 2 to 9 and the letters A to Z without I, L, or O, and the last character checks the others.';
+  if (c.length !== ADV_LEN) return lead + '. A layout code has six characters, and this entry has ' + (ADV_COUNT[c.length] || c.length) + '. ' + rule;
+  const rec = STORE.scenarios[ADV_ID] || {}, earlier = advEarlier(c);
+  if (earlier && S && S.id === ADV_ID && S.layout === c) return lead + ' any more: it comes from an earlier version of this page. The machine it built stays here for you to finish, and New layout builds one with a code a whole class can share.';
+  if (earlier && (rec.bestCode === c || rec.lastCode === c)) return lead + ' any more: it comes from an earlier version of this page. New layout builds a machine with a code a whole class can share.';
+  return lead + '. ' + rule + ' Look closely at 5 and S, 8 and B, and 2 and Z.' + (earlier ? ' If it came from an earlier version of this page, choose New layout for a code a whole class can share.' : '');
+}
 function advEnterCode() {
   const modal = $('#modal'); modalOpen(modal);
   const card = el('div', { class: 'modal-card', role: 'dialog', 'aria-label': 'Enter a layout code', style: 'max-width:520px' });
-  const inp = el('input', { id: 'advCode', type: 'text', maxlength: '12', autocomplete: 'off', spellcheck: 'false', 'aria-describedby': 'advCodeHelp', style: 'font:1.1rem var(--mono);letter-spacing:.15em;text-transform:uppercase;width:10em;padding:.3rem .5rem;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink)' });
+  const inp = el('input', { id: 'advCode', type: 'text', maxlength: '12', autocomplete: 'off', spellcheck: 'false', 'aria-describedby': 'advCodeHelp advCodeMsg', style: 'font:1.1rem var(--mono);letter-spacing:.15em;text-transform:uppercase;width:10em;padding:.3rem .5rem;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink)' });
   const msg = el('p', { id: 'advCodeMsg', role: 'status', style: 'color:var(--muted);min-height:1.2em' });
-  card.append(el('h2', { text: 'Enter a layout code' }), el('p', { id: 'advCodeHelp', text: 'Type the six-character code a teacher or classmate shared. It uses only these characters: ' + [...ADV_ALPHA].join(' ') + '. Building it replaces the machine you have now; your best Level 4 score is kept.' }), el('p', { class: 'adv-typo', text: 'Check each character against the shared code before you build: a code with one character changed still builds, and it builds a different machine.' }), el('label', { for: 'advCode', text: 'Layout code ' }), inp, msg);
+  card.append(el('h2', { text: 'Enter a layout code' }), el('p', { id: 'advCodeHelp', text: 'A layout code is six characters, such as the one a teacher writes on the board. The same code builds the same machine on any computer. Building it ends the current machine; your best Level 4 score is kept.' }), el('label', { for: 'advCode', text: 'Layout code ' }), inp, msg);
   const acts = el('div', { class: 'acts', style: 'display:flex;gap:.5rem;justify-content:flex-end' });
   const no = el('button', { class: 'ubtn', text: 'Cancel' }); no.addEventListener('click', closeModal);
   const yes = el('button', { class: 'ubtn primary', id: 'advCodeGo', text: 'Build this layout' });
-  const go = () => { const c = advNorm(inp.value); if (!advValid(c)) { msg.textContent = 'That code needs exactly ' + ADV_LEN + ' characters from the list above (it skips look-alikes such as 0, O, 1, I, and L).'; inp.focus(); return; } advTypedCode = c; closeModal(); advStart(c); };
-  yes.addEventListener('click', go); inp.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  const go = () => { const c = advNormalize(inp.value); if (!advValid(c)) { msg.textContent = advRefusal(c); inp.setAttribute('aria-invalid', 'true'); inp.focus(); return; } closeModal(); advStart(c); };
+  yes.addEventListener('click', go); inp.addEventListener('keydown', e => { if (e.key === 'Enter') go(); }); inp.addEventListener('input', () => inp.removeAttribute('aria-invalid'));
   acts.append(no, yes); card.append(acts); modal.append(card); inp.focus();
 }
 function switchScenario(id) {
@@ -8881,7 +8948,7 @@ function switchScenario(id) {
   const rec = STORE.scenarios[id];
   const fits = savedFits(rec, id);
   if (fits) { S = rec.S; if (S.power === 'boot') S.power = 'login'; if (!S.journal) S.journal = []; }
-  else { initialState(id, id === ADV_ID ? (rec && advValid(rec.lastCode) ? rec.lastCode : advNewCode()) : undefined); STORE.scenarios[id] = advKeep(id, { S, best: (rec && rec.best) || 0 }); }
+  else { initialState(id, id === ADV_ID ? (rec && advKnown(rec.lastCode) ? rec.lastCode : advNewCode()) : undefined); STORE.scenarios[id] = advKeep(id, { S, best: (rec && rec.best) || 0 }); }
   STORE.current = id; persistNow();
   renderLevels(); updateToolbar(); evaluate();
   if (S.power === 'off' && !fits) M.boot(); else M.render();
@@ -8924,11 +8991,12 @@ function init() {
   $('#modal').addEventListener('click', e => { if (e.target === $('#modal')) closeModal(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#modal').hidden) closeModal(); });
   document.addEventListener('keydown', modalTrap);
+  document.addEventListener('focusin', modalHold);
   const id = STORE.current && (SCENARIOS.some(s => s.id === STORE.current) || STORE.current === ADV_ID) ? STORE.current : 'recruit';
   const rec = STORE.scenarios[id];
   let fresh = false;
   if (savedFits(rec, id)) { S = rec.S; if (S.power === 'boot') S.power = 'login'; if (!S.journal) S.journal = []; if (!S.hist) S.hist = {}; }
-  else { initialState(id, id === ADV_ID ? (rec && advValid(rec.lastCode) ? rec.lastCode : advNewCode()) : undefined); STORE.scenarios[id] = advKeep(id, { S, best: (rec && rec.best) || 0 }); fresh = true; }
+  else { initialState(id, id === ADV_ID ? (rec && advKnown(rec.lastCode) ? rec.lastCode : advNewCode()) : undefined); STORE.scenarios[id] = advKeep(id, { S, best: (rec && rec.best) || 0 }); fresh = true; }
   renderLevels(); updateToolbar(); evaluate();
   shareBanner();
   if (fresh || S.power === 'off') M.boot(); else M.render();

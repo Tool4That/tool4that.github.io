@@ -64,7 +64,7 @@
       "title": "Lockdown Range",
       "category": "cyber",
       "section": "practice",
-      "description": "Full hardening labs that run in your browser without a virtual machine: Windows 11 and Windows Server, Ubuntu and Linux Mint, and a Packet Tracer-style Cisco topology. Each Range has three levels (Recruit, Operator, and Captain) plus Level 4 \u00b7 Advanced \u00b7 extra credit, which builds a different machine on every attempt and gives a layout code a class can share. Sign in, read the scenario brief, answer the investigation questions, fix the machine, and watch a live Progress Check.",
+      "description": "Full hardening labs that run in your browser without a virtual machine: Windows 11 and Windows Server, Ubuntu and Linux Mint, and a Packet Tracer-style Cisco topology. Each Range has three levels (Recruit, Operator, and Captain) plus Level 4 \u00b7 Advanced \u00b7 extra credit, which builds a different machine on every attempt and gives a layout code a class can share. One layout code works in all three Ranges, and each Range builds its own machine from it. Sign in, read the scenario brief, answer the investigation questions, fix the machine, and watch a live Progress Check.",
       "note": "Unofficial training, independent of and unendorsed by the makers of the systems it names. Simulated machines only: nothing touches your computer, and progress stays in your browser."
     }
   ],
@@ -131,7 +131,7 @@
       "icon": "path",
       "category": "cyber",
       "section": "learning",
-      "sha256": "f0ed96cd4f0141a611aa46f78fb13adda4e72397c2f6fb2bd0363a2b094a70da",
+      "sha256": "92877dd90b9e4c77d737c02ec230c5cec18107d04b2d4fb6e2cf0a78f1fbff87",
       "updated": "2026-11-23",
       "download_menu": true,
       "download_label": "Everything (all four grades)",
@@ -140,28 +140,28 @@
           "label": "Freshman only",
           "file": "defense-ladder/freshman.html",
           "download_as": "defense-ladder-freshman.html",
-          "sha256": "a397dd98b795bc59e290521d955a42483256b0967071170fe6d26823dcde3055",
+          "sha256": "c487077615f6aa6ddb44f4abaff7cf61807d0bee534ae180e1efe0ccc48a905d",
           "updated": "2026-11-23"
         },
         {
           "label": "Sophomore only",
           "file": "defense-ladder/sophomore.html",
           "download_as": "defense-ladder-sophomore.html",
-          "sha256": "94c159a2bff4010a26cfce89de69ea69f6c9c4f7b65dbf418e1aa556f3d7a42f",
+          "sha256": "84c726852ef6097f708453f53ef66ac4e463be9249ce81c8aec8bed573292174",
           "updated": "2026-11-23"
         },
         {
           "label": "Junior only",
           "file": "defense-ladder/junior.html",
           "download_as": "defense-ladder-junior.html",
-          "sha256": "b9890e6d20f99ce8e9f3c7bd494b92059b58718255f2c9a38081cfeffc6ef36b",
+          "sha256": "81c8941db08474d9e24f2d54692f4a4fff472ce0db22a58303083c3cfe683e1e",
           "updated": "2026-11-23"
         },
         {
           "label": "Senior only",
           "file": "defense-ladder/senior.html",
           "download_as": "defense-ladder-senior.html",
-          "sha256": "80f60abce04ae28c28dc5e90ee037b92a012a16ed6ba2f3ee8f05ca7132ecb57",
+          "sha256": "dad289adc443ab7395e62d5a757b2bce3321a8fb991f6e35daad011250d90779",
           "updated": "2026-11-23"
         }
       ],
@@ -422,7 +422,7 @@
           "download_as": "windows-range-walkthrough.txt"
         }
       ],
-      "sha256": "d4bb1ccaa8a949ab27ed055f9acfaaa123e8949c118925eb0ab43a4c1d6fdd18",
+      "sha256": "688a668c3b38e2023887d7c3a02ede1432c00a944d2459704c048e0abd844e87",
       "updated": "2026-11-23"
     },
     {
@@ -448,7 +448,7 @@
           "download_as": "linux-range-walkthrough.txt"
         }
       ],
-      "sha256": "cdfb5a324d3dd403cffd60e6385a17d083b481103508147d58410a7cce16e1c8",
+      "sha256": "c340f630dc891dcd29403da5372af2b722b623d0e9d2b85275db59f913f58e51",
       "updated": "2026-11-23"
     },
     {
@@ -474,7 +474,7 @@
           "download_as": "cisco-range-walkthrough.txt"
         }
       ],
-      "sha256": "0c5c59d279f4937cd3480f7a1fc7b3f0829c30922a3fb3977e9a9f98276a224d",
+      "sha256": "7ba1d1bb58a0d9dc480b064e0ff7d2e75a9dfb1ac1b3a1179c8e77e0b48bc2cd",
       "updated": "2026-11-23"
     },
     {
@@ -512,7 +512,7 @@
       "icon": "terminal",
       "category": "cyber",
       "section": "learning",
-      "sha256": "c286af52b13e68a3d930ffc987619432c9bf7343e7dbfd1752deca01fba61c53",
+      "sha256": "ac32106789cc813b936a58e2c2ae0bd82b9eb600ae4c0982df060f05827d2e86",
       "updated": "2026-11-23"
     },
     {

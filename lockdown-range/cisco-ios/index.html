@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+H1kcZtpaNHNd1/zKBZhHu+KGT4tNm3TB7Zg/8hxFio='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-g5z95n4uatMf8fRHtrhJ6u0Augjnitbj8L7S/zV8BW0='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/lockdown-range/cisco-ios/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%96%A5%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -22,27 +22,32 @@
 <style>
 :root{
   --bg:#EDF0F4; --panel:#FFFFFF; --ink:#16212D; --muted:#5F6E7E; --line:#CFD7E0; --soft:#F4F6F9;
-  --term:#0E1A2B; --termink:#D9E4F1; --prompt:#7FA6D6; --accent:#B8690E; --accent-ink:#FFFFFF; --pill-on:#965509;
-  --ok:#1C8A57; --okbg:#E3F5EB; --bad:#C03A3A; --badbg:#FBE7E7; --warn:#A8690F; --warnbg:#FBF0DA; --focus:#FFB300;
+  --term:#0E1A2B; --termink:#D9E4F1; --prompt:#7FA6D6; --accent:#B8690E; --accent-fill:#A85F0A; --accent-tx:#9E590A; --accent-ink:#FFFFFF; --pill-on:#965509;
+  --ok:#1C8A57; --okbg:#E3F5EB; --bad:#C03A3A; --badbg:#FBE7E7; --warn:#9C600C; --warnbg:#FBF0DA; --ring:#16212D; --ring-halo:#FFB300; --focus:var(--ring); --focus-halo:var(--ring-halo);
   --sans:"Segoe UI Variable Text","Segoe UI","Avenir Next",Avenir,Roboto,"Helvetica Neue",Arial,sans-serif;
   --mono:"Cascadia Mono","JetBrains Mono","Fira Code","SF Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
   box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
-  --link-up:#1C8A57; --link-down:#C03A3A; --link-warn:#D98A1A; --dev-fill:#F4F6F9; --dev-stroke:#5F6E7E; --dev-sel:#B8690E;
+  --link-up:#1C8A57; --link-down:#C03A3A; --link-warn:#B8690E; --dev-fill:#F4F6F9; --dev-stroke:#5F6E7E; --dev-sel:#B8690E;
 }
-@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){ --bg:#111922; --panel:#182330; --ink:#E7EEF6; --muted:#9DACBC; --line:#2B3A4B; --soft:#1F2B3A; --term:#0A121D; --termink:#D6E2F0; --okbg:#143524; --badbg:#3A1B1B; --warnbg:#3A2C12; --dev-fill:#1F2B3A; --dev-stroke:#9DACBC; --ok:#4FBF85; --bad:#F08080; --warn:#E0A94A; --link-up:#4FBF85; --link-down:#F08080; --dev-sel:#E3A24B; } }
-:root[data-theme="dark"]{ --bg:#111922; --panel:#182330; --ink:#E7EEF6; --muted:#9DACBC; --line:#2B3A4B; --soft:#1F2B3A; --term:#0A121D; --termink:#D6E2F0; --okbg:#143524; --badbg:#3A1B1B; --warnbg:#3A2C12; --dev-fill:#1F2B3A; --dev-stroke:#9DACBC; --ok:#4FBF85; --bad:#F08080; --warn:#E0A94A; --link-up:#4FBF85; --link-down:#F08080; --dev-sel:#E3A24B; }
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){ --bg:#111922; --panel:#182330; --ink:#E7EEF6; --muted:#9DACBC; --line:#2B3A4B; --soft:#1F2B3A; --term:#0A121D; --termink:#D6E2F0; --okbg:#143524; --badbg:#3A1B1B; --warnbg:#3A2C12; --dev-fill:#1F2B3A; --dev-stroke:#9DACBC; --ok:#4FBF85; --bad:#F08080; --warn:#E0A94A; --link-up:#4FBF85; --link-down:#F08080; --link-warn:#D98A1A; --dev-sel:#E3A24B; --accent-tx:#E3A24B; --ring:#FFB300; --ring-halo:#0B1118; } }
+:root[data-theme="dark"]{ --bg:#111922; --panel:#182330; --ink:#E7EEF6; --muted:#9DACBC; --line:#2B3A4B; --soft:#1F2B3A; --term:#0A121D; --termink:#D6E2F0; --okbg:#143524; --badbg:#3A1B1B; --warnbg:#3A2C12; --dev-fill:#1F2B3A; --dev-stroke:#9DACBC; --ok:#4FBF85; --bad:#F08080; --warn:#E0A94A; --link-up:#4FBF85; --link-down:#F08080; --link-warn:#D98A1A; --dev-sel:#E3A24B; --accent-tx:#E3A24B; --ring:#FFB300; --ring-halo:#0B1118; }
 
 *,*::before,*::after{ box-sizing:inherit; }
 body{ margin:0; background:var(--bg); color:var(--ink); font:16px/1.5 var(--sans); min-height:100vh; }
 button,input,select{ font:inherit; color:inherit; }
 button{ cursor:pointer; min-height:32px; border-radius:8px; border:1px solid var(--line); background:var(--panel); padding:4px 12px; }
 button:hover{ background:var(--soft); }
-button.primary{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
-button.primary:hover{ filter:brightness(1.08); }
+/* orange: --accent draws lines and marks; --accent-fill sits under white text and --accent-tx is orange text, each at 4.5:1 or more in both themes */
+button.primary{ background:var(--accent-fill); color:var(--accent-ink); border-color:var(--accent-fill); }
+button.primary:hover{ filter:brightness(.92); }
 button.small{ min-height:32px; padding:2px 10px; font-size:.85rem; }
 button.danger{ color:var(--bad); border-color:var(--bad); }
-:focus-visible{ outline:3px solid var(--focus); outline-offset:2px; }
-a{ color:var(--accent); }
+/* the keyboard focus ring has two tones, so one of them reads on any surface: the ring itself (--focus) and a second
+   color between the ring and the control (--focus-halo). The ring is dark in the light theme and amber in the dark
+   theme; inside the dark console it stays amber in both */
+:focus-visible{ outline:3px solid var(--focus); outline-offset:2px; box-shadow:0 0 0 2px var(--focus-halo); }
+.term{ --focus:#FFB300; --focus-halo:#0B1118; }
+a{ color:var(--accent-tx); }
 code,kbd,.mono{ font-family:var(--mono); font-size:.9em; }
 kbd{ border:1px solid var(--line); border-bottom-width:2px; border-radius:4px; padding:0 5px; background:var(--soft); }
 .vh{ position:absolute !important; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
@@ -56,6 +61,9 @@ header.top{ position:sticky; top:0; z-index:40; background:var(--panel); border-
 .levels{ display:flex; gap:6px; flex-wrap:wrap; }
 .levels button{ border-radius:999px; padding:3px 12px; display:flex; align-items:center; gap:6px; }
 .levels button[aria-selected="true"]{ background:var(--pill-on); color:var(--accent-ink); border-color:var(--pill-on); }
+/* dark theme: a light ring sets the selected pill apart from the header behind it */
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .levels button[aria-selected="true"]{ border-color:var(--accent-tx); } }
+:root[data-theme="dark"] .levels button[aria-selected="true"]{ border-color:var(--accent-tx); }
 .levels button .lv{ font-size:.75rem; opacity:.85; }
 .levels button .best{ font-size:.72rem; background:rgba(0,0,0,.12); border-radius:999px; padding:0 6px; }
 .levels button[aria-selected="true"] .best{ background:rgba(0,0,0,.22); }
@@ -68,7 +76,7 @@ header.top{ position:sticky; top:0; z-index:40; background:var(--panel); border-
 .theme{ white-space:nowrap; }
 nav.series{ display:flex; flex-wrap:wrap; gap:6px 12px; align-items:center; padding:4px 16px 8px; max-width:1600px; margin:0 auto; font-size:.82rem; color:var(--muted); }
 nav.series .jack{ border:1px solid var(--line); border-radius:999px; padding:1px 10px; background:var(--soft); color:var(--ink); }
-nav.series .jack.here, nav.series .jack.on{ border-color:var(--accent); color:var(--accent); font-weight:600; }
+nav.series .jack.here, nav.series .jack.on{ border-color:var(--accent); color:var(--accent-tx); font-weight:600; }
 nav.series a.jack{ text-decoration:none; }
 nav.series a.jack:hover, nav.series a.jack:focus-visible{ border-color:var(--accent); }
 
@@ -105,7 +113,7 @@ main#machine{ min-width:0; display:flex; flex-direction:column; gap:12px; }
 .activity details{ border-top:1px solid var(--line); padding:4px 0; }
 .activity details:first-child{ border-top:0; }
 .activity summary{ cursor:pointer; font-weight:600; padding:4px 0; list-style-position:inside; }
-.activity summary:hover{ color:var(--accent); }
+.activity summary:hover{ color:var(--accent-tx); }
 .activity p{ margin:6px 0; }
 .activity ul,.activity ol{ margin:6px 0; padding-left:22px; }
 .activity li{ margin:2px 0; }
@@ -139,7 +147,7 @@ main#machine{ min-width:0; display:flex; flex-direction:column; gap:12px; }
 .term .out .log{ color:#9FB7D4; }
 .term .inrow{ display:flex; align-items:baseline; white-space:pre; }
 .term .pfx{ white-space:pre; }
-.term input.cmd{ flex:1; min-width:40px; background:transparent; border:0; outline:0; padding:0; margin:0; color:inherit; font:inherit; caret-color:var(--termink); }
+.term input.cmd{ flex:1; min-width:40px; background:transparent; border:0; outline:0; box-shadow:none; padding:0; margin:0; color:inherit; font:inherit; caret-color:var(--termink); }
 .term input.cmd.secret{ color:transparent; text-shadow:none; }
 .term input.cmd.secret::selection{ color:transparent; background:transparent; }
 .term.busy input.cmd{ opacity:.4; }
@@ -5189,7 +5197,7 @@ const SCENARIOS = [
       { id: 'conpw', title: 'Console password changed from the default "cisco"', pts: 3, cat: CAT.access, test: St => { const L = C(St, 'S1').lines.con[0]; return !!(L.password && L.password.text !== 'cisco' && L.password.text.length >= 10 && L.login !== 'none'); }, hint: 'line console 0, password <new 10+ chars>, login', fix: 'S1(config)# line console 0\nS1(config-line)# password C0nsole-Pass!\nS1(config-line)# login', why: '"cisco" is the first guess anyone makes.' },
       { id: 'vtylocal', title: 'VTY lines use local user authentication (login local)', pts: 4, cat: CAT.access, test: St => vtyEvery(C(St, 'S1'), L => L.login === 'local'), hint: 'line vty 0 15, login local', fix: 'S1(config)# line vty 0 15\nS1(config-line)# login local', why: 'Per-user accounts instead of one shared password.' },
       { id: 'vtyssh', title: 'VTY lines accept SSH only (Telnet disabled)', pts: 5, cat: CAT.access, test: St => vtyEvery(C(St, 'S1'), sshOnly), hint: 'line vty 0 15, transport input ssh', fix: 'S1(config-line)# transport input ssh', why: 'Telnet exposes every keystroke, including passwords.' },
-      { id: 'rsa', title: 'Domain name set and 2048-bit RSA key generated', pts: 4, cat: CAT.access, test: St => { const c = C(St, 'S1'); return !!(c.domainName && c.rsa && c.rsa.bits >= 2048); }, hint: 'ip domain-name pualane.lan, then crypto key generate rsa general-keys modulus 2048', fix: 'S1(config)# ip domain-name pualane.lan\nS1(config)# crypto key generate rsa general-keys modulus 2048', why: 'No key, no SSH server.' },
+      { id: 'rsa', title: 'Domain name set and 2048-bit RSA key generated', pts: 4, cat: CAT.access, test: St => { const c = C(St, 'S1'); return !!(c.domainName && c.rsa && c.rsa.bits >= 2048); }, hint: 'ip domain-name pualane.lan, then crypto key generate rsa general-keys modulus 2048', fix: 'S1(config)# ip domain-name pualane.lan\nS1(config)# crypto key generate rsa general-keys modulus 2048', why: 'The SSH server needs a key before it can start.' },
       { id: 'sshv2', title: 'SSH version 2 enforced', pts: 3, cat: CAT.access, test: St => C(St, 'S1').sshVersion === 2, hint: 'ip ssh version 2', fix: 'S1(config)# ip ssh version 2', why: 'Disables the weaker protocol version.' },
       { id: 'banner', title: 'MOTD banner warns unauthorized users', pts: 3, cat: CAT.config, test: St => bannerOk(C(St, 'S1').bannerMotd), hint: 'banner motd #Authorized access only#', fix: 'S1(config)# banner motd #Authorized library staff only. Activity is monitored.#', why: 'Legal notice shown before login.' },
       { id: 'pwenc', title: 'Service password-encryption enabled', pts: 3, cat: CAT.acct, test: St => C(St, 'S1').pwEnc, hint: 'service password-encryption', fix: 'S1(config)# service password-encryption', why: 'Obscures line passwords in show running-config.' },
@@ -5474,27 +5482,44 @@ function scenarioById(id) { return SCENARIOS.find(s => s.id === id) || SCENARIOS
 /* ---- 87-advanced.js ---- */
 /* ================= Level 4 · Advanced · extra credit: layouts ================= */
 /* Level 4 (scenario s4) sits outside the three tiers: extra credit for learners who finished Levels 1-3, open to
-   everyone. Each attempt builds Site B from a layout code. Six characters from an unambiguous alphabet seed a small
-   PRNG in the page, so one code builds the same machine in any browser, and a teacher can hand a whole class one
-   code. A layout picks which faults are present (only kinds Levels 1-3 teach), the rogue account names, the PC
-   access ports, the ACL details, the passwords to replace, and the decoys. The topology, the Site A / Site B plan,
-   VLANs 10/20/30 with native 99, and every address stay fixed. The reserved code CLASSIC is the original
-   build-from-factory exercise (SCENARIOS s4), so its walkthrough and saved progress stay valid. */
-const L4_ID = 's4', L4_CLASSIC = 'CLASSIC', L4_ABC = 'ACDEFHJKMNPRTUVWXY347', L4_LEN = 6;
-/* a typed code: case and spaces do not matter; anything else returns null */
+   everyone. Each attempt builds Site B from a layout code: six characters from an alphabet without look-alikes (five
+   free characters and one check character, the same rule in all three Ranges). The code seeds a small PRNG in the
+   page, so one code builds the same machine in any browser, and a teacher can hand a whole class one code. A layout
+   picks which faults are present (only kinds Levels 1-3 teach), the rogue account names, the PC access ports, the
+   ACL details, the passwords to replace, and the decoys. The topology, the Site A / Site B plan, VLANs 10/20/30 with
+   native 99, and every address stay fixed. The reserved code CLASSIC is the original build-from-factory exercise
+   (SCENARIOS s4), so its walkthrough and saved progress stay valid; it sits outside the check-character rule. */
+const L4_ID = 's4', L4_CLASSIC = 'CLASSIC', L4_LEN = 6;
+const L4_ABC = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';      // 31 characters: no 0, O, 1, I, or L
+const L4_OLD_ABC = 'ACDEFHJKMNPRTUVWXY347';            // codes from before the check character: six of these
+const L4_EXAMPLE = '3UP6VE';                           // the layout the solution walkthrough works through in full
+function l4CheckChar(body) { let s = 0; for (let i = 0; i < body.length; i++) s += (L4_ABC.indexOf(body[i]) + 1) * (i + 2); return L4_ABC[s % L4_ABC.length]; }
+function l4Clean(t) { return String(t == null ? '' : t).toUpperCase().replace(/[\s-]+/g, ''); }
+/* a typed code: lower case, spaces, and hyphens are fine; one changed character or one swapped neighboring pair
+   fails the check character. Anything that is neither a layout code nor CLASSIC returns null */
 function l4Norm(code) {
-  const c = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const c = l4Clean(code);
   if (c === L4_CLASSIC) return c;
-  return c.length === L4_LEN && c.split('').every(ch => L4_ABC.includes(ch)) ? c : null;
+  return c.length === L4_LEN && c.split('').every(ch => L4_ABC.includes(ch)) && l4CheckChar(c.slice(0, L4_LEN - 1)) === c[L4_LEN - 1] ? c : null;
 }
-/* a fresh code for "New layout": the browser's random source picks the code; generation itself only ever uses the
-   seeded PRNG below */
+/* a code this browser already holds (a saved attempt, the last layout, Reset lab): today's codes, plus the
+   six-character codes from before the check character, so work saved under one keeps its machine. Typing a code
+   and New layout go through l4Norm and l4NewCode only */
+function l4Kept(code) {
+  const n = l4Norm(code); if (n) return n;
+  const c = l4Clean(code);
+  return c.length === L4_LEN && c.split('').every(ch => L4_OLD_ABC.includes(ch)) ? c : null;
+}
+const l4Earlier = code => !!code && code !== L4_CLASSIC && !l4Norm(code);
+const L4_COUNT = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+/* a fresh code for "New layout": the browser's random source picks the five free characters, and the check
+   character follows from them; generation itself only ever uses the seeded PRNG below */
 function l4NewCode() {
-  let buf = null;
-  try { buf = new Uint32Array(L4_LEN); crypto.getRandomValues(buf); } catch (e) { buf = null; }
+  const n = L4_LEN - 1; let buf = null;
+  try { buf = new Uint32Array(n); crypto.getRandomValues(buf); } catch (e) { buf = null; }
   let out = '';
-  for (let i = 0; i < L4_LEN; i++) out += L4_ABC[(buf ? buf[i] : hash32(Date.now() + ':' + i + ':' + (typeof performance !== 'undefined' ? performance.now() : 0))) % L4_ABC.length];
-  return out;
+  for (let i = 0; i < n; i++) out += L4_ABC[(buf ? buf[i] : hash32(Date.now() + ':' + i + ':' + (typeof performance !== 'undefined' ? performance.now() : 0))) % L4_ABC.length];
+  return out + l4CheckChar(out);
 }
 /* mulberry32, seeded from the code: the same code draws the same numbers in every browser */
 function l4Rng(code) {
@@ -6031,27 +6056,39 @@ function levelText(sc) { return sc.extra ? 'Level ' + sc.level + ' · ' + sc.lev
 function l4Bar() {
   const box = el('div', { class: 'l4bar', role: 'group', 'aria-label': 'Level 4 layout' });
   box.appendChild(el('p', { class: 'l4note', text: 'Extra credit for learners who finished Levels 1 to 3, and open to everyone. Finishing Level 3 Captain first helps, because every fault here comes from those levels.' }));
-  box.appendChild(el('p', {}, ['Layout code: ', el('code', { id: 'l4-code', text: S.code }), S.code === L4_CLASSIC ? ' (the original build from factory defaults, which the solution walkthrough follows step by step)' : ' (this code builds this same Site B in any browser, so a whole class can share one)']));
-  if (RT.l4Typed && RT.l4Typed === S.code && S.code !== L4_CLASSIC) box.appendChild(el('p', { class: 'l4note', text: 'You typed this code: compare ' + S.code + ' with the code you were given, because one changed character builds a different Site B.' }));
+  box.appendChild(el('p', {}, ['Layout code: ', el('code', { id: 'l4-code', text: S.code }), S.code === L4_CLASSIC ? ' (the original build from factory defaults, which the solution walkthrough follows step by step)' : l4Earlier(S.code) ? ' (a layout from an earlier version of this page: it stays here for you to finish, and New layout builds one with a code a whole class can share)' : ' (this code builds this same Site B in any browser, so a whole class can share one)']));
   box.appendChild(el('div', { class: 'l4btns' }, [el('button', { type: 'button', id: 'l4-new', text: 'New layout' }), el('button', { type: 'button', id: 'l4-enter', text: 'Enter a layout code' })]));
   return box;
 }
 function l4AskNew() {
   openModal('Build a new layout?', [el('p', { text: 'A new layout builds a different Site B with its own faults, accounts, and ports. It replaces this Level 4 attempt, and your best Level 4 score stays.' })],
-    [el('button', { type: 'button', dataset: { close: '1' }, text: 'Cancel' }), el('button', { type: 'button', class: 'primary', id: 'l4-new-go', text: 'Build a new layout' })]);
+    [el('button', { type: 'button', dataset: { close: '1' }, text: 'Cancel' }), el('button', { type: 'button', class: 'primary', id: 'l4-new-go', dataset: { first: '1' }, text: 'Build a new layout' })]);
 }
 function l4AskCode() {
-  const inp = el('input', { type: 'text', id: 'l4-input', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false', maxlength: 12, 'aria-describedby': 'l4-msg', placeholder: 'for example K7RMHX' });
-  openModal('Enter a layout code', [el('p', { text: 'Type the six-character code your teacher or study group shared, or CLASSIC for the original build. The same code builds the same Site B in any browser. It replaces this Level 4 attempt, and your best Level 4 score stays.' }), el('p', { class: 'about', text: 'Check each character against the shared code before you build: a code with one character changed still builds, and it builds a different Site B.' }),
+  const inp = el('input', { type: 'text', id: 'l4-input', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false', maxlength: 12, 'aria-describedby': 'l4-msg', placeholder: 'for example ' + L4_EXAMPLE });
+  openModal('Enter a layout code', [el('p', { text: 'Type the six-character code your teacher or study group shared, or CLASSIC for the original build. The same code builds the same Site B in any browser. It replaces this Level 4 attempt, and your best Level 4 score stays.' }),
     el('label', { for: 'l4-input', text: 'Layout code' }), inp, el('p', { id: 'l4-msg', class: 'about', role: 'status' })],
     [el('button', { type: 'button', dataset: { close: '1' }, text: 'Cancel' }), el('button', { type: 'button', class: 'primary', id: 'l4-go', text: 'Build this layout' })]);
   setTimeout(() => { try { inp.focus(); } catch (e) { } }, 30);
 }
+/* why the dialog refused an entry, in the words all three Ranges use (this Range adds CLASSIC). c is the entry as read
+   (upper case, spaces and hyphens dropped). A code this browser holds from the earlier format gets its own sentence,
+   because every character of it is right: the layout it built stays, and New layout draws a code in today's format */
+function l4Refusal(c) {
+  if (!c) return 'Type the six characters of the layout code, or the word CLASSIC.';
+  const lead = '"' + c + '" is not a layout code', classic = ' The word CLASSIC builds the original layout.';
+  const rule = 'Compare it with the code you were given, one character at a time: codes use the digits 2 to 9 and the letters A to Z without I, L, or O, and the last character checks the others.';
+  if (c.length !== L4_LEN) return lead + '. A layout code has six characters, and this entry has ' + (L4_COUNT[c.length] || c.length) + '. ' + rule + classic;
+  const rec = STORE.scenarios[L4_ID] || {}, earlier = l4Kept(c) === c;
+  if (earlier && S && S.code === c) return lead + ' any more: it comes from an earlier version of this page. The layout it built stays here for you to finish, and New layout builds one with a code a whole class can share.' + classic;
+  if (earlier && (rec.bestCode === c || rec.lastCode === c)) return lead + ' any more: it comes from an earlier version of this page. New layout builds a Site B with a code a whole class can share.' + classic;
+  return lead + '. ' + rule + ' Look closely at 5 and S, 8 and B, and 2 and Z.' + (earlier ? ' If it came from an earlier version of this page, choose New layout for a code a whole class can share.' : '') + classic;
+}
 function l4Typed() {
   const inp = $('#l4-input'); if (!inp) return;
-  const code = l4Norm(inp.value);
-  if (!code) { $('#l4-msg').textContent = 'A layout code has six characters from ' + L4_ABC.split('').join(' ') + ', or the word CLASSIC.'; return; }
-  RT.l4Typed = code; l4Start(code);
+  const typed = l4Clean(inp.value), code = l4Norm(typed);
+  if (!code) { $('#l4-msg').textContent = l4Refusal(typed); inp.setAttribute('aria-invalid', 'true'); return; }
+  l4Start(code);
 }
 function l4Start(code) {
   RT.lastFocus = null; closeModal();
@@ -6108,11 +6145,13 @@ function selectScenario(id, opts) {
   const base = scenarioById(id), slot = STORE.scenarios[base.id];
   let saved = (!opts.fresh && slot && slot.S && slot.S.id === base.id && slot.S.devices) ? slot.S : null;
   // Level 4: the layout code comes from the request, then the saved attempt (a save without a code is the original
-  // layout, CLASSIC), and otherwise a new random layout. A saved attempt whose code no longer reads as a layout code
-  // holds a machine no check set describes, so it is dropped and the last valid layout opens fresh (best score kept)
+  // layout, CLASSIC), and otherwise a new random layout. Codes this browser already holds read through l4Kept, so an
+  // attempt saved under a code from before the check character keeps its machine. A saved attempt whose code reads
+  // as neither holds a machine no check set describes, so it is dropped and the last valid layout opens fresh (best
+  // score kept)
   let reopen = null;
-  if (base.id === L4_ID && saved && saved.code != null && !l4Norm(saved.code)) { delete slot.S; saved = null; reopen = l4Norm(slot.lastCode); }
-  const code = base.id === L4_ID ? (l4Norm(opts.code) || (saved ? (l4Norm(saved.code) || L4_CLASSIC) : reopen || l4NewCode())) : null;
+  if (base.id === L4_ID && saved && saved.code != null && !l4Kept(saved.code)) { delete slot.S; saved = null; reopen = l4Kept(slot.lastCode); }
+  const code = base.id === L4_ID ? (l4Kept(opts.code) || (saved ? (l4Kept(saved.code) || L4_CLASSIC) : reopen || l4NewCode())) : null;
   SC = code ? l4Scenario(code) : base;
   S = saved || freshState(SC);
   if (code) { S.code = code; l4RenameSave(S); (STORE.scenarios[L4_ID] || (STORE.scenarios[L4_ID] = {})).lastCode = code; }
@@ -6617,13 +6656,15 @@ function openModal(title, bodyNodes, buttons, cls) {
   host.textContent = '';
   const wrap = el('div', { class: 'modal ' + (cls || ''), role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'modal-title' });
   const box = el('div', { class: 'box' });
-  const h = el('h2', { id: 'modal-title' }, [title, el('button', { type: 'button', class: 'x small', 'aria-label': 'Close', dataset: { close: '1' }, text: 'Close' })]);
+  // the title has its own element, so the dialog is announced by its title alone (the Close button sits beside it)
+  const h = el('h2', {}, [el('span', { id: 'modal-title', text: title }), el('button', { type: 'button', class: 'x small', 'aria-label': 'Close', dataset: { close: '1' }, text: 'Close' })]);
   box.appendChild(h);
   const body = el('div', { class: 'mbody' }); for (const n of bodyNodes) body.appendChild(n);
   if (buttons && buttons.length) { const bt = el('div', { class: 'btns' }); for (const b of buttons) bt.appendChild(b); body.appendChild(bt); }
   box.appendChild(body); wrap.appendChild(box); host.appendChild(wrap);
   RT.lastFocus = opener;
-  const first = $('.x', box); setTimeout(() => { try { box.scrollTop = 0; first.focus({ preventScroll: true }); } catch (e) { } }, 0);
+  // focus starts on Close, or on the button a dialog marks as its first choice (data-first)
+  const first = $('[data-first]', box) || $('.x', box); setTimeout(() => { try { box.scrollTop = 0; first.focus({ preventScroll: true }); } catch (e) { } }, 0);
 }
 /* Tab and Shift+Tab stay inside an open dialog (aria-modal), so a keyboard user never lands on the page behind it */
 function modalTrap(e) {
@@ -6702,7 +6743,7 @@ function openHelp() {
     el('li', { text: 'Coach, at the top of the Progress Check, sets how much the panel shows. Pick the to-do list with hints, the remaining count per area, or passed checks only.' }),
     el('li', { text: 'A hint opens in two steps: the hardening area and the principle, then the command.' }),
     el('li', { text: 'Availability counts too. Breaking something the Scenario Brief requires keeps your points where they are and shows a must-fix item in red with its restore step. Finish waits until it works again, because an outage is an incident you fix before you are done.' }),
-    el('li', { text: 'Solution walkthrough for every scenario: cisco-range-reference.txt beside this page (the hub card offers it as a download). Try each scenario on your own first.' }),
+    el('li', { text: 'Solution walkthrough for every scenario: the Walkthrough .txt button on this tool’s card at the Tool4That hub downloads it as cisco-range-walkthrough.txt, and its Level 4 part works layout ' + L4_EXAMPLE + ' in full. Try each scenario on your own first.' }),
   ]);
   const about = el('p', { class: 'about', text: 'About: Lockdown Range is a general networking-security practice lab. Its look and feel is inspired by Cisco Packet Tracer, a free network simulator. Commands follow Cisco IOS 15 documentation; real devices and releases differ in places.' });
   openModal('Help — keys and conventions', [dl, notes, about], [el('button', { type: 'button', dataset: { close: '1' }, text: 'Close' })], 'help');

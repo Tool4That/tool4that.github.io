@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-15R0+EbjgBe0o9gcaXHERuIz2meLb9BlIrqz0iMiKM8='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VMExSVXFNq8E2HvOOru2k7Jjnka+DX1eqdo+p00O354='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/lockdown-range/windows/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%96%A5%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -24,20 +24,24 @@
 :root{
   --bg:#EDF0F4; --panel:#FFFFFF; --ink:#16212D; --muted:#5F6E7E; --line:#CFD7E0; --soft:#F4F6F9;
   --term:#0E1A2B; --termink:#D9E4F1; --prompt:#7FA6D6; --accent:#2563B0; --accent-ink:#FFFFFF;
-  --ok:#1C8A57; --okbg:#E3F5EB; --bad:#C03A3A; --badbg:#FBE7E7; --warn:#A8690F; --warnbg:#FBF0DA; --focus:#FFB300;
+  --ok:#1C8A57; --okbg:#E3F5EB; --bad:#C03A3A; --badbg:#FBE7E7; --warn:#A8690F; --warnbg:#FBF0DA; --warn-ink:#8F5A0C; --ring:#16212D; --ring-halo:#FFB300; --focus:var(--ring); --focus-halo:var(--ring-halo);
   --sans:"Segoe UI Variable Text","Segoe UI","Avenir Next",Avenir,Roboto,"Helvetica Neue",Arial,sans-serif;
   --mono:"Cascadia Mono","JetBrains Mono","Fira Code","SF Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
   --win-accent:#0067C0; --win-bg:#F3F3F3; --win-panel:#FBFBFB; --win-line:#E5E5E5; --win-ink:#1B1B1B; --win-muted:#616161;
   box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
-@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){ --bg:#111922; --panel:#182330; --ink:#E7EEF6; --muted:#9DACBC; --line:#2B3A4B; --soft:#1F2B3A; --term:#0A121D; --termink:#D6E2F0; --okbg:#143524; --badbg:#3A1B1B; --warnbg:#3A2C12; --accent:#6AA3E8; --accent-ink:#0B1420; } }
-:root[data-theme="dark"]{ --bg:#111922; --panel:#182330; --ink:#E7EEF6; --muted:#9DACBC; --line:#2B3A4B; --soft:#1F2B3A; --term:#0A121D; --termink:#D6E2F0; --okbg:#143524; --badbg:#3A1B1B; --warnbg:#3A2C12; --accent:#6AA3E8; --accent-ink:#0B1420; }
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){ --bg:#111922; --panel:#182330; --ink:#E7EEF6; --muted:#9DACBC; --line:#2B3A4B; --soft:#1F2B3A; --term:#0A121D; --termink:#D6E2F0; --okbg:#143524; --badbg:#3A1B1B; --warnbg:#3A2C12; --accent:#6AA3E8; --accent-ink:#0B1420; --warn-ink:#E3A64B; --ring:#FFB300; --ring-halo:#0B1118; } }
+:root[data-theme="dark"]{ --bg:#111922; --panel:#182330; --ink:#E7EEF6; --muted:#9DACBC; --line:#2B3A4B; --soft:#1F2B3A; --term:#0A121D; --termink:#D6E2F0; --okbg:#143524; --badbg:#3A1B1B; --warnbg:#3A2C12; --accent:#6AA3E8; --accent-ink:#0B1420; --warn-ink:#E3A64B; --ring:#FFB300; --ring-halo:#0B1118; }
 
 *,*::before,*::after{box-sizing:inherit}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--sans);min-height:100vh}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
-:focus-visible{outline:3px solid var(--focus);outline-offset:1px}
+/* the keyboard focus ring has two tones, so one of them reads on any surface: the ring itself (--focus) and a second
+   color between the ring and the control (--focus-halo). On the page's own surfaces the ring is dark in the light
+   theme and amber in the dark theme; the simulated screen keeps its light look in both themes, so its ring stays dark */
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px;box-shadow:0 0 0 2px var(--focus-halo)}
+.screen{--focus:#16212D;--focus-halo:#FFB300}
 [hidden]{display:none !important}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
@@ -109,7 +113,7 @@ ul.mustfix li .restore{flex-basis:100%;color:var(--ink);font-size:.86rem;overflo
 .dbr-avail ul{margin:4px 0 0;padding-left:1.1rem}
 .dbr-avail li{margin:3px 0;overflow-wrap:anywhere}
 .rate-strong{color:var(--ok)}
-.rate-revisit{color:var(--warn)}
+.rate-revisit{color:var(--warn-ink)}
 .report li.todo{background:var(--soft);color:var(--muted);flex-wrap:wrap}
 .report li .pts{white-space:nowrap;font-weight:700;font-variant-numeric:tabular-nums}
 .report li .hint-btn{font-size:.8rem;min-height:28px;padding:2px 8px;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
@@ -261,7 +265,7 @@ ul.mustfix li .restore{flex-basis:100%;color:var(--ink);font-size:.86rem;overflo
 /* generic popup menus */
 .ctx{position:absolute;z-index:1500;min-width:200px;background:#F9F9F9;border:1px solid rgba(0,0,0,.14);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.25);padding:4px;color:#1b1b1b}
 .ctx .ci{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;text-align:left;border:0;background:none;color:inherit;padding:6px 12px 6px 28px;border-radius:4px;min-height:32px;font-size:13px;position:relative;white-space:nowrap}
-.ctx .ci:hover,.ctx .ci:focus{background:rgba(0,0,0,.07);outline:none}
+.ctx .ci:hover,.ctx .ci:focus{background:rgba(0,0,0,.07);outline:none;box-shadow:none}
 .ctx .ci[disabled]{color:#999}
 .ctx .ci .chk{position:absolute;left:9px}
 .ctx .ci .acc{color:var(--win-muted);font-size:12px}
@@ -316,7 +320,7 @@ ul.mustfix li .restore{flex-basis:100%;color:var(--ink);font-size:.86rem;overflo
 .btn[disabled]{color:#9a9a9a;background:#f5f5f5;border-color:#e5e5e5;cursor:default}
 .btn.small{min-width:0;padding:2px 10px;min-height:30px}
 .txt,.screen select.txt{height:32px;border:1px solid #8a8a8a;border-bottom:2px solid #8a8a8a;border-radius:4px;padding:0 8px;background:#fff;color:#1b1b1b;font-size:13px;width:100%;max-width:100%}
-.txt:focus,.screen select.txt:focus{border-bottom-color:var(--win-accent);outline:none}
+.txt:focus,.screen select.txt:focus{border-bottom-color:var(--win-accent);outline:none;box-shadow:none}
 .txt[disabled]{background:#f3f3f3;color:#888}
 .screen select{height:32px;border:1px solid #8a8a8a;border-radius:4px;background:#fff;padding:0 6px;font-size:13px;color:#1b1b1b}
 .frow{display:flex;align-items:center;gap:10px;margin:8px 0}
@@ -366,7 +370,7 @@ table.lv td{padding:4px 8px;white-space:nowrap;overflow:hidden;text-overflow:ell
 table.lv tr[tabindex]{cursor:default}
 table.lv tbody tr:hover{background:#f0f6ff}
 table.lv tbody tr.sel{background:#CCE8FF}
-table.lv tbody tr:focus{outline:1px dotted #333;outline-offset:-1px}
+table.lv tbody tr:focus{outline:1px dotted #333;outline-offset:-1px;box-shadow:none}
 table.lv td svg{width:16px;height:16px;vertical-align:-3px;margin-right:6px}
 table.lv .dim{color:#888}
 .lower{flex:none;height:42%;border-top:1px solid #ccc;display:flex;flex-direction:column;min-height:120px}
@@ -516,7 +520,7 @@ table.lv .dim{color:#888}
 .hiddenf{opacity:.55}
 /* Notepad */
 .notepad{display:flex;flex-direction:column;height:100%;background:#fff}
-.notepad textarea{flex:1;border:0;resize:none;padding:8px 10px;font:14px/1.45 Consolas,"Cascadia Mono",Menlo,monospace;color:#1b1b1b;background:#fff;outline:none;white-space:pre;overflow:auto;min-height:0}
+.notepad textarea{flex:1;border:0;resize:none;padding:8px 10px;font:14px/1.45 Consolas,"Cascadia Mono",Menlo,monospace;color:#1b1b1b;background:#fff;outline:none;box-shadow:none;white-space:pre;overflow:auto;min-height:0}
 .notepad .statusbar{display:flex;gap:18px}
 /* Terminal */
 .term{display:flex;flex-direction:column;height:100%;background:var(--term);color:var(--termink)}
@@ -534,7 +538,7 @@ table.lv .dim{color:#888}
 .term-out .warn{color:#E3B341}
 .term-out .ok{color:#56D364}
 .term-line{display:flex;align-items:baseline;white-space:pre-wrap;word-break:break-all}
-.term-in{flex:1;background:transparent;border:0;outline:none;color:inherit;font:inherit;padding:0;margin:0;min-width:20px;caret-color:#fff}
+.term-in{flex:1;background:transparent;border:0;outline:none;box-shadow:none;color:inherit;font:inherit;padding:0;margin:0;min-width:20px;caret-color:#fff}
 .term-in.pw{-webkit-text-security:disc}
 .term .ps{color:var(--termink)}
 /* Server Manager */
@@ -618,7 +622,9 @@ table.lv .dim{color:#888}
 .report .adv .note{margin:6px 0 0}
 .adv-form label{display:block;font-weight:600;margin:4px 0}
 .adv-form input{font:700 1.1rem ui-monospace,Consolas,monospace;letter-spacing:.1em;text-transform:uppercase;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);width:10em;max-width:100%}
-.adv-form .adv-err{color:var(--bad);min-height:1.2em}
+/* the refusal reads in the text color in both themes; a red edge marks it as the reason an entry was refused */
+.adv-form .adv-err{color:var(--ink);min-height:1.2em}
+.adv-form .adv-err:not(:empty){border-left:4px solid var(--bad);padding-left:8px}
 .dbr-areas{margin:8px 0 12px}
 .dbr-areas h3{font-size:.98rem;margin:0 0 4px}
 .dbr-areas ul{margin:4px 0 0;padding-left:1.1rem}
@@ -7474,7 +7480,7 @@ const SCENARIOS = [
       blurb: 'This ' + VERSIONS.win11.family + ' PC sits at the front desk and runs the appointment book. The office manager (nalani) is the only other administrator. A temp receptionist used it over the summer and the dentists suspect "helpful" changes were made.',
       admins: ['labuser (you) - password: Easy!2026', 'nalani'],
       users: ['kekoa', 'ailani', 'moana', 'leilani'],
-      services: ['No remote access of any kind is needed on this PC (no Remote Desktop, no remote registry).', 'The firewall must be on and Microsoft Defender must stay on.', 'Windows Update must be allowed to install updates.'],
+      services: ['This PC is used only in person: Remote Desktop and Remote Registry stay off.', 'The firewall must be on and Microsoft Defender must stay on.', 'Windows Update must be allowed to install updates.'],
       policy: ['Only the two Authorized Administrators may be in the Administrators group.', 'The Guest account must be disabled.', 'Passwords must be at least 10 characters, complex, and expire regularly; "Password never expires" must be cleared on every account.', 'Account lockout must be configured: lock an account after 10 or fewer failed attempts, for 15 minutes or more.', 'Sign-in attempts must be audited.', 'Remove media files (music and video) and unauthorized software (file-sharing clients, games, and network scanners).', 'Remove anything an intruder planted: unknown accounts, scheduled tasks, and services that run from user folders.']
     },
     users: [
@@ -8189,7 +8195,7 @@ function renderLevels() {
   });
   // Level 4 sits outside the three tiers: extra credit, open to everyone, one best score for the level as a whole
   const ar = STORE.scen[ADV_ID] || {};
-  const ab = h('button', { type: 'button', role: 'tab', 'aria-selected': CUR && CUR.id === ADV_ID ? 'true' : 'false', title: ADV_LABEL + ': a different machine for each layout code', dataset: { id: ADV_ID } }, h('span', { class: 'n', text: '4 · ' }), h('span', { text: 'Advanced' }), h('span', { class: 'xc', text: 'extra credit' }));
+  const ab = h('button', { type: 'button', role: 'tab', 'aria-selected': CUR && CUR.id === ADV_ID ? 'true' : 'false', title: ADV_LABEL + ': a different machine for each layout code', dataset: { id: ADV_ID } }, h('span', { class: 'n', text: '4 · ' }), h('span', { text: 'Advanced' }), h('span', { class: 'sr-only', text: ' · ' }), h('span', { class: 'xc', text: 'extra credit' }));
   if (ar.best > 0) ab.appendChild(h('span', { class: 'best', text: 'best ' + ar.best + (ar.bestHints ? ' · ' + ar.bestHints + ' hint' + (ar.bestHints === 1 ? '' : 's') : '') }));
   ab.addEventListener('click', () => loadScenario(ADV_ID));
   host.appendChild(ab);
@@ -8206,16 +8212,27 @@ function advLoad(code) { const rec = STORE.scen[ADV_ID] || {}; STORE.scen[ADV_ID
 function advNewLayout() {
   pageModal({ title: 'Build a new layout?', text: 'This builds a different machine with a new layout code. The current machine and its progress end; your best Level 4 score is kept.', buttons: [{ label: 'New layout', value: 'yes', primary: true, id: 'advNewConfirm' }, { label: 'Cancel', value: 'no' }] }).then(v => { if (v === 'yes') advLoad(advNewCode()); });
 }
-function advEnterCode(err) {
-  const inp = h('input', { type: 'text', id: 'adv-code-in', maxlength: '9', autocomplete: 'off', spellcheck: 'false', 'aria-describedby': 'adv-code-err' });
-  const msg = h('p', { class: 'adv-err', id: 'adv-code-err', role: 'status', text: typeof err === 'string' ? err : '' });
+/* why the dialog refused an entry, in the words all three Ranges use. c is the entry as read (upper case, spaces and hyphens dropped) */
+const ADV_COUNT = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+function advRefusal(c) {
+  if (!c) return 'Type the six characters of the layout code.';
+  const lead = '"' + c + '" is not a layout code. ', rule = 'Compare it with the code you were given, one character at a time: codes use the digits 2 to 9 and the letters A to Z without I, L, or O, and the last character checks the others.';
+  if (c.length !== 6) return lead + 'A layout code has six characters, and this entry has ' + (ADV_COUNT[c.length] || c.length) + '. ' + rule;
+  return lead + rule + ' Look closely at 5 and S, 8 and B, and 2 and Z.';
+}
+/* err and typed: the dialog opens again after a refused entry, with the reason and the entry as it was typed */
+function advEnterCode(err, typed) {
+  const refused = typeof err === 'string' && !!err;
+  const inp = h('input', { type: 'text', id: 'adv-code-in', maxlength: '12', autocomplete: 'off', spellcheck: 'false', 'aria-describedby': 'adv-code-err' });
+  if (refused) { inp.value = typeof typed === 'string' ? typed : ''; inp.setAttribute('aria-invalid', 'true'); inp.addEventListener('input', () => inp.removeAttribute('aria-invalid')); }
+  const msg = h('p', { class: 'adv-err', id: 'adv-code-err', role: 'status', text: refused ? err : '' });
   const body = h('div', { class: 'adv-form' }, h('p', { text: 'A layout code is six characters, such as the one a teacher writes on the board. The same code builds the same machine on any computer. Building it ends the current machine; your best Level 4 score is kept.' }), h('label', { for: 'adv-code-in', text: 'Layout code' }), inp, msg);
   inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); const b = document.getElementById('advCodeBuild'); if (b) b.click(); } });
   setTimeout(() => inp.focus(), 10);
   pageModal({ title: 'Enter a layout code', body, buttons: [{ label: 'Build this layout', value: 'yes', primary: true, id: 'advCodeBuild' }, { label: 'Cancel', value: 'no' }] }).then(v => {
     if (v !== 'yes') return;
     const c = advNormalize(inp.value);
-    if (!advValid(c)) { advEnterCode(c ? '"' + c + '" is not a layout code. Check each character: codes use the digits 2 to 9 and the letters A to Z without I, L, or O, and the last character checks the others.' : 'Type the six characters of the layout code.'); return; }
+    if (!advValid(c)) { advEnterCode(advRefusal(c), inp.value); return; }
     advLoad(c);
   });
 }
@@ -8272,7 +8289,7 @@ function renderReport() {
   const btns = h('div', { class: 'rbtns' });
   const fin = h('button', { type: 'button', class: 'rbtn primary', id: 'finBtn', text: 'Finish / Debrief' }); fin.addEventListener('click', openDebrief);
   btns.appendChild(fin); body.appendChild(btns);
-  body.appendChild(h('div', { class: 'note', text: mode === 'passed' ? 'Passed checks only: no hints and no areas. Coach changes that at any level.' : 'Progress and the machine state are saved in this browser.' }));
+  body.appendChild(h('div', { class: 'note', text: mode === 'passed' ? 'Passed checks only: hints and areas stay hidden. Coach changes that at any level.' : 'Progress and the machine state are saved in this browser.' }));
 }
 function tickTimer() {
   clearInterval(TICK);
@@ -8370,7 +8387,7 @@ function openHelp() {
   sec('What the simulation covers', ['A faithful subset of ' + VERSIONS.win11.family + ' (version ' + VERSIONS.win11.version + ') and ' + VERSIONS.server.family + ': the panels and commands an administrator uses to harden a standalone machine. Nothing touches your real computer.', 'Outside the simulation: Registry Editor, Task Manager, real program windows, the Microsoft Store, and networking beyond this machine.', 'Progress and the machine state save in this browser. Reset lab reverts to the original snapshot.', 'Setting names and commands follow Microsoft Learn (Windows security policy settings reference, Windows Commands reference) and the CIS Critical Security Controls v8.', 'Practice only on machines you own or are authorized to manage.']);
   sec('Coach and hints', ['Coach, at the top of the Progress Check, sets how much the panel shows. Pick the to-do list with hints, the remaining count per area, or passed checks only.', 'A hint opens in two steps: the hardening area and the principle, then the console path or command.','Your best score remembers how many hints it took. A pass with no hints on a fresh attempt is the one that counts.']);
   sec(ADV_LABEL, ['Extra credit for learners who finished Recruit, Operator, and Captain. It sits outside the three tiers and stays open to everyone. Sign in as labuser / ' + ADV_PW + '.', 'Each attempt builds a different machine from a six-character layout code: a computer-lab desktop, a teacher laptop, a front-office PC, or a file and portal server at Pōhinahina High School, with its own accounts, address, faults, and decoys. The faults come only from what Levels 1 to 3 teach.', 'The Scenario Brief is built from the same code, so its lists of authorized people, required services, and policy numbers are the ground truth. Read it first: some items that look odd are required.', 'New layout builds a different machine. Enter a layout code builds the machine a teacher or a friend names, the same one in any browser. The code shows in the Progress Check, the Debrief, and the copied debrief.', 'Level 4 keeps one best score for the level as a whole, plus the last layout code.']);
-  sec('After you try', ['Solution walkthrough for every scenario: windows-range-reference.txt beside this page (the hub card offers it as a download). Try each scenario on your own first, then read it to see what you missed.']);
+  sec('After you try', ['Solution walkthrough for every scenario: the Walkthrough .txt button on this tool’s card at the Tool4That hub downloads it as windows-range-walkthrough.txt, and its Level 4 section works layout ' + ADV_EXAMPLE + ' in full. Try each scenario on your own first, then read it to see what you missed.']);
   pageModal({ title: 'How to use Windows Range', body, buttons: [{ label: 'Close', value: 'close', primary: true }] });
 }
 /* ---------- theme ---------- */
