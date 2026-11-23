@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-pT+k9y1M/+ZWcjCNS+uvPs59u3740kGsSg5VxaoXdVw=' blob:; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-4nNynT5eYZBvw4J4UJmnczaODXLjEDblRHB2rnDtgfA=' blob:; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/chop-lab/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Tool4That">
 <meta property="og:title" content="Chop Lab">
-<meta property="og:description" content="A music studio in your browser: 16 pads, a step sequencer with patterns up to 128 bars, a song timeline for layering patterns into full tracks, 63 genre kits from boom bap and house to jazz, reggae, country, and metal, a sample chopper, a Screw control that slows and deepens everything, two DJ decks with scratching, and recording to WAV.">
+<meta property="og:description" content="A music studio in your browser: 16 pads, a step sequencer with patterns up to 128 bars, a song timeline for layering patterns into full tracks, a kit for each pattern, 63 genre kits from boom bap and house to jazz, reggae, country, and metal, a sample chopper, a Screw control that slows and deepens everything, two DJ decks with scratching, and recording to WAV.">
 <meta property="og:url" content="https://freeapp4that.store/chop-lab/">
 <meta property="og:image" content="https://freeapp4that.store/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -207,6 +207,18 @@ main { min-width: 0; overflow: auto; padding: 0 14px 14px; }
 
 /* ---------- beats: pattern length, pages, song timeline ---------- */
 .pat-pick { display: inline-flex; gap: 4px; align-items: center; }
+.kit-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; }
+.kit-for { font-size: 12px; color: var(--muted); }
+.kit-tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+.kit-tab { display: inline-flex; align-items: center; gap: 5px; max-width: 150px; min-height: 30px; padding: 3px 9px; border-radius: 8px; border: 1px solid var(--line2); background: var(--bg2); }
+.kit-tab .kt-num { font-weight: 700; font-size: 11px; color: var(--muted); }
+.kit-tab .kt-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kit-tab.on { background: var(--accent); color: #12091f; font-weight: 600; border-color: var(--accent); }
+.kit-tab.on .kt-num { color: #12091fbb; }
+.slot-pick { display: grid; gap: 2px; justify-items: end; max-width: 320px; }
+.slot-note { margin: 0; font-size: 12px; text-align: right; }
+.lane-name.kitted { width: 112px; }
+.lane-name.kitted small { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .len-ctl { display: inline-flex; gap: 4px; align-items: center; padding: 2px 6px; border: 1px solid var(--line); border-radius: 9px; }
 .len-ctl input { width: 4.2em; text-align: center; padding: 3px 4px; }
 .len-unit { font-size: 12px; color: var(--muted); }
@@ -231,7 +243,7 @@ main { min-width: 0; overflow: auto; padding: 0 14px 14px; }
 .song-heads { position: sticky; left: 0; z-index: 2; display: grid; gap: 3px; padding: 4px; background: var(--panel); border-right: 1px solid var(--line2); }
 .song-head { --lc: #c46bff; display: flex; align-items: center; gap: 3px; height: 26px; }
 .song-head.ruler-head { height: 20px; font-size: 11px; color: var(--muted); padding-left: 4px; }
-.lane-name { display: flex; align-items: baseline; gap: 5px; width: 74px; height: 24px; padding: 0 6px; border-radius: 6px; border: 1px solid color-mix(in srgb, var(--lc) 55%, transparent); background: color-mix(in srgb, var(--lc) 14%, transparent); font-weight: 700; }
+.lane-name { display: flex; align-items: baseline; gap: 5px; width: 74px; overflow: hidden; height: 24px; padding: 0 6px; border-radius: 6px; border: 1px solid color-mix(in srgb, var(--lc) 55%, transparent); background: color-mix(in srgb, var(--lc) 14%, transparent); font-weight: 700; }
 .lane-name small { font-weight: 400; font-size: 10px; color: var(--muted); white-space: nowrap; }
 .song-head.sel .lane-name { background: var(--lc); color: #12091f; }
 .song-head.sel .lane-name small { color: #12091fbb; }
@@ -392,6 +404,7 @@ dialog h2 { margin: 0 0 8px; }
   #scope { display: none; }
   #fx-bar { position: sticky; bottom: 0; }
 }
+@media (max-width: 480px) { #toasts { left: 16px; } .toast { flex-wrap: wrap; max-width: none; } }
 </style>
 </head>
 <body>
@@ -453,6 +466,12 @@ dialog h2 { margin: 0 0 8px; }
     <section id="tab-beats" class="tab-panel" role="tabpanel" aria-label="Beats">
       <div class="beats-layout">
         <div class="pads-col">
+          <div class="kit-row">
+            <span id="kit-for" class="kit-for">Kit for pattern A</span>
+            <div class="kit-tabs" id="kit-tabs" role="group" aria-label="Kit for pattern A"></div>
+            <button id="kit-add" class="btn tiny" aria-label="Add a kit">+</button>
+            <button id="kit-remove" class="btn tiny" hidden>−</button>
+          </div>
           <div id="pads"></div>
           <div id="pad-editor" class="panel"></div>
         </div>
@@ -470,7 +489,7 @@ dialog h2 { margin: 0 0 8px; }
               <button id="seq-bar-plus" class="btn tiny" aria-label="One bar longer">+</button>
               <span id="seq-len-time" class="len-time"></span>
             </div>
-            <label class="inline" title="Pushes the off-beat notes later for a bouncier groove">Swing
+            <label class="inline" title="Pushes the off-beat notes later for a bouncier groove. Each kit keeps its own swing.">Swing
               <input id="seq-swing" type="range" min="50" max="75" step="1" value="54">
               <span id="seq-swing-val">54%</span></label>
             <select id="seq-feel" aria-label="What swing moves" title="16ths: a bounce. 8ths: a shuffle, as in blues, swing jazz, and rock ’n’ roll">
@@ -509,7 +528,7 @@ dialog h2 { margin: 0 0 8px; }
               <button id="song-clear" class="btn small" title="Take every block off the timeline (your patterns stay)">Clear song</button>
             </div>
             <div id="song-scroll" class="song-scroll"><div id="song-tl" class="song-tl"></div></div>
-            <p class="hint">Each pattern has a lane · click or tap a lane to place that pattern there · with a mouse, drag along a lane to place more · drag a block to move it, click or tap it to remove it · lanes stacked at the same bar play together · click the ruler to choose where Play song starts.</p>
+            <p class="hint">Each pattern has a lane · click or tap a lane to place that pattern there · with a mouse, drag along a lane to place more · drag a block to move it, click or tap it to remove it · lanes stacked at the same bar play together, each with its own kit · click the ruler to choose where Play song starts.</p>
           </section>
         </div>
       </div>
@@ -587,7 +606,7 @@ dialog h2 { margin: 0 0 8px; }
   <ol class="steps">
     <li><b>Hear the starter beat.</b> Press <kbd>Space</kbd> or Play. Click squares in the grid to add or remove hits.</li>
     <li><b>Play the pads</b> with your keyboard: <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> · <kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd> · <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><kbd>F</kbd> · <kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd><kbd>V</kbd>. Turn on <i>Record hits</i> to finger-drum straight into the pattern.</li>
-    <li><b>Make it a song.</b> Set how many bars a pattern lasts (1 to 128), and add patterns up to H. On the <i>Song</i> timeline under the grid, click a lane to place its pattern; stack lanes at the same bar to layer them, then switch to <i>Play song</i>.</li>
+    <li><b>Make it a song.</b> Set how many bars a pattern lasts (1 to 128), and add patterns up to H. On the <i>Song</i> timeline under the grid, click a lane to place its pattern; stack lanes at the same bar to layer them, then switch to <i>Play song</i>. Each pattern plays one kit: the tabs above the pads choose it, so a verse and a chorus can sound different.</li>
     <li><b>Pick a genre.</b> The Genres tab holds 63 kits across 17 families, from boom bap, trap, and house to jazz, reggae, country, and metal. Press <i>Hear it</i>, then <i>Load kit</i> to put its sounds and a starter beat on the pads.</li>
     <li><b>Bring your own sounds.</b> Drop MP3, WAV, M4A, OGG, or FLAC files anywhere, or record with the mic. Drag any sound onto a pad or a deck.</li>
     <li><b>Chop.</b> Open a sound in the Chop tab, chop it evenly, on hits, or by beats (or tap <kbd>Enter</kbd> while it plays), then press <i>Send chops to pads</i>.</li>
@@ -650,13 +669,12 @@ CL.el = (tag, attrs = {}, ...kids) => {
 CL.toast = (msg, action) => {
   const box = CL.$('#toasts');
   const t = CL.el('div', { class: 'toast' }, msg);
-  if (action) {
-    t.append(CL.el('button', { class: 'btn small', onclick: () => { action.fn(); t.remove(); } }, action.label));
-  }
+  const acts = Array.isArray(action) ? action : action ? [action] : [];
+  acts.forEach((a) => t.append(CL.el('button', { class: 'btn small', onclick: () => { a.fn(); t.remove(); } }, a.label)));
   box.append(t);
   while (box.children.length > 3) box.firstChild.remove();
-  setTimeout(() => t.classList.add('out'), action ? 6000 : 3200);
-  setTimeout(() => t.remove(), action ? 6600 : 3800);
+  setTimeout(() => t.classList.add('out'), acts.length ? 6000 + 2000 * (acts.length - 1) : 3200);
+  setTimeout(() => t.remove(), acts.length ? 6600 + 2000 * (acts.length - 1) : 3800);
 };
 
 // Simple event hub so modules can react to each other without tight coupling.
@@ -974,14 +992,16 @@ CL.MAX_PATTERNS = 8; // A to H
 CL.MIN_PATTERNS = 4; // A to D are always there
 CL.PAT_NAMES = 'ABCDEFGH';
 CL.SONG_MAX_BARS = 256; // longest song on the timeline
+CL.MAX_KITS = 8; // kit tabs: each pattern plays one kit
 CL.samples = new Map(); // id -> { id, name, group, buffer, builtin, bpm, chops: [], cues: [] }
 
 // nudge: timing in ms (-50 early to +50 late) for the pad's sequenced steps; hand-played hits stay immediate.
 CL.blankPad = () => ({ sampleId: null, start: 0, end: null, name: '', gain: 0.9, pitch: 0, reverse: false, mode: 'oneshot', cut: 0, nudge: 0 });
 CL.NUDGE_MAX = 50;
-CL.blankPattern = (name, bars = 2) => ({
+CL.blankPattern = (name, bars = 2, kit = 0) => ({
   name,
   bars,
+  kit, // index into state.kits
   steps: Array.from({ length: 16 }, () => new Array(bars * 16).fill(0)),
   mutes: new Array(16).fill(false),
 });
@@ -990,6 +1010,8 @@ CL.blankPattern = (name, bars = 2) => ({
 CL.blankSong = () => ({ mode: 'pattern', blocks: [], mutes: new Array(CL.MAX_PATTERNS).fill(false), solo: -1, from: 0 });
 
 CL.PUMP_PADS = [8, 9, 10, 11, 12, 13, 14, 15]; // pads 9 to 16: the bass and keys rows of a kit
+
+CL.blankKit = (pads = Array.from({ length: 16 }, CL.blankPad), o = {}) => Object.assign({ name: 'Starter', genre: null, swing: 54, feel: '16', pads }, o);
 
 CL.defaultState = () => {
   const pads = Array.from({ length: 16 }, CL.blankPad);
@@ -1010,11 +1032,12 @@ CL.defaultState = () => {
   A[8][0] = 1; A[8][10] = 1; A[9][16] = 1; A[9][26] = 1;
   return {
     version: 1,
-    seq: { bpm: 90, swing: 54, feel: '16', pattern: 0, metro: false, follow: true },
+    seq: { bpm: 90, pattern: 0, metro: false, follow: true }, // tempo is song-wide; swing and feel belong to each kit
     song: CL.blankSong(),
-    genre: { fam: 'hiphop', kit: null },
+    genre: { fam: 'hiphop' },
     patterns,
-    pads,
+    // kits: 16 pads each, with their own swing and feel; genre is the id of the genre kit it came from (or null).
+    kits: [CL.blankKit(pads)],
     // pump (0-1): sidechain depth; every hit of pad pumpSrc (0-based) dips the pads in pumpPads (0-based) to 1 - pump,
     // and they recover over pumpRel seconds.
     fx: { filter: 0, echoMix: 0, echoFb: 0.35, echoTime: 0.75, revMix: 0, revSize: 'hall', lofi: 0, crackle: 0, volume: 0.85,
@@ -1030,9 +1053,21 @@ CL.defaultState = () => {
 
 CL.state = CL.defaultState();
 
+// The kit the pattern open in the grid plays (its sounds are on the pads), by index or as the kit itself.
+CL.kitIndexOf = (pat) => (pat && pat.kit >= 0 && pat.kit < CL.state.kits.length ? pat.kit : 0);
+CL.curKitIndex = () => CL.kitIndexOf(CL.currentPattern());
+CL.curKit = () => CL.state.kits[CL.curKitIndex()];
+CL.curPads = () => CL.curKit().pads;
+CL.kitAt = (ki) => CL.state.kits[ki] || CL.curKit();
+CL.kitName = (kit) => {
+  const g = kit.genre && CL.KITS && CL.KITS.find((k) => k.id === kit.genre);
+  return g ? g.name : kit.name || 'Your sounds';
+};
+CL.patHasHits = (pat) => pat.steps.some((row) => row.some(Boolean)) || !!(pat.tail && pat.tail.some((row) => row.some(Boolean)));
+
 CL.sampleOf = (pad) => (pad && pad.sampleId ? CL.samples.get(pad.sampleId) : null);
-CL.padName = (i) => {
-  const p = CL.state.pads[i];
+CL.padName = (i, pads = CL.curPads()) => {
+  const p = pads[i];
   const s = CL.sampleOf(p);
   if (p.name) return p.name;
   return s ? s.name : 'Empty';
@@ -4038,13 +4073,26 @@ CL.renderKit = async () => {
   // 7 ms, a 25 ms hold, then an exponential recovery with time constant rel / 3.
   const lastDip = new WeakMap();
   const dipLevel = (d, t) => (t <= d.when + 0.03 ? d.floor : 1 - (1 - d.floor) * Math.exp(-(t - d.when - 0.03) / (d.rel / 3)));
+  // Keys within 30 ms of each other (the source pad of two kits on one step) make one dip, keyed at the earlier one.
+  // A merge redraws the dip only while it is the latest one scheduled, so a dip later in time always stays.
+  const latestDip = new WeakMap();
   CL.duckHit = (gain, when, plan) => {
-    const t0 = Math.max(0, when - 0.002), prev = lastDip.get(gain);
+    let prev = lastDip.get(gain);
+    const latest = latestDip.get(gain);
+    if (prev && Math.abs(when - prev.when) < 0.03) {
+      if (when >= prev.when) return;
+      if (!(latest > prev.when + 1e-9)) {
+        gain.cancelScheduledValues(Math.max(0, prev.when - 0.002));
+        prev = prev.before;
+      }
+    }
+    latestDip.set(gain, Math.max(latest || 0, when));
+    const t0 = Math.max(0, when - 0.002);
     const from = prev && prev.when <= when ? Math.max(plan.floor, dipLevel(prev, t0)) : 1;
     gain.setValueAtTime(from, t0); gain.linearRampToValueAtTime(plan.floor, when + 0.005); gain.setTargetAtTime(1, when + 0.03, plan.rel / 3);
-    lastDip.set(gain, { when, floor: plan.floor, rel: plan.rel });
+    lastDip.set(gain, { when, floor: plan.floor, rel: plan.rel, before: prev && { when: prev.when, floor: prev.floor, rel: prev.rel } });
   };
-  CL.duckForget = (gain) => lastDip.delete(gain);
+  CL.duckForget = (gain) => { lastDip.delete(gain); latestDip.delete(gain); };
 
   // A kit as a loaded project: its pads (sounds, names, cut groups, and timing), starter pattern, tempo, swing, and
   // effects (pump included). CL.loadKit puts exactly this on the pads; CL.renderGroove plays exactly this.
@@ -4864,7 +4912,7 @@ CL.removeSample = (id) => {
   if (!s || s.builtin) return;
   CL.samples.delete(id);
   delete CL.state.meta[id];
-  CL.state.pads.forEach((p) => { if (p.sampleId === id) Object.assign(p, CL.blankPad()); });
+  CL.state.kits.forEach((K) => K.pads.forEach((p) => { if (p.sampleId === id) Object.assign(p, CL.blankPad()); }));
   if (CL.state.chopSample === id) CL.state.chopSample = 'kit-demo';
   CL.bus.emit('sample-removed', id);
   CL.renderLibrary();
@@ -5038,7 +5086,7 @@ CL.liveHeld = {};   // pad index -> voice (for hold/loop release)
 
 // Resolve what a pad plays: buffer, offset, duration, rate, gain. pads defaults to the project's; buffers (sample id
 // -> AudioBuffer) lets an offline render bring the exact sounds it was handed.
-CL.padPlan = (i, pads = CL.state.pads, buffers) => {
+CL.padPlan = (i, pads = CL.curPads(), buffers) => {
   const p = pads[i];
   const s = CL.sampleOf(p);
   if (!s) return null;
@@ -5140,20 +5188,44 @@ CL.padVoice = (i, o, cs) => {
 
 CL.liveCtx = { live: true, ac: CL.ac, dest: null, screw: null, mono: {}, groups: {} };
 
+// Each kit plays through its own view of a context: its pads, and its own voices and cut groups, so pad 1 of one kit
+// leaves pad 1 of another ringing. Everything else (destination, pump, Screw, effects) comes from the context itself.
+CL.kitCs = (cs, ki) => {
+  const K = CL.kitAt(ki);
+  if (!cs.kitViews) cs.kitViews = new WeakMap(); // a kit replaced by a load or Undo takes its view with it
+  let sub = cs.kitViews.get(K);
+  if (!sub) { sub = Object.create(cs); sub.mono = {}; sub.groups = {}; cs.kitViews.set(K, sub); }
+  sub.pads = K.pads;
+  return sub;
+};
+
+// The pattern you hear: while a pattern loops, a switch picked for the next bar is set a moment before that bar
+// sounds, so hand hits keep the kit of the pattern still playing until then.
+CL.heardPatternIndex = () => {
+  const S = CL.seq;
+  if (!S.playing || S.mode !== 'pattern') return CL.state.seq.pattern;
+  const heard = CL.ac.currentTime - (CL.ac.outputLatency || 0);
+  let q = null;
+  for (const e of S.queue) if (e.time <= heard) q = e;
+  const p = q ? +Object.keys(q.act)[0] : CL.state.seq.pattern;
+  return CL.state.patterns[p] ? p : CL.state.seq.pattern;
+};
+CL.liveKitIndex = () => CL.kitIndexOf(CL.state.patterns[CL.heardPatternIndex()]);
+
 CL.hitPad = (i, vel = 1) => {
   CL.ac.resume();
   CL.liveCtx.dest = CL.padBus;
-  const v = CL.padVoice(i, { vel }, CL.liveCtx);
+  const ki = CL.liveKitIndex(), p = CL.kitAt(ki).pads[i];
+  const v = CL.padVoice(i, { vel }, CL.kitCs(CL.liveCtx, ki));
   CL.flashPad(i);
-  if (v) CL.liveHeld[i] = v;
+  if (v) { v.__held = p.mode === 'hold' || p.mode === 'loop'; CL.liveHeld[i] = v; }
   CL.bus.emit('padhit', i);
   if (CL.state.selectedPad !== i) { CL.state.selectedPad = i; CL.renderPads(); CL.renderPadEditor(); }
 };
 
 CL.releasePad = (i) => {
-  const p = CL.state.pads[i];
   const v = CL.liveHeld[i];
-  if (v && (p.mode === 'hold' || p.mode === 'loop')) v.stop(undefined, 0.02);
+  if (v && v.__held) v.stop(undefined, 0.02); // the mode the pad had when pressed, even if the kit changed since
   delete CL.liveHeld[i];
 };
 
@@ -5167,7 +5239,7 @@ CL.flashPad = (i, delay = 0) => {
 };
 
 CL.assignToPad = (i, sampleId, start = 0, end = null, name = '') => {
-  const p = CL.state.pads[i];
+  const p = CL.curPads()[i];
   Object.assign(p, { sampleId, start, end, name, reverse: false, pitch: 0 });
   CL.state.selectedPad = i;
   CL.renderPads(); CL.renderPadEditor(); CL.renderSeq && CL.renderSeq();
@@ -5177,22 +5249,23 @@ CL.assignToPad = (i, sampleId, start = 0, end = null, name = '') => {
 
 // ---------- undo for bulk pad changes ----------
 CL._padUndo = null;
-CL.snapshotPads = () => { CL._padUndo = JSON.stringify(CL.state.pads); };
+CL.snapshotPads = () => { const K = CL.curKit(); CL._padUndo = { K, pads: JSON.stringify(K.pads) }; };
 CL.undoPads = () => {
-  if (!CL._padUndo) return;
-  CL.state.pads = JSON.parse(CL._padUndo);
+  const u = CL._padUndo;
+  if (!u || !CL.state.kits.includes(u.K)) return; // the kit has been removed since
+  u.K.pads = JSON.parse(u.pads);
   CL._padUndo = null;
   CL.renderPads(); CL.renderPadEditor(); CL.renderSeq(); CL.changed();
   CL.toast('Pads restored');
 };
 
 CL.spreadChromatic = (i) => {
-  const src = CL.state.pads[i];
+  const K = CL.curKit(), src = K.pads[i];
   if (!src.sampleId) return;
   CL.snapshotPads();
   const base = src.pitch || 0;
   const label = CL.sampleOf(src).name;
-  CL.state.pads = CL.state.pads.map((_, k) => Object.assign({}, src, { pitch: base + k, name: label + ' +' + k }));
+  K.pads = K.pads.map((_, k) => Object.assign({}, src, { pitch: base + k, name: label + ' +' + k }));
   CL.renderPads(); CL.renderPadEditor(); CL.renderSeq(); CL.changed();
   CL.toast('Sound spread across all pads, one step higher per pad', { label: 'Undo', fn: CL.undoPads });
 };
@@ -5225,9 +5298,10 @@ CL.renderPads = () => {
       grid.append(b);
     }
   }
+  const pads = CL.curPads();
   for (let i = 0; i < 16; i++) {
     const b = CL.$('#pad-' + i);
-    const p = CL.state.pads[i];
+    const p = pads[i];
     b.classList.toggle('empty', !p.sampleId);
     b.classList.toggle('sel', CL.state.selectedPad === i);
     b.querySelector('.pad-name').textContent = CL.padName(i);
@@ -5239,7 +5313,7 @@ CL.renderPadEditor = () => {
   const box = CL.$('#pad-editor');
   if (!box) return;
   const i = CL.state.selectedPad;
-  const p = CL.state.pads[i];
+  const p = CL.curPads()[i];
   const s = CL.sampleOf(p);
   box.textContent = '';
   box.style.setProperty('--c', CL.COLORS[i]);
@@ -5325,7 +5399,7 @@ CL.swingOffsetFor = (step, swing, feel, stepSec) => {
   if (feel === '8') return step % 4 === 2 ? amt * 2 * stepSec : 0;
   return step % 2 ? amt * stepSec : 0;
 };
-CL.swingOffset = (step, stepSec) => CL.swingOffsetFor(step, CL.state.seq.swing, CL.state.seq.feel, stepSec);
+CL.swingOffset = (step, stepSec, kit = CL.curKit()) => CL.swingOffsetFor(step, kit.swing, kit.feel, stepSec);
 
 // ---------- what plays on one step ----------
 // One column of a pattern: the 16 rows' hits (0 none, 1 full, 2 soft) with the pattern's row mutes applied.
@@ -5368,15 +5442,19 @@ CL.blockAt = (p, bar, song = CL.state.song, P = CL.state.patterns, ends = CL.blo
   song.blocks.find((b) => b.p === p && b.bar <= bar && bar < ends.get(b)) || null;
 CL.laneOn = (song, p) => !song.mutes[p] && (song.solo < 0 || song.solo === p);
 
-// One song step: every lane playing there, merged. A pad hit by two lanes on the same step plays once, at the louder
-// of the two hits. act maps each pattern playing there (muted lanes too) to its own step, for the playhead and Record.
+// One song step: every lane playing there, merged per kit (cols: kit index -> the 16 rows' hits). A pad hit by two
+// lanes of the same kit on the same step plays once, at the louder of the two hits; lanes on different kits each play
+// their own pads. act maps each pattern playing there (muted lanes too) to its own step, for the playhead and Record.
 CL.songColumn = (pos, song = CL.state.song, P = CL.state.patterns, ends = CL.blockEnds(song, P)) => {
-  const bar = Math.floor(pos / 16), vals = new Array(16).fill(0), act = {};
+  const bar = Math.floor(pos / 16), cols = new Map(), act = {};
   for (const b of song.blocks) {
     if (b.bar > bar || bar >= ends.get(b)) continue;
     const pat = P[b.p], local = pos - b.bar * 16;
     act[b.p] = local;
     if (!CL.laneOn(song, b.p)) continue;
+    const ki = CL.kitIndexOf(pat);
+    let vals = cols.get(ki);
+    if (!vals) cols.set(ki, (vals = new Array(16).fill(0)));
     for (let r = 0; r < 16; r++) {
       if (pat.mutes[r]) continue;
       const v = pat.steps[r][local];
@@ -5384,21 +5462,24 @@ CL.songColumn = (pos, song = CL.state.song, P = CL.state.patterns, ends = CL.blo
       else if (v === 2 && !vals[r]) vals[r] = 2;
     }
   }
-  return { vals, act };
+  return { cols, act };
 };
 
 // One step at time t: swing, each pad's timing (nudge), and the pump, for live playback, bounces, and the kit groove
-// render alike. The pads and swing come from cs.pads and cs.seq when a render brings its own project (otherwise the
-// project's). cs.only plays that row alone; the silent rows still key the pump and still choke their cut group, so the
-// soloed row sounds exactly as it does in the mix.
-CL.scheduleHits = (vals, step, t, cs, stepSec) => {
-  const pads = cs.pads || CL.state.pads, seq = cs.seq || CL.state.seq;
+// render alike. A render that brings its own project (the kit groove) brings its pads and swing in cs.pads and cs.seq;
+// otherwise kit ki of the project plays: its pads, swing, and feel, with its own voices and cut groups (the shown
+// pattern's kit when ki is left out). cs.only plays that row alone; the silent rows still key the pump and still choke
+// their cut group, so the soloed row sounds exactly as it does in the mix.
+CL.scheduleHits = (vals, step, t, cs, stepSec, ki) => {
+  let seq = cs.seq;
+  if (!seq) { if (ki == null) ki = CL.curKitIndex(); seq = CL.kitAt(ki); cs = CL.kitCs(cs, ki); }
+  const pads = cs.pads;
   const off = CL.swingOffsetFor(step, seq.swing, seq.feel, stepSec);
   for (let r = 0; r < 16; r++) {
     const val = vals[r];
     if (!val) continue;
     const sk = CL.seq.skip;
-    if (sk && cs.live && sk.r === r && Math.abs(sk.time - t) < 1e-6) { CL.seq.skip = null; continue; }
+    if (sk && cs.live && sk.r === r && sk.k === ki && Math.abs(sk.time - t) < 1e-6) { CL.seq.skip = null; continue; }
     const p = pads[r];
     if (!p.sampleId) continue;
     const when = t + off + CL.nudgeSec(p);
@@ -5439,19 +5520,19 @@ CL.seqTick = () => {
   while (S.nextTime < ac.currentTime + 0.12) {
     const stepSec = CL.stepSec();
     CL.liveCtx.dest = CL.padBus;
-    let vals, act, beat;
+    let cols, act, beat;
     if (S.mode === 'song') {
       if (S.pos >= songEnd) { S.endAt = S.nextTime; return; } // the song is over once its last step sounds
-      ({ vals, act } = CL.songColumn(S.pos, undefined, undefined, ends));
+      ({ cols, act } = CL.songColumn(S.pos, undefined, undefined, ends));
       beat = S.pos;
     } else {
       const pat = CL.currentPattern();
       if (S.step >= CL.patSteps(pat)) S.step %= CL.patSteps(pat);
-      vals = CL.patternColumn(pat, S.step);
+      cols = [[CL.curKitIndex(), CL.patternColumn(pat, S.step)]];
       act = { [st.pattern]: S.step };
       beat = S.step;
     }
-    CL.scheduleHits(vals, beat, S.nextTime, CL.liveCtx, stepSec);
+    for (const [ki, vals] of cols) CL.scheduleHits(vals, beat, S.nextTime, CL.liveCtx, stepSec, ki);
     if (st.metro && beat % 4 === 0) CL.metroClick(S.nextTime, beat % 16 === 0);
     S.queue.push({ time: S.nextTime, pos: beat, act });
     if (S.queue.length > 64) S.queue.shift();
@@ -5502,7 +5583,11 @@ CL.bus.on('padhit', (r) => {
   if (!S.playing || !S.rec) return;
   const ac = CL.ac;
   const heard = ac.currentTime - (ac.outputLatency || ac.baseLatency || 0);
-  const cands = S.queue.concat([{ time: S.nextTime, act: CL.peekAct(), future: true }]);
+  let cands = S.queue.concat([{ time: S.nextTime, act: CL.peekAct(), future: true }]);
+  if (S.mode === 'pattern') { // around a queued switch, keep the steps of the pattern whose kit the hit sounded on
+    const ki = CL.liveKitIndex(), same = cands.filter((c) => CL.kitIndexOf(CL.state.patterns[+Object.keys(c.act)[0]]) === ki);
+    if (same.length) cands = same;
+  }
   let best = null;
   for (const c of cands) if (!best || Math.abs(c.time - heard) < Math.abs(best.time - heard)) best = c;
   if (!best) return;
@@ -5515,7 +5600,7 @@ CL.bus.on('padhit', (r) => {
     return;
   }
   pat.steps[r][local] = 1;
-  if (best.future) S.skip = { r, time: best.time };
+  if (best.future) S.skip = { r, k: CL.kitIndexOf(pat), time: best.time };
   CL.renderSeqCells();
   CL.changed();
 });
@@ -5527,14 +5612,14 @@ CL.bus.on('tapestop', () => {
 CL.bus.on('panic', () => CL.seqStop());
 
 // ---------- bounce to a new sound (includes screw, pad timing, the pump, and master effects) ----------
-// steps(n) returns the vals and swing step for render step n. A pattern bounce is trimmed at both ends; a song
+// steps(n) returns the hits per kit (cols: [kit index, vals] pairs) and the swing step for render step n. A pattern bounce is trimmed at both ends; a song
 // bounce (o.song) starts right on bar 1 (earlier only by the most any pad plays early) and keeps its 2.5 s tail.
 CL.BOUNCE_MAX_SEC = 12 * 60;
 CL.bounceSteps = async (count, steps, name, o = {}) => {
   if (CL.bouncing) { CL.toast('A bounce is already running. It lands in Your sounds when done.'); return null; }
   const stepSec = CL.stepSec();
   const sr = 44100;
-  const early = Math.max(0, ...CL.state.pads.map((p) => -CL.nudgeSec(p))); // room for pads set to play early
+  const early = Math.max(0, ...CL.state.kits.flatMap((K) => K.pads.map((p) => -CL.nudgeSec(p)))); // room for pads set to play early
   const lead = (o.song ? 0 : 0.02) + early;
   const total = count * stepSec + 2.5 + lead;
   if (total > CL.BOUNCE_MAX_SEC) {
@@ -5551,7 +5636,7 @@ CL.bounceSteps = async (count, steps, name, o = {}) => {
     fx.output.connect(oc.destination);
     const pump = oc.createGain(); pump.connect(fx.input);
     const cs = { live: false, ac: oc, dest: fx.input, pump, screw: CL.screw, mono: {}, groups: {} };
-    for (let n = 0; n < count; n++) { const s = steps(n); CL.scheduleHits(s.vals, s.step, lead + n * stepSec, cs, stepSec); }
+    for (let n = 0; n < count; n++) { const s = steps(n); for (const [ki, vals] of s.cols) CL.scheduleHits(vals, s.step, lead + n * stepSec, cs, stepSec, ki); }
     const buf = await oc.startRendering();
     const s = CL.addSample({ id: CL.uid(), name: name.charAt(0).toUpperCase() + name.slice(1) + ' bounce', buffer: o.song ? buf : CL.trimSilence(CL.ac, buf, 0.0005), bpm: Math.round(CL.state.seq.bpm * CL.screw * 10) / 10 });
     CL.changed();
@@ -5570,14 +5655,15 @@ CL.bounceSteps = async (count, steps, name, o = {}) => {
 CL.bouncePattern = (loops) => {
   const pat = CL.currentPattern(), n = CL.patSteps(pat);
   if (loops == null) loops = pat.bars <= 2 ? 2 : 1;
-  return CL.bounceSteps(loops * n, (i) => ({ vals: CL.patternColumn(pat, i % n), step: i % n }), 'pattern ' + pat.name);
+  const ki = CL.curKitIndex();
+  return CL.bounceSteps(loops * n, (i) => ({ cols: [[ki, CL.patternColumn(pat, i % n)]], step: i % n }), 'pattern ' + pat.name);
 };
 // The whole song from bar 1, as it sounds now (lane mutes and solo included).
 CL.bounceSong = () => {
   const bars = CL.songBars();
   if (!bars) { CL.toast('The song is empty. Click a lane on the timeline to place a pattern first.'); return null; }
   const ends = CL.blockEnds();
-  return CL.bounceSteps(bars * 16, (i) => ({ vals: CL.songColumn(i, undefined, undefined, ends).vals, step: i }), 'song', { song: true });
+  return CL.bounceSteps(bars * 16, (i) => ({ cols: CL.songColumn(i, undefined, undefined, ends).cols, step: i }), 'song', { song: true });
 };
 
 // ---------- patterns: pick, add, remove, length ----------
@@ -5601,7 +5687,7 @@ CL.refreshPatternLists = () => {
 CL.addPattern = () => {
   const P = CL.state.patterns;
   if (P.length >= CL.MAX_PATTERNS) { CL.toast('Eight patterns is the most (A to H).'); return; }
-  P.push(CL.blankPattern(CL.PAT_NAMES[P.length]));
+  P.push(CL.blankPattern(CL.PAT_NAMES[P.length], 2, CL.curKitIndex())); // it starts on the kit shown now
   const song = CL.state.song, i = P.length - 1;
   song.mutes[i] = false; // a new lane starts audible
   if (song.solo === i) song.solo = -1;
@@ -5616,6 +5702,7 @@ CL.removePattern = () => {
   const S = CL.seq;
   if (S.playing && (S.mode === 'song' || CL.state.seq.pattern === i || S.queued === i)) CL.seqStop();
   const before = JSON.stringify({ pat: P[i], blocks: song.blocks.filter((b) => b.p === i), mute: song.mutes[i], solo: song.solo === i, sel: CL.state.seq.pattern === i });
+  const kitObj = CL.state.kits[CL.kitIndexOf(P[i])];
   P.pop();
   if (S.queued != null && S.queued >= P.length) S.queued = null;
   song.blocks = song.blocks.filter((b) => b.p !== i);
@@ -5628,6 +5715,7 @@ CL.removePattern = () => {
     fn: () => {
       if (CL.state.patterns.length !== i) return;
       const b = JSON.parse(before);
+      b.pat.kit = Math.max(0, CL.state.kits.indexOf(kitObj)); // its kit, wherever it sits now
       CL.state.patterns.push(b.pat);
       song.blocks = song.blocks.concat(b.blocks); CL.tidySong(song);
       song.mutes[i] = b.mute;
@@ -5686,11 +5774,11 @@ CL.renderSeq = () => {
   if (!grid) return;
   const pat = CL.currentPattern(), n = CL.patSteps(pat);
   CL.view.page = CL.clamp(CL.view.page, 0, CL.pageCount(pat) - 1);
-  const s0 = CL.view.page * 32, cols = pat.bars === 1 ? 16 : 32;
+  const s0 = CL.view.page * 32, cols = pat.bars === 1 ? 16 : 32, pads = CL.curPads();
   grid.textContent = '';
   grid.style.setProperty('--steps', cols);
   for (let r = 0; r < 16; r++) {
-    const row = CL.el('div', { class: 'seq-row' + (pat.mutes[r] ? ' muted' : '') + (CL.state.pads[r].sampleId ? '' : ' empty') });
+    const row = CL.el('div', { class: 'seq-row' + (pat.mutes[r] ? ' muted' : '') + (pads[r].sampleId ? '' : ' empty') });
     row.style.setProperty('--c', CL.COLORS[r]);
     const mute = CL.el('button', {
       class: 'mute' + (pat.mutes[r] ? ' on' : ''), title: pat.mutes[r] ? 'Unmute row' : 'Mute row', 'aria-pressed': pat.mutes[r] ? 'true' : 'false',
@@ -5713,6 +5801,7 @@ CL.renderSeq = () => {
   CL.renderLenUI();
   CL.renderBarMap();
   CL.renderPatternButtons();
+  CL.renderKitUI();
 };
 
 // Refresh just cell states (fast; used while recording).
@@ -5732,7 +5821,7 @@ CL.renderLenUI = () => {
   if (document.activeElement !== inp) inp.value = pat.bars;
   CL.$('.len-ctl .len-unit').textContent = pat.bars === 1 ? 'bar' : 'bars';
   const P = CL.state.patterns, next = P[(CL.state.seq.pattern + 1) % P.length];
-  CL.$('#seq-copy').title = 'Copy pattern ' + pat.name + ' (all its bars and row mutes) into pattern ' + next.name;
+  CL.$('#seq-copy').title = 'Copy pattern ' + pat.name + ' (all its bars, row mutes, and kit) into pattern ' + next.name;
   CL.$('#seq-bar-minus').disabled = pat.bars <= 1;
   CL.$('#seq-bar-plus').disabled = pat.bars >= CL.MAX_BARS;
   CL.$('#seq-len-time').textContent = CL.fmtLen(pat.bars * CL.barSec());
@@ -5861,14 +5950,15 @@ CL.renderSong = () => {
   if (song.from > 0 && song.from < bars) ruler.append(CL.el('span', { class: 'rl-from', style: { left: song.from * W + 'px' }, title: 'Play song starts at bar ' + (song.from + 1) }));
   tracks.append(ruler);
 
+  const multi = CL.state.kits.length > 1;
   P.forEach((pat, p) => {
     const color = CL.LANE_COLORS[p];
     const sel = CL.state.seq.pattern === p;
     const head = CL.el('div', { class: 'song-head' + (sel ? ' sel' : '') + (CL.laneOn(song, p) ? '' : ' off') });
     head.style.setProperty('--lc', color);
     head.append(
-      CL.el('button', { class: 'lane-name', title: 'Edit pattern ' + pat.name + ' in the grid', 'aria-pressed': sel ? 'true' : 'false', onclick: () => CL.selectPattern(p) },
-        pat.name, CL.el('small', {}, CL.barsLabel(pat.bars))),
+      CL.el('button', { class: 'lane-name' + (multi ? ' kitted' : ''), title: 'Edit pattern ' + pat.name + ' in the grid' + (multi ? ' · plays kit ' + (CL.kitIndexOf(pat) + 1) + ', ' + CL.kitName(CL.kitAt(CL.kitIndexOf(pat))) : ''), 'aria-pressed': sel ? 'true' : 'false', onclick: () => CL.selectPattern(p) },
+        pat.name, CL.el('small', {}, multi ? CL.kitName(CL.kitAt(CL.kitIndexOf(pat))) : CL.barsLabel(pat.bars))),
       CL.el('button', {
         class: 'mute' + (song.mutes[p] ? ' on' : ''), title: song.mutes[p] ? 'Unmute lane ' + pat.name : 'Mute lane ' + pat.name,
         'aria-label': 'Mute lane ' + pat.name, 'aria-pressed': song.mutes[p] ? 'true' : 'false', onclick: () => { song.mutes[p] = !song.mutes[p]; CL.renderSong(); CL.changed(); },
@@ -5885,7 +5975,7 @@ CL.renderSong = () => {
       const end = ends.get(b), len = end - b.bar;
       lane.append(CL.el('div', {
         class: 'song-blk' + (len < pat.bars ? ' cut' : ''), 'data-i': bi, style: { left: b.bar * W + 'px', width: len * W - 2 + 'px' },
-        title: 'Pattern ' + pat.name + ' · ' + (len === 1 ? 'bar ' + (b.bar + 1) : 'bars ' + (b.bar + 1) + '–' + end) + (len < pat.bars ? ' (the next block cuts it short)' : '') + ' · click to remove, drag to move',
+        title: 'Pattern ' + pat.name + (multi ? ' (' + CL.kitName(CL.kitAt(CL.kitIndexOf(pat))) + ')' : '') + ' · ' + (len === 1 ? 'bar ' + (b.bar + 1) : 'bars ' + (b.bar + 1) + '–' + end) + (len < pat.bars ? ' (the next block cuts it short)' : '') + ' · click to remove, drag to move',
       }, len >= 2 ? pat.name : ''));
     });
     tracks.append(lane);
@@ -6057,7 +6147,7 @@ CL.initSeq = () => {
     paint = soft ? (cur === 2 ? 0 : 2) : (cur ? 0 : 1);
     CL.view.painting = true;
     apply(c);
-    if (paint && !CL.seq.playing) { CL.ac.resume(); CL.liveCtx.dest = CL.padBus; CL.padVoice(+c.dataset.r, { vel: paint === 2 ? 0.5 : 1 }, CL.liveCtx); }
+    if (paint && !CL.seq.playing) { CL.ac.resume(); CL.liveCtx.dest = CL.padBus; CL.padVoice(+c.dataset.r, { vel: paint === 2 ? 0.5 : 1 }, CL.kitCs(CL.liveCtx, CL.curKitIndex())); }
   });
   grid.addEventListener('pointerover', (e) => {
     if (paint == null || !(e.buttons & 3)) return;
@@ -6097,8 +6187,8 @@ CL.initSeq = () => {
   });
 
   const swing = CL.$('#seq-swing');
-  swing.addEventListener('input', () => { CL.state.seq.swing = +swing.value; CL.$('#seq-swing-val').textContent = swing.value + '%'; CL.changed(); });
-  CL.$('#seq-feel').addEventListener('change', (e) => { CL.state.seq.feel = e.target.value; CL.changed(); });
+  swing.addEventListener('input', () => { CL.curKit().swing = +swing.value; CL.$('#seq-swing-val').textContent = swing.value + '%'; CL.changed(); });
+  CL.$('#seq-feel').addEventListener('change', (e) => { CL.curKit().feel = e.target.value; CL.changed(); });
   CL.$('#seq-rec').addEventListener('click', (e) => {
     CL.seq.rec = !CL.seq.rec;
     e.currentTarget.classList.toggle('on', CL.seq.rec);
@@ -6129,18 +6219,170 @@ CL.initSeq = () => {
   });
   CL.$('#seq-copy').addEventListener('click', () => {
     const P = CL.state.patterns, from = CL.state.seq.pattern, to = (from + 1) % P.length;
-    const before = JSON.stringify(P[to]);
+    const before = JSON.stringify(P[to]), kitObj = CL.state.kits[CL.kitIndexOf(P[to])];
     P[to].steps = JSON.parse(JSON.stringify(P[from].steps));
     P[to].mutes = P[from].mutes.slice();
     P[to].bars = P[from].bars;
+    P[to].kit = P[from].kit;
     if (P[from].tail) P[to].tail = JSON.parse(JSON.stringify(P[from].tail)); else delete P[to].tail;
-    CL.renderPatternButtons(); CL.renderSong(); CL.changed();
-    CL.toast('Copied pattern ' + P[from].name + ' to ' + P[to].name, {
-      label: 'Undo', fn: () => { if (P[to] && P === CL.state.patterns) { delete P[to].tail; Object.assign(P[to], JSON.parse(before)); CL.renderSeq(); CL.renderSong(); CL.changed(); } },
+    CL.refreshKits(); CL.changed();
+    CL.toast('Copied pattern ' + P[from].name + ' to ' + P[to].name + (CL.state.kits.length > 1 ? ', with its kit' : ''), {
+      label: 'Undo', fn: () => { if (P[to] && P === CL.state.patterns) { delete P[to].tail; Object.assign(P[to], JSON.parse(before)); P[to].kit = Math.max(0, CL.state.kits.indexOf(kitObj)); CL.refreshKits(); CL.changed(); } },
     });
   });
   CL.$('#seq-bounce').addEventListener('click', () => CL.bouncePattern());
   CL.initSong();
+};
+
+/* ---- js/kits.js ---- */
+// Chop Lab — kit tabs: a project holds up to eight kits (16 pads each, with their own swing and feel), and each pattern
+// plays one of them. The tabs above the pads show and choose the kit of the pattern open in the grid; patterns can share
+// a kit. Tempo and the master effects stay song-wide.
+'use strict';
+
+CL.KIT_CHANGED = 'Your kits have changed since then, so that step stays as it is.';
+CL.view.kitShown = null; // the kit (and its pads array) the pads and pad editor show now
+CL.view.padsShown = null;
+
+// Tabs, the add and remove buttons, the swing and feel controls, and the pads, for the kit the open pattern plays.
+CL.renderKitUI = () => {
+  const box = CL.$('#kit-tabs');
+  if (!box) return;
+  const S = CL.state, ki = CL.curKitIndex(), K = S.kits[ki], pat = CL.currentPattern();
+  const add = CL.$('#kit-add'), rem = CL.$('#kit-remove'), act = document.activeElement;
+  const hadFocus = box.contains(act) || act === add || act === rem;
+  box.textContent = '';
+  S.kits.forEach((kit, i) => {
+    const users = S.patterns.filter((p) => CL.kitIndexOf(p) === i).map((p) => p.name);
+    const plays = users.length ? ' · plays ' + (users.length === 1 ? 'pattern ' : 'patterns ') + CL.andList(users) : ' · ready for a pattern';
+    box.append(CL.el('button', {
+      class: 'kit-tab' + (i === ki ? ' on' : ''), 'data-k': i, 'aria-pressed': i === ki ? 'true' : 'false',
+      title: 'Kit ' + (i + 1) + ', ' + CL.kitName(kit) + plays + (i === ki ? '' : ' · click to give it to pattern ' + pat.name),
+    }, CL.el('span', { class: 'kt-num' }, String(i + 1)), CL.el('span', { class: 'kt-name' }, CL.kitName(kit))));
+  });
+  const label = 'Kit for pattern ' + pat.name;
+  CL.$('#kit-for').textContent = label;
+  box.setAttribute('aria-label', label);
+  add.disabled = S.kits.length >= CL.MAX_KITS;
+  add.title = add.disabled ? 'Eight kits is the most' : 'Add kit ' + (S.kits.length + 1) + ' for pattern ' + pat.name + ', starting as a copy of kit ' + (ki + 1);
+  add.setAttribute('aria-label', add.title);
+  rem.hidden = S.kits.length <= 1;
+  rem.title = 'Remove kit ' + (ki + 1) + ', ' + CL.kitName(K);
+  rem.setAttribute('aria-label', rem.title);
+  // keyboard focus stays in the kit row: on the tab it had, or on the kit now playing when its button went away
+  if (hadFocus) {
+    const now = document.activeElement;
+    const ok = now && (box.contains(now) || (now === add && !add.disabled) || (now === rem && !rem.hidden));
+    if (!ok) {
+      const t = act && act.dataset && act.dataset.k != null ? box.querySelector('.kit-tab[data-k="' + act.dataset.k + '"]') : null;
+      (t || box.querySelector('.kit-tab.on')).focus();
+    }
+  }
+  CL.$('#seq-swing').value = K.swing;
+  CL.$('#seq-swing-val').textContent = K.swing + '%';
+  CL.$('#seq-feel').value = K.feel || '16';
+  if (CL.view.kitShown !== K || CL.view.padsShown !== K.pads) {
+    CL.view.kitShown = K; CL.view.padsShown = K.pads;
+    CL.renderPads(); CL.renderPadEditor();
+  }
+};
+
+// Every view that names kits: the grid (its row names), the pads, the timeline's lanes, and the Genres tab.
+CL.refreshKits = () => {
+  CL.renderSeq(); CL.renderSong();
+  if (CL.renderGenres && CL.$('#genre-pane')) CL.renderGenres();
+};
+
+CL.setPatternKit = (pat, i) => {
+  if (CL.kitIndexOf(pat) === i || !CL.state.kits[i]) return;
+  pat.kit = i;
+  CL.refreshKits(); CL.changed();
+  CL.toast('Pattern ' + pat.name + ' plays kit ' + (i + 1) + ', ' + CL.kitName(CL.state.kits[i]));
+};
+
+// A new kit starts as a copy of the one on the pads and goes to the open pattern.
+CL.addKit = () => {
+  const S = CL.state;
+  if (S.kits.length >= CL.MAX_KITS) { CL.toast('Eight kits is the most.'); return; }
+  const pat = CL.currentPattern(), was = CL.curKitIndex(), from = S.kits[was];
+  const K = JSON.parse(JSON.stringify(from));
+  S.kits.push(K);
+  const i = S.kits.length - 1;
+  pat.kit = i;
+  CL.refreshKits(); CL.changed();
+  CL.toast('Kit ' + (i + 1) + ' starts as a copy of kit ' + (was + 1) + ' and plays pattern ' + pat.name + '. Change its pads, or load a genre kit into pattern ' + pat.name + ' from Genres.', {
+    label: 'Undo',
+    fn: () => {
+      // by where the kit sits now (kits may have moved since); its patterns go back to the kit it copied
+      const at = S.kits.indexOf(K);
+      if (S !== CL.state) return;
+      if (at < 0 || S.kits.length <= 1) { CL.toast(CL.KIT_CHANGED); return; }
+      S.kits.splice(at, 1);
+      const back = S.kits.indexOf(from), to = back >= 0 ? back : Math.max(0, at - 1);
+      S.patterns.forEach((p) => { if (p.kit === at) p.kit = to; else if (p.kit > at) p.kit--; });
+      if (CL._padUndo && CL._padUndo.K === K) CL._padUndo = null;
+      CL.refreshKits(); CL.changed();
+    },
+  });
+};
+
+// Remove the kit on the pads; the patterns that played it move to the kit before it (or the next one, for kit 1).
+CL.removeKit = () => {
+  const S = CL.state;
+  if (S.kits.length <= 1) return;
+  const i = CL.curKitIndex(), K = S.kits[i], to = Math.max(0, i - 1);
+  const moved = S.patterns.filter((p) => CL.kitIndexOf(p) === i);
+  S.kits.splice(i, 1);
+  S.patterns.forEach((p) => { if (p.kit === i || !(p.kit < S.kits.length + 1)) p.kit = to; else if (p.kit > i) p.kit--; });
+  CL.seq.skip = null;
+  if (CL._padUndo && CL._padUndo.K === K) CL._padUndo = null;
+  CL.refreshKits(); CL.changed();
+  const names = moved.map((p) => p.name);
+  CL.toast('Removed kit ' + (i + 1) + ', ' + CL.kitName(K) + (names.length ? '. ' + (names.length === 1 ? 'Pattern ' + names[0] + ' plays' : 'Patterns ' + CL.andList(names) + ' play') + ' kit ' + (to + 1) + ', ' + CL.kitName(S.kits[to]) + '.' : '.'), {
+    label: 'Undo',
+    fn: () => {
+      if (S !== CL.state) return;
+      if (S.kits.includes(K)) { CL.toast(CL.KIT_CHANGED); return; } // it is back already (an earlier Undo)
+      if (S.kits.length >= CL.MAX_KITS) { CL.toast('Eight kits is the most, so kit ' + (i + 1) + ' stays out. Remove a kit to make room for a new one.'); return; }
+      const at = Math.min(i, S.kits.length);
+      S.kits.splice(at, 0, K);
+      S.patterns.forEach((p) => { if (p.kit >= at) p.kit++; });
+      moved.forEach((p) => { if (S.patterns.includes(p)) p.kit = at; });
+      CL.refreshKits(); CL.changed();
+    },
+  });
+};
+
+// What loading a genre kit into pattern slot does. A load changes only how that pattern sounds: it takes the pattern's
+// kit when every other pattern on that kit has an empty grid (they follow along), opens a new kit otherwise, and with
+// all eight kits in use takes the place of a kit no pattern plays (one always exists then: two patterns share a kit).
+CL.loadPlan = (slot) => {
+  const S = CL.state, pat = S.patterns[slot], ki = CL.kitIndexOf(pat);
+  const keep = S.patterns.filter((p) => p !== pat && CL.kitIndexOf(p) === ki && CL.patHasHits(p));
+  if (!keep.length) return { pat, ki, target: ki, mode: 'replace', keep };
+  if (S.kits.length < CL.MAX_KITS) return { pat, ki, target: S.kits.length, mode: 'new', keep };
+  const used = new Set(S.patterns.map(CL.kitIndexOf));
+  return { pat, ki, target: S.kits.findIndex((_, i) => !used.has(i)), mode: 'reuse', keep };
+};
+
+// One line for the Genres tab, under "Load kits into": where the next load lands.
+CL.loadPlanNote = (slot) => {
+  const S = CL.state;
+  if (!S.patterns[slot]) return '';
+  const pl = CL.loadPlan(slot), name = pl.pat.name, kept = pl.keep.map((p) => p.name);
+  const keepers = (kept.length === 1 ? 'pattern ' + kept[0] + ' keeps' : 'patterns ' + CL.andList(kept) + ' keep') + ' kit ' + (pl.ki + 1);
+  if (pl.mode === 'replace') return S.kits.length === 1 ? 'Loads onto the pads, the kit every pattern plays.' : 'Loads into kit ' + (pl.ki + 1) + ', the kit pattern ' + name + ' plays.';
+  if (pl.mode === 'new') return 'Opens as kit ' + (pl.target + 1) + ' for pattern ' + name + ', so ' + keepers + '.';
+  return 'Takes the place of kit ' + (pl.target + 1) + ', a kit ready for a pattern, so ' + keepers + '.';
+};
+
+CL.initKits = () => {
+  CL.$('#kit-tabs').addEventListener('click', (e) => {
+    const b = e.target.closest('.kit-tab');
+    if (b) CL.setPatternKit(CL.currentPattern(), +b.dataset.k);
+  });
+  CL.$('#kit-add').addEventListener('click', CL.addKit);
+  CL.$('#kit-remove').addEventListener('click', CL.removeKit);
 };
 
 /* ---- js/chop.js ---- */
@@ -6271,7 +6513,7 @@ CL.sendChopsToPads = () => {
   const n = Math.min(slices.length, 16 - from);
   CL.snapshotPads();
   for (let k = 0; k < n; k++) {
-    const p = CL.state.pads[from + k];
+    const p = CL.curPads()[from + k];
     Object.assign(p, CL.blankPad(), { sampleId: s.id, start: slices[k][0], end: slices[k][1], name: s.name + ' #' + (k + 1), cut: 1 });
   }
   CL.renderPads(); CL.renderPadEditor(); CL.renderSeq(); CL.changed();
@@ -7265,9 +7507,6 @@ CL.hearKit = async (kit, btn) => {
 CL.applyProjectUI = () => {
   const st = CL.state.seq;
   CL.$('#bpm').value = st.bpm;
-  CL.$('#seq-swing').value = st.swing;
-  CL.$('#seq-swing-val').textContent = st.swing + '%';
-  CL.$('#seq-feel').value = st.feel || '16';
   CL.fx.update(CL.state.fx);
   CL.refreshFxUI();
   CL.updateScrewUI();
@@ -7278,46 +7517,90 @@ CL.applyProjectUI = () => {
   CL.renderGenres();
 };
 
-// Put a kit's 16 sounds on the pads (with their timing) and its starter beat in one pattern, with its tempo, swing,
-// effects, and pump (CL.kitSetup, the same setup the kit's preview groove plays). Undo brings back all of it.
+// Put a kit's 16 sounds (with their timing, swing, and feel) in a kit tab and its starter beat in one pattern
+// (CL.kitSetup, the same setup the kit's preview groove plays). The load changes only how that pattern sounds (see
+// CL.loadPlan). When the project then plays this kit alone, the kit's tempo, effects, and pump come too; otherwise
+// the song keeps its own, and the message offers the kit's. Undo brings back all of it.
 CL.loadKit = async (kit, slot) => {
   CL.stopGenrePreview();
   const k = await CL.kitSetup(kit);
   const S = CL.state, pat = S.patterns[slot];
-  const before = JSON.stringify({ pads: S.pads, steps: pat.steps, bars: pat.bars, tail: pat.tail, mutes: pat.mutes, seq: S.seq, fx: S.fx, kit: S.genre.kit });
-  S.pads = k.pads;
+  if (!pat) return;
+  const plan = CL.loadPlan(slot);
+  // the kits themselves stay as they are (a load puts a new kit in its tab), so Undo can bring back the same objects,
+  // and every pending Undo for their pads and every voice they ring stays with them
+  const kitsBefore = S.kits.slice(), patKits = new Map(S.patterns.map((p) => [p, S.kits[CL.kitIndexOf(p)]]));
+  const oldK = plan.mode === 'new' ? null : S.kits[plan.target];
+  const before = JSON.stringify({ steps: pat.steps, bars: pat.bars, tail: pat.tail, mutes: pat.mutes, seq: S.seq, fx: S.fx });
+  const newK = CL.blankKit(k.pads, { name: kit.name, genre: kit.id, swing: k.seq.swing, feel: k.seq.feel });
+  S.kits[plan.target] = newK;
+  pat.kit = plan.target;
   pat.steps = k.rows;
   pat.bars = 2; // a starter beat is 2 bars
   delete pat.tail;
   pat.mutes = new Array(16).fill(false);
-  Object.assign(S.seq, k.seq, { pattern: slot });
-  Object.assign(S.fx, k.fx, { volume: S.fx.volume });
-  S.genre.kit = kit.id;
+  const alone = S.patterns.every((p) => CL.kitIndexOf(p) === plan.target || !CL.patHasHits(p));
+  const useKitSound = () => {
+    S.seq.bpm = k.seq.bpm;
+    Object.assign(S.fx, k.fx, { volume: S.fx.volume });
+    CL.pumpReset(); // the previous project's dips stay with it
+  };
+  if (alone) useKitSound();
+  S.seq.pattern = slot;
   S.selectedPad = 0;
   CL.seq.queued = null;
   CL.view.page = 0;
-  CL.pumpReset(); // the previous project's dips stay with it
   CL.applyProjectUI();
   CL.changed();
   const songOn = S.song.mode === 'song' && CL.songBars() > 0;
-  CL.toast(kit.name + ' is on the pads and in pattern ' + pat.name + (songOn ? '. Switch to Loop pattern, then press Space to hear it.' : '. Press Space to play.'), {
+  const where = S.kits.length === 1 ? ' is on the pads and in pattern ' + pat.name : ' is kit ' + (plan.target + 1) + ', playing pattern ' + pat.name;
+  const keeps = alone ? '' : '. The song keeps its ' + CL.bpmWords(S.seq.bpm) + ' and effects';
+  const undo = {
     label: 'Undo',
     fn: () => {
+      if (S !== CL.state) return;
       const b = JSON.parse(before);
-      S.pads = b.pads;
+      // take back this load alone: the loaded kit goes (the kit it replaced returns to its tab); every other kit, and
+      // every kit change made since, stays as it is
+      const now = new Map(S.patterns.map((p) => [p, S.kits[CL.kitIndexOf(p)]]));
+      const j = S.kits.indexOf(newK);
+      if (j >= 0) {
+        const back = oldK && !S.kits.includes(oldK) ? oldK : S.kits.length === 1 ? kitsBefore.find((x) => !S.kits.includes(x)) : null;
+        if (back) S.kits[j] = back; else S.kits.splice(j, 1);
+      }
+      S.patterns.forEach((p) => {
+        const was = patKits.get(p), cur = now.get(p);
+        let at = was ? S.kits.indexOf(was) : -1;
+        if (at < 0) at = S.kits.indexOf(cur === newK ? oldK || kitsBefore[0] : cur);
+        p.kit = Math.max(0, at);
+      });
+      if (CL._padUndo && !S.kits.includes(CL._padUndo.K)) CL._padUndo = null;
       if (S.patterns.includes(pat)) { pat.steps = b.steps; pat.bars = b.bars; pat.mutes = b.mutes; if (b.tail) pat.tail = b.tail; }
       Object.assign(S.seq, b.seq, { metro: S.seq.metro, follow: S.seq.follow }); // the toggles stay as you set them
       S.seq.pattern = CL.clamp(S.seq.pattern, 0, S.patterns.length - 1);
       if (CL.seq.queued != null && CL.seq.queued >= S.patterns.length) CL.seq.queued = null;
       CL.view.page = 0;
       Object.assign(S.fx, b.fx);
-      S.genre.kit = b.kit;
       CL.pumpReset();
       CL.applyProjectUI();
       CL.changed();
     },
-  });
+  };
+  const useIt = () => {
+    if (S !== CL.state) return;
+    const prev = JSON.stringify({ bpm: S.seq.bpm, fx: S.fx });
+    useKitSound(); CL.applyProjectUI(); CL.changed();
+    CL.toast('The song is set to ' + CL.bpmWords(k.seq.bpm) + ', with the ' + kit.name + ' effects.', [{
+      label: 'Undo',
+      fn: () => { if (S !== CL.state) return; const b = JSON.parse(prev); S.seq.bpm = b.bpm; Object.assign(S.fx, b.fx); CL.pumpReset(); CL.applyProjectUI(); CL.changed(); },
+    }, { label: 'Undo the load', fn: undo.fn }]);
+  };
+  const acts = alone ? [undo] : [{ label: 'Use its ' + k.seq.bpm + ' BPM and effects', fn: useIt }, undo];
+  CL.toast(kit.name + where + keeps + (songOn ? '. Switch to Loop pattern, then press Space to hear it.' : '. Press Space to play.'), acts);
 };
+
+// A tempo as set, with what Screw makes of it when Screw is on: "140 BPM (98 with Screw)".
+CL.bpmWords = (bpm) => bpm + ' BPM' + (CL.screw !== 1 ? ' (' + Math.round(bpm * CL.screw * 10) / 10 + ' with Screw)' : '');
 
 CL.kitCard = (k) => {
   const meta = k.bpm + ' BPM' + (k.sw > 50 ? ' · swing ' + k.sw + '%' : '') + (k.feel === '8' ? ' · shuffle' : '');
@@ -7352,9 +7635,11 @@ CL.kitCard = (k) => {
       CL.renderLibrary();
     },
   }, 'Sounds');
-  const loaded = CL.state.genre.kit === k.id;
+  const tabs = CL.state.kits.map((K, i) => (K.genre === k.id ? i + 1 : 0)).filter(Boolean);
+  const loaded = tabs.length > 0;
+  const badge = CL.state.kits.length === 1 ? 'On your pads' : (tabs.length === 1 ? 'Kit ' : 'Kits ') + CL.andList(tabs.map(String));
   return CL.el('article', { class: 'kit-card' + (loaded ? ' loaded' : '') },
-    CL.el('div', { class: 'kit-title' }, CL.el('h4', {}, k.name), loaded ? CL.el('span', { class: 'kit-badge' }, 'On your pads') : null),
+    CL.el('div', { class: 'kit-title' }, CL.el('h4', {}, k.name), loaded ? CL.el('span', { class: 'kit-badge' }, badge) : null),
     CL.el('div', { class: 'kit-meta' }, meta),
     CL.el('p', {}, k.about),
     CL.el('div', { class: 'kit-btns' }, hear, load, sounds),
@@ -7387,12 +7672,16 @@ CL.renderGenres = () => {
   });
   pane.setAttribute('aria-labelledby', 'fam-' + fam.id);
   pane.textContent = '';
-  const slot = CL.el('select', { id: 'kit-slot', 'aria-label': 'Pattern the starter beat goes into' },
-    ...CL.state.patterns.map((p, i) => CL.el('option', { value: i, selected: i === CL.state.seq.pattern }, 'pattern ' + p.name)));
+  const note = CL.el('p', { class: 'muted slot-note', id: 'kit-slot-note', 'aria-live': 'polite' });
+  const slot = CL.el('select', {
+    id: 'kit-slot', 'aria-label': 'Pattern the starter beat goes into', 'aria-describedby': 'kit-slot-note',
+    onchange: (e) => { note.textContent = CL.loadPlanNote(+e.target.value); },
+  }, ...CL.state.patterns.map((p, i) => CL.el('option', { value: i, selected: i === CL.state.seq.pattern }, 'pattern ' + p.name)));
+  note.textContent = CL.loadPlanNote(CL.state.seq.pattern);
   pane.append(
     CL.el('div', { class: 'genre-head' },
       CL.el('div', {}, CL.el('h3', {}, fam.name), CL.el('p', { class: 'muted' }, fam.blurb)),
-      CL.el('label', { class: 'inline' }, 'Load kits into', slot)),
+      CL.el('div', { class: 'slot-pick' }, CL.el('label', { class: 'inline' }, 'Load kits into', slot), note)),
     CL.el('div', { class: 'kit-grid' }, ...CL.KITS.filter((k) => k.fam === fam.id).map(CL.kitCard)));
   CL.updateKitButtons();
 };
@@ -7400,7 +7689,7 @@ CL.renderGenres = () => {
 // Rebuild the genre sounds a saved project uses (they are synthesized, so only their names are stored).
 CL.restoreGenreSounds = async () => {
   const S = CL.state;
-  const ids = [...S.pads.map((p) => p.sampleId), ...S.decks.map((d) => d.sampleId), S.chopSample].filter((id) => id && id.startsWith('g-'));
+  const ids = [...S.kits.flatMap((K) => K.pads.map((p) => p.sampleId)), ...S.decks.map((d) => d.sampleId), S.chopSample].filter((id) => id && id.startsWith('g-'));
   const need = new Map();
   ids.forEach((id) => {
     const kid = id.slice(2, id.lastIndexOf('-'));
@@ -7593,6 +7882,7 @@ CL.showTab = (name) => {
   });
   CL.$$('.tab-panel').forEach((p) => { p.hidden = p.id !== 'tab-' + name; });
   if (name === 'chop') CL.chop.dirty = true;
+  if (name === 'genres') { const sl = CL.$('#kit-slot'), n = CL.$('#kit-slot-note'); if (sl && n) n.textContent = CL.loadPlanNote(+sl.value); }
   if (name === 'decks') CL.decks.forEach((d) => { d._wave = null; });
   try { localStorage.setItem('chop-lab-tab', name); } catch (e) { /* storage off */ }
 };
@@ -7602,7 +7892,23 @@ CL.mergeState = (saved) => {
   const st = Object.assign(d, saved);
   st.seq = Object.assign(CL.defaultState().seq, saved.seq || {});
   st.fx = Object.assign(CL.defaultState().fx, saved.fx || {});
-  st.pads = Array.from({ length: 16 }, (_, i) => Object.assign(CL.blankPad(), (saved.pads || [])[i] || {}));
+  // Kits: saves made before kit tabs held one set of pads, with swing and feel in seq; they become kit 1.
+  const padsFrom = (arr) => Array.from({ length: 16 }, (_, i) => Object.assign(CL.blankPad(), (Array.isArray(arr) && arr[i] && typeof arr[i] === 'object') ? arr[i] : {}));
+  const swingOk = (v) => (Number.isFinite(+v) ? CL.clamp(Math.round(+v), 50, 75) : 54);
+  const kitFrom = (k) => {
+    const genre = typeof k.genre === 'string' && CL.KITS.some((x) => x.id === k.genre) ? k.genre : null;
+    return CL.blankKit(padsFrom(k.pads), { name: typeof k.name === 'string' && k.name.trim() ? k.name.trim().slice(0, 40) : 'Your sounds', genre, swing: swingOk(k.swing), feel: k.feel === '8' ? '8' : '16' });
+  };
+  const sseq = saved.seq || {}, sgen = saved.genre || {};
+  if (Array.isArray(saved.kits) && saved.kits.length) {
+    st.kits = saved.kits.slice(0, CL.MAX_KITS).map((k) => kitFrom(k && typeof k === 'object' ? k : {}));
+  } else {
+    const pads = padsFrom(saved.pads || CL.defaultState().kits[0].pads);
+    const builtin = pads.every((p) => !p.sampleId || p.sampleId.startsWith('kit-'));
+    st.kits = [kitFrom({ pads, genre: sgen.kit, name: builtin ? 'Starter' : 'Your sounds', swing: sseq.swing != null ? sseq.swing : 54, feel: sseq.feel })];
+  }
+  delete st.pads;
+  delete st.seq.swing; delete st.seq.feel;
   // Saves made before patterns had their own length shared one length (seq.length: 16 or 32 steps).
   const oldBars = saved.seq && saved.seq.length === 16 ? 1 : 2;
   delete st.seq.length;
@@ -7611,7 +7917,7 @@ CL.mergeState = (saved) => {
   st.patterns = Array.from({ length: count }, (_, i) => {
     const p = savedPats[i];
     const bars = p && Number.isInteger(p.bars) ? CL.clamp(p.bars, 1, CL.MAX_BARS) : oldBars;
-    const blank = CL.blankPattern(CL.PAT_NAMES[i], bars);
+    const blank = CL.blankPattern(CL.PAT_NAMES[i], bars, p && Number.isInteger(p.kit) && p.kit >= 0 && p.kit < st.kits.length ? p.kit : 0);
     if (!p) return blank;
     blank.steps = blank.steps.map((row, r) => row.map((_, s) => {
       const v = p.steps && p.steps[r] && p.steps[r][s];
@@ -7643,7 +7949,7 @@ CL.mergeState = (saved) => {
   CL.tidySong(st.song);
   st.decks = [0, 1].map((i) => Object.assign({ sampleId: null, pitch: 0, range: 16 }, (saved.decks || [])[i] || {}));
   st.meta = saved.meta || {};
-  st.genre = Object.assign(CL.defaultState().genre, saved.genre || {});
+  st.genre = { fam: typeof sgen.fam === 'string' ? sgen.fam : CL.defaultState().genre.fam };
   return st;
 };
 
@@ -7711,14 +8017,12 @@ CL.boot = async () => {
   CL.initTransport();
   CL.initFxStrip();
   CL.initSeq();
+  CL.initKits();
   CL.initGenres();
   CL.initChop();
   CL.initRec();
   CL.initStore();
   CL.initKeys();
-  CL.$('#seq-swing').value = CL.state.seq.swing;
-  CL.$('#seq-swing-val').textContent = CL.state.seq.swing + '%';
-  CL.$('#seq-feel').value = CL.state.seq.feel || '16';
   CL.$('#seq-metro').classList.toggle('on', CL.state.seq.metro);
   CL.$('#seq-follow').classList.toggle('on', CL.state.seq.follow);
   CL.$('#seq-follow').setAttribute('aria-pressed', CL.state.seq.follow ? 'true' : 'false');
