@@ -953,6 +953,17 @@
       "refs": []
     },
     {
+      "id": "team-runbook", "name": "Team roles, timing, and the runbook", "domain": "method", "layers": [],
+      "aka": ["runbook", "team roles", "team plan", "timekeeper", "scribe", "team lead", "hand off"],
+      "summary": "Turn a small team and a fixed time window into a plan: one owner for each machine and the network devices, one keeper of the change log, a clock with set checkpoints, a written order of work, and a clean hand off at the end.",
+      "prereqs": ["investigation"],
+      "locations": [
+        {"tool": "defense-ladder", "kind": "learn", "find": ["runbook"]},
+        {"tool": "cyber-pug", "kind": "build", "where": "Collab Tab › Kickoff, all cells together", "find": ["team lead", "cell lead", "team clock", "sync points"], "note": "The team lead sets the plan on the Collab Tab: who leads each cell, the team clock with its sync points, and the phases from kickoff to the final hand off."}
+      ],
+      "refs": []
+    },
+    {
       "id": "threat-actors", "name": "Threat actors, motives, and APTs", "domain": "threats", "layers": [],
       "aka": ["threat actor", "APT", "advanced persistent threat", "nation-state", "hacktivist", "insider threat", "cybercriminal"],
       "summary": "Who attacks and why: criminals after money, hacktivists after attention, insiders who already have access, and nation-state groups (APTs) that stay hidden for months. Motive and skill shape what a defender should expect.",

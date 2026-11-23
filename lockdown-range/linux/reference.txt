@@ -3,8 +3,8 @@ LOCKDOWN RANGE: LINUX - SOLUTION WALKTHROUGH
 Companion to linux-range.html (Tool4That, Lockdown Range series).
 For instructors, study groups, and anyone checking their work AFTER trying a
 scenario on their own. All names, organizations, and addresses are fictional.
-Unofficial practice; not affiliated with or endorsed by Canonical or Linux
-Mint.
+Unofficial training, independent of and unendorsed by the makers of the
+systems it names.
 
 CONTENTS
   1. What the lab is (and is not)
@@ -52,8 +52,11 @@ user homes. The terminal understands the commands Linux administrators use
 every day (section 6): sudo, apt, systemctl, ufw, useradd/usermod/userdel,
 passwd, chage, visudo, nano, vi, sed -i, find, grep, pipes, and redirection.
 Every change re-runs the scenario's checks and the Progress Check updates live.
-Availability checks fail (in red, with negative points) when something the
-Scenario Brief says the business needs gets broken.
+Availability checks fail when something the Scenario Brief says the business
+needs gets broken. That is a must-fix flag: your points stay where they are,
+the Progress Check shows it in red with its restore step, and Finish waits
+until it works again, because an outage is an incident you fix before you are
+done.
 
 It deliberately does NOT run real binaries, simulate the whole GNOME or
 Cinnamon desktop, or emulate the network beyond listening ports. Nothing on
@@ -211,12 +214,30 @@ Checks (100 points)
   [5]  Investigation 1 answered                tiko            (Investigation)
   [5]  Investigation 2 answered                leilani         (Investigation)
 
-Availability checks (points lost while broken)
-  -8  Authorized user removed
-  -6  Authorized administrator removed from sudo
-  -6  Required service SSH stopped, disabled, or removed
-  -4  Firewall blocks the required SSH service (port 22)
-  -10 Your own account (labuser) deleted or locked
+Availability checks (must fix: breaking one keeps your points, shows it in red
+with its restore step, and holds Finish until it works again)
+  - Authorized user removed
+       restore: Create the account again: sudo useradd -m -s /bin/bash NAME,
+                then sudo passwd NAME (a password that meets the policy). Add
+                it back to any group it was in (sudo usermod -aG GROUP NAME).
+  - Authorized administrator removed from sudo
+       restore: Put the administrator back in the sudo group: sudo usermod -aG
+                sudo NAME (or sudo gpasswd -a NAME sudo). Bring back a deleted
+                account first.
+  - Required service SSH stopped, disabled, or removed
+       restore: Turn SSH back on and keep it on at boot: sudo systemctl enable
+                --now ssh (on Ubuntu Server 24.04 the socket holds port 22:
+                sudo systemctl enable --now ssh.socket). If the package is
+                gone, sudo apt install openssh-server first; if sshd_config is
+                broken, sudo sshd -t names the bad line.
+  - Firewall blocks the required SSH service (port 22)
+       restore: Allow the port again: sudo ufw allow 22/tcp (or sudo ufw allow
+                ssh), then check with sudo ufw status.
+  - Your own account (labuser) deleted or locked
+       restore: While you are still logged in: sudo passwd -u labuser unlocks
+                the password, and sudo usermod -s /bin/bash labuser gives the
+                login shell back. Once the login fails, Reset lab is the way
+                back.
 
 --------------------------------------------------------------------------------
 4. SCENARIO 2 - OPERATOR: LANIKAI BOOK NOOK (LINUX MINT 22.3)
@@ -355,10 +376,21 @@ Checks (100 points)
   [5]  Investigation 1 answered                sysadm          (Investigation)
   [5]  Investigation 2 answered     /home/jace/.hidden_tools   (Investigation)
 
-Availability checks (points lost while broken)
-  -8  Authorized user removed
-  -6  Authorized administrator removed from sudo
-  -10 Your own account (labuser) deleted or locked
+Availability checks (must fix: breaking one keeps your points, shows it in red
+with its restore step, and holds Finish until it works again)
+  - Authorized user removed
+       restore: Create the account again: sudo useradd -m -s /bin/bash NAME,
+                then sudo passwd NAME (a password that meets the policy). Add
+                it back to any group it was in (sudo usermod -aG GROUP NAME).
+  - Authorized administrator removed from sudo
+       restore: Put the administrator back in the sudo group: sudo usermod -aG
+                sudo NAME (or sudo gpasswd -a NAME sudo). Bring back a deleted
+                account first.
+  - Your own account (labuser) deleted or locked
+       restore: While you are still logged in: sudo passwd -u labuser unlocks
+                the password, and sudo usermod -s /bin/bash labuser gives the
+                login shell back. Once the login fails, Reset lab is the way
+                back.
 
 --------------------------------------------------------------------------------
 5. SCENARIO 3 - CAPTAIN: MAUKA TRAIL OUTFITTERS (UBUNTU SERVER 24.04)
@@ -586,15 +618,41 @@ Checks (100 points)
   [3]  Investigation 5 answered
                     /usr/lib/x86_64-linux-gnu/.fc/libfcsync.so.1 (Investigation)
 
-Availability checks (points lost while broken)
-  -6  Authorized user removed
-  -5  Authorized administrator removed from sudo
-  -8  Required service Apache (apache2) stopped, disabled, or removed
-  -8  Required service SSH stopped, disabled, or removed
-  -5  Required service MySQL stopped, disabled, or removed
-  -5  Firewall blocks the required SSH service (port 22)
-  -4  Firewall blocks the required web (Apache) service (port 80)
-  -10 Your own account (labuser) deleted or locked
+Availability checks (must fix: breaking one keeps your points, shows it in red
+with its restore step, and holds Finish until it works again)
+  - Authorized user removed
+       restore: Create the account again: sudo useradd -m -s /bin/bash NAME,
+                then sudo passwd NAME (a password that meets the policy). Add
+                it back to any group it was in (sudo usermod -aG GROUP NAME).
+  - Authorized administrator removed from sudo
+       restore: Put the administrator back in the sudo group: sudo usermod -aG
+                sudo NAME (or sudo gpasswd -a NAME sudo). Bring back a deleted
+                account first.
+  - Required service Apache (apache2) stopped, disabled, or removed
+       restore: Start it and keep it on at boot: sudo systemctl enable --now
+                apache2. If the package is gone, sudo apt install apache2
+                first.
+  - Required service SSH stopped, disabled, or removed
+       restore: Turn SSH back on and keep it on at boot: sudo systemctl enable
+                --now ssh (on Ubuntu Server 24.04 the socket holds port 22:
+                sudo systemctl enable --now ssh.socket). If the package is
+                gone, sudo apt install openssh-server first; if sshd_config is
+                broken, sudo sshd -t names the bad line.
+  - Required service MySQL stopped, disabled, or removed
+       restore: Start it and keep it on at boot: sudo systemctl enable --now
+                mysql. If the package is gone, sudo apt install mysql-server
+                first.
+  - Firewall blocks the required SSH service (port 22)
+       restore: Allow the port again: sudo ufw allow 22/tcp (or sudo ufw allow
+                ssh), then check with sudo ufw status.
+  - Firewall blocks the required web (Apache) service (port 80)
+       restore: Allow the port again: sudo ufw allow 80/tcp, then check with
+                sudo ufw status.
+  - Your own account (labuser) deleted or locked
+       restore: While you are still logged in: sudo passwd -u labuser unlocks
+                the password, and sudo usermod -s /bin/bash labuser gives the
+                login shell back. Once the login fails, Reset lab is the way
+                back.
 
 --------------------------------------------------------------------------------
 6. LINUX HARDENING QUICK REFERENCE

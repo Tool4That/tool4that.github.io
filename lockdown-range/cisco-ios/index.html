@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-hPZYY326xT5+q2uFxNzMMCr70Qa/y7acll2rbcbtlmY='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-YG2dni0GRvZL0AR8bCRVdZOBcwRcOyIIt6Cd28Sexrk='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/lockdown-range/cisco-ios/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%96%A5%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -168,6 +168,21 @@ aside.report{ background:var(--panel); border:1px solid var(--line); border-radi
 .report li.earned{ color:var(--ok); }
 .report li.earned .pts{ color:var(--ok); }
 .report li.avail{ color:var(--bad); background:var(--badbg); border-radius:6px; padding:4px 6px; }
+/* availability must-fix flags (Progress Check, Finish waits) and the Debrief's availability section */
+ul.mustfix{ list-style:none; margin:0 0 8px; padding:0; }
+ul.mustfix li{ display:flex; gap:8px; align-items:flex-start; color:var(--bad); background:var(--badbg); border-left:4px solid var(--bad); border-radius:6px; padding:4px 6px; margin-bottom:4px; }
+ul.mustfix li .t{ flex:1 1 auto; min-width:0; overflow-wrap:anywhere; }
+ul.mustfix li .restore{ display:block; color:var(--ink); font-size:.84rem; margin-top:2px; }
+ul.mustfix li .pts{ margin-left:auto; white-space:nowrap; font-weight:700; text-transform:uppercase; font-size:.7rem; letter-spacing:.04em; }
+.report h3.mustfix-h{ color:var(--bad); }
+.mustfix-why{ color:var(--bad); font-size:.84rem; margin:2px 0 6px; }
+.dbr-avail{ margin:0 0 10px; }
+.dbr-avail h3{ font-size:.95rem; margin:0 0 4px; }
+.dbr-avail p{ margin:4px 0; }
+.dbr-avail ul{ margin:4px 0 0; padding-left:1.1rem; }
+.dbr-avail li{ margin:3px 0; overflow-wrap:anywhere; }
+.rate-strong{ color:var(--ok); }
+.rate-revisit{ color:var(--warn); }
 .report li.todo{ color:var(--muted); flex-wrap:wrap; }
 .report li.todo .t{ flex:1 1 150px; }
 .report li.todo .hint{ flex-basis:100%; font-size:.82rem; background:var(--soft); border-radius:6px; padding:4px 8px; color:var(--ink); }
@@ -295,7 +310,7 @@ footer .spacer{ flex:1; }
   </aside>
 </div>
 <footer>
-  <span>Unofficial practice; not affiliated with or endorsed by Cisco. The devices, addresses, and organizations are fictional. Nothing leaves this page; progress is kept in this browser.</span>
+  <span>Unofficial training, independent of and unendorsed by the makers of the systems it names. The devices, addresses, and organizations are fictional. Nothing leaves this page; progress is kept in this browser.</span>
   <span class="spacer"></span>
   <button id="debrief">Debrief</button>
   <button id="reset" class="danger">Reset lab</button>
@@ -5080,8 +5095,8 @@ const SCENARIOS = [
       { id: 'q2', title: 'Investigation 2 answered', pts: 4, cat: CAT.inv, test: St => answerIs(St, 'q2', ['c1900-universalk9-mz.SPA.151-4.M4.bin', 'flash0:c1900-universalk9-mz.SPA.151-4.M4.bin', 'flash:c1900-universalk9-mz.SPA.151-4.M4.bin']), hint: 'show version, line "System image file is ..."', fix: 'Answer: c1900-universalk9-mz.SPA.151-4.M4.bin', why: 'show version tells you the software (and known bugs) you are defending.' },
     ],
     availability: [
-      { id: 'p-techlead', title: 'Authorized administrator "techlead" removed', pts: -8, test: St => !hasUser(C(St, 'R1'), 'techlead'), why: 'The scenario brief lists techlead as an authorized administrator; deleting a colleague\'s account locks them out of a device the center depends on.' },
-      { id: 'p-lan', title: 'PC1 can no longer reach its gateway 192.168.1.1', pts: -10, test: St => !pingModel(St, 'PC1', '192.168.1.1').ok, why: 'GigabitEthernet0/0 is a required service; shutting it or changing its address breaks the front desk.' },
+      { id: 'p-techlead', title: 'Authorized administrator "techlead" removed', need: 'Authorized administrator "techlead" keeps an account', restore: 'Add the account back on R1: configure terminal, then username techlead privilege 15 secret <a secret of 10+ characters>, and save with copy running-config startup-config.', test: St => !hasUser(C(St, 'R1'), 'techlead'), why: 'The scenario brief lists techlead as an authorized administrator; deleting a colleague\'s account locks them out of a device the center depends on.' },
+      { id: 'p-lan', title: 'PC1 can no longer reach its gateway 192.168.1.1', need: 'PC1 reaches its gateway 192.168.1.1', restore: 'Bring the front-desk LAN back on R1: interface g0/0, ip address 192.168.1.1 255.255.255.0, no shutdown. Test with ping 192.168.1.1 from PC1.', test: St => !pingModel(St, 'PC1', '192.168.1.1').ok, why: 'GigabitEthernet0/0 is a required service; shutting it or changing its address breaks the front desk.' },
     ],
   },
   /* ---------------------------------------------------------------- 2 Operator */
@@ -5156,9 +5171,9 @@ const SCENARIOS = [
       { id: 'q2', title: 'Investigation 2 answered', pts: 3, cat: CAT.inv, test: St => answerIs(St, 'q2', ['tempadmin']), hint: 'show running-config | include username', fix: 'Answer: tempadmin', why: 'Compare every account against the scenario brief before touching anything.' },
     ],
     availability: [
-      { id: 'p-lib', title: 'Authorized administrator "libadmin" removed', pts: -8, test: St => !hasUser(C(St, 'S1'), 'libadmin'), why: 'District IT needs its account; the scenario brief lists it as authorized.' },
-      { id: 'p-pc', title: 'Required PC1-PC2 connectivity broken', pts: -10, test: St => !pingModel(St, 'PC1', '192.168.10.12').ok, why: 'Both PCs must stay in the same VLAN with their ports up.' },
-      { id: 'p-r1', title: 'District router R1 modified', pts: -10, test: St => JSON.stringify(C(St, 'R1')) !== St.frozenCfg.R1, why: 'R1 belongs to district IT and is out of scope; changing a device you do not own risks the routing the whole branch depends on.' },
+      { id: 'p-lib', title: 'Authorized administrator "libadmin" removed', need: 'Authorized administrator "libadmin" keeps an account', restore: 'Add the district account back on S1: configure terminal, then username libadmin privilege 15 secret <a secret of 10+ characters>, and save.', test: St => !hasUser(C(St, 'S1'), 'libadmin'), why: 'District IT needs its account; the scenario brief lists it as authorized.' },
+      { id: 'p-pc', title: 'Required PC1-PC2 connectivity broken', need: 'PC1 and PC2 reach each other', restore: 'On S1, put both PC ports back in VLAN 10 and up: interface range fa0/1 - 2, switchport mode access, switchport access vlan 10, no shutdown. A port that port security shut down (err-disabled) comes back with shutdown, then no shutdown. Test with ping 192.168.10.12 from PC1.', test: St => !pingModel(St, 'PC1', '192.168.10.12').ok, why: 'Both PCs must stay in the same VLAN with their ports up.' },
+      { id: 'p-r1', title: 'District router R1 modified', need: 'District router R1 stays as delivered', restore: 'R1 belongs to district IT. Undo every change you made on R1 (show running-config shows them). If you never saved R1, reload it and answer no to saving: it boots the delivered configuration. Reset lab also brings it back.', test: St => JSON.stringify(C(St, 'R1')) !== St.frozenCfg.R1, why: 'R1 belongs to district IT and is out of scope; changing a device you do not own risks the routing the whole branch depends on.' },
     ],
   },
   /* ---------------------------------------------------------------- 3 Captain */
@@ -5243,10 +5258,10 @@ const SCENARIOS = [
       { id: 'q2', title: 'Investigation 2 answered', pts: 3, cat: CAT.inv, test: St => answerIs(St, 'q2', ['203.0.113.66']), hint: 'R1: show access-lists', fix: 'Answer: 203.0.113.66', why: 'Read ACLs line by line; one permit is all it takes.' },
     ],
     availability: [
-      { id: 'p-vet', title: 'Authorized administrator "vetadmin" removed from a device', pts: -8, test: St => !['R1', 'S1', 'S2'].every(d => hasUser(C(St, d), 'vetadmin')), why: 'Your own account is the authorized administrator on every device in the scenario brief; removing it locks you out.' },
-      { id: 'p-gw', title: 'PC1 can no longer reach its gateway 192.168.10.1', pts: -8, test: St => !pingModel(St, 'PC1', '192.168.10.1').ok, why: 'VLAN 10 must stay routed; the trunk to R1 and Gi0/0.10 are required.' },
-      { id: 'p-mgmt', title: 'Management address removed or shut on S1 or S2 (VLAN 99)', pts: -6, test: St => !(['S1', 'S2'].every(d => { const v = C(St, d).ifaces['Vlan99']; return !!(v && v.ip && !v.shutdown); })), why: 'Without the SVI the switch cannot be managed remotely.' },
-      { id: 'p-trunk', title: 'Required trunk S1 Gi0/2 - S2 Gi0/1 broken', pts: -6, test: St => !(linkUp(St, 'S1', 'GigabitEthernet0/2') && operMode(St, 'S1', 'GigabitEthernet0/2') === 'trunk' && operMode(St, 'S2', 'GigabitEthernet0/1') === 'trunk'), why: 'S2 and PC2 hang off this trunk.' },
+      { id: 'p-vet', title: 'Authorized administrator "vetadmin" removed from a device', need: 'Authorized administrator "vetadmin" keeps an account on every device', which: St => ['R1', 'S1', 'S2'].filter(d => !hasUser(C(St, d), 'vetadmin')).join(', '), restore: 'On each device that lost it: configure terminal, then username vetadmin privilege 15 secret Cl1nic-Adm1n!, and save. A console that uses login local needs the account to sign in, so add it before you log out.', test: St => !['R1', 'S1', 'S2'].every(d => hasUser(C(St, d), 'vetadmin')), why: 'Your own account is the authorized administrator on every device in the scenario brief; removing it locks you out.' },
+      { id: 'p-gw', title: 'PC1 can no longer reach its gateway 192.168.10.1', need: 'PC1 reaches its gateway 192.168.10.1', restore: 'Keep the path from PC1 to R1 up: R1 interface g0/0 and g0/0.10 need no shutdown (g0/0.10: encapsulation dot1Q 10, ip address 192.168.10.1 255.255.255.0); S1 Gi0/1 stays a trunk that allows VLAN 10; S1 Fa0/1 stays an access port in VLAN 10. Test with ping 192.168.10.1 from PC1.', test: St => !pingModel(St, 'PC1', '192.168.10.1').ok, why: 'VLAN 10 must stay routed; the trunk to R1 and Gi0/0.10 are required.' },
+      { id: 'p-mgmt', title: 'Management address removed or shut on S1 or S2 (VLAN 99)', need: 'S1 and S2 keep their management addresses (VLAN 99)', which: St => ['S1', 'S2'].filter(d => { const v = C(St, d).ifaces['Vlan99']; return !(v && v.ip && !v.shutdown); }).join(', '), restore: 'Give the switch its management address back: interface vlan 99, then ip address 192.168.99.2 255.255.255.0 on S1 (192.168.99.3 on S2), and no shutdown.', test: St => !(['S1', 'S2'].every(d => { const v = C(St, d).ifaces['Vlan99']; return !!(v && v.ip && !v.shutdown); })), why: 'Without the SVI the switch cannot be managed remotely.' },
+      { id: 'p-trunk', title: 'Required trunk S1 Gi0/2 - S2 Gi0/1 broken', need: 'The trunk S1 Gi0/2 - S2 Gi0/1 stays up', restore: 'Bring the trunk back on both ends (S1 Gi0/2 and S2 Gi0/1): switchport mode trunk and no shutdown. show interfaces trunk confirms it.', test: St => !(linkUp(St, 'S1', 'GigabitEthernet0/2') && operMode(St, 'S1', 'GigabitEthernet0/2') === 'trunk' && operMode(St, 'S2', 'GigabitEthernet0/1') === 'trunk'), why: 'S2 and PC2 hang off this trunk.' },
     ],
   },
   /* ---------------------------------------------------------------- 4 Two sites */
@@ -5385,8 +5400,8 @@ const SCENARIOS = [
       { id: 'q4', title: 'Investigation 4 answered', pts: 2, cat: CAT.inv, test: St => answerIs(St, 'q4', ['subnets']), hint: 'Try redistribute static without it on RtrB and read the warning', fix: 'Answer: subnets', why: 'Classic IOS 15 redistributes only classful networks into OSPF unless you add subnets. IOS XE adds subnets for you and shows it in the running configuration.' },
     ],
     availability: [
-      { id: 'p-sitea', title: 'Site A device (SwA or RtrA) or the ISP router changed', pts: -10, test: St => ['SwA', 'RtrA', 'ISP'].some(n => JSON.stringify(C(St, n)) !== St.frozenCfg[n]), why: 'Site A belongs to the Site A team and the ISP router to the provider. Read their configurations freely and leave them exactly as delivered.' },
-      { id: 'p-teach', title: 'Site A Teachers locked out of SSH to SwB or RtrB', pts: -8, test: St => [['SwB', '10.2.20.2'], ['RtrB', '10.2.20.1']].some(([d, ip]) => sshReady(St, 'Teacher-B', ip, 'netadmin') && pingModel(St, 'Teacher-A', ip).ok && !sshReady(St, 'Teacher-A', ip, 'netadmin')), why: 'Teachers at either site manage both sites. An ACL that permits 10.2.20.0/24 alone lets Teacher-A reach the device and then refuses the session.' },
+      { id: 'p-sitea', title: 'Site A device (SwA or RtrA) or the ISP router changed', need: 'Site A (SwA and RtrA) and the ISP router stay as delivered', which: St => ['SwA', 'RtrA', 'ISP'].filter(n => JSON.stringify(C(St, n)) !== St.frozenCfg[n]).join(', '), restore: 'Site A and the ISP router are out of scope. Undo every change you made on the device named here (show running-config shows them). If you never saved it, reload it and answer no to saving: it boots the delivered configuration. Reset lab also brings it back.', test: St => ['SwA', 'RtrA', 'ISP'].some(n => JSON.stringify(C(St, n)) !== St.frozenCfg[n]), why: 'Site A belongs to the Site A team and the ISP router to the provider. Read their configurations freely and leave them exactly as delivered.' },
+      { id: 'p-teach', title: 'Site A Teachers locked out of SSH to SwB or RtrB', need: 'Site A Teachers can SSH to SwB and RtrB', restore: 'Let both Teachers subnets through the VTY access list on SwB and RtrB: ip access-list standard 20, then permit 10.1.20.0 0.0.0.255 and permit 10.2.20.0 0.0.0.255. Test with ssh -l netadmin 10.2.20.2 from Teacher-A.', test: St => [['SwB', '10.2.20.2'], ['RtrB', '10.2.20.1']].some(([d, ip]) => sshReady(St, 'Teacher-B', ip, 'netadmin') && pingModel(St, 'Teacher-A', ip).ok && !sshReady(St, 'Teacher-A', ip, 'netadmin')), why: 'Teachers at either site manage both sites. An ACL that permits 10.2.20.0/24 alone lets Teacher-A reach the device and then refuses the session.' },
     ],
   },
 ];
@@ -5481,19 +5496,63 @@ function afterChange() { saveStore(); scheduleEvaluate(); refreshUI(); }
 const scheduleEvaluate = debounce(evaluate, 150);
 
 /* ================= evaluation / Progress Check ================= */
+/* ================= availability: the must-fix flags ================= */
+/* points come from checks only. A failed availability check is a must-fix flag: it holds the points where they are,
+   shows in red with its restore step, and holds Finish until it works again. S.availBroke remembers every one the
+   learner broke this attempt, so the Debrief can name the ones broken and restored. */
+const OUTAGE_LINE = 'Finish waits until every business need works again, because an outage is an incident you fix before you are done.';
+/* a break holds the score: a check whose result changes in the same step that breaks a business need keeps its
+   earlier result until that need works again, so a break neither raises nor lowers the points (deleting an authorized
+   user earns none of that user's checks and costs none). S.hold keeps the held results across a reload. */
+var HOLD_MEMO = null;
+function holdResults(checks, failed, live) {
+  const keys = new Set();
+  failed.forEach(p => { const w = availWhich(p); if (w) w.split(', ').forEach(x => keys.add(p.id + ':' + x)); else keys.add(p.id); });
+  const memo = HOLD_MEMO && HOLD_MEMO.s === S ? HOLD_MEMO : null, hold = S.hold || {};
+  Object.keys(hold).forEach(id => { if (!(hold[id].by || []).some(k => keys.has(k))) delete hold[id]; });
+  const fresh = memo ? [...keys].filter(k => !memo.keys.has(k)) : [];
+  if (fresh.length) checks.forEach(c => { if (!memo.live.has(c.id) || memo.live.get(c.id) === live.get(c.id)) return; if (hold[c.id]) hold[c.id].by = hold[c.id].by.concat(fresh); else hold[c.id] = { v: memo.live.get(c.id) ? 1 : 0, by: fresh }; });
+  if (Object.keys(hold).length) S.hold = hold; else delete S.hold;
+  HOLD_MEMO = { s: S, keys, live };
+  return c => S.hold && S.hold[c.id] ? !!S.hold[c.id].v : !!live.get(c.id);
+}
+/* which(): the broken items right now; S.availBroke[id] keeps 1, or every name that broke this attempt ("kalani, noe") */
+function availWhich(p) { let w = ''; try { w = p.which ? String(p.which(S) || '') : ''; } catch (e) { w = ''; } return w; }
+function brokeWhich(prev, p) { const w = availWhich(p); if (!w) return prev || 1; const names = typeof prev === 'string' ? prev.split(', ') : []; w.split(', ').forEach(n => { if (!names.includes(n)) names.push(n); }); return names.join(', '); }
+function brokeNames(p) { const v = S && S.availBroke && S.availBroke[p.id]; return typeof v === 'string' ? v : ''; }
+function fillName(text, w) { return w && w.indexOf(',') < 0 ? text.replace(/\bNAME\b/g, w) : text; }
+/* the need in plain words (what keeps working), for the Debrief; the title names the failure, for the must-fix flag */
+function availNeed(p) { return p.need || p.title; }
+function availName(p) { const w = availWhich(p); return p.title + (w ? ' (' + w + ')' : ''); }
+function availBroke(p) { return !!(S && S.availBroke && S.availBroke[p.id]); }
+function mustFixList(res) { const ul = el('ul', { class: 'mustfix' }); for (const p of res.failed) ul.appendChild(el('li', { class: 'avail' }, [el('span', { class: 'mark', text: '!' }), el('span', { class: 't' }, [el('b', { text: 'Availability check failed: ' + availName(p) }), el('span', { class: 'restore', text: 'Restore: ' + p.restore })]), el('span', { class: 'pts', text: 'must fix' })])); return ul; }
+function availSummary(res) { const n = SC.availability.filter(availBroke).length; return res.failed.length ? res.failed.length + ' availability check' + (res.failed.length === 1 ? '' : 's') + ' to fix' : n ? n + ' business ' + (n === 1 ? 'need' : 'needs') + ' broken and restored' : 'every business need kept working'; }
+function finishWaits(res) {
+  openModal('Finish waits for a fix', [el('p', { class: 'mustfix-why', text: OUTAGE_LINE }), mustFixList(res), el('p', { class: 'about', text: 'Your points stay as they are. Reset lab also brings everything back, and keeps your best score.' })], [el('button', { type: 'button', dataset: { close: '1' }, text: 'Back to the range' })], 'finish-wait');
+}
+/* the Debrief's availability section, in the where-to-invest-next style: Strong when a need kept working all along, Revisit when you broke it and restored it */
+function availInvest() {
+  const broke = SC.availability.filter(availBroke);
+  const ul = el('ul');
+  for (const p of SC.availability.slice().sort((a, b) => availBroke(b) - availBroke(a))) { const b = availBroke(p), w = brokeNames(p); ul.appendChild(el('li', {}, [el('b', { class: b ? 'rate-revisit' : 'rate-strong', text: b ? 'Revisit' : 'Strong' }), ' ' + availNeed(p) + ': ' + (b ? 'broken' + (w ? ' (' + w + ')' : '') + ', then restored. ' + p.why + ' The way back: ' + p.restore : 'kept working the whole time.')])); }
+  return el('div', { class: 'dbr-avail' }, [el('h3', { text: 'Availability: where to invest next' }), el('p', { text: 'Availability is the A in confidentiality, integrity, and availability: hardening keeps the people and services the organization relies on working. ' + (broke.length ? 'You broke ' + broke.length + ' business need' + (broke.length === 1 ? '' : 's') + ' and restored ' + (broke.length === 1 ? 'it' : 'them') + '. Next time, read the Scenario Brief’s required list before each change that touches it.' : 'You kept every business need working the whole time.') }), ul]);
+}
 function evaluate() {
   if (!S || !SC) return;
   const res = { earned: [], missing: [], failed: [], score: 0, max: 0 };
+  const live = new Map();
+  for (const c of SC.checks) { let ok = false; try { ok = !!c.test(S); } catch (e) { ok = false; } live.set(c.id, ok); }
+  for (const p of SC.availability) { let hit = false; try { hit = !!p.test(S); } catch (e) { hit = false; } if (hit) res.failed.push(p); }
+  const okOf = holdResults(SC.checks, res.failed, live);
   for (const c of SC.checks) {
     res.max += c.pts;
-    let ok = false; try { ok = !!c.test(S); } catch (e) { ok = false; }
-    if (ok) { res.earned.push(c); res.score += c.pts; } else res.missing.push(c);
+    if (okOf(c)) { res.earned.push(c); res.score += c.pts; } else res.missing.push(c);
   }
-  for (const p of SC.availability) { let hit = false; try { hit = !!p.test(S); } catch (e) { hit = false; } if (hit) { res.failed.push(p); res.score += p.pts; } }
+  if (res.failed.length) { S.availBroke = S.availBroke || {}; for (const p of res.failed) S.availBroke[p.id] = brokeWhich(S.availBroke[p.id], p); }
   LAST = res;
   const slot = STORE.scenarios[SC.id] || (STORE.scenarios[SC.id] = {});
-  if (res.score > 0 && (typeof slot.best !== 'number' || res.score > slot.best)) { slot.best = res.score; slot.bestHints = hintCount(); slot.bestCoach = coachMode(SC.level); renderLevels(); }
-  const sc = $('.score'); sc.textContent = res.score + ' / ' + res.max + ' pts'; sc.classList.toggle('neg', res.score < 0);
+  if (!res.failed.length && res.score > 0 && (typeof slot.best !== 'number' || res.score > slot.best)) { slot.best = res.score; slot.bestHints = hintCount(); slot.bestCoach = coachMode(SC.level); renderLevels(); }
+  const sc = $('.score'); sc.textContent = res.score + ' / ' + res.max + ' pts'; sc.classList.toggle('neg', res.failed.length > 0); sc.title = res.failed.length ? res.failed.length + ' availability check' + (res.failed.length === 1 ? '' : 's') + ' to fix before you finish' : '';
   renderReport(res); markTasks(res); markAnswerStates(res);
 }
 /* Coach: how much the Progress Check tells you, chosen apart from the scenario level (the level sets the default) */
@@ -5526,8 +5585,9 @@ function renderReport(res) {
   if (!res.earned.length) body.appendChild(el('p', { class: 'empty', text: 'No checks passed yet. Open a console and start hardening.' }));
   else { const ul = el('ul'); for (const c of res.earned) ul.appendChild(el('li', { class: 'earned' }, [el('span', { class: 'mark', text: '✓' }), el('span', { class: 't', text: c.title }), el('span', { class: 'pts', text: c.pts + ' pts' })])); body.appendChild(ul); }
   if (res.failed.length) {
-    body.appendChild(el('h3', { text: 'Availability checks failed' }));
-    const ul = el('ul'); for (const p of res.failed) ul.appendChild(el('li', { class: 'avail' }, [el('span', { class: 'mark', text: '!' }), el('span', { class: 't', text: 'Availability check failed: ' + p.title }), el('span', { class: 'pts', text: p.pts + ' pts' })])); body.appendChild(ul);
+    body.appendChild(el('h3', { class: 'mustfix-h', text: 'Must fix: availability checks failed' }));
+    body.appendChild(mustFixList(res));
+    body.appendChild(el('p', { class: 'mustfix-why', text: 'Your points stay as they are. ' + OUTAGE_LINE }));
   }
   const mode = coachMode(lvl);
   if (mode === 'todo' && res.missing.length) {
@@ -5862,7 +5922,7 @@ function renderActivity() {
   brief.appendChild(el('h4', { text: 'Authorized Users' })); brief.appendChild(list(r.users));
   brief.appendChild(el('h4', { text: 'Critical / required services' })); brief.appendChild(list(r.required));
   brief.appendChild(el('h4', { text: 'Policy' })); brief.appendChild(list(r.policy));
-  brief.appendChild(el('div', { class: 'warnbox', text: 'Warning: ' + r.warning }));
+  brief.appendChild(el('div', { class: 'warnbox', text: 'Warning: ' + r.warning + ' A failed availability check keeps your points where they are, shows in red with its restore step, and holds Finish until it works again.' }));
   brief.appendChild(el('p', {}, [el('strong', { text: 'Credentials: ' }), r.creds]));
   host.appendChild(sec('Scenario Brief', true, [brief]));
   const tbl = el('table'); const thead = el('thead'); const trh = el('tr'); for (const h of ['Device', 'Interface', 'IP Address', 'Subnet Mask', 'Default Gateway']) trh.appendChild(el('th', { text: h })); thead.appendChild(trh); tbl.appendChild(thead);
@@ -5916,19 +5976,21 @@ function learnFor(c) {
   return find('sophomore/') || L[0];
 }
 function debriefText(res) {
-  const lines = ['Lockdown Range: Cisco IOS - ' + SC.name + ' (Level ' + SC.level + ', ' + SC.levelName + ', ' + SC.grade + ')', 'Progress ' + res.score + ' / ' + res.max + ' - checks passed ' + res.earned.length + ' of ' + SC.checks.length + ' - availability checks failed ' + res.failed.length + ' - time ' + fmtTime(S.elapsed) + ' - hints ' + hintCount() + ' (' + hintCommands() + ' with the command) - coach: ' + coachLabel(coachMode(SC.level)), ''];
+  const lines = ['Lockdown Range: Cisco IOS - ' + SC.name + ' (Level ' + SC.level + ', ' + SC.levelName + ', ' + SC.grade + ')', 'Progress ' + res.score + ' / ' + res.max + ' - checks passed ' + res.earned.length + ' of ' + SC.checks.length + ' - availability: ' + availSummary(res) + ' - time ' + fmtTime(S.elapsed) + ' - hints ' + hintCount() + ' (' + hintCommands() + ' with the command) - coach: ' + coachLabel(coachMode(SC.level)), ''];
   for (const c of SC.checks) { const st = hintStep(c.id); lines.push((res.earned.includes(c) ? '[x] ' : '[ ] ') + c.title + ' (' + c.pts + ' pts)' + (st ? '  [hint: ' + (st >= 2 ? 'command shown' : 'principle') + ']' : '')); }
-  for (const p of SC.availability) lines.push((res.failed.includes(p) ? '[!] ' : '[ok] ') + 'Availability: ' + p.title + ' (' + p.pts + ' pts)');
+  for (const p of SC.availability) lines.push((res.failed.includes(p) ? '[!] ' : availBroke(p) ? '[restored] ' : '[ok] ') + 'Availability: ' + (res.failed.includes(p) ? availName(p) + ' (must fix)' : availNeed(p) + (availBroke(p) ? ' (Revisit: ' + (brokeNames(p) ? brokeNames(p) + ' ' : '') + 'broken, then restored)' : ' (Strong: kept working)')));
   const slot = STORE.scenarios[SC.id] || {}; if (slot.reflect) lines.push('', 'What broke, and what I will do first next time:', slot.reflect);
   return lines.join('\n') + '\n';
 }
 function openDebrief() {
+  evaluate();
   const res = LAST || { earned: [], missing: [], failed: [], score: 0, max: 100 };
-  const sum = el('div', { class: 'sum' }, [el('span', { text: 'Progress: ' + res.score + ' / ' + res.max }), el('span', { text: 'Checks passed: ' + res.earned.length + ' of ' + SC.checks.length }), el('span', { text: 'Availability checks failed: ' + res.failed.length }), el('span', { text: 'Time: ' + fmtTime(S.elapsed) })]);
+  if (res.failed.length) { finishWaits(res); return; }
+  const sum = el('div', { class: 'sum' }, [el('span', { text: 'Progress: ' + res.score + ' / ' + res.max }), el('span', { text: 'Checks passed: ' + res.earned.length + ' of ' + SC.checks.length }), el('span', { text: 'Availability: ' + availSummary(res) }), el('span', { text: 'Time: ' + fmtTime(S.elapsed) })]);
   const tbl = el('table'); const tr = el('tr'); for (const h of ['', 'Check', 'Pts', 'Fix', 'Why it matters']) tr.appendChild(el('th', { text: h })); tbl.appendChild(el('thead', {}, [tr]));
   const tb = el('tbody');
   for (const c of SC.checks) { const ok = res.earned.includes(c); const row = el('tr', { class: ok ? 'ok' : 'no' }); row.appendChild(el('td', { text: ok ? '✓' : '✗' })); row.appendChild(el('td', { text: c.title })); row.appendChild(el('td', { text: String(c.pts) })); row.appendChild(el('td', { class: 'fix', text: c.fix })); { const why = el('td', { class: 'why', text: c.why }); const l = learnFor(c); if (l) { why.appendChild(document.createTextNode(' ')); why.appendChild(el('a', { class: 'learn', href: DL_URL + l[0], target: '_blank', rel: 'noopener', text: 'Learn it: ' + l[2] })); } const st = hintStep(c.id); if (st) why.appendChild(el('span', { class: 'hintmark', text: st >= 2 ? '(command shown)' : '(hint: principle)' })); row.appendChild(why); } tb.appendChild(row); }
-  for (const p of SC.availability) { const hit = res.failed.includes(p); const row = el('tr', { class: hit ? 'no' : 'ok' }); row.appendChild(el('td', { text: hit ? '!' : '✓' })); row.appendChild(el('td', { text: 'Availability check: ' + p.title })); row.appendChild(el('td', { text: String(p.pts) })); row.appendChild(el('td', { class: 'fix', text: hit ? 'Failed: undo the change that caused it (see the Scenario Brief).' : 'Passing' })); row.appendChild(el('td', { class: 'why', text: p.why })); tb.appendChild(row); }
+  for (const p of SC.availability) { const hit = res.failed.includes(p); const row = el('tr', { class: hit ? 'no' : 'ok' }); row.appendChild(el('td', { text: hit ? '!' : '✓' })); row.appendChild(el('td', { text: 'Availability check: ' + (hit ? availName(p) : availNeed(p)) })); row.appendChild(el('td', { text: hit ? 'must fix' : '—' })); row.appendChild(el('td', { class: 'fix', text: hit ? 'Restore: ' + p.restore : availBroke(p) ? 'Broken' + (brokeNames(p) ? ' (' + brokeNames(p) + ')' : '') + ', then restored. ' + p.restore : 'Kept working the whole time.' })); row.appendChild(el('td', { class: 'why', text: p.why })); tb.appendChild(row); }
   tbl.appendChild(tb);
   const learn = el('p', { class: 'learn' }, [el('strong', { text: SC.grade + ' level. Learn it: ' })]);
   SC.learn.forEach(([hash, grade, title, topic], i) => { if (i) learn.appendChild(document.createTextNode('; ')); learn.appendChild(el('a', { href: DL_URL + hash, target: '_blank', rel: 'noopener', text: 'Defense Ladder › ' + grade + ' › ' + title })); if (topic) learn.appendChild(document.createTextNode(' (' + topic + ')')); });
@@ -5940,7 +6002,7 @@ function openDebrief() {
   const copyRow = el('div', { class: 'dbr-copy' }); const cp = el('button', { type: 'button', id: 'dbr-copy', text: 'Copy debrief as text' }); const st = el('span', { role: 'status' }); const out = el('textarea', { hidden: true, 'aria-label': 'Debrief as text' }); out.readOnly = true;
   cp.addEventListener('click', () => { const txt = debriefText(res); const show = () => { out.hidden = false; out.value = txt; st.textContent = 'Select the text below and copy it.'; }; if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(() => { st.textContent = 'Copied.'; }, show); else show(); });
   copyRow.appendChild(cp); copyRow.appendChild(st); copyRow.appendChild(out);
-  openModal('Debrief — ' + SC.name, [sum, hints, learn, el('div', { class: 'tblwrap' }, [tbl]), refl, copyRow], [el('button', { type: 'button', dataset: { close: '1' }, text: 'Back to the range' })], 'debrief');
+  openModal('Debrief — ' + SC.name, [sum, hints, learn, availInvest(), el('div', { class: 'tblwrap' }, [tbl]), refl, copyRow], [el('button', { type: 'button', dataset: { close: '1' }, text: 'Back to the range' })], 'debrief');
 }
 function openReset() {
   openModal('Reset lab?', [el('p', { text: 'This reverts "' + SC.name + '" to its snapshot: every device goes back to the way it was handed to you, answers are cleared, and the timer restarts. Your best score for this scenario is kept.' })],
@@ -5963,9 +6025,10 @@ function openHelp() {
     el('li', { text: 'Progress is saved in this browser per scenario; Reset lab restores the snapshot and keeps your best score, with the hints you used on it.' }),
     el('li', { text: 'Coach, at the top of the Progress Check, sets how much the panel shows. Pick the to-do list with hints, the remaining count per area, or passed checks only.' }),
     el('li', { text: 'A hint opens in two steps: the hardening area and the principle, then the command.' }),
+    el('li', { text: 'Availability counts too. Breaking something the Scenario Brief requires keeps your points where they are and shows a must-fix item in red with its restore step. Finish waits until it works again, because an outage is an incident you fix before you are done.' }),
     el('li', { text: 'Solution walkthrough for every scenario: cisco-range-reference.txt beside this page (the hub card offers it as a download). Try each scenario on your own first.' }),
   ]);
-  const about = el('p', { class: 'about', text: 'About: Lockdown Range is a general networking-security practice lab. Its look and feel is inspired by Cisco Packet Tracer, a free network simulator. Unofficial practice; not affiliated with or endorsed by Cisco. Commands follow Cisco IOS 15 documentation; real devices and releases differ in places.' });
+  const about = el('p', { class: 'about', text: 'About: Lockdown Range is a general networking-security practice lab. Its look and feel is inspired by Cisco Packet Tracer, a free network simulator. Commands follow Cisco IOS 15 documentation; real devices and releases differ in places.' });
   openModal('Help — keys and conventions', [dl, notes, about], [el('button', { type: 'button', dataset: { close: '1' }, text: 'Close' })], 'help');
 }
 

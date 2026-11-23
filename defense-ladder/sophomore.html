@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-EJUo6x7FMJBCtLbdASMoHTewo5O+8qSveS6aF0fMm8o=' 'sha256-V45Q51bsp/eCwA1i5v229ax5Pe3Xde57XI/sF5MXNns=' 'sha256-yoGb7aksp0wNcmlZujtvR8BlXvdZyEqHMmp8zXAuRow=' 'sha256-yx8AwtaWUvVu3U4UiwYkheC5J8TzzbxjliJAcfTnAl4=' 'sha256-zaNKp79p2RHFZp7lCvMvymbf+DCccd/OPw3A3V+LWGw='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/X3+kdvW9NIw4IS0xpUvKdshcspuIO0pDWUO0WlOMns=' 'sha256-EJUo6x7FMJBCtLbdASMoHTewo5O+8qSveS6aF0fMm8o=' 'sha256-En4LNWcwC2xijjWbWoFWQAA2NBhjhxSKy7f+9KCPDHI=' 'sha256-S0/knhJuKXYAKX3g+PQFuJn6uN+0PJxGPxEC4W089T0=' 'sha256-zaNKp79p2RHFZp7lCvMvymbf+DCccd/OPw3A3V+LWGw='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/defense-ladder/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%8E%93%3C%2Ftext%3E%3C%2Fsvg%3E">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Tool4That">
 <meta property="og:title" content="Defense Ladder: Sophomore">
-<meta property="og:description" content="A free, four-grade cybersecurity course, Freshman to Senior, built on Bloom&#x27;s taxonomy: 54 units across Windows, Linux, networking, security foundations, defense operations, and web and cloud. Diagrams, drills on realistic logs, captures, and configs, a readiness check for each grade, and a glossary round it out. Works offline, and everything stays in your browser.">
+<meta property="og:description" content="A free, four-grade cybersecurity course, Freshman to Senior, built on Bloom&#x27;s taxonomy: 51 units across Windows, Linux, networking, security foundations, defense operations, and web and cloud, with a readiness check at the start of Sophomore, Junior, and Senior. Diagrams, drills on realistic logs, captures, and configs, a pace planner, and a glossary round it out. Works offline, and everything stays in your browser.">
 <meta property="og:url" content="https://freeapp4that.store/defense-ladder/">
 <meta property="og:image" content="https://freeapp4that.store/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -88,6 +88,8 @@ p{margin:0 0 .8em}
 .pg{flex:none;padding:6px 11px;border:1px solid var(--line);background:transparent;border-radius:999px;font-size:.88rem;cursor:pointer;color:var(--ink-2)}
 .pg[aria-current="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 .rail-foot{display:none}
+.dl-foot{padding:4px 16px 18px;text-align:center;font-size:.8rem;line-height:1.45;color:var(--ink-2)}
+.dl-foot p{margin:0 auto;max-width:60ch}
 
 .main{padding:18px 16px 60px;max-width:76ch;width:100%}
 @media (min-width:920px){
@@ -262,15 +264,35 @@ dl.gloss dd a{display:inline-block;max-width:100%}
 .k.tool4that{background:var(--amber);color:var(--amber-ink)}
 .lk .d{font-size:.9rem;color:var(--ink-2)}
 
-/* study plan timeline */
-.tl{position:relative;padding-left:22px}
-.tl::before{content:"";position:absolute;left:8px;top:8px;bottom:8px;width:2px;background:var(--line)}
-.ph{position:relative;padding:0 0 16px}
-.ph::before{content:"";position:absolute;left:-19px;top:7px;width:12px;height:12px;border-radius:50%;background:var(--paper);border:3px solid var(--accent)}
-.ph.ms::before{border-color:var(--ok);background:var(--ok)}
-.ph h3{font-size:1.05rem}
-.ph .when{color:var(--ink-2);font-size:.9rem}
-.ph ul{margin:6px 0 8px;padding-left:20px;font-size:.93rem}
+/* study plan: the pace planner */
+.pace .pace-l{display:block;margin:12px 0 4px;font-weight:600}
+.pace-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.pace input[type="range"]{flex:1 1 150px;min-width:0;min-height:44px;margin:0;accent-color:var(--l2)}
+.pace input[type="number"],.pace input[type="date"],.pace select{font:inherit;padding:8px 10px;border:1px solid var(--line-ctl,var(--line));border-radius:8px;background:var(--paper);color:var(--ink);min-height:44px;max-width:100%}
+.pace input.pace-num{width:5.5em}
+.pace-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:0 18px}
+fieldset.pace-scope{border:0;margin:0;padding:0;min-width:0}
+fieldset.pace-scope legend{padding:0;margin-top:14px}
+.pace-g select{width:auto}
+.pace-r{display:inline-flex;align-items:center;gap:6px;min-height:44px}
+.pace-g{display:inline-flex;align-items:center;flex-wrap:wrap;gap:8px}
+.pace-sum{margin:16px 0 8px;font-weight:600}
+table.pace-t{border-collapse:collapse;width:100%;font-size:.93rem}
+.pace-t caption{text-align:left;font-weight:600;padding:0 0 4px}
+.pace-t th,.pace-t td{padding:6px 8px;border-bottom:1px solid var(--line-2);text-align:left;vertical-align:top}
+.pace-t thead th{font-size:.82rem;color:var(--ink-2)}
+.pace-t tr.pace-tot th,.pace-t tr.pace-tot td{font-weight:700;border-bottom:0}
+.pace-gr h3 small{margin-left:6px;font-size:.85rem;font-weight:400;color:var(--ink-2)}
+.pace-pr{margin:6px 0 8px;font-size:.93rem;color:var(--ink-2)}
+ol.pace-ul{list-style:none;margin:0;padding:0}
+ol.pace-ul li{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;padding:7px 0;border-bottom:1px solid var(--line-2)}
+.pace-wk{flex:0 0 100%;font-size:.8rem;color:var(--ink-2)}
+ol.pace-ul a{flex:1 1 12em;min-width:0;overflow-wrap:anywhere}
+.pace-h{font-size:.9rem;color:var(--ink-2);white-space:nowrap}
+.pace-on{font-size:.8rem;color:var(--ink-2)}
+.pace-ms{margin:10px 0 0;font-size:.93rem}
+@media (min-width:600px){.pace-wk{flex:0 0 9.5em}}
+@media (prefers-reduced-motion:reduce){.pace *,.pace-list *{transition:none;animation:none}}
 
 /* hardening areas and scorecard */
 table.areas td:first-child{white-space:normal}
@@ -961,11 +983,12 @@ h2[tabindex="-1"]:focus:not(:focus-visible){outline:none}
     <div class="ladder" id="ladder" role="list" aria-label="Grades"></div>
     <div class="pages" id="pages" role="list" aria-label="Pages"></div>
     <div class="rail-tools"><button class="tbtn" id="themeBtn" type="button">Theme: auto</button><button class="tbtn" id="widthBtn" type="button">Width: Wide</button><button class="tbtn" id="textBtn" type="button">Text: Default</button></div>
-    <div class="rail-foot">Unofficial practice, independent of, and unendorsed by, Microsoft, Canonical, Linux Mint, the FreeBSD Project, and Cisco. Progress stays in this browser.</div>
+    <div class="rail-foot">Progress stays in this browser.</div>
     </div>
   </nav>
   <main class="main" id="main" tabindex="-1"></main>
 </div>
+<footer class="dl-foot"><p>Unofficial training, independent of and unendorsed by the makers of the systems it names.</p></footer>
 <script>
 /* ===================== Defense Ladder =====================
    Single-file, offline cybersecurity course: four grades, Freshman to Senior.
@@ -973,8 +996,8 @@ h2[tabindex="-1"]:focus:not(:focus-visible){outline:none}
    progress for each id is kept in localStorage (if available).
    Learning design: Bloom's revised taxonomy (Anderson & Krathwohl, 2001):
    Remember, Understand, Apply, Analyze, Evaluate, Create.
-   Frameworks: NICE Workforce Framework (work roles), CIS Critical Security
-   Controls v8.1 (hardening areas), NIST Cybersecurity Framework 2.0.
+   Frameworks: CIS Critical Security Controls v8.1 (hardening areas), NIST
+   Cybersecurity Framework 2.0.
    ========================================================== */
 'use strict';
 
@@ -1141,13 +1164,10 @@ const RES={
   'stig':['DISA STIGs','https://www.cyber.mil/stigs/','US Department of Defense configuration standards. Dense, but authoritative for Windows, Linux, and Cisco.','standard'],
   'nist-63b':['NIST SP 800-63B-4 (authentication and passwords)','https://pages.nist.gov/800-63-4/sp800-63b.html','The 2025 revision of NIST’s authentication guidance: password length, blocklists, password changes only on evidence of compromise, and multi-factor authentication.','standard'],
   'nist-csf':['NIST Cybersecurity Framework 2.0','https://www.nist.gov/cyberframework','Six functions: Govern, Identify, Protect, Detect, Respond, and Recover. The shared vocabulary of a security program.','standard'],
-  'nice':['NICE Workforce Framework for Cybersecurity','https://niccs.cisa.gov/tools/nice-framework','Cybersecurity work roles with their tasks, knowledge, and skills. Use it to see which jobs each unit of this course leads toward.','standard'],
   'cisa':['CISA','https://www.cisa.gov/','Advisories, the Known Exploited Vulnerabilities catalog, and plain-language security basics from the US cyber defense agency.','standard'],
   'owasp10':['OWASP Top 10','https://owasp.org/projects/top-ten','The reference list of the most critical web application security risks. The current edition is 2025.','standard'],
   'juice':['OWASP Juice Shop','https://owasp.org/projects/juice-shop','A deliberately insecure web app for security training that you run on your own machine.','practice'],
   'bandit':['OverTheWire: Bandit','https://overthewire.org/wargames/bandit/','Linux command line, one level at a time. Start right after the Freshman Linux unit.','practice'],
-  'pico':['picoCTF','https://picoctf.org/','Free, beginner-friendly security challenges and lessons from Carnegie Mellon University (now part of its CyLab Security Academy).','practice'],
-  'ncl':['National Cyber League','https://nationalcyberleague.org/','Virtual, learning-centered cybersecurity competitions for students, with a scouting report of your skills at the end.','practice'],
   'linuxjourney':['Linux Journey','https://labex.io/linuxjourney','Free, gentle, well-organized Linux lessons. The original linuxjourney.com now lives on LabEx, which also sells paid courses.','community'],
   'explainshell':['explainshell','https://explainshell.com/','Paste any Linux command and see every argument matched to its help text from the man pages.','community'],
   'khan':['Khan Academy: Computers and the Internet','https://www.khanacademy.org/computing/computers-and-internet','How computers, networks, and the internet work, for beginners.','community'],
@@ -1156,14 +1176,15 @@ const RES={
   't4t-ios':['IOS CLI Lab','https://freeapp4that.store/net-drills/ios-cli-lab/','Configure a simulated router and switch from their consoles, then prove it from two PCs.','tool4that'],
   't4t-audit':['Config Audit','https://freeapp4that.store/net-drills/config-audit/','Read a running-config, flag every risky line, choose the best fix, and name the missing protections.','tool4that'],
   't4t-tickets':['Trouble Tickets','https://freeapp4that.store/net-drills/trouble-tickets/','Read the complaint, study device output, and pick the root cause.','tool4that'],
-  't4t-drills':['Lockdown Drills','https://freeapp4that.store/lockdown-drills/','Baseline-hardening trainers for Windows 11, Windows Server, Linux Mint, Ubuntu, FreeBSD, and Cisco IOS, at beginner, intermediate, and advanced levels.','tool4that'],
+  't4t-drills':['Lockdown Drills','https://freeapp4that.store/lockdown-drills/','Baseline-hardening trainers for Windows 11, Windows Server, Linux Mint, Ubuntu, FreeBSD, and Cisco IOS, at three tiers: Doorman, Watchman, and Hunter.','tool4that'],
   't4t-ld-win11':['Lockdown Drills: Windows 11','https://freeapp4that.store/lockdown-drills/windows-11/','Step-by-step Windows 11 hardening drills with the reason behind each command.','tool4that'],
   't4t-ld-winsrv':['Lockdown Drills: Windows Server','https://freeapp4that.store/lockdown-drills/windows-server/','Hardening drills for Windows Server, Active Directory, and Group Policy.','tool4that'],
   't4t-ld-mint':['Lockdown Drills: Linux Mint','https://freeapp4that.store/lockdown-drills/linux-mint/','Hardening drills for Linux Mint: users, sudo, ufw, updates, services, and SSH.','tool4that'],
   't4t-ld-ubuntu':['Lockdown Drills: Ubuntu','https://freeapp4that.store/lockdown-drills/ubuntu/','Hardening drills for Ubuntu, from accounts to PAM and services.','tool4that'],
   't4t-ld-fbsd':['Lockdown Drills: FreeBSD','https://freeapp4that.store/lockdown-drills/freebsd/','Hardening drills for FreeBSD: pw, rc.conf, pf, and updates.','tool4that'],
   't4t-ld-ios':['Lockdown Drills: Cisco IOS','https://freeapp4that.store/lockdown-drills/cisco-ios/','Hardening drills for Cisco routers and switches: passwords, SSH, unused ports, and ACLs.','tool4that'],
-  't4t-range':['Lockdown Range','https://freeapp4that.store/lockdown-range/','Hands-on labs that run in your browser without a virtual machine: Windows, Linux, and a Cisco IOS network. Read the scenario brief, fix the machine, and watch the Progress Check.','tool4that'],
+  't4t-range':['Lockdown Range','https://freeapp4that.store/lockdown-range/','Hands-on labs that run in your browser without a virtual machine: Windows, Linux, and a Cisco IOS network. Read the scenario brief, fix the machine, and watch the Progress Check, at three tiers: Recruit, Operator, and Captain.','tool4that'],
+  't4t-pug':['Cyber PUG (experimental)','https://freeapp4that.store/cyber-pug/','Team practice: shared checklists for taking over and securing a practice network together, with a map of the network as you work.','tool4that'],
   't4t-lr-win':['Lockdown Range: Windows','https://freeapp4that.store/lockdown-range/windows/','A simulated Windows 11 or Windows Server lab to harden end to end in your browser.','tool4that'],
   't4t-lr-linux':['Lockdown Range: Linux','https://freeapp4that.store/lockdown-range/linux/','A simulated Ubuntu, Linux Mint, or Debian machine to harden from a bash-like terminal.','tool4that'],
   't4t-lr-ios':['Lockdown Range: Cisco IOS','https://freeapp4that.store/lockdown-range/cisco-ios/','A simulated Cisco topology with IOS consoles and PC terminals, to configure and secure.','tool4that'],
@@ -1232,28 +1253,83 @@ const RES={
   'ms-privaccess':['Microsoft Learn: Enterprise access model','https://learn.microsoft.com/en-us/security/privileged-access-workstations/privileged-access-access-model','How the AD tier model grew into the control, management, and data planes.','vendor']
 };
 
-/* ---- study plan (a suggested pace; adjust freely) ---- */
-const PLAN={
-  name:'A suggested pace: about two hours a week',
-  phases:[
-    {n:'Phase 1: Foundations',grade:'freshman',when:'Weeks 1 to 4 (Freshman)',ms:false,
-     pts:['Units: authorization and the scenario brief, ethics, security principles, virtualization, first looks at Windows and Linux, and networking models.','Set up one Windows and one Linux virtual machine you own, and take a clean snapshot of each.','Alongside: OverTheWire Bandit levels 0 to 5, and Subnet Sprint for binary and masks.']},
-    {n:'Milestone: foundations check',when:'End of week 4',ms:true,
-     pts:['Every Freshman quiz item at Strong, Core skills first. Explain authorization, scope, and the CIA triad to someone else in your own words.','Name the console or command that lists the users and the administrators on Windows and on Linux, and explain what each output shows.']},
-    {n:'Phase 2: Hands-on hardening',grade:'sophomore',when:'Weeks 5 to 10 (Sophomore)',ms:false,
-     pts:['Start with the readiness check, then work the units: the scenario brief; Windows 11 and Linux Mint/Ubuntu hardening by hand; services and ports; first Cisco configurations; and investigation questions and the change log.','Practice: Lockdown Drills at beginner level, then the first Lockdown Range scenarios for Windows and Linux.','Keep a change log every session, even when practicing alone.']},
-    {n:'Milestone: first full lab',when:'End of week 10',ms:true,
-     pts:['Harden one Windows and one Linux lab end to end with a change log, passing every availability check.','Fill in the Hardening scorecard for each machine and note the gaps.']},
-    {n:'Phase 3: Servers and networks',grade:'junior',when:'Weeks 11 to 16 (Junior)',ms:false,
-     pts:['Start with the readiness check, then work the units: Windows Server and Active Directory; Group Policy; Debian and deeper Linux; VLANs, routing, and ACLs; and evaluating a configuration.','Practice: intermediate Lockdown Drills, harder Lockdown Range scenarios, Config Audit, and Trouble Tickets.','Build a small two-VLAN network in Packet Tracer and route between the VLANs.']},
-    {n:'Milestone: defend your choices',when:'End of week 16',ms:true,
-     pts:['Rank the findings on a lab by impact and explain the order to a peer.','Explain one ACL and one Group Policy setting line by line.']},
-    {n:'Phase 4: Systems and teamwork',grade:'senior',when:'Weeks 17 to 22 (Senior)',ms:false,
-     pts:['Start with the readiness check, then work the units: FreeBSD; Windows credentials and the domain attack surface; web application security; your own checklist; roles and timing; auditing the two-site network; and power and responsibility.','Practice: advanced Lockdown Drills and Lockdown Range scenarios; OWASP Juice Shop on your own machine.','Write a per-OS checklist from standards, with a source for every line.']},
-    {n:'Capstone: timed team session',when:'Week 22 and after',ms:true,
-     pts:['Run a timed practice session as a small team, with a written runbook, a scribe, a timekeeper, and your own checklist.','Debrief: what was missed, what broke, and what goes on the checklist. Then keep going with picoCTF, the National Cyber League, and the NICE Framework work roles that interest you.']}
-  ]
+/* ---- study plan: the pace planner's data ----
+   PACE lists every unit in course order (the readiness checks s0, j0, and se0 included) as
+   [grade, unit id, title, estimated hours, activity ids], so a one-grade download still plans every grade and can
+   tell which units of the other grades are done. build_pace.js (beside this page) estimates the hours from the units'
+   own words and activities and rewrites the table; "node build_pace.js --check" says whether it is current. */
+/*@pace-table (written by build_pace.js: node build_pace.js) */
+const PACE={wpm:130,fixed:{"quizItem":1,"flashCard":0.25,"matchPair":0.5,"spotLine":0.5,"orderItem":0.5,"labStep":4,"typein":3,"reflect":8,"builderSection":6,"planner":10,"diagram":1},units:[
+["freshman","f1","How hands-on defense practice works",0.25,"f1cy1 f1fl f1q"],
+["freshman","f2","Safe and ethical online",0.5,"f2cy1 f2q f2r"],
+["freshman","f3","Security principles",0.5,"f3cy1 f3m f3q"],
+["freshman","f8","Threats and the people behind them",0.75,"f8cy1 f8cy2 f8cy3 f8fl f8m f8q"],
+["freshman","f4","Computers, virtualization, and the network",0.25,"f4c1 f4q"],
+["freshman","f5","First look at Windows",0.5,"f5ck1 f5ck2 f5ck3 f5ck4 f5m f5fl f5q"],
+["freshman","f6","First look at Linux",0.5,"f6cy f6fl f6m f6q"],
+["freshman","f7","Networking fundamentals and Cisco basics",1.25,"f7fl f7o1 f7o2 f7o3 f7m1 f7m2 f7m3 f7q f7ck1 f7fl2 f7m4 f7q2"],
+["freshman","f9","Networks around you: home, school, and the internet",0.75,"f9ck1 f9ck2 f9fl f9m f9q"],
+["freshman","f10","Keys, locks, and certificates",0.75,"f10cy1 f10cy2 f10cy3 f10fl f10m f10q"],
+["freshman","f11","The web and the cloud in plain words",0.5,"f11sp f11c1 f11c2 f11m f11q"],
+["freshman","f12","Code you can read",0.5,"f12cy f12cy2 f12m f12q"],
+["freshman","f13","Watch, detect, and respond",1,"f13ck1 f13ck2 f13ck3 f13fl f13m f13q f13q2"],
+["sophomore","s0","Ready for Sophomore?",0.5,"s0q"],
+["sophomore","s1","Read the scenario brief first",0.5,"s1q s1o s1r"],
+["sophomore","s2","Windows 11 hardening",2.5,"f5lab s2ck1 s2ck2 s2sp s2q s2lab s2r"],
+["sophomore","s3","Debian-family hardening",2.5,"f6lab s3cy s3sp s3sp2 s3sp3 s3q s3lab s3r"],
+["sophomore","s4","Services and ports",0.75,"s4ck1 s4m s4q s4r"],
+["sophomore","s5","Cisco: configure a switch and a router",2.25,"s5ck1 s5ck2 s5ck3 s5o s5m s5lab s5q s5q2"],
+["sophomore","s7","Network tools and a safer router",1,"s7ck1 s7ck2 s7o s7m s7sp s7q"],
+["sophomore","s8","Web traffic, HTTPS, and certificates",1,"s8c1 s8sp s8c2 s8c3 s8m s8sp2 s8q"],
+["sophomore","s9","Check before you trust: messages, links, and files",1,"s9cy1 s9sp s9sp2 s9cy2 s9cy3 s9q"],
+["sophomore","s10","Read the logs: Windows, Linux, and network devices",1,"s10ck1 s10ck2 s10ck3 s10m s10sp s10o s10q"],
+["sophomore","s11","Scripts for defenders",1,"s11cy s11cy2 s11cy3 s11o s11t s11q2 s11sp s11q"],
+["sophomore","s6","Investigation questions and the change log",0.75,"s6ck1 s6sp s6q s6q2 s6r"],
+["junior","j0","Ready for Junior?",0.5,"j0q"],
+["junior","j1","Windows Server and Active Directory",0.75,"j1ck1 j1ck2 j1ck3 j1sp j1sp2 j1q"],
+["junior","j2","Group Policy",1,"j2ck1 j2ck2 j2o j2q j2sp j2sp2"],
+["junior","j3","Debian and deeper Linux",1.25,"j3cy j3cy2 j3sp j3sp2 j3sp3 j3q j3r"],
+["junior","j4","Cisco: VLANs, routing, and ACLs",2.75,"j4ck1 j4ck2 j4ck3 j4lab j4sp j4m j4o j4q j4q2 j4q3 j4m3 j4r"],
+["junior","j7","Read the wire: captures, flows, and network attacks",1,"j7ck1 j7ck2 j7sp j7sp2 j7m j7q"],
+["junior","j6","Network security design: firewalls, zones, VPNs, and Wi-Fi",1,"j6ck1 j6ck2 j6sp j6m j6r j6q"],
+["junior","j8","Windows: logons, tokens, and the event trail",0.75,"j8m j8ck1 j8ck2 j8ck3 j8sp j8q"],
+["junior","j9","Web attacks in the logs",0.75,"j9c1 j9c2 j9sp j9m j9q"],
+["junior","j10","Cloud security: identity, storage, and logs",1,"j10c1 j10c2 j10sp j10o j10q"],
+["junior","j11","Map the attack: kill chain, ATT&CK, and threat intelligence",0.75,"j11cy1 j11m j11cy2 j11sp j11cy3 j11q"],
+["junior","j13","Evidence that holds up: forensics, timelines, and sandboxes",0.75,"j13ck1 j13ck2 j13ck3 j13o j13sp j13q"],
+["junior","j12","Respond to an incident: triage, contain, and recover",0.75,"j12ck1 j12sp j12ck3 j12ck2 j12o j12q"],
+["junior","j5","Evaluate a configuration",1,"j5o j5q j5q2 j5o2 j5q3"],
+["senior","se0","Ready for Senior?",0.5,"se0q"],
+["senior","se1","FreeBSD",0.5,"se1cy se1q se1q2"],
+["senior","se7","Windows: credentials and the domain attack surface",0.75,"se7ck1 se7ck2 se7ck3 se7sp se7q"],
+["senior","se8","Windows: allow only what you trust",1,"se8ck1 se8o se8ck2 se8ck3 se8q se8r"],
+["senior","se9","Linux: confine services and prove it",1,"se9cy se9cy2 se9cy3 se9sp se9r se9q"],
+["senior","se2","Web application security",0.5,"se2c1 se2c2 se2q se2m"],
+["senior","se10","Design for the cloud: code, functions, and APIs",0.75,"se10c1 se10c2 se10c3 se10sp se10r se10q"],
+["senior","se6","Cisco: audit and extend the two-site network",1.25,"se6ck1 se6sp se6o se6q se6r se6r2"],
+["senior","se11","Design the defended network: zero trust, deception, and visibility",1,"se11ck1 se11ck2 se11sp se11q se11r"],
+["senior","se12","Governance, risk, and compliance",1,"se12cy1 se12cy2 se12cy3 se12sp se12q se12r"],
+["senior","se3","Create: your own checklist",1.25,"se3b se3r"],
+["senior","se13","Run the response: detections, playbooks, and the after-action review",1.25,"se13ck1 se13sp se13ck2 se13ck3 se13r se13q se13q2"],
+["senior","se4","Create: roles, timing, and the runbook",0.25,"se4pl se4tm se4r"],
+["senior","se14","Your path: roles, certifications, and practice",0.5,"se14r2 se14r"],
+["senior","se5","Power and responsibility",0.5,"se5cy1 se5sp se5q se5r"]
+]};
+/*@/pace-table*/
+/* each grade's practice beside the units, and the milestone that closes it; the capstone and next steps close the plan */
+const PLAN_GRADE={
+  freshman:{practice:'Alongside: OverTheWire Bandit levels 0 to 5, and Subnet Sprint for binary and masks. Set up one Windows and one Linux virtual machine you own, and take a clean snapshot of each.',
+    milestone:'Every Freshman quiz item at Strong, Core skills first. Explain authorization, scope, and the CIA triad in your own words, and name the console or command that lists the users and the administrators on Windows and on Linux.'},
+  sophomore:{practice:'Practice: the Doorman tier in Lockdown Drills, then Recruit scenarios in Lockdown Range for Windows and Linux. Keep a change log every session, even when you practice alone.',
+    milestone:'Harden one Windows and one Linux lab end to end with a change log, passing every availability check, and fill in the Hardening scorecard for each machine.'},
+  junior:{practice:'Practice: the Watchman tier in Lockdown Drills, Operator scenarios in Lockdown Range, Config Audit, and Trouble Tickets. Build a small two-VLAN network in Packet Tracer and route between the VLANs.',
+    milestone:'Rank the findings on a lab by impact and explain the order to a peer. Explain one ACL and one Group Policy setting line by line.'},
+  senior:{practice:'Practice: the Hunter tier in Lockdown Drills and Captain scenarios in Lockdown Range; OWASP Juice Shop on your own machine.',
+    milestone:'Write a checklist for each operating system from standards, with a source for every line.'}
 };
+const PLAN_CAPSTONE=['Run a timed practice session as a small team, with a written runbook, a scribe, a timekeeper, and your own checklist.',
+  'Debrief: what was missed, what broke, and what goes on the checklist.',
+  'Then keep going: Captain scenarios in Lockdown Range, the Hunter tier in Lockdown Drills, Cyber PUG for team practice (experimental), student capture-the-flag events and competitions, and the cybersecurity work roles that interest you.'];
 
 /* ---- the six hardening areas (CIS Critical Security Controls v8.1) ----
    Used by the Sophomore brief unit and the Hardening scorecard page. */
@@ -1897,14 +1973,14 @@ function renderCard(b){
 }
 /* the longest command picks the layout: up to 48 characters, the table shows two columns once its box has room;
    longer commands always stack, each on its own line with its meaning beneath (CSS: .cmdw and the container queries) */
-/* ---- "docs": the Study Map entry for each command on a row (its options and the vendor's documentation), online in a
+/* ---- "docs": the Command Atlas entry for each command on a row (its options and the vendor's documentation), online in a
    new tab. CMD_REF (written by curriculum/cli/dl_cmd_refs.js) keys rows by an FNV-1a hash of the command text. ---- */
 function cmdKey(s){let h=0x811c9dc5;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0;}return h.toString(36);}
 function cmdLink(id,text){
   const a=el('a',null,esc(text)), name=id.slice(id.indexOf('/')+1);
-  a.href=HUB+'study-map/#cmd='+encodeURIComponent(id); a.target='_blank'; a.rel='noopener noreferrer';
-  a.title=name+': options and vendor documentation in the Study Map (online)';
-  if(text!==name) a.setAttribute('aria-label',name+' docs: options and vendor documentation in the Study Map, online, new tab');
+  a.href=HUB+'command-atlas/#cmd='+encodeURIComponent(id); a.target='_blank'; a.rel='noopener noreferrer';
+  a.title=name+': options and vendor documentation in the Command Atlas (online)';
+  if(text!==name) a.setAttribute('aria-label',name+' docs: options and vendor documentation in the Command Atlas, online, new tab');
   return a;
 }
 function cmdDocs(code,cmd){
@@ -2954,30 +3030,209 @@ function kindLabel(k){return {vendor:'Vendor',standard:'Standard',community:'Com
    ===================================================================== */
 function linkBtn(cls,href,text){const a=el('a',cls);a.href=href;a.target='_blank';a.rel='noopener noreferrer';a.textContent=text;return a;}
 
+/* ---- Study plan: the pace planner ----
+   The student sets hours a week (0.5 to 20 in half-hour steps: a slider and a number box that drive each other), a
+   start date (today unless they pick one), how much of each week goes to practice on this site, and a scope: the whole
+   course, one grade, or from where they are now (units already done drop out). The plan fills the weeks in course order
+   with each unit's estimated hours from PACE, then shows the finish date for each grade and for the course, and every
+   unit with the weeks it takes, linked to the unit (a unit this download leaves out opens in the online course). The
+   settings stay on this device under KEY+'-pace'. */
+const PACE_KEY=KEY+'-pace';
+const PACE_SHARES=[['0','None'],['0.25','A quarter (suggested)'],['0.5','Half']];
+const PACE_SCOPES=[['all','Whole course'],['grade','One grade'],['now','From where I am now']];
+function paceSettings(){
+  let v=null; try{ v=JSON.parse(localStorage.getItem(PACE_KEY)||'null'); }catch(e){ v=null; }
+  v=v&&typeof v==='object'&&!Array.isArray(v)?v:{};
+  const grade=GRADE_INDEX.some(g=>g.id===v.grade)?v.grade:(PART||(current.level&&gradeInfo(current.level)?current.level:'freshman'));
+  return {h:paceHours(v.h),share:PACE_SHARES.some(s=>s[0]===String(v.share))?String(v.share):'0.25',
+    scope:PACE_SCOPES.some(s=>s[0]===v.scope)?v.scope:'all',grade,start:/^\d{4}-\d{2}-\d{2}$/.test(v.start||'')?v.start:''};
+}
+function paceKeep(s){ try{ localStorage.setItem(PACE_KEY,JSON.stringify(s)); }catch(e){} }
+function paceHours(v){ v=Number(v); if(!isFinite(v)) return 2; return Math.min(20,Math.max(0.5,Math.round(v*2)/2)); }
+function paceHoursText(h){
+  if(h<1) return Math.round(h*60)+' minutes';
+  const whole=Math.floor(h), min=Math.round((h-whole)*60);
+  return whole+(whole===1?' hour':' hours')+(min?' '+min+' minutes':'');
+}
+function paceWeekText(h){ return String(h)+(h===1?' hour a week':' hours a week'); }
+/* the finish table's short forms: "14 h 45 min" and "Mar 13, 2027" */
+function paceShort(h){ const w=Math.floor(h), m=Math.round((h-w)*60); return (w?w+' h':'')+(w&&m?' ':'')+(m?m+' min':''); }
+function paceDay(d){ try{ return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); }catch(e){ return d.toDateString(); } }
+function paceToday(){ const d=new Date(); return paceIso(d); }
+function paceIso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function paceDate(iso,addDays){ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)||[]; const d=new Date(+m[1],+m[2]-1,+m[3]+(addDays||0)); return d; }
+function paceDateText(d){ try{ return d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric',year:'numeric'}); }catch(e){ return d.toDateString(); } }
+/* a unit is done when every activity in it is complete (a unit without activities: once it has been opened), the
+   same rule as the unit lists; a grade this page has the data for answers from its units, the others from PACE */
+function paceDone(row){
+  const L=levelById(row[0]), U=L&&L.units.find(u=>u.id===row[1]), seen=visitedSet();
+  if(U) return unitState(U,seen)==='done';
+  const ids=row[4]?row[4].split(' '):[];
+  return ids.length?ids.every(isDone):seen.has(row[1]);
+}
+function paceUnitHref(row){ return inPart(row[0])?'#'+row[0]+'/'+row[1]:HUB+'defense-ladder/#'+row[0]+'/'+row[1]; }
+/* the weeks: units fill each week's course hours in order, and a unit may run across several weeks */
+function paceSchedule(rows,perWeek){
+  let cum=0;
+  return rows.map(r=>{
+    const a=cum; cum+=r[3];
+    const w0=Math.floor(a/perWeek+1e-9)+1, w1=Math.max(w0,Math.ceil(cum/perWeek-1e-9));
+    return {r,w0,w1};
+  });
+}
 function renderPlan(){
   document.documentElement.style.setProperty('--accent','var(--l2)');
   const h=el('div','lvhead');h.style.setProperty('--accent','var(--l2)');
-  h.innerHTML=`<div class="grade">Study plan</div><div class="range">${PLAN.name}</div>`;
-  h.appendChild(el('p','intro','Four phases, one per grade, each ending in a milestone you can check yourself. Go faster or slower as you like; the order matters more than the dates. Every phase pairs reading here with hands-on practice on this site or on virtual machines you own.'));
+  h.innerHTML='<div class="grade">Study plan</div><div class="range">Plan your pace, and see when you finish</div>';
+  h.appendChild(el('p','intro','Set the hours you can give each week, and the planner lays out every unit in order with the week it lands in and the date you finish each grade. One hour a week or six hours every weekend both work; the order matters more than the speed. Each grade pairs reading here with hands-on practice on this site or on virtual machines you own.'));
   main.appendChild(h);
-  const card=el('div','card');
-  const tl=el('div','tl');
-  PLAN.phases.forEach(r=>{
-    const ph=el('div','ph'+(r.ms?' ms':''));
-    ph.innerHTML=`<h3>${r.n}</h3><div class="when">${r.when}</div><ul>${r.pts.map(p=>`<li>${p}</li>`).join('')}</ul>`;
-    if(r.grade){
-      const g=gradeInfo(r.grade);
-      const go=el('button','btn sec sm','Open '+g.grade);
-      go.addEventListener('click',()=>{current={level:g.id,unit:firstUnit(g.id),page:'level'};render();});
-      ph.appendChild(go);
-    }
-    tl.appendChild(ph);
+  const s=paceSettings();
+  const save=()=>paceKeep({h:s.h,share:s.share,scope:s.scope,grade:s.grade,start:s.start});
+
+  const card=el('div','card pace');
+  card.appendChild(el('h3',null,'Your pace'));
+  /* hours a week: the slider and the number box drive each other */
+  const hl=el('label','pace-l','Hours a week');hl.htmlFor='paceRange';
+  const hrow=el('div','pace-row');
+  const range=document.createElement('input');range.type='range';range.id='paceRange';range.min='0.5';range.max='20';range.step='0.5';range.value=String(s.h);
+  const num=document.createElement('input');num.type='number';num.id='paceNum';num.className='pace-num';num.min='0.5';num.max='20';num.step='0.5';num.value=String(s.h);num.inputMode='decimal';
+  num.setAttribute('aria-label','Hours a week, as a number');
+  hrow.append(range,num);
+  const setH=(v,from)=>{
+    s.h=paceHours(v);
+    range.setAttribute('aria-valuetext',paceWeekText(s.h));
+    if(from!=='range') range.value=String(s.h);
+    if(from!=='num') num.value=String(s.h);
+    save();draw();
+  };
+  range.addEventListener('input',()=>setH(range.value,'range'));
+  num.addEventListener('input',()=>{ const v=Number(num.value); if(num.value!==''&&isFinite(v)&&v>0) setH(v,'num'); });
+  num.addEventListener('change',()=>setH(num.value===''?s.h:num.value,'change'));
+  range.setAttribute('aria-valuetext',paceWeekText(s.h));
+  card.append(hl,hrow);
+
+  /* the start date, and the share of each week for practice */
+  const grid=el('div','pace-grid');
+  const sw=el('div','pace-f'), sl=el('label','pace-l','Start date');sl.htmlFor='paceStart';
+  const srow=el('div','pace-row');
+  const start=document.createElement('input');start.type='date';start.id='paceStart';start.value=s.start||paceToday();
+  const today=el('button','btn sec sm','Today');today.type='button';
+  srow.append(start,today);sw.append(sl,srow);
+  start.addEventListener('change',()=>{ if(/^\d{4}-\d{2}-\d{2}$/.test(start.value)){ s.start=start.value===paceToday()?'':start.value; save(); draw(); } });
+  today.addEventListener('click',()=>{ s.start=''; start.value=paceToday(); save(); draw(); });
+  const pw=el('div','pace-f'), pl=el('label','pace-l','Part of each week for practice on this site');pl.htmlFor='paceShare';
+  const share=document.createElement('select');share.id='paceShare';
+  PACE_SHARES.forEach(([v,t])=>{ const o=document.createElement('option');o.value=v;o.textContent=t;share.appendChild(o); });
+  share.value=s.share;
+  share.addEventListener('change',()=>{ s.share=share.value; save(); draw(); });
+  pw.append(pl,share);
+  grid.append(sw,pw);card.appendChild(grid);
+
+  /* the scope: the whole course, one grade, or from where I am now */
+  const fs=el('fieldset','pace-scope');fs.appendChild(el('legend','pace-l','Plan for'));
+  const sc=el('div','pace-row');
+  const radios={};
+  PACE_SCOPES.forEach(([v,t])=>{
+    const lab=el('label','pace-r'), r=document.createElement('input');r.type='radio';r.name='paceScope';r.value=v;r.checked=s.scope===v;
+    r.addEventListener('change',()=>{ if(r.checked){ s.scope=v; gsel.disabled=v!=='grade'; save(); draw(); } });
+    radios[v]=r;lab.append(r,document.createTextNode(' '+t));sc.appendChild(lab);
   });
-  card.appendChild(tl);
+  const gl=el('label','pace-r');gl.htmlFor='paceGrade';gl.appendChild(document.createTextNode('Grade'));
+  const gsel=document.createElement('select');gsel.id='paceGrade';
+  GRADE_INDEX.forEach(g=>{ const o=document.createElement('option');o.value=g.id;o.textContent=g.grade;gsel.appendChild(o); });
+  gsel.value=s.grade;gsel.disabled=s.scope!=='grade';
+  gsel.addEventListener('change',()=>{ s.grade=gsel.value; save(); draw(); });
+  const gw=el('span','pace-g');gw.append(gl,gsel);sc.appendChild(gw);
+  fs.appendChild(sc);card.appendChild(fs);
+
+  /* the forecast: a short summary (announced), each grade's finish date, then every unit by week */
+  const sum=el('p','pace-sum');sum.setAttribute('role','status');sum.setAttribute('aria-live','polite');
+  card.appendChild(sum);
+  const fin=el('div','pace-fin');card.appendChild(fin);
   main.appendChild(card);
+  const list=el('div','pace-list');main.appendChild(list);
+
+  const how=el('details','deeper pace-how');
+  how.appendChild(el('summary',null,'How these estimates work'));
+  const fx=PACE.fixed;
+  how.appendChild(el('p',null,esc('These hours are estimates, worked out once from each unit itself, so use them as a guide. Every word you read in a unit, its activities included, counts at about '+PACE.wpm+' words a minute, a steady pace for technical text. Each activity adds time to think and check: '+fx.quizItem+' minute per quiz question, '+fx.matchPair*60+' seconds per matching pair, '+fx.spotLine*60+' seconds per line in a spot-the-problem drill, '+fx.orderItem*60+' seconds per step to put in order, '+fx.flashCard*60+' seconds per flashcard, '+fx.labStep+' minutes per lab step, '+fx.reflect+' minutes per reflection, '+fx.typein+' minutes to type a line, '+fx.builderSection+' minutes per builder section, '+fx.planner+' minutes for the session planner, and '+fx.diagram+' minute per diagram. Deeper detail panels and Go further links are extras on top. Each unit rounds to the nearest quarter hour.')));
+  how.appendChild(el('p',null,esc('Practice time on this site comes out of your weekly hours first: with a quarter of each week for practice, 4 hours a week leaves 3 hours for the units. A unit you have started counts in full; From where I am now drops each unit you have finished. Reading speeds differ a lot, so after a few weeks compare the plan with your progress and move the slider to match.')));
+  main.appendChild(how);
+
   const row=el('div','row');
-  row.append(linkBtn('btn sm',RES['t4t-range'][1],'Lockdown Range →'),linkBtn('btn sec sm',RES['t4t-drills'][1],'Lockdown Drills →'),linkBtn('btn sec sm',RES['nice'][1],'NICE work roles →'));
+  row.append(linkBtn('btn sm',RES['t4t-range'][1],'Lockdown Range →'),linkBtn('btn sec sm',RES['t4t-drills'][1],'Lockdown Drills →'),linkBtn('btn sec sm',RES['t4t-pug'][1],'Cyber PUG (experimental) →'));
   main.appendChild(row);
+
+  function draw(){
+    const startIso=s.start||paceToday();
+    const shareV=Number(s.share)||0, perWeek=s.h*(1-shareV);
+    let rows=PACE.units.slice(), skipped=0;
+    if(s.scope==='grade') rows=rows.filter(r=>r[0]===s.grade);
+    if(s.scope==='now'){ const before=rows.length; rows=rows.filter(r=>!paceDone(r)); skipped=before-rows.length; }
+    const plan=paceSchedule(rows,perWeek);
+    const total=rows.reduce((a,r)=>a+r[3],0);
+    const endOf=w=>paceDate(startIso,7*w-1);
+    const practice=shareV?' with '+paceHoursText(s.h*shareV)+' of it for practice':'';
+    fin.innerHTML='';list.innerHTML='';
+    if(!plan.length){
+      sum.textContent=s.scope==='now'?'Every unit is done. Pick Whole course to plan a review, or keep practicing on this site.':'This grade has zero units to plan.';
+      return;
+    }
+    const weeks=plan[plan.length-1].w1;
+    const scopeName=s.scope==='grade'?gradeInfo(s.grade).grade:s.scope==='now'?'the rest of the course':'the whole course';
+    sum.textContent='At '+paceWeekText(s.h)+practice+', you finish '+scopeName+' ('+paceHoursText(total)+' of units) in about '+weeks+(weeks===1?' week':' weeks')+': by '+paceDateText(endOf(weeks))+'.'+(skipped?' '+skipped+(skipped===1?' unit you have finished is':' units you have finished are')+' left out.':'');
+    /* each grade's finish */
+    const t=el('table','pace-t');
+    const cap=el('caption',null,'Finish dates');t.appendChild(cap);
+    const hr=el('tr');['Grade','Units','Hours','Finish by'].forEach(x=>{ const th=el('th',null,x);th.scope='col';hr.appendChild(th); });
+    const thead=el('thead');thead.appendChild(hr);t.appendChild(thead);
+    const tb=el('tbody');
+    GRADE_INDEX.forEach(g=>{
+      const ps=plan.filter(p=>p.r[0]===g.id);if(!ps.length) return;
+      const tr=el('tr');
+      const th=el('th',null,esc(g.grade));th.scope='row';tr.appendChild(th);
+      tr.appendChild(el('td',null,String(ps.length)));
+      tr.appendChild(el('td',null,esc(paceShort(ps.reduce((a,p)=>a+p.r[3],0)))));
+      tr.appendChild(el('td',null,esc(paceDay(endOf(ps[ps.length-1].w1)))));
+      tb.appendChild(tr);
+    });
+    if(tb.children.length>1){
+      const tr=el('tr','pace-tot');const th=el('th',null,'Course');th.scope='row';tr.appendChild(th);
+      tr.appendChild(el('td',null,String(plan.length)));tr.appendChild(el('td',null,esc(paceShort(total))));tr.appendChild(el('td',null,esc(paceDay(endOf(weeks)))));
+      tb.appendChild(tr);
+    }
+    t.appendChild(tb);
+    const tw=el('div','cmdw');tw.appendChild(t);fin.appendChild(tw);
+    /* every unit, grade by grade, with its weeks */
+    GRADE_INDEX.forEach(g=>{
+      const ps=plan.filter(p=>p.r[0]===g.id);if(!ps.length) return;
+      const c=el('div','card pace-gr');c.style.setProperty('--accent',g.color);
+      c.appendChild(el('h3',null,esc(g.grade)+' <small>'+esc('weeks '+ps[0].w0+' to '+ps[ps.length-1].w1)+'</small>'));
+      const pg=PLAN_GRADE[g.id];
+      if(pg) c.appendChild(el('p','pace-pr',esc(pg.practice)));
+      const ol=el('ol','pace-ul');
+      ps.forEach(p=>{
+        const li=el('li');
+        const wk=el('span','pace-wk',esc(p.w0===p.w1?'Week '+p.w0:'Weeks '+p.w0+' to '+p.w1));
+        const a=el('a',null,esc(titleText(p.r[2])));a.href=paceUnitHref(p.r);
+        if(!inPart(p.r[0])){ a.target='_blank'; a.rel='noopener noreferrer'; a.title='Opens the online course'; }
+        const hrs=el('span','pace-h',esc(paceHoursText(p.r[3])));
+        li.append(wk,a,hrs);
+        if(!inPart(p.r[0])) li.appendChild(el('span','pace-on',' (online)'));
+        ol.appendChild(li);
+      });
+      c.appendChild(ol);
+      if(pg){ const m=el('p','pace-ms');m.innerHTML='<b>Milestone, by '+esc(paceDateText(endOf(ps[ps.length-1].w1)))+':</b> '+esc(pg.milestone);c.appendChild(m); }
+      list.appendChild(c);
+    });
+    if(plan[plan.length-1].r[0]==='senior'){
+      const c=el('div','card pace-gr');
+      c.appendChild(el('h3',null,'Capstone: a timed team session'));
+      const ul=el('ul');PLAN_CAPSTONE.forEach(x=>ul.appendChild(el('li',null,esc(x))));c.appendChild(ul);
+      list.appendChild(c);
+    }
+  }
+  draw();
 }
 
 function renderScorecard(){
@@ -3221,6 +3476,232 @@ function renderPortfolio(){
   c.append(lab,ta,row,out);
   return c;
 }
+/* ---- Save everything to a file: the full saved state, beside the progress code (which stays as it is) ----
+   The file is JSON: {format:'defense-ladder-progress', version:1, saved, edition, progress, settings}. progress is the
+   whole progress store (KEY): every activity record (completion, quiz results r, scores, lab steps, typed lines,
+   reflection text, builder values and exports, planner and timer values), each "-sc" self-check, the scorecard, the
+   pasted debriefs, and "_nav" (the reading place). In Shared computer mode the tab's reflections ride in it too.
+   settings holds this device's choices: theme, width, text size, whole-unit view, compare view, Terms panel, Shared
+   computer mode, and the pace planner. Visit stamps (-seen, -visit) and the storage probe stay out.
+   Loading reads the file with JSON.parse only, checks its format and shape, and previews it. Merge plans again against
+   what is stored then: the progress code's rules add completions, lab steps, and better scores; a quiz item takes the
+   file's result only when it is higher; a true tick stays true; text and values fill in only where this browser has
+   none, so nothing written here is replaced; lists of visited units join. A setting arrives only where this device has
+   none, and Shared computer mode always stays as this device has it. Cancel changes nothing. ---- */
+const FILE_FORMAT='defense-ladder-progress', FILE_V=1, FILE_MAX=5*1024*1024;
+const FILE_SETTINGS=[['theme','-theme'],['width','-width'],['text','-text'],['flow','-flow'],['cmp','-cmp'],['terms','-terms'],['shared','-shared'],['pace','-pace']];
+const FILE_ID=/^[A-Za-z0-9_-]{1,64}$/, FILE_BAD_KEYS=new Set(['__proto__','constructor','prototype']);
+const isPlain=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
+function fileState(){
+  store.load();
+  const progress={};
+  Object.keys(MEM).forEach(id=>{ if(FILE_ID.test(id)&&isPlain(MEM[id])) progress[id]=JSON.parse(JSON.stringify(MEM[id])); });
+  if(flowShared){ const s=flowSess(); Object.keys(s).forEach(id=>{ if(FILE_ID.test(id)&&typeof s[id]==='string'&&s[id]) progress[id]=Object.assign({},isPlain(progress[id])?progress[id]:null,{text:s[id]}); }); }
+  const settings={};
+  FILE_SETTINGS.forEach(([n,suf])=>{ const v=flowLsGet(KEY+suf); if(typeof v==='string') settings[n]=v; });
+  return {format:FILE_FORMAT,version:FILE_V,saved:new Date().toISOString(),edition:PART||'all',progress,settings};
+}
+function fileName(){ const d=new Date(),p=n=>String(n).padStart(2,'0'); return 'defense-ladder-progress-'+d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'.json'; }
+function fileSave(pill){
+  let ok=true;
+  try{
+    const blob=new Blob([JSON.stringify(fileState(),null,1)+'\n'],{type:'application/json'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fileName();
+    document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
+  }catch(e){ ok=false; }
+  if(pill){ pill.textContent=ok?'Saved to '+fileName()+' in your downloads':'This browser blocked the download. Try again, or use the progress code.'; pill.className='pill'+(ok?' ok':' bad'); }
+}
+/* the shape check: plain objects all the way down (at most 8 levels), safe keys, and the right type for each field
+   the course reads */
+function fileShapeOk(v,depth){
+  if(depth>8) return false;
+  if(Array.isArray(v)) return v.length<=2000&&v.every(x=>fileShapeOk(x,depth+1));
+  if(isPlain(v)) return Object.keys(v).every(k=>!FILE_BAD_KEYS.has(k)&&k.length<=64&&fileShapeOk(v[k],depth+1));
+  return v===null||typeof v==='string'||typeof v==='boolean'||(typeof v==='number'&&isFinite(v));
+}
+function fileRecordOk(id,v){
+  if(!isPlain(v)) return false;
+  const int=n=>Number.isInteger(n)&&n>=0;
+  if('done' in v&&typeof v.done!=='boolean') return false;
+  if('score' in v&&!int(v.score)) return false;
+  if('total' in v&&!int(v.total)) return false;
+  if('ticks' in v&&!(Array.isArray(v.ticks)?v.ticks.every(int):isPlain(v.ticks))) return false;
+  if('text' in v&&typeof v.text!=='string') return false;
+  if('given' in v&&typeof v.given!=='string') return false;
+  if('r' in v&&!(Array.isArray(v.r)&&v.r.every(x=>x===null||Array.isArray(x)))) return false;
+  if('vals' in v&&!(isPlain(v.vals)&&Object.values(v.vals).every(x=>typeof x==='string'))) return false;
+  if(id===NAV&&'v' in v&&!(Array.isArray(v.v)&&v.v.every(x=>typeof x==='string'))) return false;
+  return true;
+}
+function fileRead(text){
+  const wrong={error:'This file is a different kind of file. Choose a file made by Save everything to a file on Defense Ladder; its name starts with defense-ladder-progress.'};
+  const damaged={error:'This file is damaged or was changed by hand, so this browser leaves everything as it was. Save a fresh file from the other browser and load that one.'};
+  let d;
+  try{ d=JSON.parse(String(text).replace(/^﻿/,'')); }catch(e){ return /^\s*\{/.test(String(text))&&/defense-ladder-progress/.test(String(text))?damaged:wrong; }
+  if(!isPlain(d)||d.format!==FILE_FORMAT) return wrong;
+  if(!Number.isInteger(d.version)||d.version<1) return damaged;
+  if(d.version>FILE_V) return {error:'This file comes from a newer Defense Ladder. Open the newest copy of the page and load the file there.'};
+  if(!isPlain(d.progress)||('settings' in d&&!isPlain(d.settings))||!fileShapeOk(d,0)) return damaged;
+  const ids=Object.keys(d.progress);
+  if(ids.length>20000||!ids.every(id=>FILE_ID.test(id)&&fileRecordOk(id,d.progress[id]))) return damaged;
+  const settings={};
+  if(d.settings) for(const [k,v] of Object.entries(d.settings)){
+    if(!FILE_SETTINGS.some(s=>s[0]===k)||typeof v!=='string'||v.length>4000) return damaged;
+    settings[k]=v;
+  }
+  return {data:{saved:typeof d.saved==='string'?d.saved:'',edition:typeof d.edition==='string'?d.edition:'',progress:d.progress,settings}};
+}
+/* which grade an activity id belongs to: the grades on this page, then the PACE table for the rest */
+function fileGradeOf(){
+  const g={};
+  PACE.units.forEach(r=>{ if(r[4]) r[4].split(' ').forEach(id=>{ g[id]=gradeInfo(r[0]).grade; }); });
+  LEVELS.forEach(l=>l.units.forEach(u=>u.blocks.forEach(b=>{ if(b.id) g[b.id]=l.grade; })));
+  return g;
+}
+/* fill what this browser lacks: true stays true, lists of plain values join, text and numbers fill in only where empty */
+function fileFill(here,inc){
+  if(here===undefined||here===null||(typeof here==='string'&&!here.trim()&&typeof inc==='string'&&inc.trim())) return inc;
+  if(typeof here==='boolean'&&typeof inc==='boolean') return here||inc;
+  if(Array.isArray(here)&&Array.isArray(inc)){
+    if(here.concat(inc).every(x=>typeof x==='string'||typeof x==='number')){ const out=here.slice(); inc.forEach(x=>{ if(!out.includes(x)) out.push(x); }); return out; }
+    return here;
+  }
+  if(isPlain(here)&&isPlain(inc)){ const out=Object.assign({},here); Object.keys(inc).forEach(k=>{ out[k]=fileFill(here[k],inc[k]); }); return out; }
+  return here;
+}
+function planFileMerge(data){
+  store.load();
+  const inc=data.progress, gradeOf=fileGradeOf(), sess=flowShared?flowSess():{};
+  const base=planProgressMerge(progressEntries(inc)).changes;
+  const changes={}, tab={}, added={}, holds={done:{},quiz:0,refl:0,writing:[],nav:false};
+  let improved=0,reflAdd=0,reflKept=0,writeAdd=0,otherAdd=0;
+  const WRITING={scorecard:'the Hardening scorecard',[PORTFOLIO_KEY]:'pasted practice debriefs'};
+  Object.keys(inc).forEach(id=>{
+    const v=inc[id];
+    if(v.done&&gradeOf[id]) holds.done[gradeOf[id]]=(holds.done[gradeOf[id]]||0)+1;
+    if(Array.isArray(v.r)&&v.r.some(Boolean)) holds.quiz++;
+    if(typeof v.text==='string'&&v.text.trim()&&id!==PORTFOLIO_KEY) holds.refl++;
+    if(id===NAV) holds.nav=true;
+    if(WRITING[id]||isPlain(v.vals)) holds.writing.push(WRITING[id]||'your checklist builder');
+    const cur=isPlain(MEM[id])?MEM[id]:null;
+    const here=Object.assign({},cur,base[id]||null);
+    if(flowShared&&typeof sess[id]==='string') here.text=sess[id];
+    let next=here;
+    /* a quiz item takes the file's result only when it is higher */
+    if(Array.isArray(v.r)){
+      const rr=Array.isArray(here.r)?here.r.slice():[];
+      v.r.forEach((x,i)=>{ if(!Array.isArray(x)) return; const y=rr[i]; if(!Array.isArray(y)||(x[2]|0)>(y[2]|0)) rr[i]=x; });
+      next=Object.assign({},next,{r:rr});
+    }
+    /* completions, lab steps, and scores came through the progress code's rules (base) */
+    const rest=Object.assign({},v);delete rest.r;delete rest.score;delete rest.total;if(Array.isArray(rest.ticks)) delete rest.ticks;
+    next=fileFill(next,rest);
+    const textNew=typeof v.text==='string'&&v.text.trim()&&!(typeof here.text==='string'&&here.text.trim());
+    if(typeof v.text==='string'&&v.text.trim()&&typeof here.text==='string'&&here.text.trim()&&here.text!==v.text) reflKept++;
+    /* in Shared computer mode a reflection's text goes to this tab, as the course keeps it there */
+    if(flowShared&&typeof next.text==='string'&&id!==PORTFOLIO_KEY){ if(textNew) tab[id]=next.text; next=Object.assign({},next); if(!(cur&&typeof cur.text==='string')) delete next.text; else next.text=cur.text; }
+    const before=JSON.stringify(cur), after=JSON.stringify(next);
+    if(before===after&&!tab[id]) return;
+    if(before!==after) changes[id]=next;
+    if(next.done&&!(cur&&cur.done)&&gradeOf[id]) added[gradeOf[id]]=(added[gradeOf[id]]||0)+1;
+    else if(textNew&&id!==PORTFOLIO_KEY) reflAdd++;
+    else if(WRITING[id]||isPlain(v.vals)) writeAdd++;
+    else if(gradeOf[id]) improved++;
+    else otherAdd++;
+    if(textNew&&next.done&&!(cur&&cur.done)&&gradeOf[id]) reflAdd++;
+  });
+  const settings={};
+  Object.entries(data.settings).forEach(([k,v])=>{ if(k==='shared') return; const suf=FILE_SETTINGS.find(s=>s[0]===k)[1]; if(flowLsGet(KEY+suf)==null) settings[k]=v; });
+  const n=Object.keys(changes).length+Object.keys(tab).length+Object.keys(settings).length;
+  return {changes,tab,settings,added,improved,reflAdd,reflKept,writeAdd,otherAdd,holds,n};
+}
+function fileApply(plan){
+  if(Object.keys(plan.changes).length) store.setMany(plan.changes);
+  if(Object.keys(plan.tab).length){ const s=flowSess(); Object.assign(s,plan.tab); flowSsSet(SESS_REFLECT,JSON.stringify(s)); }
+  Object.entries(plan.settings).forEach(([k,v])=>{ const suf=FILE_SETTINGS.find(s=>s[0]===k)[1]; flowLsSet(KEY+suf,v); });
+  /* the device choices this view shows right away; the rest apply on the next visit */
+  const st=plan.settings;
+  if(st.theme){ theme=st.theme==='light'||st.theme==='dark'?st.theme:'auto'; applyTheme(theme); }
+  if(st.width){ readWidth=st.width==='focused'?'focused':'wide'; applyWidth(readWidth); }
+  if(st.text&&TEXT_SIZES.some(x=>x[0]===st.text)){ textSize=st.text; applyText(textSize); }
+}
+function filePreviewHtml(data,plan){
+  const h=plan.holds, li=t=>'<li>'+esc(t)+'</li>', pl=(n,a,b)=>n+' '+(n===1?a:b);
+  let when='';
+  if(data.saved){ const d=new Date(data.saved); if(!isNaN(d)) when=' saved '+paceDateText(d); }
+  const from=data.edition&&data.edition!=='all'&&GRADE_INDEX.some(g=>g.id===data.edition)?' from the '+gradeInfo(data.edition).grade+' download':'';
+  const hold=[];
+  Object.entries(h.done).forEach(([g,k])=>hold.push(li(g+': '+pl(k,'completed activity','completed activities'))));
+  if(h.quiz) hold.push(li(pl(h.quiz,'quiz with results','quizzes with results')));
+  if(h.refl) hold.push(li(pl(h.refl,'reflection','reflections')));
+  [...new Set(h.writing)].forEach(w=>hold.push(li(w.charAt(0).toUpperCase()+w.slice(1))));
+  if(h.nav) hold.push(li('Your reading place'));
+  const ns=Object.keys(data.settings).length; if(ns) hold.push(li(pl(ns,'setting','settings')));
+  let out='<p>'+esc('This file'+when+from+' holds:')+'</p><ul>'+(hold.join('')||li('An empty save'))+'</ul>';
+  if(!plan.n){ return out+'<p>'+esc('Everything in it is already in this browser.')+'</p>'; }
+  const add=[];
+  Object.entries(plan.added).forEach(([g,k])=>add.push(li(g+': '+pl(k,'completed activity','completed activities'))));
+  if(plan.reflAdd) add.push(li(pl(plan.reflAdd,'reflection','reflections')+' written in the file'));
+  if(plan.improved) add.push(li(pl(plan.improved,'quiz result, lab, or score','quiz results, labs, or scores')+' to bring forward'));
+  if(plan.writeAdd) add.push(li(pl(plan.writeAdd,'piece of writing','pieces of writing')+' (checklist, scorecard, or debriefs) to fill in'));
+  if(plan.otherAdd) add.push(li(pl(plan.otherAdd,'other saved item','other saved items')+', such as your reading place'));
+  const ns2=Object.keys(plan.settings).length; if(ns2) add.push(li(pl(ns2,'setting','settings')+' this device has yet to choose'));
+  out+='<p>'+esc('New compared with this browser:')+'</p><ul>'+add.join('')+'</ul>';
+  if(plan.reflKept) out+='<p>'+esc(pl(plan.reflKept,'reflection','reflections')+' in the file '+(plan.reflKept===1?'differs':'differ')+' from what you wrote here; merging keeps the text in this browser.')+'</p>';
+  return out+'<p>'+esc('Merging keeps everything already saved here and never lowers a result.')+'</p>';
+}
+/* the file's part of the Move your progress card: Save, Load, the preview, then Merge or Cancel */
+let fileMergedNote='';
+function fileCard(c){
+  c.appendChild(el('h4',null,'Save everything to a file'));
+  c.appendChild(el('p','sum','The progress code leaves your writing behind; a file keeps all of it. It holds everything this browser saved for Defense Ladder: activities, quiz results, lab steps, reflections, checklists, plans, the scorecard, notes, your reading place, and your settings. Load it here or in any other browser to bring it all back.'));
+  c.appendChild(el('p','note','Keep this file somewhere private, such as your own folder or drive: it holds your reflections and notes.'));
+  const row=el('div','row');
+  const save=el('button','btn sm','Save everything to a file');save.type='button';
+  const load=el('button','btn sec sm','Load from a file');load.type='button';
+  const pill=el('span','pill');pill.setAttribute('role','status');
+  const pick=document.createElement('input');pick.type='file';pick.accept='.json,application/json';pick.className='sr';pick.tabIndex=-1;pick.setAttribute('aria-hidden','true');
+  row.append(save,load,pill);c.append(row,pick);
+  const prev=el('div','mv-prev');prev.setAttribute('role','status');prev.hidden=true;
+  const act=el('div','row');act.hidden=true;
+  const merge=el('button','btn sm','Merge into this browser');merge.type='button';
+  const cancel=el('button','btn sec sm','Cancel');cancel.type='button';
+  act.append(merge,cancel);c.append(prev,act);
+  if(fileMergedNote){ const t=fileMergedNote; fileMergedNote=''; prev.hidden=false; flowSay(prev,t); }
+  let data=null;
+  const reset=()=>{ data=null; act.hidden=true; try{ pick.value=''; }catch(e){} };
+  const say=(html,bad)=>{ prev.hidden=false; prev.innerHTML=html; prev.className='mv-prev'+(bad?' note warn':''); };
+  save.addEventListener('click',()=>fileSave(pill));
+  load.addEventListener('click',()=>{ pill.textContent=''; pill.className='pill'; pick.click(); });
+  const show=text=>{
+    const r=fileRead(text);
+    if(r.error){ say(esc(r.error),true); return; }
+    data=r.data;
+    const plan=planFileMerge(data);
+    say(filePreviewHtml(data,plan));
+    merge.hidden=!plan.n; cancel.textContent=plan.n?'Cancel':'Close'; act.hidden=false;
+    try{ (plan.n?merge:cancel).focus({preventScroll:true}); }catch(e){}
+  };
+  pick.addEventListener('change',()=>{
+    const f=pick.files&&pick.files[0];
+    reset();
+    if(!f) return;
+    if(f.size>FILE_MAX){ say(esc('This file is larger than 5 MB, so it comes from somewhere else: a Defense Ladder save is much smaller. Everything stays as it was.'),true); return; }
+    const fail=()=>say(esc('This browser could not read the file. Everything stays as it was; try again.'),true);
+    if(typeof f.text==='function') f.text().then(show,fail);
+    else{ const fr=new FileReader(); fr.addEventListener('load',()=>show(String(fr.result))); fr.addEventListener('error',fail); fr.readAsText(f); }
+  });
+  merge.addEventListener('click',()=>{
+    if(!data) return;
+    const plan=planFileMerge(data);
+    fileApply(plan);
+    reset();
+    fileMergedNote='Merged the file into this browser: '+(plan.n===1?'1 saved item':plan.n+' saved items')+' added or brought forward. Everything on this page includes them now.';
+    refreshChrome();
+    render();
+  });
+  cancel.addEventListener('click',()=>{ reset(); prev.hidden=true; prev.innerHTML=''; pill.textContent=cancel.textContent==='Close'?'':'Everything stays as it was.'; pill.className='pill'; try{ load.focus(); }catch(e){} });
+}
 function renderMove(onMerged){
   const c=el('div','card mv');
   c.appendChild(el('h3',null,'Move your progress'));
@@ -3285,6 +3766,7 @@ function renderMove(onMerged){
     refreshChrome();
   });
   c.append(inp,inRow,prev);
+  fileCard(c);
   return c;
 }
 
@@ -3319,9 +3801,9 @@ function renderAbout(){
   main.appendChild(h);
   const c1=el('div','card');
   c1.innerHTML=`<h3>What this is</h3>
-    <p>Defense Ladder is a free, offline cybersecurity course built around Bloom’s revised taxonomy: you move from <b>remembering</b> facts (Freshman) to <b>creating</b> your own checklist, runbook, and team plan (Senior). It maps to open frameworks: the <b>NICE Workforce Framework</b> for work roles, the <b>CIS Critical Security Controls v8.1</b> for the six hardening areas, and the <b>NIST Cybersecurity Framework 2.0</b> for the big picture.</p>
+    <p>Defense Ladder is a free, offline cybersecurity course built around Bloom’s revised taxonomy: you move from <b>remembering</b> facts (Freshman) to <b>creating</b> your own checklist, runbook, and team plan (Senior). It maps to open frameworks: the <b>CIS Critical Security Controls v8.1</b> for the six hardening areas and the <b>NIST Cybersecurity Framework 2.0</b> for the big picture.</p>
     <p>It is informative at every level and gets more interactive as you climb: flashcards and quizzes early, then config-reading and triage drills, then builders for your own checklist and session plan. For hands-on work, use Lockdown Range (labs that run in your browser) or practice virtual machines you own. The same skills carry over to cyber defense exercises and competitions, capture-the-flag events, and IT and security jobs.</p>
-    <p><b>Unofficial practice,</b> independent of, and unendorsed by, Microsoft, Canonical, Linux Mint, the FreeBSD Project, and Cisco. Commands and settings change between versions, so vendor documentation always wins over anything here.</p>`;
+    <p>Commands and settings change between versions, so vendor documentation always wins over anything here.</p>`;
   main.appendChild(c1);
 
   const cw=el('div','card');
@@ -4226,7 +4708,12 @@ function flowFinishPanel(host,done){
     cp.type='button';cp.addEventListener('click',()=>copyFromBox(box,pill));
     row.append(cp,pill);host.append(box,row);first=box;
   } else host.appendChild(el('p','fin-s','This browser holds zero completed activities, so a progress code has nothing to carry yet.'));
-  host.appendChild(el('p','fin-s',(r.count?'Step 2: clear':'Clear')+' this browser for the next person. Reflection text stays out of the code, so copy any you want to keep first.'));
+  host.appendChild(el('p','fin-s',(r.count?'Step 2':'Step 1')+': keep your reflections and notes too. The progress code leaves them out, and a file keeps them, so save everything to a file and store it somewhere private.'));
+  const frow=el('div','row'), fsave=el('button','btn sec sm','Save everything to a file'), fpill=el('span','pill');
+  fsave.type='button';fpill.setAttribute('role','status');fsave.addEventListener('click',()=>fileSave(fpill));
+  frow.append(fsave,fpill);host.appendChild(frow);
+  host.appendChild(el('p','fin-s','On a shared computer, move the file to your own drive or a USB stick, then delete it from this computer\'s Downloads folder.'));
+  host.appendChild(el('p','fin-s',(r.count?'Step 3':'Step 2')+': clear this browser for the next person.'));
   const row2=el('div','row'), clr=el('button','btn sm fin-clear','Clear this browser'), keep=el('button','btn sec sm','Keep everything'), p2=el('span','pill');
   clr.type='button';keep.type='button';p2.setAttribute('role','status');
   let armed=false;
@@ -4283,7 +4770,7 @@ function flowSharedCard(){
   c.appendChild(el('h4',null,'Shared computer mode'));
   const lab=el('label','shm'), cb=el('input');cb.type='checkbox';cb.id='sharedMode';cb.checked=flowShared;
   lab.append(cb,document.createTextNode('Keep my reflections in this tab only'));
-  const note=el('p','sum','Reflections then clear when this tab closes, and your completed activities still count here. Copy each reflection out with its Copy text button before you go.');
+  const note=el('p','sum','Reflections then clear when this tab closes, and your completed activities still count here. To keep your reflections, save everything to a file (under Move your progress), or copy each one out with its Copy text button before you go. If you save a file, move it to your own drive or a USB stick, then delete it from this computer\'s Downloads folder.');
   note.id='sharedModeNote';cb.setAttribute('aria-describedby',note.id);
   const pill=el('span','pill');pill.setAttribute('role','status');
   cb.addEventListener('change',()=>{
@@ -4293,7 +4780,7 @@ function flowSharedCard(){
   });
   const r=el('div','row');r.append(lab,pill);c.append(r,note);
   c.appendChild(el('h4',null,'Finish on this computer'));
-  c.appendChild(el('p','sum','Take your progress code with you, then clear this browser for the next person.'));
+  c.appendChild(el('p','sum','Take your progress code, or a file with everything, with you; then clear this browser for the next person.'));
   const row=el('div','row'), go=el('button','btn sm','Finish on this computer');go.type='button';row.appendChild(go);c.appendChild(row);
   const panel=el('div','fin');panel.hidden=true;c.appendChild(panel);
   go.addEventListener('click',()=>flowFinish('Finish on this computer',go,panel));
@@ -6518,7 +7005,7 @@ LADDER.addLevel({
      ['Which part of a script repeats steps for each item in a list?',['A condition','A variable','A loop','A pipe'],2,'A loop runs its steps once for each item; a condition picks a path, and a variable holds a value. <a href="#freshman/f12">Review: Code you can read</a>',{whys:['A condition picks a path.','A variable holds a value.','A loop runs its steps once for each item.','A pipe passes output to the next command.'],imp:'good',c:'comp-scripting'}]
    ]),
    REFLECT('s6r','Evidence before cleanup','List the fixes you plan for the first twenty minutes on a lab. Which of them would erase an answer you still need, such as a file’s hash, its path, or its owner? Reorder the list so evidence comes first, and write one line on how you will notice the next time a fix threatens evidence.'),
-   LINKS('Go further',['ms-sysint','explainshell','pico','t4t-range'])
+   LINKS('Go further',['ms-sysint','explainshell','t4t-range'])
   ]}
  ]
 });
@@ -6884,7 +7371,7 @@ LADDER.addGlossary([
   {term:'Next-generation firewall (NGFW)',def:'A stateful firewall that also recognizes applications and users, filters URLs, runs IPS rules, and inspects TLS where policy allows.',at:'junior/j6'},
   {term:'nftables',def:'The native Linux packet filter that ufw and iptables rules load into.',at:'junior/j3'},
   {term:'NIC',def:'A network interface card: the part of a device that connects it to a network.',at:'freshman/f7'},
-  {term:'NICE work role',def:'A NICE Framework description of one kind of cybersecurity job, with its tasks, knowledge, and skills.',at:'freshman/f1'},
+  {term:'Work role',def:'A description of one kind of cybersecurity job, with its tasks, knowledge, and skills.',at:'freshman/f1'},
   {term:'NIST RMF (Risk Management Framework)',def:'The seven-step loop US federal systems follow, ending with a senior official accepting the remaining risk and ongoing monitoring.',at:'senior/se12'},
   {term:'NLA (Network Level Authentication)',def:'An RDP setting that makes the user sign in before a remote session exists.',at:'sophomore/s1'},
   {term:'nodev',def:'A mount option that stops device files on that file system from working, so a planted device file reaches no hardware.',at:'senior/se9'},

@@ -4,7 +4,8 @@ Companion to windows-range.html (Tool4That, Lockdown Range series).
 For instructors and study groups, and for learners AFTER they have tried a
 scenario on their own.
 All names, companies, and addresses are fictional practice material.
-Unofficial practice; not affiliated with or endorsed by Microsoft.
+Unofficial training, independent of and unendorsed by the makers of the
+systems it names.
 
 CONTENTS
   1. What the lab is (and is not)
@@ -50,10 +51,13 @@ on one line, Test-Path $ts on the next) and runs if and foreach lines.
 Every panel and every command changes ONE machine state, and the Progress Check
 re-runs the checks after each change. Security includes availability: breaking
 something the Scenario Brief says the business needs (an authorized user, an
-administrator, a required service) fails an availability check and costs points.
-Nothing on the page touches the real computer. Progress is saved in the browser;
-"Reset lab" restores the scenario's original state and keeps the best score
-(like reverting a VM snapshot).
+administrator, a required service) fails an availability check. That is a
+must-fix flag: your points stay where they are, the Progress Check shows it in
+red with its restore step, and Finish waits until it works again, because an
+outage is an incident you fix before you are done. Nothing on the page touches
+the real computer. Progress is saved in the browser; "Reset lab" restores the
+scenario's original state and keeps the best score (like reverting a VM
+snapshot).
 
 Levels: 1 Recruit lists every check as a to-do with hints that open in two steps
 (the hardening area and the principle, then the console path or command); 2
@@ -285,13 +289,36 @@ Checks (100 points)
   [3]  Investigation 4 answered
        fix: Answer: NotSigned
 
-Availability checks (points lost if you break what the business needs)
-  -6  Authorized user removed or disabled
-  -5  Authorized administrator removed from Administrators
-  -10  Your own account deleted, disabled, or locked out
-  -5  Required service "Windows Defender Firewall" stopped or disabled
-  -5  Required service "Microsoft Defender Antivirus" stopped or disabled
-  -5  Windows Update service disabled
+Availability checks (must fix: breaking one keeps your points, shows it in red
+with its restore step, and holds Finish until it works again)
+  - Authorized user removed or disabled
+       restore: Turn the account back on: net user NAME /active:yes, or
+                lusrmgr.msc > Users > NAME > clear "Account is disabled". A
+                deleted account comes back with net user NAME <password> /add (a
+                password that meets the policy); then add it to its groups
+                again.
+  - Authorized administrator removed from Administrators
+       restore: Put the administrator back: net localgroup Administrators NAME
+                /add, or lusrmgr.msc > Groups > Administrators > Add. Bring back
+                a deleted account first.
+  - Your own account deleted, disabled, or locked out
+       restore: While you are still signed in: net user labuser /active:yes, or
+                lusrmgr.msc > Users > labuser > clear "Account is disabled" and
+                "Account is locked out". A deleted account comes back with net
+                user labuser <password> /add and net localgroup Administrators
+                labuser /add. Once the sign-in fails, Reset lab is the way back.
+  - Required service "Windows Defender Firewall" stopped or disabled
+       restore: Set it back to Automatic and start it: sc.exe config mpssvc
+                start= auto, then sc.exe start mpssvc (or services.msc > Windows
+                Defender Firewall > Startup type: Automatic > Start).
+  - Required service "Microsoft Defender Antivirus" stopped or disabled
+       restore: Set it back to Automatic and start it: sc.exe config WinDefend
+                start= auto, then sc.exe start WinDefend (or services.msc >
+                Microsoft Defender Antivirus > Startup type: Automatic > Start).
+  - Windows Update service disabled
+       restore: Set Windows Update back to Manual: sc.exe config wuauserv start=
+                demand (or services.msc > Windows Update > Startup type:
+                Manual).
 
 --------------------------------------------------------------------------------
 4. SCENARIO 2 - OPERATOR: HALE KULA ROBOTICS LAB — STATION 4
@@ -575,13 +602,36 @@ Checks (100 points)
   [3]  Investigation 3 answered
        fix: Answer: 4B10444A
 
-Availability checks (points lost if you break what the business needs)
-  -6  Authorized user removed or disabled
-  -5  Authorized administrator removed from Administrators
-  -10  Your own account deleted, disabled, or locked out
-  -5  Required service "Windows Defender Firewall" stopped or disabled
-  -5  Required service "Microsoft Defender Antivirus" stopped or disabled
-  -5  Windows Update service disabled
+Availability checks (must fix: breaking one keeps your points, shows it in red
+with its restore step, and holds Finish until it works again)
+  - Authorized user removed or disabled
+       restore: Turn the account back on: net user NAME /active:yes, or
+                lusrmgr.msc > Users > NAME > clear "Account is disabled". A
+                deleted account comes back with net user NAME <password> /add (a
+                password that meets the policy); then add it to its groups
+                again.
+  - Authorized administrator removed from Administrators
+       restore: Put the administrator back: net localgroup Administrators NAME
+                /add, or lusrmgr.msc > Groups > Administrators > Add. Bring back
+                a deleted account first.
+  - Your own account deleted, disabled, or locked out
+       restore: While you are still signed in: net user labuser /active:yes, or
+                lusrmgr.msc > Users > labuser > clear "Account is disabled" and
+                "Account is locked out". A deleted account comes back with net
+                user labuser <password> /add and net localgroup Administrators
+                labuser /add. Once the sign-in fails, Reset lab is the way back.
+  - Required service "Windows Defender Firewall" stopped or disabled
+       restore: Set it back to Automatic and start it: sc.exe config mpssvc
+                start= auto, then sc.exe start mpssvc (or services.msc > Windows
+                Defender Firewall > Startup type: Automatic > Start).
+  - Required service "Microsoft Defender Antivirus" stopped or disabled
+       restore: Set it back to Automatic and start it: sc.exe config WinDefend
+                start= auto, then sc.exe start WinDefend (or services.msc >
+                Microsoft Defender Antivirus > Startup type: Automatic > Start).
+  - Windows Update service disabled
+       restore: Set Windows Update back to Manual: sc.exe config wuauserv start=
+                demand (or services.msc > Windows Update > Startup type:
+                Manual).
 
 --------------------------------------------------------------------------------
 5. SCENARIO 3 - CAPTAIN: HONUA LOGISTICS — PORTAL SERVER
@@ -850,17 +900,57 @@ Checks (100 points)
   [5]  Investigation 2 answered
        fix: Answer: IISLogCleaner
 
-Availability checks (points lost if you break what the business needs)
-  -8  Authorized user removed or disabled
-  -6  Authorized administrator removed from Administrators
-  -10  Your own account deleted, disabled, or locked out
-  -10  Remote Desktop disabled on a server that requires it
-  -10  Web server (IIS) stopped, removed, or blocked by the firewall
-  -6  Required file share removed (HR, Ops)
-  -5  hrclerk lost Modify access to C:\Shares\HR
-  -5  Required service "Windows Defender Firewall" stopped or disabled
-  -5  Required service "Microsoft Defender Antivirus" stopped or disabled
-  -5  Windows Update service disabled
+Availability checks (must fix: breaking one keeps your points, shows it in red
+with its restore step, and holds Finish until it works again)
+  - Authorized user removed or disabled
+       restore: Turn the account back on: net user NAME /active:yes, or
+                lusrmgr.msc > Users > NAME > clear "Account is disabled". A
+                deleted account comes back with net user NAME <password> /add (a
+                password that meets the policy); then add it to its groups
+                again.
+  - Authorized administrator removed from Administrators
+       restore: Put the administrator back: net localgroup Administrators NAME
+                /add, or lusrmgr.msc > Groups > Administrators > Add. Bring back
+                a deleted account first.
+  - Your own account deleted, disabled, or locked out
+       restore: While you are still signed in: net user labuser /active:yes, or
+                lusrmgr.msc > Users > labuser > clear "Account is disabled" and
+                "Account is locked out". A deleted account comes back with net
+                user labuser <password> /add and net localgroup Administrators
+                labuser /add. Once the sign-in fails, Reset lab is the way back.
+  - Remote Desktop disabled on a server that requires it
+       restore: Turn Remote Desktop back on: SystemPropertiesRemote > Allow
+                remote connections to this computer, or reg add
+                "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v
+                fDenyTSConnections /t REG_DWORD /d 0 /f. Set any Remote Desktop
+                policy you changed in gpedit.msc back to Not Configured, and
+                start Remote Desktop Services: sc.exe start TermService.
+  - Web server (IIS) stopped, removed, or blocked by the firewall
+       restore: Bring the portal back: turn Internet Information Services back
+                on in optionalfeatures, start the web service (sc.exe start
+                W3SVC), and turn its firewall rule back on: netsh advfirewall
+                firewall set rule name="World Wide Web Services (HTTP
+                Traffic-In)" new enable=yes.
+  - Required file share removed (HR, Ops)
+       restore: Share the folder again: net share HR=C:\Shares\HR or net share
+                Ops=C:\Shares\Ops (in PowerShell: New-SmbShare -Name HR -Path
+                C:\Shares\HR).
+  - hrclerk lost Modify access to C:\Shares\HR
+       restore: Give hrclerk Modify again: icacls "C:\Shares\HR" /grant
+                "hrclerk:(OI)(CI)M" (or the folder's Properties > Security >
+                Edit > Add).
+  - Required service "Windows Defender Firewall" stopped or disabled
+       restore: Set it back to Automatic and start it: sc.exe config mpssvc
+                start= auto, then sc.exe start mpssvc (or services.msc > Windows
+                Defender Firewall > Startup type: Automatic > Start).
+  - Required service "Microsoft Defender Antivirus" stopped or disabled
+       restore: Set it back to Automatic and start it: sc.exe config WinDefend
+                start= auto, then sc.exe start WinDefend (or services.msc >
+                Microsoft Defender Antivirus > Startup type: Automatic > Start).
+  - Windows Update service disabled
+       restore: Set Windows Update back to Manual: sc.exe config wuauserv start=
+                demand (or services.msc > Windows Update > Startup type:
+                Manual).
 
 --------------------------------------------------------------------------------
 6. WINDOWS HARDENING QUICK REFERENCE

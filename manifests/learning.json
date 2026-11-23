@@ -6,17 +6,38 @@
       "slug": "study-map",
       "name": "Study Map",
       "tagline": "Every concept: find it, learn it, practice it.",
-      "description": "Every concept in the cybersecurity course in one place. Type a concept and see the Defense Ladder unit that teaches it, the drills and labs that practice it, and its commands on Windows, Linux, FreeBSD, and Cisco. Browse by topic, track, grade, network layer, or app. Rate what you know to get your own study path.",
+      "description": "Every concept in the cybersecurity course in one place. Type a concept and see the Defense Ladder unit that teaches it and the drills and labs that practice it, with a link to its commands in Command Atlas. Browse by topic, track, grade, network layer, or app. Rate what you know as Explore, Revisit, or Strong to get your own study path.",
       "badges": [
         "Cybersecurity",
         "Study",
-        "Printable",
+        "Offline",
         "Private"
       ],
       "icon": "map",
       "emoji": "🗺️",
       "match": [
         "study[ _-]?map"
+      ],
+      "reference": false,
+      "prep": {
+        "strip_google_fonts": true
+      }
+    },
+    {
+      "slug": "command-atlas",
+      "name": "Command Atlas",
+      "tagline": "Every command in the course: what it does and where you use it.",
+      "description": "Every command in the cybersecurity course on Windows, Linux, FreeBSD, and Cisco IOS in one place. Type a command or a task to see what it does, its options and arguments, every lesson, drill, and lab that uses it, the expected answers behind a reveal, and its vendor documentation.",
+      "badges": [
+        "Cybersecurity",
+        "Study",
+        "Offline",
+        "Private"
+      ],
+      "icon": "terminal",
+      "emoji": "🧭",
+      "match": [
+        "command[ _-]?atlas"
       ],
       "reference": false,
       "prep": {

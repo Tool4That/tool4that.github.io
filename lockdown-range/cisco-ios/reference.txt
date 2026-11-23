@@ -4,9 +4,9 @@ File: cisco-range.html (single page, works offline; progress stays in the
 browser). Companion to the Windows Range and Linux Range labs.
 A general networking-security practice lab for learners, instructors and
 study groups. Every name, address and organization in the scenarios is
-fictional. Unofficial practice; not affiliated with or endorsed by Cisco.
-The look and feel is inspired by Cisco Packet Tracer, a free network
-simulator.
+fictional. Unofficial training, independent of and unendorsed by the makers
+of the systems it names. The look and feel is inspired by Cisco Packet
+Tracer, a free network simulator.
 
 1. WHAT THE LAB SIMULATES (AND WHAT IT DOES NOT)
 ------------------------------------------------
@@ -182,9 +182,11 @@ How progress is measured:
   lessons behind that level (listed under each scenario below).
 - Availability checks: the "A" in confidentiality, integrity, and
   availability. Each Scenario Brief lists what the organization needs
-  (authorized accounts, required links, and addresses). Breaking one fails
-  an availability check, shows it in red and subtracts points until you
-  undo the change.
+  (authorized accounts, required links, and addresses). Breaking one fails an
+  availability check. That is a must-fix flag: your points stay where they
+  are, the Progress Check shows it in red with its restore step, and Finish
+  waits until it works again, because an outage is an incident you fix before
+  you are done.
 
 2. THE ROUTINE (CHECKLIST)
 --------------------------
@@ -394,14 +396,21 @@ Checks (22, 100 points):
         why: show version tells you the software (and known bugs) you are
         defending.
 
-Availability checks (pass while the required items keep working):
-  - Fails if: Authorized administrator "techlead" removed (-8 pts)
+Availability checks (must fix: breaking one keeps your points, shows it in red
+with its restore step, and holds Finish until it works again):
+  - Fails if: Authorized administrator "techlead" removed
         why: The scenario brief lists techlead as an authorized administrator;
         deleting a colleague's account locks them out of a device the center
         depends on.
-  - Fails if: PC1 can no longer reach its gateway 192.168.1.1 (-10 pts)
+        restore: Add the account back on R1: configure terminal, then username
+        techlead privilege 15 secret <a secret of 10+ characters>, and save
+        with copy running-config startup-config.
+  - Fails if: PC1 can no longer reach its gateway 192.168.1.1
         why: GigabitEthernet0/0 is a required service; shutting it or changing
         its address breaks the front desk.
+        restore: Bring the front-desk LAN back on R1: interface g0/0, ip
+        address 192.168.1.1 255.255.255.0, no shutdown. Test with ping
+        192.168.1.1 from PC1.
 
 3.2  Level 2 Operator: Pua Lane Public Library
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -605,15 +614,28 @@ Checks (27, 100 points):
         why: Compare every account against the scenario brief before touching
         anything.
 
-Availability checks (pass while the required items keep working):
-  - Fails if: Authorized administrator "libadmin" removed (-8 pts)
+Availability checks (must fix: breaking one keeps your points, shows it in red
+with its restore step, and holds Finish until it works again):
+  - Fails if: Authorized administrator "libadmin" removed
         why: District IT needs its account; the scenario brief lists it as
         authorized.
-  - Fails if: Required PC1-PC2 connectivity broken (-10 pts)
+        restore: Add the district account back on S1: configure terminal, then
+        username libadmin privilege 15 secret <a secret of 10+ characters>,
+        and save.
+  - Fails if: Required PC1-PC2 connectivity broken
         why: Both PCs must stay in the same VLAN with their ports up.
-  - Fails if: District router R1 modified (-10 pts)
+        restore: On S1, put both PC ports back in VLAN 10 and up: interface
+        range fa0/1 - 2, switchport mode access, switchport access vlan 10, no
+        shutdown. A port that port security shut down (err-disabled) comes
+        back with shutdown, then no shutdown. Test with ping 192.168.10.12
+        from PC1.
+  - Fails if: District router R1 modified
         why: R1 belongs to district IT and is out of scope; changing a device
         you do not own risks the routing the whole branch depends on.
+        restore: R1 belongs to district IT. Undo every change you made on R1
+        (show running-config shows them). If you never saved R1, reload it and
+        answer no to saving: it boots the delivered configuration. Reset lab
+        also brings it back.
 
 3.3  Level 3 Captain: Kaulana Creek Veterinary Clinic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -833,17 +855,33 @@ Checks (28, 100 points):
         Answer: 203.0.113.66
         why: Read ACLs line by line; one permit is all it takes.
 
-Availability checks (pass while the required items keep working):
-  - Fails if: Authorized administrator "vetadmin" removed from a device (-8 pts)
-        why: Your own account is the authorized administrator on every device in
-        the scenario brief; removing it locks you out.
-  - Fails if: PC1 can no longer reach its gateway 192.168.10.1 (-8 pts)
+Availability checks (must fix: breaking one keeps your points, shows it in red
+with its restore step, and holds Finish until it works again):
+  - Fails if: Authorized administrator "vetadmin" removed from a device
+        why: Your own account is the authorized administrator on every device
+        in the scenario brief; removing it locks you out.
+        restore: On each device that lost it: configure terminal, then
+        username vetadmin privilege 15 secret Cl1nic-Adm1n!, and save. A
+        console that uses login local needs the account to sign in, so add it
+        before you log out.
+  - Fails if: PC1 can no longer reach its gateway 192.168.10.1
         why: VLAN 10 must stay routed; the trunk to R1 and Gi0/0.10 are
         required.
-  - Fails if: Management address removed or shut on S1 or S2 (VLAN 99) (-6 pts)
+        restore: Keep the path from PC1 to R1 up: R1 interface g0/0 and
+        g0/0.10 need no shutdown (g0/0.10: encapsulation dot1Q 10, ip address
+        192.168.10.1 255.255.255.0); S1 Gi0/1 stays a trunk that allows VLAN
+        10; S1 Fa0/1 stays an access port in VLAN 10. Test with ping
+        192.168.10.1 from PC1.
+  - Fails if: Management address removed or shut on S1 or S2 (VLAN 99)
         why: Without the SVI the switch cannot be managed remotely.
-  - Fails if: Required trunk S1 Gi0/2 - S2 Gi0/1 broken (-6 pts)
+        restore: Give the switch its management address back: interface vlan
+        99, then ip address 192.168.99.2 255.255.255.0 on S1 (192.168.99.3 on
+        S2), and no shutdown.
+  - Fails if: Required trunk S1 Gi0/2 - S2 Gi0/1 broken
         why: S2 and PC2 hang off this trunk.
+        restore: Bring the trunk back on both ends (S1 Gi0/2 and S2 Gi0/1):
+        switchport mode trunk and no shutdown. show interfaces trunk confirms
+        it.
 
 3.4  Level 4 Two sites: Two-site school network
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1225,15 +1263,24 @@ Checks (30, 100 points):
         unless you add subnets. IOS XE adds subnets for you and shows it in the
         running configuration.
 
-Availability checks (pass while the required items keep working):
-  - Fails if: Site A device (SwA or RtrA) or the ISP router changed (-10 pts)
+Availability checks (must fix: breaking one keeps your points, shows it in red
+with its restore step, and holds Finish until it works again):
+  - Fails if: Site A device (SwA or RtrA) or the ISP router changed
         why: Site A belongs to the Site A team and the ISP router to the
         provider. Read their configurations freely and leave them exactly as
         delivered.
-  - Fails if: Site A Teachers locked out of SSH to SwB or RtrB (-8 pts)
+        restore: Site A and the ISP router are out of scope. Undo every change
+        you made on the device named here (show running-config shows them). If
+        you never saved it, reload it and answer no to saving: it boots the
+        delivered configuration. Reset lab also brings it back.
+  - Fails if: Site A Teachers locked out of SSH to SwB or RtrB
         why: Teachers at either site manage both sites. An ACL that permits
-        10.2.20.0/24 alone lets Teacher-A reach the device and then refuses the
-        session.
+        10.2.20.0/24 alone lets Teacher-A reach the device and then refuses
+        the session.
+        restore: Let both Teachers subnets through the VTY access list on SwB
+        and RtrB: ip access-list standard 20, then permit 10.1.20.0 0.0.0.255
+        and permit 10.2.20.0 0.0.0.255. Test with ssh -l netadmin 10.2.20.2
+        from Teacher-A.
 
 4. IOS QUICK REFERENCE (what the lab accepts)
 ---------------------------------------------

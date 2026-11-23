@@ -2,7 +2,7 @@
 <html lang="en">
 <head><meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-x7vwS0xALUxI+s4Jpwq6NQxI68ENVTLQUPq1NsjOwBw='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-juNp/GGHrtf2vnn+UpVxo0OP+1uvl8dY79V/63XpMuM='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/lockdown-range/linux/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%96%A5%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -214,6 +214,20 @@ footer button{border:1px solid var(--bad);color:var(--bad);background:var(--pane
 .report li .pts{float:right;font-variant-numeric:tabular-nums;color:var(--muted);margin-left:.5rem}
 .report .earn li,.report .earn li .pts,.report .todo li.done{color:var(--ok)}
 .report .avail li,.report .avail li .pts{color:var(--bad)}
+/* availability must-fix flags (Progress Check, Finish waits) and the Debrief's availability section */
+ul.mustfix{list-style:none;margin:0 0 .5rem;padding:0}
+ul.mustfix li{color:var(--bad);background:var(--badbg);border-left:4px solid var(--bad);border-radius:6px;padding:.35rem .5rem;margin-bottom:.3rem;overflow-wrap:anywhere}
+ul.mustfix li .pts{float:right;color:var(--bad);font-weight:700;text-transform:uppercase;font-size:.72rem;letter-spacing:.04em;margin-left:.5rem}
+ul.mustfix li .restore{display:block;color:var(--ink);font-size:.86rem;margin-top:.2rem}
+.report h3.mustfix-h{color:var(--bad)}
+.mustfix-why{color:var(--bad);font-size:.86rem;margin:.2rem 0 .4rem}
+.dbr-avail{margin:.6rem 0}
+.dbr-avail h3{font-size:.98rem;margin:0 0 .25rem}
+.dbr-avail p{margin:.25rem 0}
+.dbr-avail ul{margin:.25rem 0 0;padding-left:1.1rem}
+.dbr-avail li{margin:.2rem 0;overflow-wrap:anywhere}
+.rate-strong{color:var(--ok)}
+.rate-revisit{color:var(--warn)}
 .report .todo li{color:var(--muted)}
 .report .hintbtn{border:1px solid var(--line);background:var(--soft);border-radius:6px;padding:0 .5rem;font-size:.78rem;min-height:26px;margin-left:.4rem;color:var(--ink)}
 .report .hint{display:block;margin-top:.25rem;font-size:.85rem;color:var(--ink);background:var(--soft);border-radius:6px;padding:.3rem .5rem}
@@ -298,7 +312,7 @@ table.debrief .why{color:var(--muted);font-size:.85rem}
   <button class="report-toggle" id="reportToggle" aria-expanded="true" aria-controls="report">Progress Check</button>
   <aside class="report" id="report" aria-label="Progress check"></aside>
 </div>
-<footer><span>Simulated practice lab: nothing here touches your real computer. Progress is saved in this browser. Unofficial practice; not affiliated with or endorsed by Canonical or Linux Mint.</span> <button id="reset">Reset lab</button></footer>
+<footer><span>Simulated practice lab: nothing here touches your real computer. Progress is saved in this browser. Unofficial training, independent of and unendorsed by the makers of the systems it names.</span> <button id="reset">Reset lab</button></footer>
 <div id="modal" class="modal" hidden></div>
 <script>
 
@@ -7587,13 +7601,13 @@ function briefHtml(sc) {
     '<p>Authorized Users:</p><ul>' + li(sc.authorizedUsers) + '</ul>' +
     '<h2>Critical Services</h2><ul>' + li(r.services) + '</ul>' +
     '<h2>Security Policy</h2><ul>' + li(r.policy) + '</ul>' +
-    '<div class="warn"><b>Keep the business running.</b> Keep every authorized user, administrator, and critical service working. The Progress Check runs availability checks and flags anything the organization relies on that you break.</div>' +
+    '<div class="warn"><b>Keep the business running.</b> Keep every authorized user, administrator, and critical service working. The Progress Check runs availability checks and flags anything the organization relies on that you break, and Finish waits until it works again.</div>' +
     '<p>Read the machine before you change it. Answer the ' + COUNT_WORDS[sc.questions.length] + ' investigation questions on the Desktop first: open <code>' + questionFile(1) + '</code>, type the answer after <code>ANSWER:</code>, and save. Then find and fix the security problems. The Progress Check updates live.</p>' +
     '</body></html>';
 }
 function briefText(sc) {
   const r = sc.brief; const wrap = s => s.replace(/(.{1,74})(\s+|$)/g, '$1\n');
-  return 'SCENARIO BRIEF - ' + sc.flavorLabel.toUpperCase() + '\n' + '='.repeat(60) + '\n\nOrganization: ' + r.company + '\n\n' + wrap(r.blurb) + '\nAUTHORIZED ADMINISTRATORS\n' + sc.admins.map(a => '  ' + a + (a === sc.student.user ? ' (you)   password: ' + sc.student.pw : '')).join('\n') + '\n\nAUTHORIZED USERS\n' + sc.authorizedUsers.map(u => '  ' + u).join('\n') + '\n\nCRITICAL SERVICES\n' + r.services.map(s => '  - ' + s).join('\n') + '\n\nSECURITY POLICY\n' + r.policy.map(s => '  - ' + s).join('\n') + '\n\nKeep the business running: keep every authorized user, administrator,\nand critical service working. The Progress Check runs availability\nchecks and flags anything the organization relies on that you break.\n\nRead the machine before you change it. Answer the ' + COUNT_WORDS[sc.questions.length] + ' investigation\nquestions in ~/Desktop first: open the file in nano, type the answer\nafter ANSWER:, and save. Then find and fix the security problems. The\nProgress Check updates live.\n';
+  return 'SCENARIO BRIEF - ' + sc.flavorLabel.toUpperCase() + '\n' + '='.repeat(60) + '\n\nOrganization: ' + r.company + '\n\n' + wrap(r.blurb) + '\nAUTHORIZED ADMINISTRATORS\n' + sc.admins.map(a => '  ' + a + (a === sc.student.user ? ' (you)   password: ' + sc.student.pw : '')).join('\n') + '\n\nAUTHORIZED USERS\n' + sc.authorizedUsers.map(u => '  ' + u).join('\n') + '\n\nCRITICAL SERVICES\n' + r.services.map(s => '  - ' + s).join('\n') + '\n\nSECURITY POLICY\n' + r.policy.map(s => '  - ' + s).join('\n') + '\n\nKeep the business running: keep every authorized user, administrator,\nand critical service working. The Progress Check runs availability\nchecks and flags anything the organization relies on that you break,\nand Finish waits until it works again.\n\nRead the machine before you change it. Answer the ' + COUNT_WORDS[sc.questions.length] + ' investigation\nquestions in ~/Desktop first: open the file in nano, type the answer\nafter ANSWER:, and save. Then find and fix the security problems. The\nProgress Check updates live.\n';
 }
 function questionText(n, q) { return 'Investigation ' + n + '\n\n' + q.text.replace(/(.{1,72})(\s+|$)/g, '$1\n') + '\n' + (q.hint ? ('(' + q.hint + ')').replace(/(.{1,72})(\s+|$)/g, '$1\n') + '\n' : '\n') + 'ANSWER: \n'; }
 /* hardening areas (the Progress Check groups every check under one of these) */
@@ -7658,14 +7672,16 @@ const CK = {
   journalPersist: pts => ({ id: 'journal-persist', title: 'System journal kept across reboots (journald Storage=persistent)', pts, cat: AREA.audit, test: () => { const v = (activeLines(FS.text('/etc/systemd/journald.conf') || '').map(l => l.trim()).filter(l => /^Storage\s*=/.test(l)).pop() || '').split('=')[1]; return /^(persistent|auto)$/i.test((v || '').trim()); }, hint: 'journalctl --list-boots lists only the boot that is running now. cat /etc/systemd/journald.conf: Storage=volatile keeps the journal in memory, so a reboot erases it. Set Storage=persistent, then sudo systemctl restart systemd-journald.', fix: "sudo sed -i 's/^Storage=.*/Storage=persistent/' /etc/systemd/journald.conf\nsudo systemctl restart systemd-journald", why: 'A journal that lives in RAM vanishes at the first reboot, and the evidence of the break-in goes with it. Persistent storage keeps the trail an investigation needs.' }),
   question: (n, file, answers, pts, learn) => ({ id: 'investigation-' + n, title: 'Investigation ' + n + ' answered', pts, cat: AREA.inv, investigation: true, learn, test: () => answerOk(file, answers), hint: 'Open "' + questionFile(n) + '" on the Desktop, put the answer after ANSWER: and save.', fix: 'Answer: ' + answers[0], why: 'Investigating first makes you read the machine before you change it.' }),
 };
-/* availability checks: breaking something the scenario brief says the business needs */
+/* availability checks: breaking something the scenario brief says the business needs. A failed one is a must-fix
+   flag: the points stay, the Progress Check names it in red with its restore step, and Finish waits until it works
+   again. which() names the broken items; restore is the way back. */
 const AVAIL = {
-  authUser: (names, pts) => ({ id: 'avail-user', title: 'Authorized user removed', pts, test: () => names.some(n => !U.user(n)), why: 'The scenario brief lists these people as authorized; deleting them stops them from working.' }),
-  authAdmin: (names, pts) => ({ id: 'avail-admin', title: 'Authorized administrator removed from sudo', pts, test: () => names.some(n => !U.user(n) || !U.isSudoer(n)), why: 'The administrators named in the brief need their rights to keep the machine running.' }),
-  self: (name, pts) => ({ id: 'avail-self', title: 'Your own account (' + name + ') deleted or locked', pts, test: () => { const u = U.user(name); const s = U.shadowOf(name); return !u || !s || s.hash[0] === '!' || s.hash[0] === '*' || !U.hasShell(u); }, why: 'Lock yourself out and nobody can administer the machine: the next login fails.' }),
-  ssh: (pts, why) => ({ id: 'avail-svc-ssh', title: 'Required service SSH stopped, disabled, or removed', pts, test: () => !sshReachable(), why: why || 'The scenario brief calls SSH critical; stopping it is an outage for the business.' }),
-  svc: (unit, pkg, label, pts) => ({ id: 'avail-svc-' + unit, title: 'Required service ' + label + ' stopped, disabled, or removed', pts, test: () => !S.pkgs[pkg] || !S.svc[unit] || !S.svc[unit].active || !S.svc[unit].enabled, why: 'The scenario brief calls this service critical; stopping it is an outage for the business.' }),
-  ufwBlocks: (port, label, pts) => ({ id: 'avail-ufw-' + port, title: 'Firewall blocks the required ' + label + ' service (port ' + port + ')', pts, test: () => S.ufw.on && !ufwAllows(port) && Object.values(S.svc).some(s => s.active) && listeners().some(l => l.port === port), why: 'ufw with default deny and no allow rule cuts off a service the business needs.' }),
+  authUser: names => ({ id: 'avail-user', title: 'Authorized user removed', need: 'Authorized users keep their accounts', which: () => names.filter(n => !U.user(n)).join(', '), test: () => names.some(n => !U.user(n)), why: 'The scenario brief lists these people as authorized; deleting them stops them from working.', restore: 'Create the account again: sudo useradd -m -s /bin/bash NAME, then sudo passwd NAME (a password that meets the policy). Add it back to any group it was in (sudo usermod -aG GROUP NAME).' }),
+  authAdmin: names => ({ id: 'avail-admin', title: 'Authorized administrator removed from sudo', need: 'Authorized administrators keep sudo', which: () => names.filter(n => !U.user(n) || !U.isSudoer(n)).join(', '), test: () => names.some(n => !U.user(n) || !U.isSudoer(n)), why: 'The administrators named in the brief need their rights to keep the machine running.', restore: 'Put the administrator back in the sudo group: sudo usermod -aG sudo NAME (or sudo gpasswd -a NAME sudo). Bring back a deleted account first.' }),
+  self: name => ({ id: 'avail-self', title: 'Your own account (' + name + ') deleted or locked', need: 'Your own account (' + name + ') can log in', test: () => { const u = U.user(name); const s = U.shadowOf(name); return !u || !s || s.hash[0] === '!' || s.hash[0] === '*' || !U.hasShell(u); }, why: 'Lock yourself out and nobody can administer the machine: the next login fails.', restore: 'While you are still logged in: sudo passwd -u ' + name + ' unlocks the password, and sudo usermod -s /bin/bash ' + name + ' gives the login shell back. Once the login fails, Reset lab is the way back.' }),
+  ssh: why => ({ id: 'avail-svc-ssh', title: 'Required service SSH stopped, disabled, or removed', need: 'SSH stays on and reachable', test: () => !sshReachable(), why: why || 'The scenario brief calls SSH critical; stopping it is an outage for the business.', restore: 'Turn SSH back on and keep it on at boot: sudo systemctl enable --now ssh (on Ubuntu Server 24.04 the socket holds port 22: sudo systemctl enable --now ssh.socket). If the package is gone, sudo apt install openssh-server first; if sshd_config is broken, sudo sshd -t names the bad line.' }),
+  svc: (unit, pkg, label) => ({ id: 'avail-svc-' + unit, title: 'Required service ' + label + ' stopped, disabled, or removed', need: 'Required service ' + label + ' stays on', test: () => !S.pkgs[pkg] || !S.svc[unit] || !S.svc[unit].active || !S.svc[unit].enabled, why: 'The scenario brief calls this service critical; stopping it is an outage for the business.', restore: 'Start it and keep it on at boot: sudo systemctl enable --now ' + unit + '. If the package is gone, sudo apt install ' + pkg + ' first.' }),
+  ufwBlocks: (port, label) => ({ id: 'avail-ufw-' + port, title: 'Firewall blocks the required ' + label + ' service (port ' + port + ')', need: 'The firewall lets the required ' + label + ' service through (port ' + port + ')', test: () => S.ufw.on && !ufwAllows(port) && Object.values(S.svc).some(s => s.active) && listeners().some(l => l.port === port), why: 'ufw with default deny and no allow rule cuts off a service the business needs.', restore: 'Allow the port again: sudo ufw allow ' + port + '/tcp' + (port === 22 ? ' (or sudo ufw allow ssh)' : '') + ', then check with sudo ufw status.' }),
 };
 const SCENARIOS = [
   {
@@ -7693,7 +7709,7 @@ const SCENARIOS = [
       { id: 'timedlogin', title: 'Automatic (timed) login disabled in GDM', pts: 6, cat: AREA.access, test: () => !autoLoginUser() && !timedLoginInfo(), hint: 'sudo nano /etc/gdm3/custom.conf: set TimedLoginEnable = false (and keep AutomaticLoginEnable off).', fix: "sudo sed -i 's/^TimedLoginEnable.*/TimedLoginEnable = false/' /etc/gdm3/custom.conf", why: 'Timed login hands the desktop to whoever waits.' },
       { id: 'ntp', title: 'Clock synchronization on (systemd-timesyncd)', pts: 3, cat: AREA.audit, test: () => { const st = S.svc['systemd-timesyncd']; return !!st && st.active && st.enabled; }, hint: 'timedatectl status reads System clock synchronized: no and NTP service: inactive; sudo timedatectl set-ntp true turns it on.', fix: 'sudo timedatectl set-ntp true', why: 'Logs line up across machines only when their clocks agree.' },
       CK.question(1, '/home/labuser/Desktop/Investigation 1.txt', ['tiko'], 5), CK.question(2, '/home/labuser/Desktop/Investigation 2.txt', ['leilani'], 5)],
-    availability: [AVAIL.authUser(['kalani', 'noe', 'pika', 'leilani', 'malia', 'tiko'], -8), AVAIL.authAdmin(['kalani'], -6), AVAIL.ssh(-6), AVAIL.ufwBlocks(22, 'SSH', -4), AVAIL.self('labuser', -10)],
+    availability: [AVAIL.authUser(['kalani', 'noe', 'pika', 'leilani', 'malia', 'tiko']), AVAIL.authAdmin(['kalani']), AVAIL.ssh(), AVAIL.ufwBlocks(22, 'SSH'), AVAIL.self('labuser')],
   },
   {
     id: 'operator', level: 2, name: 'Operator', title: 'Lanikai Book Nook — patron PC', flavor: 'mint', gui: true, hostname: 'mint-lab', flavorLabel: 'Linux Mint ' + FLAVORS.mint.release + ' Shared Workstation',
@@ -7733,7 +7749,7 @@ const SCENARIOS = [
       { id: 'aa-cupsd', title: 'cupsd AppArmor profile back in enforce mode', pts: 3, cat: AREA.config, learn: ['j3'], test: () => !S.pkgs.cups || ((S.aa || {})['/usr/sbin/cupsd'] || 'enforce') === 'enforce', hint: 'sudo aa-status lists the profiles in complain mode, which log what they would block and let it happen. sudo apt install apparmor-utils, then sudo aa-enforce /etc/apparmor.d/usr.sbin.cupsd.', fix: 'sudo apt install -y apparmor-utils && sudo aa-enforce /etc/apparmor.d/usr.sbin.cupsd', why: 'A profile in complain mode logs a violation and lets it happen.' },
       { id: 'flatpak-game', title: 'Unauthorized Flatpak app removed (PixelQuest)', pts: 3, cat: AREA.config, test: () => !(S.flatpaks || []).some(a => a.id === 'io.example.PixelQuest'), hint: 'Flatpak apps install outside apt, so dpkg -l misses them: flatpak list --app names them, and sudo flatpak uninstall ID removes one.', fix: 'sudo flatpak uninstall -y io.example.PixelQuest', why: 'Flatpak apps sit outside apt, so they outlive a package audit.' },
       CK.question(1, '/home/labuser/Desktop/Investigation 1.txt', ['sysadm'], 5), CK.question(2, '/home/labuser/Desktop/Investigation 2.txt', ['/home/jace/.hidden_tools'], 5)],
-    availability: [AVAIL.authUser(['mkoa', 'hina', 'keanu', 'jace', 'nalu', 'aria'], -8), AVAIL.authAdmin(['mkoa'], -6), AVAIL.self('labuser', -10)],
+    availability: [AVAIL.authUser(['mkoa', 'hina', 'keanu', 'jace', 'nalu', 'aria']), AVAIL.authAdmin(['mkoa']), AVAIL.self('labuser')],
   },
   {
     id: 'captain', level: 3, name: 'Captain', title: 'Mauka Trail Outfitters — web server', flavor: 'ubuntu', gui: false, hostname: 'ubuntu-srv', flavorLabel: 'Ubuntu Server ' + FLAVORS.ubuntu.release, sshSocket: true, deb822: true,
@@ -7809,7 +7825,7 @@ const SCENARIOS = [
       { id: 'backdoor-kworker', title: 'Disguised backdoor removed (the fake kworker, its program, its preload library, and its unit)', pts: 5, cat: AREA.malware, learn: ['j3'], test: () => { const st = S.svc['fontcache-sync']; const unitOn = !!S.fs[BD_UNIT] && !!st && !st.masked && (st.enabled || st.active); return !S.procs.some(p => p.bd) && !S.fs[BD_BIN] && !S.fs[BD_LIB] && !unitOn; }, hint: 'A kernel thread lacks a program file, so sudo ls -l /proc/PID/exe tells the [kworker/1:3] impostor apart. systemctl status PID names the unit that starts it; Restart=always brings a plain kill back. Disable the unit, delete it, then delete the program and the preload library (sudo cat /proc/PID/maps names both).', fix: 'sudo systemctl disable --now fontcache-sync && sudo rm ' + BD_UNIT + ' && sudo systemctl daemon-reload && sudo rm -r /var/tmp/.font-unix ' + LIBDIR + '/.fc', why: 'The program calls 203.0.113.50 with the database maintenance password every ten seconds and returns at every boot until its unit, program, and library are all gone.' },
       CK.question(1, '/home/labuser/Desktop/Investigation 1.txt', ['4444'], 3, ['s4', 'se1']), CK.question(2, '/home/labuser/Desktop/Investigation 2.txt', ['/usr/local/bin/lsmon'], 3, ['s6', 's3']),
       CK.question(3, '/home/labuser/Desktop/Investigation 3.txt', ['203.0.113.50', '203.0.113.50:8443'], 3, ['j3']), CK.question(4, '/home/labuser/Desktop/Investigation 4.txt', ['/etc/mysql/debian.cnf'], 3, ['j3']), CK.question(5, '/home/labuser/Desktop/Investigation 5.txt', [BD_LIB, '/lib/x86_64-linux-gnu/.fc/libfcsync.so.1'], 3, ['j3'])],
-    availability: [AVAIL.authUser(['moana', 'bkup', 'kai', 'lehua'], -6), AVAIL.authAdmin(['moana'], -5), AVAIL.svc('apache2', 'apache2', 'Apache (apache2)', -8), AVAIL.ssh(-8, 'The scenario brief calls SSH critical. On Ubuntu Server 24.04 ssh.socket, rather than ssh.service, holds port 22 and starts sshd on demand. Stopping or disabling the socket cuts the administrators off, and so does leaving sshd_config broken.'), AVAIL.svc('mysql', 'mysql-server', 'MySQL', -5), AVAIL.ufwBlocks(22, 'SSH', -5), AVAIL.ufwBlocks(80, 'web (Apache)', -4), AVAIL.self('labuser', -10)],
+    availability: [AVAIL.authUser(['moana', 'bkup', 'kai', 'lehua']), AVAIL.authAdmin(['moana']), AVAIL.svc('apache2', 'apache2', 'Apache (apache2)'), AVAIL.ssh('The scenario brief calls SSH critical. On Ubuntu Server 24.04 ssh.socket, rather than ssh.service, holds port 22 and starts sshd on demand. Stopping or disabling the socket cuts the administrators off, and so does leaving sshd_config broken.'), AVAIL.svc('mysql', 'mysql-server', 'MySQL'), AVAIL.ufwBlocks(22, 'SSH'), AVAIL.ufwBlocks(80, 'web (Apache)'), AVAIL.self('labuser')],
   },
 ];
 /* bump when a scenario's planted state changes: a saved lab from an older revision is rebuilt on load (its best score is kept) */
@@ -7852,23 +7868,30 @@ function persistNow() {
   if (!S) return;
   STORE.current = S.id; STORE.lastSeen = Date.now();
   const rec = STORE.scenarios[S.id] || {};
-  rec.S = S; rec.best = Math.max(rec.best || 0, lastTotal || 0);
+  rec.S = S; if (!(lastResult && lastResult.broken.length)) rec.best = Math.max(rec.best || 0, lastTotal || 0);
   STORE.scenarios[S.id] = rec;
   saveStore(STORE);
 }
 const persist = debounce(persistNow, 400);
 let lastTotal = 0, lastResult = null;
+/* points come from checks only. A failed availability check is a must-fix flag: it holds the points where they are,
+   shows in red with its restore step, and holds Finish until it works again. S.availBroke remembers every one the
+   learner broke this attempt, so the Debrief can name the ones broken and restored. */
 function evaluate() {
   if (!S) return;
   const sc = scenario();
   const earned = [], todo = [], broken = [];
   let total = 0;
-  for (const ck of sc.checks) { let ok = false; try { ok = !!ck.test(S); } catch (e) { ok = false; } if (ok) { earned.push(ck); total += ck.pts; } else todo.push(ck); }
-  for (const p of sc.availability) { let hit = false; try { hit = !!p.test(S); } catch (e) { hit = false; } if (hit) { broken.push(p); total += p.pts; } }
+  const live = new Map();
+  for (const ck of sc.checks) { let ok = false; try { ok = !!ck.test(S); } catch (e) { ok = false; } live.set(ck.id, ok); }
+  for (const p of sc.availability) { let hit = false; try { hit = !!p.test(S); } catch (e) { hit = false; } if (hit) broken.push(p); }
+  const okOf = holdResults(sc.checks, broken, live);
+  for (const ck of sc.checks) { if (okOf(ck)) { earned.push(ck); total += ck.pts; } else todo.push(ck); }
+  if (broken.length) { S.availBroke = S.availBroke || {}; for (const p of broken) S.availBroke[p.id] = brokeWhich(S.availBroke[p.id], p); }
   lastTotal = total; lastResult = { earned, todo, broken, total, max: sc.checks.reduce((a, c) => a + c.pts, 0) };
-  const scoreEl = $('.score'); scoreEl.textContent = total + ' / ' + lastResult.max + ' pts'; scoreEl.classList.toggle('neg', total < 0);
+  const scoreEl = $('.score'); scoreEl.textContent = total + ' / ' + lastResult.max + ' pts'; scoreEl.classList.toggle('neg', broken.length > 0); scoreEl.title = broken.length ? broken.length + ' availability check' + (broken.length === 1 ? '' : 's') + ' to fix before you finish' : '';
   renderReport();
-  const rec = STORE.scenarios[S.id]; if (rec && total > (rec.best || 0)) { rec.best = total; rec.bestHints = hintCount(); rec.bestCoach = coachMode(sc.level); persist(); }
+  const rec = STORE.scenarios[S.id]; if (rec && !broken.length && total > (rec.best || 0)) { rec.best = total; rec.bestHints = hintCount(); rec.bestCoach = coachMode(sc.level); persist(); }
 }
 /* Coach: how much the Progress Check tells you, chosen apart from the scenario level (the level sets the default) */
 const COACH = [['level', 'Match the level'], ['todo', 'To-do list with hints'], ['areas', 'Remaining by area'], ['passed', 'Passed checks only']];
@@ -7884,6 +7907,51 @@ function coachControl(lvl) {
   return el('div', { class: 'coach' }, el('label', { for: 'coach-sel', text: 'Coach:' }), sel, el('span', { class: 'hintmark', text: 'now: ' + coachLabel(coachMode(lvl)) }));
 }
 const scheduleEvaluate = debounce(evaluate, 150);
+/* ---------------- availability: the must-fix flags ---------------- */
+const OUTAGE_LINE = 'Finish waits until every business need works again, because an outage is an incident you fix before you are done.';
+/* a break holds the score: a check whose result changes in the same step that breaks a business need keeps its
+   earlier result until that need works again, so a break neither raises nor lowers the points (deleting an authorized
+   user earns none of that user's checks and costs none). S.hold keeps the held results across a reload. */
+var HOLD_MEMO = null;
+function holdResults(checks, failed, live) {
+  const keys = new Set();
+  failed.forEach(p => { const w = availWhich(p); if (w) w.split(', ').forEach(x => keys.add(p.id + ':' + x)); else keys.add(p.id); });
+  const memo = HOLD_MEMO && HOLD_MEMO.s === S ? HOLD_MEMO : null, hold = S.hold || {};
+  Object.keys(hold).forEach(id => { if (!(hold[id].by || []).some(k => keys.has(k))) delete hold[id]; });
+  const fresh = memo ? [...keys].filter(k => !memo.keys.has(k)) : [];
+  if (fresh.length) checks.forEach(c => { if (!memo.live.has(c.id) || memo.live.get(c.id) === live.get(c.id)) return; if (hold[c.id]) hold[c.id].by = hold[c.id].by.concat(fresh); else hold[c.id] = { v: memo.live.get(c.id) ? 1 : 0, by: fresh }; });
+  if (Object.keys(hold).length) S.hold = hold; else delete S.hold;
+  HOLD_MEMO = { s: S, keys, live };
+  return c => S.hold && S.hold[c.id] ? !!S.hold[c.id].v : !!live.get(c.id);
+}
+/* which(): the broken items right now; S.availBroke[id] keeps 1, or every name that broke this attempt ("kalani, noe") */
+function availWhich(p) { let w = ''; try { w = p.which ? String(p.which(S) || '') : ''; } catch (e) { w = ''; } return w; }
+function brokeWhich(prev, p) { const w = availWhich(p); if (!w) return prev || 1; const names = typeof prev === 'string' ? prev.split(', ') : []; w.split(', ').forEach(n => { if (!names.includes(n)) names.push(n); }); return names.join(', '); }
+function brokeNames(p) { const v = S && S.availBroke && S.availBroke[p.id]; return typeof v === 'string' ? v : ''; }
+function fillName(text, w) { return w && w.indexOf(',') < 0 ? text.replace(/\bNAME\b/g, w) : text; }
+/* the need in plain words (what keeps working), for the Debrief; the title names the failure, for the must-fix flag */
+function availNeed(p) { return p.need || p.title; }
+function availName(p) { const w = availWhich(p); return p.title + (w ? ' (' + w + ')' : ''); }
+/* the restore step with NAME filled in when exactly one item broke */
+function availRestore(p) { return fillName(p.restore, availWhich(p)); }
+function availBroke(p) { return !!(S && S.availBroke && S.availBroke[p.id]); }
+function mustFixList(R) { return el('ul', { class: 'avail mustfix' }, R.broken.map(p => el('li', null, el('span', { class: 'pts', text: 'must fix' }), el('b', { class: 'af-t', text: '✗ Availability check failed: ' + availName(p) }), el('span', { class: 'restore', text: 'Restore: ' + availRestore(p) })))); }
+function availSummary(R) { const n = scenario().availability.filter(availBroke).length; return R.broken.length ? R.broken.length + ' availability check' + (R.broken.length === 1 ? '' : 's') + ' to fix' : n ? n + ' business ' + (n === 1 ? 'need' : 'needs') + ' broken and restored' : 'every business need kept working'; }
+function finishWaits(R) {
+  const modal = $('#modal'); modal.hidden = false; modal.textContent = '';
+  const card = el('div', { class: 'modal-card', role: 'dialog', 'aria-label': 'Finish waits for a fix', style: 'max-width:640px' });
+  const close = el('button', { class: 'close', text: 'Back to the lab' }); close.addEventListener('click', closeModal);
+  card.append(close, el('h2', { text: 'Finish waits for a fix' }), el('p', { class: 'mustfix-why', text: OUTAGE_LINE }), el('div', { class: 'report-like' }, mustFixList(R)), el('p', { class: 'why', style: 'color:var(--muted)', text: 'Your points stay as they are. Reset lab also brings everything back, and keeps your best score.' }));
+  modal.append(card); close.focus();
+}
+/* the Debrief's availability section, in the where-to-invest-next style: Strong when a need kept working all along, Revisit when you broke it and restored it */
+function availInvest() {
+  const sc = scenario(), broke = sc.availability.filter(availBroke);
+  const box = el('div', { class: 'dbr-avail' }, el('h3', { text: 'Availability: where to invest next' }),
+    el('p', { text: 'Availability is the A in confidentiality, integrity, and availability: hardening keeps the people and services the business relies on working. ' + (broke.length ? 'You broke ' + broke.length + ' business need' + (broke.length === 1 ? '' : 's') + ' and restored ' + (broke.length === 1 ? 'it' : 'them') + '. Next time, read the Scenario Brief’s critical list before each change that touches it.' : 'You kept every business need working the whole time.') }));
+  box.append(el('ul', null, sc.availability.slice().sort((a, b) => availBroke(b) - availBroke(a)).map(p => { const b = availBroke(p), w = brokeNames(p); return el('li', null, el('b', { class: b ? 'rate-revisit' : 'rate-strong', text: b ? 'Revisit' : 'Strong' }), ' ' + availNeed(p) + ': ' + (b ? 'broken' + (w ? ' (' + w + ')' : '') + ', then restored. ' + p.why + ' The way back: ' + fillName(p.restore, w) : 'kept working the whole time.')); })));
+  return box;
+}
 function renderReport() {
   const R = lastResult; if (!R) return;
   const sc = scenario(); const rep = $('#report'); rep.textContent = '';
@@ -7893,7 +7961,7 @@ function renderReport() {
   rep.append(el('h3', { text: 'Checks passed' }));
   if (!R.earned.length) rep.append(el('p', { class: 'none', text: 'No checks passed yet. Read the Scenario Brief on the Desktop, then start fixing.' }));
   else rep.append(el('ul', { class: 'earn' }, R.earned.map(c => el('li', null, el('span', { class: 'pts', text: c.pts + ' pts' }), c.title))));
-  if (R.broken.length) { rep.append(el('h3', { text: 'Availability checks failed' }), el('ul', { class: 'avail' }, R.broken.map(p => el('li', null, el('span', { class: 'pts', text: p.pts + ' pts' }), p.title)))); }
+  if (R.broken.length) rep.append(el('h3', { class: 'mustfix-h', text: 'Must fix: availability checks failed' }), mustFixList(R), el('p', { class: 'mustfix-why', text: 'Your points stay as they are. ' + OUTAGE_LINE }));
   if (mode === 'todo') {
     rep.append(el('h3', { text: 'To do (with hints)' }));
     const ul = el('ul', { class: 'todo' });
@@ -7924,26 +7992,27 @@ function renderReport() {
 }
 function openDebrief() {
   evaluate(); const R = lastResult; const sc = scenario();
+  if (R.broken.length) { finishWaits(R); return; }
   const modal = $('#modal'); modal.hidden = false; modal.textContent = '';
   const card = el('div', { class: 'modal-card', role: 'dialog', 'aria-label': 'Debrief' });
   const close = el('button', { class: 'close', text: 'Close' }); close.addEventListener('click', closeModal);
   card.append(close, el('h2', { text: 'Debrief: ' + sc.title }));
-  card.append(el('div', { class: 'sum' }, el('span', { text: 'Score ' + R.total + ' / ' + R.max }), el('span', { text: R.earned.length + ' of ' + sc.checks.length + ' checks passed' }), el('span', { text: R.broken.length + ' availability check' + (R.broken.length === 1 ? '' : 's') + ' failed' }), el('span', { text: 'Time ' + fmtElapsed(S.elapsed || 0) })));
+  card.append(el('div', { class: 'sum' }, el('span', { text: 'Score ' + R.total + ' / ' + R.max }), el('span', { text: R.earned.length + ' of ' + sc.checks.length + ' checks passed' }), el('span', { text: 'Availability: ' + availSummary(R) }), el('span', { text: 'Time ' + fmtElapsed(S.elapsed || 0) })));
   const table = el('table', { class: 'debrief' });
   table.append(el('thead', null, el('tr', null, el('th', { text: '' }), el('th', { text: 'Check' }), el('th', { text: 'Pts' }), el('th', { text: 'Fix' }), el('th', { text: 'Why it matters' }))));
   const tb = el('tbody');
   const learnLinks = c => { const units = learnUnits(c); const p = el('span', { class: 'learn', style: 'display:block;margin-top:.3rem' }, 'Learn it in the Defense Ladder: '); units.forEach((u, i) => { if (i) p.append(' and '); p.append(el('a', { href: DL_URL + '#' + DL_UNIT[u][0], target: '_blank', rel: 'noopener', style: 'color:var(--ink)', text: DL_UNIT[u][1] })); }); return p; };
   for (const c of sc.checks) { const ok = R.earned.includes(c); tb.append(el('tr', null, el('td', { class: 'st ' + (ok ? 'ok' : 'bad'), text: ok ? '✓' : '✗' }), el('td', { text: c.title }), el('td', { text: String(c.pts) }), el('td', { class: 'fix', text: c.fix }), el('td', { class: 'why' }, c.why, learnLinks(c)))); }
-  for (const p of sc.availability) { const hit = R.broken.includes(p); tb.append(el('tr', null, el('td', { class: 'st ' + (hit ? 'bad' : 'ok'), text: hit ? '✗' : '✓' }), el('td', { text: 'Availability check: ' + p.title }), el('td', { text: String(p.pts) }), el('td', { class: 'fix', text: hit ? 'Undo the change (Reset lab restores the original state).' : 'Still available' }), el('td', { class: 'why', text: p.why }))); }
+  for (const p of sc.availability) { const hit = R.broken.includes(p); tb.append(el('tr', null, el('td', { class: 'st ' + (hit ? 'bad' : 'ok'), text: hit ? '✗' : '✓' }), el('td', { text: 'Availability check: ' + (hit ? availName(p) : availNeed(p)) }), el('td', { text: hit ? 'must fix' : '—' }), el('td', { class: 'fix', text: hit ? 'Restore: ' + availRestore(p) : availBroke(p) ? 'Broken' + (brokeNames(p) ? ' (' + brokeNames(p) + ')' : '') + ', then restored. ' + fillName(p.restore, brokeNames(p)) : 'Kept working the whole time.' }), el('td', { class: 'why', text: p.why }))); }
   table.append(tb);
-  card.append(el('p', { class: 'dbr-hints', text: 'Hints this attempt: ' + hintCount() + ' of ' + sc.checks.length + ' checks (' + hintCommands() + ' with the command shown). Coach: ' + coachLabel(coachMode(sc.level)) + '. A pass with no hints on a fresh attempt is the one that counts.' }), table);
+  card.append(availInvest(), el('p', { class: 'dbr-hints', text: 'Hints this attempt: ' + hintCount() + ' of ' + sc.checks.length + ' checks (' + hintCommands() + ' with the command shown). Coach: ' + coachLabel(coachMode(sc.level)) + '. A pass with no hints on a fresh attempt is the one that counts.' }), table);
   const rec = STORE.scenarios[S.id] || (STORE.scenarios[S.id] = {});
   const ta = el('textarea', { id: 'dbr-reflect' }); ta.value = rec.reflect || ''; ta.addEventListener('input', () => { rec.reflect = ta.value; saveStore(STORE); });
   card.append(el('label', { class: 'dbr-reflect' }, el('span', { text: 'What broke, and what will you do first next time? (saved with this scenario)' }), ta));
   const cp = el('button', { class: 'ubtn', id: 'dbr-copy', text: 'Copy debrief as text' }); const st = el('span', { role: 'status' }); const out = el('textarea', { hidden: true, 'aria-label': 'Debrief as text' }); out.readOnly = true;
-  const debriefText = () => { const lines = ['Lockdown Range: Linux - ' + sc.title + ' (' + sc.name + ')', 'Progress ' + R.total + ' / ' + R.max + ' - checks passed ' + R.earned.length + ' of ' + sc.checks.length + ' - availability checks failed ' + R.broken.length + ' - time ' + fmtElapsed(S.elapsed || 0) + ' - hints ' + hintCount() + ' (' + hintCommands() + ' with the command) - coach: ' + coachLabel(coachMode(sc.level)), ''];
+  const debriefText = () => { const lines = ['Lockdown Range: Linux - ' + sc.title + ' (' + sc.name + ')', 'Progress ' + R.total + ' / ' + R.max + ' - checks passed ' + R.earned.length + ' of ' + sc.checks.length + ' - availability: ' + availSummary(R) + ' - time ' + fmtElapsed(S.elapsed || 0) + ' - hints ' + hintCount() + ' (' + hintCommands() + ' with the command) - coach: ' + coachLabel(coachMode(sc.level)), ''];
     for (const c of sc.checks) { const h = hintStep(c.id); lines.push((R.earned.includes(c) ? '[x] ' : '[ ] ') + c.title + ' (' + c.pts + ' pts)' + (h ? '  [hint: ' + (h >= 2 ? 'command shown' : 'principle') + ']' : '')); }
-    for (const p of sc.availability) lines.push((R.broken.includes(p) ? '[!] ' : '[ok] ') + 'Availability: ' + p.title + ' (' + p.pts + ' pts)');
+    for (const p of sc.availability) lines.push((R.broken.includes(p) ? '[!] ' : availBroke(p) ? '[restored] ' : '[ok] ') + 'Availability: ' + (R.broken.includes(p) ? availName(p) + ' (must fix)' : availNeed(p) + (availBroke(p) ? ' (Revisit: ' + (brokeNames(p) ? brokeNames(p) + ' ' : '') + 'broken, then restored)' : ' (Strong: kept working)')));
     if (rec.reflect) lines.push('', 'What broke, and what I will do first next time:', rec.reflect); return lines.join('\n') + '\n'; };
   cp.addEventListener('click', () => { const txt = debriefText(); const show = () => { out.hidden = false; out.value = txt; st.textContent = 'Select the text below and copy it.'; }; if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(() => { st.textContent = 'Copied.'; }, show); else show(); });
   card.append(el('div', { class: 'dbr-copy' }, cp, st, out));
@@ -7965,12 +8034,12 @@ function openHelp() {
     '<li><b>GUI apps:</b> Files, Text Editor, and Software Updater / Update Manager are in the dock or panel. Right-click files for Move to Trash and Properties.</li>' +
     '<li><b>Progress Check:</b> the panel updates after every command. By default Recruit shows a to-do list with hints, Operator shows the remaining count per hardening area, and Captain shows only the checks you have passed; the <b>Coach</b> control at the top of the panel picks any of the three for any level.</li>' +
     '<li><b>Hints:</b> a hint opens in two steps: the hardening area and the principle, then the command.</li>' +
-    '<li><b>Availability:</b> failed availability checks appear in red when you break something the Scenario Brief says the business needs.</li>' +
+    '<li><b>Availability:</b> breaking something the Scenario Brief says the business needs keeps your points where they are and shows a must-fix item in red with its restore step. Finish waits until it works again, because an outage is an incident you fix before you are done.</li>' +
     '<li><b>Levels:</b> Recruit = Ubuntu desktop, Operator = Linux Mint shared PC, Captain = Ubuntu Server (terminal only). Progress is saved per level in this browser.</li>' +
     '<li><b>Versions:</b> the machines follow Ubuntu ' + FLAVORS.ubuntu.release + ' LTS and Linux Mint ' + FLAVORS.mint.release + '. On Ubuntu 26.04 LTS the default sudo is sudo-rs, so its password prompt and messages look slightly different.</li></ul>' +
     '<p>Solution walkthrough for every scenario: <code>linux-range-reference.txt</code> beside this page. Try each scenario on your own first.</p>' +
     '<p>Want more practice? The OverTheWire Bandit wargame builds shell skills, and picoCTF offers broader security challenges.</p>' +
-    '<p style="color:var(--muted)">Unofficial practice; not affiliated with or endorsed by Canonical or Linux Mint. All organizations, people, and addresses in the scenarios are fictional.</p>';
+    '<p style="color:var(--muted)">All organizations, people, and addresses in the scenarios are fictional.</p>';
   card.prepend(close); modal.append(card); close.focus();
 }
 function confirmReset() {

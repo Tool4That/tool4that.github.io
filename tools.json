@@ -17,7 +17,7 @@
       "tagline": "Learn cyber defense, then drill it.",
       "icon": "terminal",
       "description": "Two ways in. Learning builds the concepts, from your first command to confident defender. Practice is hands-on reps: Net Drills for subnetting and Cisco IOS, Lockdown Drills for hardening Windows, Linux, FreeBSD, and Cisco IOS, and Lockdown Range for full hardening labs in your browser.",
-      "note": "Unofficial practice; not affiliated with or endorsed by Microsoft, Canonical, Linux Mint, the FreeBSD Project, or Cisco. Defensive skills only: practice on machines you own or are authorized to use. Progress stays in your browser."
+      "note": "Unofficial training, independent of and unendorsed by the makers of the systems it names. Defensive skills only: practice on machines you own or are authorized to use. Progress stays in your browser."
     },
     {
       "slug": "imagination-land",
@@ -33,7 +33,7 @@
       "slug": "learning",
       "title": "Learning",
       "category": "cyber",
-      "intro": "Build the concepts and vocabulary, from your first terminal command to confident defender. New to cybersecurity? Start with Defense Ladder, the course. Know what you need? The Study Map finds any concept as you type and shows where to learn and practice it. Cyber PUG gives a team experimental checklists for taking over a network, coordinated from a shared Collab Tab, with a Map that draws the network from pasted command output."
+      "intro": "Build the concepts and vocabulary, from your first terminal command to confident defender. New to cybersecurity? Start with Defense Ladder, the course. Know what you need? The Study Map finds any concept as you type and shows where to learn and practice it. Command Atlas looks up any command in the course and shows what it does and where you use it. Cyber PUG gives a team experimental checklists for taking over a network, coordinated from a shared Collab Tab, with a Map that draws the network from pasted command output."
     },
     {
       "slug": "practice",
@@ -49,15 +49,15 @@
       "category": "cyber",
       "section": "practice",
       "description": "Four networking drills: subnetting and IPv6, Cisco IOS configuration, config audits, and troubleshooting from real device output.",
-      "note": "Unofficial practice; not affiliated with or endorsed by Cisco. Progress stays in your browser."
+      "note": "Unofficial training, independent of and unendorsed by the makers of the systems it names. Progress stays in your browser."
     },
     {
       "slug": "lockdown-drills",
       "title": "Lockdown Drills",
       "category": "cyber",
       "section": "practice",
-      "description": "Baseline-hardening trainers for Windows 11, Windows Server, Linux Mint, Ubuntu, FreeBSD, and Cisco IOS, each at beginner, intermediate, and advanced levels. A plain-text command reference explains why each step matters.",
-      "note": "Unofficial practice; not affiliated with or endorsed by Microsoft, Canonical, Linux Mint, the FreeBSD Project, or Cisco. Try commands on a practice virtual machine, not a computer you depend on."
+      "description": "Baseline-hardening trainers for Windows 11, Windows Server, Linux Mint, Ubuntu, FreeBSD, and Cisco IOS, each in three levels: Doorman, Watchman, and Hunter. A plain-text command reference explains why each step matters.",
+      "note": "Unofficial training, independent of and unendorsed by the makers of the systems it names. Try commands on a practice virtual machine, not a computer you depend on."
     },
     {
       "slug": "lockdown-range",
@@ -65,7 +65,7 @@
       "category": "cyber",
       "section": "practice",
       "description": "Full hardening labs in your browser, no virtual machine needed: Windows 11 and Windows Server, Ubuntu and Linux Mint, and a Packet Tracer-style Cisco topology. Sign in, read the scenario brief, answer the investigation questions, fix the machine, and watch a live Progress Check.",
-      "note": "Unofficial practice; not affiliated with or endorsed by Microsoft, Canonical, Linux Mint, or Cisco. Simulated machines only: nothing touches your computer, and progress stays in your browser."
+      "note": "Unofficial training, independent of and unendorsed by the makers of the systems it names. Simulated machines only: nothing touches your computer, and progress stays in your browser."
     }
   ],
   "tools": [
@@ -119,7 +119,7 @@
       "slug": "defense-ladder",
       "name": "Defense Ladder",
       "tagline": "Start here: the course, one grade at a time.",
-      "description": "A free, four-grade cybersecurity course, Freshman to Senior, built on Bloom's taxonomy: 54 units across Windows, Linux, networking, security foundations, defense operations, and web and cloud. Diagrams, drills on realistic logs, captures, and configs, a readiness check for each grade, and a glossary round it out. Works offline, and everything stays in your browser.",
+      "description": "A free, four-grade cybersecurity course, Freshman to Senior, built on Bloom's taxonomy: 51 units across Windows, Linux, networking, security foundations, defense operations, and web and cloud, with a readiness check at the start of Sophomore, Junior, and Senior. Diagrams, drills on realistic logs, captures, and configs, a pace planner, and a glossary round it out. Works offline, and everything stays in your browser.",
       "badges": [
         "Cybersecurity",
         "Study",
@@ -131,8 +131,8 @@
       "icon": "path",
       "category": "cyber",
       "section": "learning",
-      "sha256": "37b2a2f1a92678e46e046e4fd5ce8f617e6ac0803ad27db387e5c1b6a1a47b1e",
-      "updated": "2026-11-09",
+      "sha256": "96e500362713052dc912f87a26114ad0230dcefe9fde3397d5befda3fbdf22d3",
+      "updated": "2026-11-22",
       "download_menu": true,
       "download_label": "Everything (all four grades)",
       "extras": [
@@ -140,29 +140,29 @@
           "label": "Freshman only",
           "file": "defense-ladder/freshman.html",
           "download_as": "defense-ladder-freshman.html",
-          "sha256": "49048dc9bd216f39da9f637f0f3bc059ac05d3162935f2dff54f63446faa1ff8",
-          "updated": "2026-11-09"
+          "sha256": "cd98cb8d7252abc1a5e7494674fbe37310cafeaccd9e9e828dc77ebc424298ca",
+          "updated": "2026-11-22"
         },
         {
           "label": "Sophomore only",
           "file": "defense-ladder/sophomore.html",
           "download_as": "defense-ladder-sophomore.html",
-          "sha256": "e1a78a7696648cc3d64d4cbbb2ee4a59fc5478121c0d80e296289636242eaac8",
-          "updated": "2026-11-09"
+          "sha256": "0afcc6a48fecb49519394eb282a838908593449ecb9d1df0e9b470a582770352",
+          "updated": "2026-11-22"
         },
         {
           "label": "Junior only",
           "file": "defense-ladder/junior.html",
           "download_as": "defense-ladder-junior.html",
-          "sha256": "cdaf8396813a25802268b8d271ae1766a8fe7a45bbc79b46f9f2a65072262521",
-          "updated": "2026-11-09"
+          "sha256": "710ac858a6f86baa49226f690a257464a3e35b7e2c29ad20f5a9ce6a65331100",
+          "updated": "2026-11-22"
         },
         {
           "label": "Senior only",
           "file": "defense-ladder/senior.html",
           "download_as": "defense-ladder-senior.html",
-          "sha256": "6a1f15d793eb75cd6bc5fbde8e408df64e20ddd81c58cd57fec5ab954bff761e",
-          "updated": "2026-11-09"
+          "sha256": "5f2fc46489ed4ed99bc8bad3d52c64d71c8fd8df8b7b0419d0751a2eca76c221",
+          "updated": "2026-11-22"
         }
       ],
       "download_note": "Each grade also comes as its own smaller download for offline use; links to other grades open the online course."
@@ -182,8 +182,8 @@
       "download_as": "subnet-sprint.html",
       "icon": "subnet",
       "category": "cyber",
-      "sha256": "e625978d6be0d1b00be71edcd5120a322072d25b7c41b57d371a4aa0c7f5d073",
-      "updated": "2026-11-02",
+      "sha256": "9203ebb2101c99c0107087044f60ff7ac8fe123ed5c44f204f005f6b48c45464",
+      "updated": "2026-11-22",
       "series": "net-drills"
     },
     {
@@ -201,8 +201,8 @@
       "download_as": "ios-cli-lab.html",
       "icon": "terminal",
       "category": "cyber",
-      "sha256": "44e43eefb0fb72918704ebf3cde67e2d916cf2f53afa8546e777588857122ea6",
-      "updated": "2026-11-04",
+      "sha256": "600e38053a8f93ebcfa00ef78934c3d49a40648ad17c431930bbe008112c5071",
+      "updated": "2026-11-22",
       "series": "net-drills"
     },
     {
@@ -220,8 +220,8 @@
       "download_as": "config-audit.html",
       "icon": "search",
       "category": "cyber",
-      "sha256": "e4157e33cddac2b1c09b8dccdbc2832c9857dc3649b7b36fa70aa6322774f325",
-      "updated": "2026-11-02",
+      "sha256": "135f45130f2ba491824a4c979749a8583823b51eb2fad3fa76aa1bcd80a38f9f",
+      "updated": "2026-11-22",
       "series": "net-drills"
     },
     {
@@ -239,15 +239,15 @@
       "download_as": "trouble-tickets.html",
       "icon": "wrench",
       "category": "cyber",
-      "sha256": "908760478d4455938f141acafb1df3c0e7ba1669141dd593fb96e10bebba4c93",
-      "updated": "2026-11-04",
+      "sha256": "d769c47e6fbec4a9833dbc73f4be216c0880ff89a2228af2f34896755806f0cd",
+      "updated": "2026-11-22",
       "series": "net-drills"
     },
     {
       "slug": "lockdown-drills/windows-11",
       "name": "Windows 11 Lockdown",
       "tagline": "Lock down the workstation.",
-      "description": "Windows 11 baseline hardening in three levels: beginner, intermediate, and advanced. A command reference explains why each step matters.",
+      "description": "Windows 11 baseline hardening in three levels: Doorman, Watchman, and Hunter. A command reference explains why each step matters.",
       "badges": [
         "Windows",
         "Hardening",
@@ -266,14 +266,14 @@
           "download_as": "windows-11-lockdown-reference.txt"
         }
       ],
-      "sha256": "aac1eea31b6bb59c7b99ca2c223f4d59e460033c0a0d6001ecbc198bdda399e7",
-      "updated": "2026-11-09"
+      "sha256": "9c32042e0b0b83dc21c7f41402459944f94fbc34dad34e388fa6055a2b0cbdb8",
+      "updated": "2026-11-22"
     },
     {
       "slug": "lockdown-drills/windows-server",
       "name": "Windows Server Lockdown",
       "tagline": "Lock down the server.",
-      "description": "Windows Server baseline hardening in three levels: beginner, intermediate, and advanced. A command reference explains why each step matters.",
+      "description": "Windows Server baseline hardening in three levels: Doorman, Watchman, and Hunter. A command reference explains why each step matters.",
       "badges": [
         "Windows Server",
         "Hardening",
@@ -292,14 +292,14 @@
           "download_as": "windows-server-lockdown-reference.txt"
         }
       ],
-      "sha256": "13a1dd8b167081b72b23ed5f5480e147efaf619c450af9270c04f09708efb305",
-      "updated": "2026-11-09"
+      "sha256": "3cf2cb8e11ac080c8e388a49bc0ef33824f8cdebb622b35ee61419179eb3ffdf",
+      "updated": "2026-11-22"
     },
     {
       "slug": "lockdown-drills/linux-mint",
       "name": "Linux Mint Lockdown",
       "tagline": "Lock down the desktop.",
-      "description": "Linux Mint baseline hardening in three levels: beginner, intermediate, and advanced. A command reference explains why each step matters.",
+      "description": "Linux Mint baseline hardening in three levels: Doorman, Watchman, and Hunter. A command reference explains why each step matters.",
       "badges": [
         "Linux",
         "Hardening",
@@ -318,14 +318,14 @@
           "download_as": "linux-mint-lockdown-reference.txt"
         }
       ],
-      "sha256": "00515774f239278529bebed61aa195d3440384d6221e40a18fe931b1e46c4741",
-      "updated": "2026-11-09"
+      "sha256": "7f1ed2a2a3a62f277431dcffb0926107a0f89e771c337b4024f56dad46acccee",
+      "updated": "2026-11-22"
     },
     {
       "slug": "lockdown-drills/ubuntu",
       "name": "Ubuntu Lockdown",
       "tagline": "Lock down Ubuntu.",
-      "description": "Ubuntu baseline hardening in three levels: beginner, intermediate, and advanced. A command reference explains why each step matters.",
+      "description": "Ubuntu baseline hardening in three levels: Doorman, Watchman, and Hunter. A command reference explains why each step matters.",
       "badges": [
         "Linux",
         "Hardening",
@@ -344,14 +344,14 @@
           "download_as": "ubuntu-lockdown-reference.txt"
         }
       ],
-      "sha256": "3b9e0c5fd95fb6f49e37c42f8e9cb479076fdaef746295fbdcbd825684318a61",
-      "updated": "2026-11-09"
+      "sha256": "0b67e5b64b497edf2a0fe3bd5e00129feaba7c63c306e4296164f68ab3820956",
+      "updated": "2026-11-22"
     },
     {
       "slug": "lockdown-drills/freebsd",
       "name": "FreeBSD Lockdown",
       "tagline": "Lock down FreeBSD.",
-      "description": "FreeBSD baseline hardening in three levels: beginner, intermediate, and advanced. A command reference explains why each step matters.",
+      "description": "FreeBSD baseline hardening in three levels: Doorman, Watchman, and Hunter. A command reference explains why each step matters.",
       "badges": [
         "FreeBSD",
         "Hardening",
@@ -370,14 +370,14 @@
           "download_as": "freebsd-lockdown-reference.txt"
         }
       ],
-      "sha256": "b2348f9b1a8e389865f49b62d060db9d18f08964f9e1fe901c976ec1dae6b7ba",
-      "updated": "2026-11-04"
+      "sha256": "60e36a80ac9f17ba75ce085199687761a764dd182a827ba124adac24a1ed59dc",
+      "updated": "2026-11-22"
     },
     {
       "slug": "lockdown-drills/cisco-ios",
       "name": "Cisco IOS Lockdown",
       "tagline": "Lock down the router.",
-      "description": "Cisco IOS baseline hardening in three levels: beginner, intermediate, and advanced. A command reference explains why each step matters.",
+      "description": "Cisco IOS baseline hardening in three levels: Doorman, Watchman, and Hunter. A command reference explains why each step matters.",
       "badges": [
         "Cisco IOS",
         "Hardening",
@@ -389,8 +389,8 @@
       "icon": "lock",
       "category": "cyber",
       "series": "lockdown-drills",
-      "sha256": "335a064fa375a79f977ce14362e17d20c262943b61d0a2b599551b05fdb0e019",
-      "updated": "2026-11-04",
+      "sha256": "ba671f2b72ca855f867a8d5178912b9f31759e3f5b75d9ba2dce79ab4af1b16b",
+      "updated": "2026-11-22",
       "extras": [
         {
           "label": "Reference .txt",
@@ -422,8 +422,8 @@
           "download_as": "windows-range-walkthrough.txt"
         }
       ],
-      "sha256": "42a5502ffffb54a8fd74063fdad8c4aaa067cc79109584e4a45c49aea925fe21",
-      "updated": "2026-11-09"
+      "sha256": "6943808d6865cf6c4c30ea4fb3fb3ac58d29160afc32ac2c922e83ea8e9f89a5",
+      "updated": "2026-11-22"
     },
     {
       "slug": "lockdown-range/linux",
@@ -448,8 +448,8 @@
           "download_as": "linux-range-walkthrough.txt"
         }
       ],
-      "sha256": "c2b805ac6032bf77611d3dae4e8eafcac038edd51a405f31dfae79a563781fa4",
-      "updated": "2026-11-09"
+      "sha256": "4a2e9344922726903489b4a97fc595c1f05bcde82083495bd6797fdbcc1f0a79",
+      "updated": "2026-11-22"
     },
     {
       "slug": "lockdown-range/cisco-ios",
@@ -474,18 +474,18 @@
           "download_as": "cisco-range-walkthrough.txt"
         }
       ],
-      "sha256": "3dc9e700d87da0b69f5c5a373bf44d6e8b717b97a6b13905ba64c490885f4a6d",
-      "updated": "2026-11-04"
+      "sha256": "94ae91f46340b0e605ff22c99a0c39b17abcda742fe071d24ffd75261a010088",
+      "updated": "2026-11-22"
     },
     {
       "slug": "study-map",
       "name": "Study Map",
       "tagline": "Every concept: find it, learn it, practice it.",
-      "description": "Every concept in the cybersecurity course in one place. Type a concept and see the Defense Ladder unit that teaches it, the drills and labs that practice it, and its commands on Windows, Linux, FreeBSD, and Cisco. Browse by topic, track, grade, network layer, or app. Rate what you know to get your own study path.",
+      "description": "Every concept in the cybersecurity course in one place. Type a concept and see the Defense Ladder unit that teaches it and the drills and labs that practice it, with a link to its commands in Command Atlas. Browse by topic, track, grade, network layer, or app. Rate what you know as Explore, Revisit, or Strong to get your own study path.",
       "badges": [
         "Cybersecurity",
         "Study",
-        "Printable",
+        "Offline",
         "Private"
       ],
       "file": "study-map/index.html",
@@ -493,8 +493,27 @@
       "icon": "map",
       "category": "cyber",
       "section": "learning",
-      "sha256": "2d1dd4dbb90fee9352381ebd9a1173c991fe24c0c1f15a5c68a0c82136f2f2c6",
-      "updated": "2026-11-09"
+      "sha256": "86c2b1c304960c56ff8ffa42289f4ca99c1201384e8d01963f92cac541c39410",
+      "updated": "2026-11-22"
+    },
+    {
+      "slug": "command-atlas",
+      "name": "Command Atlas",
+      "tagline": "Every command in the course: what it does and where you use it.",
+      "description": "Every command in the cybersecurity course on Windows, Linux, FreeBSD, and Cisco IOS in one place. Type a command or a task to see what it does, its options and arguments, every lesson, drill, and lab that uses it, the expected answers behind a reveal, and its vendor documentation.",
+      "badges": [
+        "Cybersecurity",
+        "Study",
+        "Offline",
+        "Private"
+      ],
+      "file": "command-atlas/index.html",
+      "download_as": "command-atlas.html",
+      "icon": "terminal",
+      "category": "cyber",
+      "section": "learning",
+      "sha256": "39c89088855554330f5e3140882a73472a5dfdee296a834707f70b1165fd25b7",
+      "updated": "2026-11-22"
     },
     {
       "slug": "cyber-pug",
@@ -512,16 +531,16 @@
       "icon": "terminal",
       "category": "cyber",
       "section": "learning",
-      "sha256": "d76abcb09133e6a3a7830b7d7ae9de8133c7bdfeaf86c502860335fa5c4439a7",
-      "updated": "2026-11-18",
+      "sha256": "9fd054feded36aec5690d3c53d65d0c443ba98a328b3f3d2af4882bee37770e9",
+      "updated": "2026-11-22",
       "download_note": "Open with photo reading (about 12 MB) also turns a photo or a screenshot of a terminal into text, right on your device. Both editions keep the same save on this site. Each download is the full page.",
       "extras": [
         {
           "label": "Download with photo reading",
           "file": "cyber-pug/cyber-pug-photo.html",
           "download_as": "cyber-pug-photo.html",
-          "sha256": "ba0325ec18aade6756e1ddb05390f951c6aa431ceb171bc84666a460d017c987",
-          "updated": "2026-11-18",
+          "sha256": "7de85e02cfe8a279c6ceec809e041cf5d6849566936409dc774d71d66ea0b565",
+          "updated": "2026-11-22",
           "open_label": "Open with photo reading"
         }
       ]

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-tD4YSqG9CCDMSnloEriUA2jvePsS+tnGNL++dCDu/SA='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-SkhQrXEB3fwV5tVL23ha/K1eI0JwmeYgEZ2b0PWNYpw='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/lockdown-range/windows/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%96%A5%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -90,6 +90,21 @@ footer button{min-height:32px;padding:4px 14px;border-radius:8px;border:1px soli
 .report li{padding:6px 8px;border-radius:8px;margin-bottom:4px;display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
 .report li.earned{background:var(--okbg);color:var(--ok)}
 .report li.avail-fail{background:var(--badbg);color:var(--bad)}
+/* availability must-fix flags (Progress Check, Finish waits) and the Debrief's availability section */
+ul.mustfix{list-style:none;margin:0 0 10px;padding:0}
+ul.mustfix li{padding:6px 8px;border-radius:8px;margin-bottom:4px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:4px 8px;background:var(--badbg);color:var(--bad);border-left:4px solid var(--bad)}
+ul.mustfix li .af-t{font-weight:700;flex:1 1 180px;min-width:0;overflow-wrap:anywhere}
+ul.mustfix li .pts{white-space:nowrap;font-weight:700;text-transform:uppercase;font-size:.72rem;letter-spacing:.04em}
+ul.mustfix li .restore{flex-basis:100%;color:var(--ink);font-size:.86rem;overflow-wrap:anywhere}
+.report h3.mustfix-h{color:var(--bad)}
+.report .mustfix-note{color:var(--bad);margin-top:0}
+.dbr-avail{margin:8px 0 12px}
+.dbr-avail h3{font-size:.98rem;margin:0 0 4px}
+.dbr-avail p{margin:4px 0}
+.dbr-avail ul{margin:4px 0 0;padding-left:1.1rem}
+.dbr-avail li{margin:3px 0;overflow-wrap:anywhere}
+.rate-strong{color:var(--ok)}
+.rate-revisit{color:var(--warn)}
 .report li.todo{background:var(--soft);color:var(--muted);flex-wrap:wrap}
 .report li .pts{white-space:nowrap;font-weight:700;font-variant-numeric:tabular-nums}
 .report li .hint-btn{font-size:.8rem;min-height:28px;padding:2px 8px;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
@@ -107,7 +122,7 @@ footer button{min-height:32px;padding:4px 14px;border-radius:8px;border:1px soli
 
 /* page-level modal (debrief / help / reset confirm) */
 .modal{position:fixed;inset:0;z-index:100;background:rgba(10,16,24,.55);display:flex;align-items:center;justify-content:center;padding:16px}
-.modal .card{background:var(--panel);color:var(--ink);border-radius:14px;max-width:900px;width:100%;max-height:92vh;overflow:auto;padding:18px 20px;border:1px solid var(--line);box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.modal .card{display:block;background:var(--panel);color:var(--ink);border-radius:14px;max-width:900px;width:100%;max-height:92vh;overflow:auto;padding:18px 20px;border:1px solid var(--line);box-shadow:0 20px 60px rgba(0,0,0,.4)}
 .modal h2{margin:0 0 8px}
 .modal .card p{margin:6px 0}
 .modal table{width:100%;border-collapse:collapse;font-size:.9rem}
@@ -612,7 +627,7 @@ table.lv .dim{color:#888}
   </aside>
 </div>
 <footer>
-  <span>Defensive practice only: this is a facsimile of Windows. Nothing on your real computer is changed, and no attacks are simulated. Unofficial practice; not affiliated with or endorsed by Microsoft.</span>
+  <span>Defensive practice only: this is a facsimile of Windows. Nothing on your real computer is changed, and no attacks are simulated. Unofficial training, independent of and unendorsed by the makers of the systems it names.</span>
   <button type="button" id="reset">Reset lab</button>
 </footer>
 <div class="modal" id="page-modal" hidden></div>
@@ -4447,6 +4462,17 @@ const CMDS = {
     }
     if (sub === 'share') {
       if (!r.length) return { text: '\nShare name   Resource                        Remark\n\n-------------------------------------------------------------------------------\n' + shareList().map(x => (padR(x.name, 13) + padR(x.path, 32) + x.remark).replace(/\s+$/, '')).join('\n') + '\n' + okMsg };
+      // net share NAME=PATH [/REMARK:"text"]: shares a folder (the way back after deleting a required share)
+      const mk = /^([^=\s]+)=(.+)$/.exec(r[0] || '');
+      if (mk) {
+        if (needAdmin(ctx)) return { text: NET_DENIED, cls: 'err' };
+        const path = mk[2].replace(/^"|"$/g, '').replace(/\//g, '\\').replace(/\\+$/, '');
+        if (shareList().some(x => sameName(x.name, mk[1]))) return { text: 'System error 2118 has occurred.\n\nThe name has already been shared.', cls: 'err' };
+        if (!fsIsDir(path)) return { text: 'System error 2 has occurred.\n\nThe system cannot find the file specified.', cls: 'err' };
+        const rm = r.slice(1).map(o => /^\/remark:(.*)$/i.exec(o)).find(Boolean);
+        mutate(s => { s.shares = shareList().concat([{ name: mk[1], path: fsGet(path).p, remark: rm ? rm[1].replace(/^"|"$/g, '') : '' }]); });
+        return { text: mk[1] + ' was shared successfully.\n' };
+      }
       const name = r[0]; const sh = shareList().find(x => sameName(x.name, name));
       const missing = { text: 'This shared resource does not exist.\n\nMore help is available by typing NET HELPMSG 2310.', cls: 'err' };
       if (r.slice(1).some(o => /^\/del(ete)?$/i.test(o))) {
@@ -4855,6 +4881,16 @@ const PS_CMDS = {
     }
     if (!list.length) return null;
     return { objs: list.sort((x, y) => x.name.localeCompare(y.name, 'en', { sensitivity: 'base' })).map(x => ({ Name: x.name, ScopeName: '*', Path: x.path, Description: x.remark, Special: x.special ? 'True' : 'False' })), cols: ['Name', 'ScopeName', 'Path', 'Description'] };
+  },
+  // New-SmbShare -Name NAME -Path PATH [-Description TEXT]: shares a folder and prints the new share
+  'new-smbshare': (ctx, a, seg) => {
+    const p = psParams(a); const name = String(p.name != null && p.name !== true ? p.name : p._[0] || ''), path = String(p.path != null && p.path !== true ? p.path : p._[1] || '').replace(/\//g, '\\').replace(/\\+$/, '');
+    if (!ctx.admin) return psError('New-SmbShare', 'Access is denied.', seg, 'PermissionDenied', 'MSFT_SMBShare', 'Windows System Error 5');
+    if (shareList().some(x => sameName(x.name, name))) return psError('New-SmbShare', 'The name has already been shared.', seg, 'NotSpecified', 'MSFT_SMBShare', 'Windows System Error 2118');
+    if (!fsIsDir(path)) return psError('New-SmbShare', 'The system cannot find the file specified.', seg, 'ObjectNotFound', 'MSFT_SMBShare', 'Windows System Error 2');
+    const sh = { name: name, path: fsGet(path).p, remark: p.description != null && p.description !== true ? String(p.description) : '' };
+    mutate(s => { s.shares = shareList().concat([sh]); });
+    return { objs: [{ Name: sh.name, ScopeName: '*', Path: sh.path, Description: sh.remark }], cols: ['Name', 'ScopeName', 'Path', 'Description'] };
   },
   'remove-smbshare': (ctx, a, seg) => {
     const p = psParams(a); const name = String(p.name != null && p.name !== true ? p.name : p._[0] || '');
@@ -6179,6 +6215,7 @@ const PS_SIG = {
   'export-scheduledtask': 'TaskName:S,TaskPath:S|TaskName,TaskPath||',
   'get-smbshare': 'Name:S[],ScopeName:S[]|Name,ScopeName||',
   'remove-smbshare': 'Name:S[],ScopeName:S[]|Name,ScopeName|Name,InputObject|Force',
+  'new-smbshare': 'Name:S,Path:S,ScopeName:S,Description:S,FullAccess:S[],ChangeAccess:S[],ReadAccess:S[],NoAccess:S[]|Name,Path|Name,Path|',
   'get-smbshareaccess': 'Name:S[],ScopeName:S[]|Name,ScopeName|Name,InputObject|',
   'grant-smbshareaccess': 'Name:S[],ScopeName:S[],AccountName:S[],AccessRight:Microsoft.PowerShell.Cmdletization.GeneratedTypes.SmbShare.ShareAccessRight|Name,ScopeName|Name,InputObject|Force',
   'revoke-smbshareaccess': 'Name:S[],ScopeName:S[],AccountName:S[]|Name,ScopeName|Name,InputObject|Force',
@@ -6874,10 +6911,10 @@ Object.assign(PS_CMDS, {
 Object.assign(PIPE_BIND, { 'remove-appxpackage': 'PackageFullName', 'set-netfirewallrule': 'Name', 'set-localuser': 'Name', 'export-scheduledtask': 'TaskName' });
 // -InputObject takes a service name too (PowerShell converts the text to a service)
 ['stop-service', 'start-service', 'restart-service'].forEach(n => { const f = PS_CMDS[n]; PS_CMDS[n] = (ctx, a, seg) => f(ctx, a.map(x => /^-inputobject$/i.test(x) ? '-Name' : x), seg); });
-['Set-NetFirewallRule', 'Export-ScheduledTask', 'Get-SmbShareAccess', 'Grant-SmbShareAccess', 'Revoke-SmbShareAccess', 'Backup-BitLockerKeyProtector', 'BackupToAAD-BitLockerKeyProtector'].forEach(n => { CMDLET_FQ[n] = n; });
+['Set-NetFirewallRule', 'Export-ScheduledTask', 'New-SmbShare', 'Get-SmbShareAccess', 'Grant-SmbShareAccess', 'Revoke-SmbShareAccess', 'Backup-BitLockerKeyProtector', 'BackupToAAD-BitLockerKeyProtector'].forEach(n => { CMDLET_FQ[n] = n; });
 ['Get', 'Add', 'Remove'].forEach((v, i) => { CMDLET_FQ[['Get', 'Install', 'Uninstall'][i] + '-WindowsFeature'] = 'Microsoft.Windows.ServerManager.Commands.' + v + 'WindowsFeatureCommand'; });
 CMD_NAMES.push('findstr', 'tar', 'powercfg', 'runas', 'ssh', 'winrm');
-PS_NAMES.push('Set-NetFirewallRule', 'Get-Acl', 'Get-AppxPackage', 'Remove-AppxPackage', 'Export-ScheduledTask', 'Get-SmbShareAccess', 'Grant-SmbShareAccess', 'Revoke-SmbShareAccess', 'Import-Module', 'Update-Help', 'Read-Host', 'Backup-BitLockerKeyProtector', 'BackupToAAD-BitLockerKeyProtector', 'Remove-WindowsCapability', 'Add-WindowsCapability', 'ForEach-Object', 'Out-Null', 'New-Object', 'Get-LapsADPassword');
+PS_NAMES.push('Set-NetFirewallRule', 'New-SmbShare', 'Get-Acl', 'Get-AppxPackage', 'Remove-AppxPackage', 'Export-ScheduledTask', 'Get-SmbShareAccess', 'Grant-SmbShareAccess', 'Revoke-SmbShareAccess', 'Import-Module', 'Update-Help', 'Read-Host', 'Backup-BitLockerKeyProtector', 'BackupToAAD-BitLockerKeyProtector', 'Remove-WindowsCapability', 'Add-WindowsCapability', 'ForEach-Object', 'Out-Null', 'New-Object', 'Get-LapsADPassword');
 
 /* ===== 76-cmds-sysinternals: the command-line Sysinternals tools the course teaches, run against the machine state =====
    sigcheck (signatures), autorunsc (auto-start entries), accesschk (permissions), streams (alternate data streams),
@@ -7094,7 +7131,7 @@ function answerOk(path, answers) {
 function briefText(sc) {
   const r = sc.brief; const wrap = s => s.replace(/(.{1,76})(\s+|$)/g, '$1\r\n');
   const li = a => a.map(x => '  - ' + x.replace(/(.{1,72})(\s+|$)/g, '$1\r\n    ').replace(/\s+$/, '')).join('\r\n');
-  return ['SCENARIO BRIEF - Lockdown Range: Windows', '='.repeat(60), '', 'Organization: ' + r.company, '', wrap(r.blurb), 'AUTHORIZED ADMINISTRATORS', li(r.admins), '', 'AUTHORIZED USERS', li(r.users), '', 'REQUIRED SERVICES AND SETTINGS (keep these available)', li(r.services), '', 'SECURITY POLICY', li(r.policy), '', 'Security includes availability: do not remove or disable authorized users,', 'administrators or required services. Breaking something the business relies', 'on fails an availability check and costs points.', '', 'Start with the investigation questions on the Desktop (open each .txt in', 'Notepad, type the answer after ANSWER: and press Ctrl+S). Then harden the', 'machine. The Progress Check beside the screen updates as you work.', ''].join('\r\n');
+  return ['SCENARIO BRIEF - Lockdown Range: Windows', '='.repeat(60), '', 'Organization: ' + r.company, '', wrap(r.blurb), 'AUTHORIZED ADMINISTRATORS', li(r.admins), '', 'AUTHORIZED USERS', li(r.users), '', 'REQUIRED SERVICES AND SETTINGS (keep these available)', li(r.services), '', 'SECURITY POLICY', li(r.policy), '', 'Security includes availability: keep authorized users, administrators, and', 'required services working. Breaking something the business relies on is an', 'outage: the Progress Check flags it in red with its restore step, and Finish', 'waits until it works again.', '', 'Start with the investigation questions on the Desktop (open each .txt in', 'Notepad, type the answer after ANSWER: and press Ctrl+S). Then harden the', 'machine. The Progress Check beside the screen updates as you work.', ''].join('\r\n');
 }
 /* ---------- base machine ---------- */
 function baseState(sc) {
@@ -7209,18 +7246,20 @@ const CK = {
   folderAcl: (path, who, user, pts) => ({ id: 'acl-' + path.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + who.toLowerCase(), title: who + ' removed from the NTFS permissions on ' + path, pts, cat: AREA.access, test: s => !!s.fs[fsKey(path)] && !aclOf(path).some(x => x.who === who), hint: 'icacls ' + path + ' lists the folder\'s permissions: ' + who + ' has (F), full control. Entries marked (I) come from the parent folder. File Explorer > the folder > Properties lists the same entries. Remove ' + who + ', then give the ' + user + ' account Modify: icacls "' + path + '" /remove ' + who + ', then icacls "' + path + '" /grant "' + user + ':(OI)(CI)M"', fix: 'icacls "' + path + '" /remove ' + who + ', then icacls "' + path + '" /grant "' + user + ':(OI)(CI)M"', why: 'Full control for ' + who + ' lets any account read, change, or delete these records and even rewrite who may open them. Grant access to the people the brief names.', learn: [LEARN.drill('A-07', 'NTFS permissions'), LEARN.dl('sophomore', 's2', 'Windows 11 hardening')] }),
   answer: (n, answers, pts) => ({ id: 'investigation-' + n, title: 'Investigation ' + n + ' answered', pts, cat: AREA.inv, investigation: true, test: s => answerOk('C:\\Users\\' + CUR.login.user + '\\Desktop\\Investigation ' + n + '.txt', answers), hint: 'Open "Investigation ' + n + '.txt" on the Desktop, put the answer after ANSWER: and press Ctrl+S.', fix: 'Answer: ' + answers[0], why: 'Investigating first makes you read the machine before you change it.' })
 };
-/* ---------- availability checks: harm to what the Scenario Brief says the business needs ---------- */
+/* ---------- availability checks: harm to what the Scenario Brief says the business needs ----------
+   A failed one is a must-fix flag: the points stay, the Progress Check names it in red with its restore step, and
+   Finish waits until it works again. which(s) names the broken items; restore is the way back. */
 const AVAIL = {
-  users: (names, pts) => ({ id: 'avail-user', title: 'Authorized user removed or disabled', pts, test: s => names.some(n => { const u = userByName(n); return !u || !u.enabled; }), why: 'The Scenario Brief lists these people as authorized; they need their accounts to work.' }),
-  admins: (names, pts) => ({ id: 'avail-admin', title: 'Authorized administrator removed from Administrators', pts, test: s => names.some(n => !userByName(n) || !isAdmin(n)), why: 'The administrators named in the Scenario Brief must keep their rights.' }),
-  self: pts => ({ id: 'avail-self', title: 'Your own account deleted, disabled, or locked out', pts, test: s => { const u = userByName(CUR.login.user); return !u || !u.enabled || u.lockedOut; }, why: 'Lock yourself out and the next sign-in fails.' }),
-  svc: (name, label, pts) => ({ id: 'avail-svc-' + name, title: 'Required service "' + label + '" stopped or disabled', pts, test: s => { const v = s.services[name]; return !v || v.status !== 'Running' || v.start === 'Disabled'; }, why: 'The Scenario Brief calls this service required.' }),
-  wu: pts => ({ id: 'avail-wu', title: 'Windows Update service disabled', pts, test: s => !s.services.wuauserv || s.services.wuauserv.start === 'Disabled', why: 'Disabling Windows Update stops every future security fix.' }),
-  rdpReq: pts => ({ id: 'avail-rdp', title: 'Remote Desktop disabled on a server that requires it', pts, test: s => !rdpEffective() || !(s.services.TermService && s.services.TermService.status === 'Running'), why: 'Administrators manage this server over RDP.' }),
-  web: pts => ({ id: 'avail-web', title: 'Web server (IIS) stopped, removed, or blocked by the firewall', pts, test: s => !featOn('IIS-WebServer') || !(s.services.W3SVC && s.services.W3SVC.status === 'Running') || !(ruleByName('World Wide Web Services (HTTP Traffic-In)') && ruleByName('World Wide Web Services (HTTP Traffic-In)').enabled), why: 'The company portal must stay reachable on port 80.' }),
-  shares: (names, pts) => ({ id: 'avail-share', title: 'Required file share removed (' + names.join(', ') + ')', pts, test: s => names.some(n => !(s.shares || defaultShares(s.edition)).some(x => sameName(x.name, n))), why: 'The Scenario Brief says the office works from these shares.' }),
+  users: names => ({ id: 'avail-user', title: 'Authorized user removed or disabled', need: 'Authorized users can sign in', which: s => names.filter(n => { const u = userByName(n); return !u || !u.enabled; }).join(', '), test: s => names.some(n => { const u = userByName(n); return !u || !u.enabled; }), why: 'The Scenario Brief lists these people as authorized; they need their accounts to work.', restore: 'Turn the account back on: net user NAME /active:yes, or lusrmgr.msc > Users > NAME > clear "Account is disabled". A deleted account comes back with net user NAME <password> /add (a password that meets the policy); then add it to its groups again.' }),
+  admins: names => ({ id: 'avail-admin', title: 'Authorized administrator removed from Administrators', need: 'Authorized administrators keep their rights', which: s => names.filter(n => !userByName(n) || !isAdmin(n)).join(', '), test: s => names.some(n => !userByName(n) || !isAdmin(n)), why: 'The administrators named in the Scenario Brief must keep their rights.', restore: 'Put the administrator back: net localgroup Administrators NAME /add, or lusrmgr.msc > Groups > Administrators > Add. Bring back a deleted account first.' }),
+  self: () => ({ id: 'avail-self', title: 'Your own account deleted, disabled, or locked out', need: 'Your own account works', test: s => { const u = userByName(CUR.login.user); return !u || !u.enabled || u.lockedOut; }, why: 'Lock yourself out and the next sign-in fails.', restore: 'While you are still signed in: net user labuser /active:yes, or lusrmgr.msc > Users > labuser > clear "Account is disabled" and "Account is locked out". A deleted account comes back with net user labuser <password> /add and net localgroup Administrators labuser /add. Once the sign-in fails, Reset lab is the way back.' }),
+  svc: (name, label) => ({ id: 'avail-svc-' + name, title: 'Required service "' + label + '" stopped or disabled', need: 'Required service "' + label + '" keeps running', test: s => { const v = s.services[name]; return !v || v.status !== 'Running' || v.start === 'Disabled'; }, why: 'The Scenario Brief calls this service required.', restore: 'Set it back to Automatic and start it: sc.exe config ' + name + ' start= auto, then sc.exe start ' + name + ' (or services.msc > ' + label + ' > Startup type: Automatic > Start).' }),
+  wu: () => ({ id: 'avail-wu', title: 'Windows Update service disabled', need: 'Windows Update can install updates', test: s => !s.services.wuauserv || s.services.wuauserv.start === 'Disabled', why: 'Disabling Windows Update stops every future security fix.', restore: 'Set Windows Update back to Manual: sc.exe config wuauserv start= demand (or services.msc > Windows Update > Startup type: Manual).' }),
+  rdpReq: () => ({ id: 'avail-rdp', title: 'Remote Desktop disabled on a server that requires it', need: 'Remote Desktop stays on for the administrators', test: s => !rdpEffective() || !(s.services.TermService && s.services.TermService.status === 'Running'), why: 'Administrators manage this server over RDP.', restore: 'Turn Remote Desktop back on: SystemPropertiesRemote > Allow remote connections to this computer, or reg add "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f. Set any Remote Desktop policy you changed in gpedit.msc back to Not Configured, and start Remote Desktop Services: sc.exe start TermService.' }),
+  web: () => ({ id: 'avail-web', title: 'Web server (IIS) stopped, removed, or blocked by the firewall', need: 'The company portal (IIS) stays reachable on port 80', test: s => !featOn('IIS-WebServer') || !(s.services.W3SVC && s.services.W3SVC.status === 'Running') || !(ruleByName('World Wide Web Services (HTTP Traffic-In)') && ruleByName('World Wide Web Services (HTTP Traffic-In)').enabled), why: 'The company portal must stay reachable on port 80.', restore: 'Bring the portal back: turn Internet Information Services back on in optionalfeatures, start the web service (sc.exe start W3SVC), and turn its firewall rule back on: netsh advfirewall firewall set rule name="World Wide Web Services (HTTP Traffic-In)" new enable=yes.' }),
+  shares: names => ({ id: 'avail-share', title: 'Required file share removed (' + names.join(', ') + ')', need: 'Required file shares stay shared (' + names.join(', ') + ')', which: s => names.filter(n => !(s.shares || defaultShares(s.edition)).some(x => sameName(x.name, n))).join(', '), test: s => names.some(n => !(s.shares || defaultShares(s.edition)).some(x => sameName(x.name, n))), why: 'The Scenario Brief says the office works from these shares.', restore: 'Share the folder again: ' + names.map(n => 'net share ' + n + '=C:\\Shares\\' + n).join(' or ') + ' (in PowerShell: New-SmbShare -Name ' + names[0] + ' -Path C:\\Shares\\' + names[0] + ').' }),
   // the account still reads the folder: an entry for it, one of its groups, Everyone, or Authenticated Users (inherit-only entries leave the folder itself out)
-  folderAccess: (path, user, pts) => ({ id: 'avail-acl-' + user, title: user + ' lost Modify access to ' + path, pts, test: s => { const u = userByName(user); if (!u || !s.fs[fsKey(path)]) return false; const mine = [hostnameUpper() + '\\' + u.name, 'Everyone', 'NT AUTHORITY\\Authenticated Users'].concat(userGroups(u.name).map(g => 'BUILTIN\\' + g)); return !aclOf(path).some(x => mine.includes(x.who) && !/\(IO\)/.test(x.fl) && x.perm.split(',').some(r => r === 'F' || r === 'M')); }, why: 'The Scenario Brief says the HR clerk keeps Modify on this folder to update the records. Removing Everyone must leave that person Modify, through an entry of their own or one of their groups.' })
+  folderAccess: (path, user) => ({ id: 'avail-acl-' + user, title: user + ' lost Modify access to ' + path, need: user + ' keeps Modify access to ' + path, test: s => { const u = userByName(user); if (!u || !s.fs[fsKey(path)]) return false; const mine = [hostnameUpper() + '\\' + u.name, 'Everyone', 'NT AUTHORITY\\Authenticated Users'].concat(userGroups(u.name).map(g => 'BUILTIN\\' + g)); return !aclOf(path).some(x => mine.includes(x.who) && !/\(IO\)/.test(x.fl) && x.perm.split(',').some(r => r === 'F' || r === 'M')); }, why: 'The Scenario Brief says the HR clerk keeps Modify on this folder to update the records. Removing Everyone must leave that person Modify, through an entry of their own or one of their groups.', restore: 'Give ' + user + ' Modify again: icacls "' + path + '" /grant "' + user + ':(OI)(CI)M" (or the folder\'s Properties > Security > Edit > Add).' })
 };
 /* ---------- the scenarios ---------- */
 const SCENARIOS = [
@@ -7274,7 +7313,7 @@ const SCENARIOS = [
       st.procs = [{ name: 'wsh.exe', pid: 6124, mem: '18,440 K', planted: true, cmd: 'C:\\Users\\Public\\Libraries\\wsh.exe -q' }];
     },
     checks: [CK.userGone('dwight', 5), CK.userGone('techsupport', 5), CK.demote('moana', 5), CK.guest(5), CK.noNeverExpires('kekoa', 3), CK.minLen(6, 10), CK.complexity(5), CK.lockout(5), CK.audit('LogonEvents', 'Audit logon events', 5), CK.firewall(5), CK.defender(6), CK.updates(5), CK.svcOff('RemoteRegistry', 'Remote Registry', 4), CK.taskGone('SystemUpdaterSvc', 5), CK.svcGone('WinSysHelper', 'Windows System Helper', 4), CK.programs(['TorrentBolt 3.1', 'GameLoop Arcade', 'PortProbe Toolkit'], 5), CK.media(5), CK.answer(1, ['SystemUpdaterSvc'], 5), CK.answer(2, ['kekoa'], 5), CK.answer(3, ['dwight'], 4), CK.answer(4, ['NotSigned', 'not signed'], 3)],
-    availability: [AVAIL.users(['nalani', 'kekoa', 'ailani', 'moana', 'leilani'], -6), AVAIL.admins(['nalani'], -5), AVAIL.self(-10), AVAIL.svc('mpssvc', 'Windows Defender Firewall', -5), AVAIL.svc('WinDefend', 'Microsoft Defender Antivirus', -5), AVAIL.wu(-5)]
+    availability: [AVAIL.users(['nalani', 'kekoa', 'ailani', 'moana', 'leilani']), AVAIL.admins(['nalani']), AVAIL.self(), AVAIL.svc('mpssvc', 'Windows Defender Firewall'), AVAIL.svc('WinDefend', 'Microsoft Defender Antivirus'), AVAIL.wu()]
   },
   {
     id: 'operator', level: 2, rev: 3, name: 'Operator', title: 'Hale Kula Robotics Lab — station 4', edition: 'win11', hostname: 'HKROBOTICS-04', ip: '10.20.7.14',
@@ -7338,7 +7377,7 @@ const SCENARIOS = [
       st.procs = [{ name: 'csweep.exe', pid: 7340, mem: '412,118 K', planted: true, user: 'hiro', cmd: 'C:\\Users\\Public\\Libraries\\csweep.exe --threads 8 --pool stratum+tcp://pool.example:3333' }, { name: 'rhelper.exe', pid: 7356, mem: '9,212 K', port: 4444, planted: true, user: 'hiro', cmd: 'C:\\Users\\Public\\Libraries\\rhelper.exe -l 4444' }];
     },
     checks: [CK.userGone('svc_backup', 4), CK.demote('hiro', 4), CK.blankPw('pua', 4), CK.guest(3), CK.minLen(3, 10), CK.complexity(3), CK.history(3), CK.maxAge(2), CK.minAge(2), CK.lockout(3), CK.audit('LogonEvents', 'Audit logon events', 3), CK.audit('AccountManagement', 'Audit account management', 3), CK.lastUser(2), CK.cad(2), CK.blankConsole(2), CK.uac(3), CK.firewall(3), CK.rogueRule('Remote Helper (TCP-In)', 3), CK.share('Tools$', 'C:\\Users\\Public\\Libraries', 3), CK.defender(3), CK.autorun(2), CK.updates(3), CK.svcOff('RemoteRegistry', 'Remote Registry', 3), CK.rdpOff(3), CK.remoteAssist(2), CK.feature('TelnetClient', 'Telnet Client', 2), CK.feature('SMB1Protocol', 'SMB 1.0/CIFS File Sharing Support', 3), CK.programs(['CoinSweeper Miner', 'TorrentBolt 3.1', 'PortProbe Toolkit', 'ArcadeLoop'], 3), CK.media(3), CK.taskGone('DriverCleanupSvc', 4), CK.startupLnk('C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\StartUp', 'RobotSync.lnk', 3), CK.answer(1, ['pua'], 4), CK.answer(2, ['4444'], 4), CK.answer(3, [DC_SHA.slice(0, 8), DC_SHA], 3)],
-    availability: [AVAIL.users(['coachk', 'tavita', 'hiro', 'pua', 'mele', 'keahi'], -6), AVAIL.admins(['coachk'], -5), AVAIL.self(-10), AVAIL.svc('mpssvc', 'Windows Defender Firewall', -5), AVAIL.svc('WinDefend', 'Microsoft Defender Antivirus', -5), AVAIL.wu(-5)]
+    availability: [AVAIL.users(['coachk', 'tavita', 'hiro', 'pua', 'mele', 'keahi']), AVAIL.admins(['coachk']), AVAIL.self(), AVAIL.svc('mpssvc', 'Windows Defender Firewall'), AVAIL.svc('WinDefend', 'Microsoft Defender Antivirus'), AVAIL.wu()]
   },
   {
     id: 'captain', level: 3, rev: 3, name: 'Captain', title: 'Honua Logistics — portal server', edition: 'server', hostname: 'HONUA-SRV1', ip: '10.20.9.10',
@@ -7391,7 +7430,7 @@ const SCENARIOS = [
       st.acl = { 'c:\\shares\\hr': { prot: false, aces: [['Everyone', '(OI)(CI)', 'F']] } };
     },
     checks: [CK.userGone('backup_admin', 5), CK.privGroup('Backup Operators', 'hrclerk', 3), CK.noNeverExpires('dispatch2', 3), CK.guest(3), CK.minLen(3, 12), CK.complexity(3), CK.history(3), CK.maxAge(3), CK.minAge(2), CK.reversible(2), CK.lockout(3), CK.audit('LogonEvents', 'Audit logon events', 3), CK.audit('AccountManagement', 'Audit account management', 3), CK.lastUser(2), CK.lmAuth(3), CK.uac(3), CK.firewall(4), CK.rogueRule('Ops Remote Helper (TCP-In)', 3), CK.ftpGone(3), CK.feature('SMB1Protocol', 'SMB 1.0/CIFS File Sharing Support', 3), CK.feature('TelnetClient', 'Telnet Client', 2), CK.rdpNla(4), CK.defender(4), CK.exclusion('C:\\Users\\Public\\Libraries', 4), CK.updates(3), CK.taskGone('IISLogCleaner', 3), CK.svcGone('SrvHealthMon', 'Server Health Monitor', 3, [LEARN.dl('senior', 'se7', 'Windows: credentials and the domain attack surface')]), CK.programs(['PortProbe Toolkit', 'TorrentBolt 3.1'], 3), CK.savedCred('HONUA-NAS01', 'backup_admin', 2), CK.folderAcl('C:\\Shares\\HR', 'Everyone', 'hrclerk', 3), CK.answer(1, ['backup_admin'], 4), CK.answer(2, ['IISLogCleaner'], 5)],
-    availability: [AVAIL.users(['kahale', 'dispatch1', 'dispatch2', 'hrclerk', 'opsmgr', 'Administrator'], -8), AVAIL.admins(['kahale', 'Administrator'], -6), AVAIL.self(-10), AVAIL.rdpReq(-10), AVAIL.web(-10), AVAIL.shares(['HR', 'Ops'], -6), AVAIL.folderAccess('C:\\Shares\\HR', 'hrclerk', -5), AVAIL.svc('mpssvc', 'Windows Defender Firewall', -5), AVAIL.svc('WinDefend', 'Microsoft Defender Antivirus', -5), AVAIL.wu(-5)]
+    availability: [AVAIL.users(['kahale', 'dispatch1', 'dispatch2', 'hrclerk', 'opsmgr', 'Administrator']), AVAIL.admins(['kahale', 'Administrator']), AVAIL.self(), AVAIL.rdpReq(), AVAIL.web(), AVAIL.shares(['HR', 'Ops']), AVAIL.folderAccess('C:\\Shares\\HR', 'hrclerk'), AVAIL.svc('mpssvc', 'Windows Defender Firewall'), AVAIL.svc('WinDefend', 'Microsoft Defender Antivirus'), AVAIL.wu()]
   }
 ];
 SCENARIOS.forEach(sc => { const sum = sc.checks.reduce((a, c) => a + c.pts, 0); if (sum !== 100) throw new Error('scenario ' + sc.id + ' totals ' + sum + ' points'); });
@@ -7409,19 +7448,47 @@ function persistNow() {
   if (!CUR || !S) return;
   STORE.sel = CUR.id; STORE.lastSeen = Date.now();
   const rec = STORE.scen[CUR.id] || (STORE.scen[CUR.id] = { best: 0 });
-  rec.S = S; rec.best = Math.max(rec.best || 0, LAST.total || 0);
+  rec.S = S; if (!LAST.failed.length) rec.best = Math.max(rec.best || 0, LAST.total || 0);
   storage.set(STORE_KEY, STORE);
 }
 function scheduleEvaluate() { clearTimeout(EVAL_T); EVAL_T = setTimeout(evaluate, 120); }
+/* points come from checks only. A failed availability check is a must-fix flag: it holds the points where they are,
+   shows in red with its restore step, and holds Finish until it works again. S.availBroke remembers every one the
+   learner broke this attempt, so the Debrief can name the ones broken and restored. */
+/* a break holds the score: a check whose result changes in the same step that breaks a business need keeps its
+   earlier result until that need works again, so a break neither raises nor lowers the points (deleting an authorized
+   user earns none of that user's checks and costs none). S.hold keeps the held results across a reload. */
+var HOLD_MEMO = null;
+function holdResults(checks, failed, live) {
+  const keys = new Set();
+  failed.forEach(p => { const w = availWhich(p); if (w) w.split(', ').forEach(x => keys.add(p.id + ':' + x)); else keys.add(p.id); });
+  const memo = HOLD_MEMO && HOLD_MEMO.s === S ? HOLD_MEMO : null, hold = S.hold || {};
+  Object.keys(hold).forEach(id => { if (!(hold[id].by || []).some(k => keys.has(k))) delete hold[id]; });
+  const fresh = memo ? [...keys].filter(k => !memo.keys.has(k)) : [];
+  if (fresh.length) checks.forEach(c => { if (!memo.live.has(c.id) || memo.live.get(c.id) === live.get(c.id)) return; if (hold[c.id]) hold[c.id].by = hold[c.id].by.concat(fresh); else hold[c.id] = { v: memo.live.get(c.id) ? 1 : 0, by: fresh }; });
+  if (Object.keys(hold).length) S.hold = hold; else delete S.hold;
+  HOLD_MEMO = { s: S, keys, live };
+  return c => S.hold && S.hold[c.id] ? !!S.hold[c.id].v : !!live.get(c.id);
+}
+/* which(): the broken items right now; S.availBroke[id] keeps 1, or every name that broke this attempt ("kekoa, moana") */
+function availWhich(p) { let w = ''; try { w = p.which ? String(p.which(S) || '') : ''; } catch (e) { w = ''; } return w; }
+function brokeWhich(prev, p) { const w = availWhich(p); if (!w) return prev || 1; const names = typeof prev === 'string' ? prev.split(', ') : []; w.split(', ').forEach(n => { if (!names.includes(n)) names.push(n); }); return names.join(', '); }
+function brokeNames(p) { const v = S && S.availBroke && S.availBroke[p.id]; return typeof v === 'string' ? v : ''; }
+function fillName(text, w) { return w && w.indexOf(',') < 0 ? text.replace(/\bNAME\b/g, w) : text; }
+/* the need in plain words (what keeps working), for the Debrief; the title names the failure, for the must-fix flag */
+function availNeed(p) { return p.need || p.title; }
 function evaluate() {
   if (!CUR || !S) return;
-  const earned = [], failed = [];
-  CUR.checks.forEach(c => { let ok = false; try { ok = !!c.test(S); } catch (e) { ok = false; } if (ok) earned.push(c); });
+  const earned = [], failed = [], live = new Map();
+  CUR.checks.forEach(c => { let ok = false; try { ok = !!c.test(S); } catch (e) { ok = false; } live.set(c.id, ok); });
   CUR.availability.forEach(p => { let hit = false; try { hit = !!p.test(S); } catch (e) { hit = false; } if (hit) failed.push(p); });
-  const total = earned.reduce((a, c) => a + c.pts, 0) + failed.reduce((a, p) => a + p.pts, 0);
+  const okOf = holdResults(CUR.checks, failed, live);
+  CUR.checks.forEach(c => { if (okOf(c)) earned.push(c); });
+  const total = earned.reduce((a, c) => a + c.pts, 0);
+  if (failed.length) { S.availBroke = S.availBroke || {}; failed.forEach(p => { S.availBroke[p.id] = brokeWhich(S.availBroke[p.id], p); }); }
   LAST = { earned, failed, total, max: 100 };
   const rec = STORE.scen[CUR.id] || (STORE.scen[CUR.id] = { best: 0 });
-  if (total > (rec.best || 0)) { rec.best = total; rec.bestHints = hintCount(); rec.bestCoach = coachMode(CUR.level); storage.set(STORE_KEY, STORE); }
+  if (!failed.length && total > (rec.best || 0)) { rec.best = total; rec.bestHints = hintCount(); rec.bestCoach = coachMode(CUR.level); storage.set(STORE_KEY, STORE); }
   renderScore(); renderReport(); renderLevels();
 }
 /* Coach: how much the Progress Check tells you, chosen apart from the scenario level (the level sets the default) */
@@ -7439,7 +7506,33 @@ function coachControl(lvl) {
   return h('div', { class: 'coach' }, h('label', { for: 'coach-sel', text: 'Coach:' }), sel, h('span', { class: 'hintmark', text: 'now: ' + coachLabel(coachMode(lvl)) }));
 }
 function renderScore() {
-  const el = $('.score'); el.textContent = LAST.total + ' / ' + LAST.max + ' pts'; el.classList.toggle('neg', LAST.total < 0);
+  const el = $('.score'); el.textContent = LAST.total + ' / ' + LAST.max + ' pts'; el.classList.toggle('neg', LAST.failed.length > 0);
+  el.title = LAST.failed.length ? plural(LAST.failed.length, 'availability check') + ' to fix before you finish' : '';
+}
+/* ---------- availability: the must-fix flags ---------- */
+const OUTAGE_LINE = 'Finish waits until every business need works again, because an outage is an incident you fix before you are done.';
+function availName(p) { const w = availWhich(p); return p.title + (w ? ' (' + w + ')' : ''); }
+/* the restore step with NAME filled in when exactly one item broke */
+function availRestore(p) { return fillName(p.restore, availWhich(p)); }
+function availBroke(p) { return !!(S && S.availBroke && S.availBroke[p.id]); }
+function mustFixList() {
+  const ul = h('ul', { class: 'mustfix' });
+  LAST.failed.forEach(p => ul.appendChild(h('li', { class: 'avail-fail' }, h('span', { class: 'af-t', text: '✗ Availability check failed: ' + availName(p) }), h('span', { class: 'pts', text: 'must fix' }), h('span', { class: 'restore', text: 'Restore: ' + availRestore(p) }))));
+  return ul;
+}
+function finishWaits() {
+  pageModal({ title: 'Finish waits for a fix', body: h('div', { class: 'debrief-wrap' }, h('p', { class: 'sum', text: OUTAGE_LINE }), mustFixList(), h('p', { class: 'note', text: 'Your points stay as they are. Reset lab also brings everything back, and keeps your best score.' })), buttons: [{ label: 'Back to the lab', value: 'close', primary: true }] });
+}
+function availSummary() { const n = CUR.availability.filter(availBroke).length; return LAST.failed.length ? plural(LAST.failed.length, 'availability check') + ' to fix' : n ? n + ' business ' + (n === 1 ? 'need' : 'needs') + ' broken and restored' : 'every business need kept working'; }
+/* the Debrief's availability section, in the where-to-invest-next style: Strong when a need kept working all along, Revisit when you broke it and restored it */
+function availInvest() {
+  const broke = CUR.availability.filter(availBroke);
+  const box = h('div', { class: 'dbr-avail' }, h('h3', { text: 'Availability: where to invest next' }),
+    h('p', { text: 'Availability is the A in confidentiality, integrity, and availability: hardening keeps the people and services the business relies on working. ' + (broke.length ? 'You broke ' + plural(broke.length, 'business need') + ' and restored ' + (broke.length === 1 ? 'it' : 'them') + '. Next time, read the Scenario Brief’s required list before each change that touches it.' : 'You kept every business need working the whole time.') }));
+  const ul = h('ul');
+  CUR.availability.slice().sort((a, b) => availBroke(b) - availBroke(a)).forEach(p => { const b = availBroke(p), w = brokeNames(p); ul.appendChild(h('li', {}, h('b', { class: b ? 'rate-revisit' : 'rate-strong', text: b ? 'Revisit' : 'Strong' }), ' ' + availNeed(p) + ': ' + (b ? 'broken' + (w ? ' (' + w + ')' : '') + ', then restored. ' + p.why + ' The way back: ' + fillName(p.restore, w) : 'kept working the whole time.'))); });
+  box.appendChild(ul);
+  return box;
 }
 function renderLevels() {
   const host = $('.levels'); host.innerHTML = '';
@@ -7472,8 +7565,9 @@ function renderReport() {
   LAST.earned.forEach(c => ul.appendChild(h('li', { class: 'earned' }, h('span', { text: '✓ ' + c.title }), h('span', { class: 'pts', text: c.pts + ' pts' }))));
   body.appendChild(ul);
   if (LAST.failed.length) {
-    body.appendChild(h('h3', { text: 'Availability checks failed' }));
-    const pl = h('ul'); LAST.failed.forEach(p => pl.appendChild(h('li', { class: 'avail-fail' }, h('span', { text: '✗ Availability check failed: ' + p.title }), h('span', { class: 'pts', text: p.pts + ' pts' })))); body.appendChild(pl);
+    body.appendChild(h('h3', { class: 'mustfix-h', text: 'Must fix: availability checks failed' }));
+    body.appendChild(mustFixList());
+    body.appendChild(h('p', { class: 'note mustfix-note', text: 'Your points stay as they are. ' + OUTAGE_LINE }));
   }
   if (mode === 'todo') {
     body.appendChild(h('h3', { text: 'Still to do (with hints)' }));
@@ -7492,7 +7586,7 @@ function renderReport() {
     body.appendChild(h('h3', { text: 'Remaining by hardening area' }));
     const cl = h('ul', { class: 'cats' });
     catSummary().forEach(x => cl.appendChild(h('li', {}, h('span', { text: x.cat }), h('span', { class: 'pts', text: plural(x.n, 'item') }))));
-    if (!catSummary().length) cl.appendChild(h('li', { class: 'note', text: 'Every check passed. Make sure no availability check failed, then Finish.' }));
+    if (!catSummary().length) cl.appendChild(h('li', { class: 'note', text: 'Every check passed. Clear any must-fix item, then Finish.' }));
     body.appendChild(cl);
   }
   const rec = STORE.scen[CUR.id] || {};
@@ -7547,34 +7641,35 @@ function pageModal(o) {
 }
 function openDebrief() {
   evaluate();
+  if (LAST.failed.length) { finishWaits(); return; }
   const tbl = h('table', { class: 'debrief' });
   tbl.appendChild(h('thead', {}, h('tr', {}, h('th', { text: '' }), h('th', { text: 'Check' }), h('th', { text: 'Pts' }), h('th', { text: 'Fix' }), h('th', { text: 'Why it matters' }))));
   const tb = h('tbody');
   const learnIt = c => !c.learn ? null : h('div', {}, 'Learn it: ', c.learn.map(LEARN.link).map((l, i) => [i ? '; ' : '', h('a', { href: l.href, target: '_blank', rel: 'noopener', style: 'color:var(--accent)', text: l.text })]));
   CUR.checks.forEach(c => { const ok = LAST.earned.includes(c); const st = hintStep(c.id); tb.appendChild(h('tr', {}, h('td', { class: ok ? 'ok' : 'ko', text: ok ? '✓' : '✗' }), h('td', { text: c.title }), h('td', { text: String(c.pts) }), h('td', { class: 'fix', text: c.fix }), h('td', { class: 'why' }, c.why, learnIt(c), st ? h('span', { class: 'hintmark', text: st >= 2 ? ' (hint: command shown)' : ' (hint: principle)' }) : null))); });
-  CUR.availability.forEach(p => { const hit = LAST.failed.includes(p); tb.appendChild(h('tr', {}, h('td', { class: hit ? 'ko' : 'ok', text: hit ? '✗' : '✓' }), h('td', { text: 'Availability check: ' + p.title }), h('td', { text: String(p.pts) }), h('td', { class: 'fix', text: hit ? 'Undo the change (Reset lab restores the original state).' : 'Passing (nothing required was broken)' }), h('td', { class: 'why', text: p.why }))); });
+  CUR.availability.forEach(p => { const hit = LAST.failed.includes(p); tb.appendChild(h('tr', {}, h('td', { class: hit ? 'ko' : 'ok', text: hit ? '✗' : '✓' }), h('td', { text: 'Availability check: ' + (hit ? availName(p) : availNeed(p)) }), h('td', { text: hit ? 'must fix' : '—' }), h('td', { class: 'fix', text: hit ? 'Restore: ' + availRestore(p) : availBroke(p) ? 'Broken' + (brokeNames(p) ? ' (' + brokeNames(p) + ')' : '') + ', then restored. ' + fillName(p.restore, brokeNames(p)) : 'Kept working the whole time.' }), h('td', { class: 'why', text: p.why }))); });
   tbl.appendChild(tb);
-  const sum = h('p', { class: 'sum', text: 'Score ' + LAST.total + ' / ' + LAST.max + '  ·  ' + LAST.earned.length + ' of ' + CUR.checks.length + ' checks passed  ·  ' + LAST.failed.length + ' availability ' + (LAST.failed.length === 1 ? 'check' : 'checks') + ' failed  ·  Time ' + fmtElapsed(S.elapsed || 0) });
+  const sum = h('p', { class: 'sum', text: 'Score ' + LAST.total + ' / ' + LAST.max + '  ·  ' + LAST.earned.length + ' of ' + CUR.checks.length + ' checks passed  ·  ' + availSummary() + '  ·  Time ' + fmtElapsed(S.elapsed || 0) });
   const rec = STORE.scen[CUR.id] || (STORE.scen[CUR.id] = { best: 0 });
   const hints = h('p', { class: 'dbr-hints', text: 'Hints this attempt: ' + hintCount() + ' of ' + CUR.checks.length + ' checks (' + hintCommands() + ' with the command shown). Coach: ' + coachLabel(coachMode(CUR.level)) + '. A pass with no hints on a fresh attempt is the one that counts.' });
   const ta = h('textarea', { id: 'dbr-reflect' }); ta.value = rec.reflect || ''; ta.addEventListener('input', () => { rec.reflect = ta.value; storage.set(STORE_KEY, STORE); });
   const refl = h('label', { class: 'dbr-reflect' }, h('span', { text: 'What broke, and what will you do first next time? (saved with this scenario)' }), ta);
   const cp = h('button', { type: 'button', class: 'rbtn', id: 'dbr-copy', text: 'Copy debrief as text' }); const st = h('span', { role: 'status' }); const out = h('textarea', { hidden: true, 'aria-label': 'Debrief as text' }); out.readOnly = true;
-  const debriefText = () => { const lines = ['Lockdown Range: Windows - ' + CUR.title + ' (' + CUR.name + ')', 'Progress ' + LAST.total + ' / ' + LAST.max + ' - checks passed ' + LAST.earned.length + ' of ' + CUR.checks.length + ' - availability checks failed ' + LAST.failed.length + ' - time ' + fmtElapsed(S.elapsed || 0) + ' - hints ' + hintCount() + ' (' + hintCommands() + ' with the command) - coach: ' + coachLabel(coachMode(CUR.level)), ''];
+  const debriefText = () => { const lines = ['Lockdown Range: Windows - ' + CUR.title + ' (' + CUR.name + ')', 'Progress ' + LAST.total + ' / ' + LAST.max + ' - checks passed ' + LAST.earned.length + ' of ' + CUR.checks.length + ' - availability: ' + availSummary() + ' - time ' + fmtElapsed(S.elapsed || 0) + ' - hints ' + hintCount() + ' (' + hintCommands() + ' with the command) - coach: ' + coachLabel(coachMode(CUR.level)), ''];
     CUR.checks.forEach(c => { const s2 = hintStep(c.id); lines.push((LAST.earned.includes(c) ? '[x] ' : '[ ] ') + c.title + ' (' + c.pts + ' pts)' + (s2 ? '  [hint: ' + (s2 >= 2 ? 'command shown' : 'principle') + ']' : '')); });
-    CUR.availability.forEach(p => lines.push((LAST.failed.includes(p) ? '[!] ' : '[ok] ') + 'Availability: ' + p.title + ' (' + p.pts + ' pts)'));
+    CUR.availability.forEach(p => lines.push((LAST.failed.includes(p) ? '[!] ' : availBroke(p) ? '[restored] ' : '[ok] ') + 'Availability: ' + (LAST.failed.includes(p) ? availName(p) + ' (must fix)' : availNeed(p) + (availBroke(p) ? ' (Revisit: ' + (brokeNames(p) ? brokeNames(p) + ' ' : '') + 'broken, then restored)' : ' (Strong: kept working)'))));
     if (rec.reflect) lines.push('', 'What broke, and what I will do first next time:', rec.reflect); return lines.join('\n') + '\n'; };
   cp.addEventListener('click', () => { const txt = debriefText(); const show = () => { out.hidden = false; out.value = txt; st.textContent = 'Select the text below and copy it.'; }; if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(() => { st.textContent = 'Copied.'; }, show); else show(); });
-  pageModal({ title: 'Debrief: ' + CUR.title, body: h('div', { class: 'debrief-wrap' }, sum, hints, tbl, refl, h('div', { class: 'dbr-copy' }, cp, st, out), h('p', { class: 'note', text: 'Reset lab starts this scenario over (your best score is kept). Switch levels with the pills in the header.' })), buttons: [{ label: 'Close', value: 'close', primary: true }] });
+  pageModal({ title: 'Debrief: ' + CUR.title, body: h('div', { class: 'debrief-wrap' }, sum, hints, availInvest(), tbl, refl, h('div', { class: 'dbr-copy' }, cp, st, out), h('p', { class: 'note', text: 'Reset lab starts this scenario over (your best score is kept). Switch levels with the pills in the header.' })), buttons: [{ label: 'Close', value: 'close', primary: true }] });
 }
 function openHelp() {
   const body = h('div', { class: 'help-body' });
   const sec = (t, items) => { body.appendChild(h('h3', { text: t })); const ul = h('ul'); items.forEach(i => ul.appendChild(h('li', { text: i }))); body.appendChild(ul); };
-  sec('The routine', ['Pick a scenario (header pills) and let it boot. Sign in with the lab account shown under the password box (labuser / Easy!2026 on Recruit, Medium!2026 on Operator, and Hard!2026 on Captain).', 'Open Scenario Brief.txt on the Desktop. Write down the authorized administrators, users, and required services: you must keep those available.', 'The brief sets the password and lockout numbers, and the matching check titles repeat them: Recruit shows them as you work, and every level shows them in the Debrief.','Answer the investigation questions (open each Investigation N.txt on the Desktop in Notepad, type after ANSWER:, press Ctrl+S).', 'Start Windows Update early (Settings > Windows Update > Resume updates > Check for updates > Install all) and keep working while it installs; restart once near the end.', 'Work through the hardening areas (aligned with the CIS Critical Security Controls v8): account management, access control, secure configuration (services, firewall, features, software), patching, malware defenses, audit logging, and data protection (media files).', 'Watch the Progress Check. Finish / Debrief shows every miss with its fix and why it matters.']);
+  sec('The routine', ['Pick a scenario (header pills) and let it boot. Sign in with the lab account shown under the password box (labuser / Easy!2026 on Recruit, Medium!2026 on Operator, and Hard!2026 on Captain).', 'Open Scenario Brief.txt on the Desktop. Write down the authorized administrators, users, and required services: you must keep those available.', 'The brief sets the password and lockout numbers, and the matching check titles repeat them: Recruit shows them as you work, and every level shows them in the Debrief.','Answer the investigation questions (open each Investigation N.txt on the Desktop in Notepad, type after ANSWER:, press Ctrl+S).', 'Start Windows Update early (Settings > Windows Update > Resume updates > Check for updates > Install all) and keep working while it installs; restart once near the end.', 'Work through the hardening areas (aligned with the CIS Critical Security Controls v8): account management, access control, secure configuration (services, firewall, features, software), patching, malware defenses, audit logging, and data protection (media files).', 'Watch the Progress Check. Finish / Debrief shows every miss with its fix and why it matters.', 'Availability counts too. Breaking something the Scenario Brief requires (an authorized user, an administrator, or a required service) keeps your points where they are and shows a must-fix item in red with its restore step. Finish waits until it works again, because an outage is an incident you fix before you are done.']);
   sec('Getting to the tools', ['Start > Run (or Alt+R) and type: lusrmgr.msc, secpol.msc, gpedit.msc, services.msc, taskschd.msc, wf.msc, eventvwr.msc, appwiz.cpl, optionalfeatures, SystemPropertiesRemote (Remote Desktop and Remote Assistance), UserAccountControlSettings (the UAC slider), msinfo32, tpm.msc, winver, shell:startup, shell:common startup, control, ms-settings:', 'Start > type the name to search. Enter opens it; Ctrl+Shift+Enter runs it as administrator.', 'Right-click a taskbar or Start tile for "Run as administrator". Terminal commands that change the machine need an administrator window (net, sc.exe, schtasks, netsh, auditpol, icacls).', 'Windows+R cannot be captured by a web page; Alt+R opens Run here.']);
   sec('Sysinternals from the command line', ['Five signed Sysinternals tools run in Command Prompt or PowerShell, each against this machine; pass -accepteula the first time.', 'sigcheck -u -e C:\\Windows\\System32 lists unsigned executables; add -h for hashes.', 'autorunsc -a * -s -h -m lists every auto-start entry with its signature, hiding the verified Microsoft ones; add -c for CSV.', 'accesschk -uwcqv "Authenticated Users" * shows the services a standard account can change; accesschk -s -w Users "C:\\Program Files" shows writable files and folders.', 'streams -s C:\\Users\\Public lists alternate data streams; -d deletes them.', 'tcpvcon -a -c lists every TCP and UDP endpoint with its owning process.']);
   sec('Keyboard', ['Windows: title bar focused + arrow keys moves, Shift+arrows resizes, Alt+F4 closes.', 'Terminal: Up/Down history, Tab completes, Ctrl+L clears, Ctrl+C cancels.', 'Desktop icons: arrows to move, Enter opens, Delete sends to the Recycle Bin.', 'Esc closes menus and dialogs.']);
-  sec('What the simulation covers', ['A faithful subset of ' + VERSIONS.win11.family + ' (version ' + VERSIONS.win11.version + ') and ' + VERSIONS.server.family + ': the panels and commands an administrator uses to harden a standalone machine. Nothing touches your real computer.', 'Outside the simulation: Registry Editor, Task Manager, real program windows, the Microsoft Store, and networking beyond this machine.', 'Progress and the machine state save in this browser. Reset lab reverts to the original snapshot.', 'Setting names and commands follow Microsoft Learn (Windows security policy settings reference, Windows Commands reference) and the CIS Critical Security Controls v8.', 'Unofficial practice; not affiliated with or endorsed by Microsoft. Practice only on machines you own or are authorized to manage.']);
+  sec('What the simulation covers', ['A faithful subset of ' + VERSIONS.win11.family + ' (version ' + VERSIONS.win11.version + ') and ' + VERSIONS.server.family + ': the panels and commands an administrator uses to harden a standalone machine. Nothing touches your real computer.', 'Outside the simulation: Registry Editor, Task Manager, real program windows, the Microsoft Store, and networking beyond this machine.', 'Progress and the machine state save in this browser. Reset lab reverts to the original snapshot.', 'Setting names and commands follow Microsoft Learn (Windows security policy settings reference, Windows Commands reference) and the CIS Critical Security Controls v8.', 'Practice only on machines you own or are authorized to manage.']);
   sec('Coach and hints', ['Coach, at the top of the Progress Check, sets how much the panel shows. Pick the to-do list with hints, the remaining count per area, or passed checks only.', 'A hint opens in two steps: the hardening area and the principle, then the console path or command.','Your best score remembers how many hints it took. A pass with no hints on a fresh attempt is the one that counts.']);
   sec('After you try', ['Solution walkthrough for every scenario: windows-range-reference.txt beside this page (the hub card offers it as a download). Try each scenario on your own first, then read it to see what you missed.']);
   pageModal({ title: 'How to use Windows Range', body, buttons: [{ label: 'Close', value: 'close', primary: true }] });

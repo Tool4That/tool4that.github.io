@@ -6,7 +6,7 @@
  NOTE, and the hardening AREA it belongs to; ALSO adds a second caution when
  an item needs one. No scripts by design: type it, read it, explain it. Item
  IDs match the Lockdown Drills trainer for this OS.
- Unofficial practice; not affiliated with or endorsed by Microsoft.
+ Unofficial training, independent of and unendorsed by the makers of the systems it names.
 
  PS> runs in an elevated PowerShell and CMD> in an elevated Command Prompt.
  Type what follows the prefix, and replace each <name> with a real value. GUI:
