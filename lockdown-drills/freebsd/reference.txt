@@ -81,18 +81,18 @@
 
 [B-03] Fix wheel membership
   AREA: Account management (CIS Control 5)
-  # pw groupmod wheel -d mallory
-  # pw groupmod wheel -m alice
+  # pw groupmod wheel -d ikaika
+  # pw groupmod wheel -m keoni
   # pw groupshow wheel
-  # id alice
+  # id keoni
   WHY: Least privilege. Anyone in wheel may su to root with root's password.
        sudo has its own rules in /usr/local/etc/sudoers (B-01), so read that
        file too (I-02).
 
 [B-04] Passwords: strong, forced change, no empties
   AREA: Account management (CIS Control 5)
-  # passwd alice
-  # pw usermod alice -p +0d
+  # passwd keoni
+  # pw usermod keoni -p +0d
   # awk -F: '$2=="" {print $1" HAS NO PASSWORD"}' /etc/master.passwd
   # passwd root
   WHY: master.passwd holds the hashes; passwd is the public copy. An empty
@@ -109,7 +109,7 @@
   # cap_mkdb /etc/login.conf
   # vi /etc/pam.d/passwd
       password  requisite  pam_passwdqc.so  min=disabled,disabled,disabled,12,10 max=64 similar=deny retry=3 enforce=everyone
-  # pw usershow alice -P
+  # pw usershow keoni -P
   WHY: login.conf sets aging per class (passwordtime), live only after
        cap_mkdb. pam_passwdqc sets length and complexity at change time: min=
        allows 10 for 4-class, 12 for 3-class, fewer classes disabled.
@@ -250,7 +250,7 @@
   # vi /etc/ssh/sshd_config
       PermitRootLogin no        PermitEmptyPasswords no     MaxAuthTries 3
       LoginGraceTime 30         X11Forwarding no            UseBlocklist yes
-      PasswordAuthentication yes or no per the brief      AllowUsers alice bob
+      PasswordAuthentication yes or no per the brief      AllowUsers keoni koa
   # sysrc sshd_enable=YES; service sshd start; service sshd status     (SSH required but off)
   # service sshd onestart     (instead: runs until reboot; sshd_enable stays NO)
   # sshd -t && service sshd restart
@@ -270,7 +270,7 @@
   # grep -R -nE 'NOPASSWD|!authenticate|ALL=\(ALL' /usr/local/etc/sudoers /usr/local/etc/sudoers.d/ 2>/dev/null
   # visudo
   # cat /usr/local/etc/doas.conf 2>/dev/null
-      permit persist :wheel          (sane)   |   permit nopass mallory   (backdoor)
+      permit persist :wheel          (sane)   |   permit nopass ikaika   (backdoor)
   WHY: sudo and doas live under /usr/local/etc on FreeBSD, not /etc. A NOPASSWD
        line or a nopass doas rule is a silent root backdoor. visudo checks
        syntax; vi does not.
@@ -364,7 +364,7 @@
   AREA: Account management (CIS Control 5)
   # grep -vE 'nologin|/bin/false|/usr/sbin/nologin' /etc/passwd
   # pw usermod www -s /usr/sbin/nologin
-  # pw usershow alice -P
+  # pw usershow keoni -P
   # pw groupshow operator; pw groupshow wheel
   # ls -l /root/.ssh/authorized_keys /home/*/.ssh/authorized_keys 2>/dev/null
   WHY: Service accounts with real shells can sign in. The operator group's
@@ -508,9 +508,9 @@
        here, so you know which name or tool to expect on either release.
 
 ------------------------------ FIX OR BREAK? (practice cards) ------------------
-  Brief: Authorized administrators: alice. Authorized users: bob, carol.
-  Action: Run pw groupmod wheel -d carol after seeing carol in wheel.
-  Call: FIX. The brief lists carol as a standard user. Removing that account
+  Brief: Authorized administrators: keoni. Authorized users: koa, nohea.
+  Action: Run pw groupmod wheel -d nohea after seeing nohea in wheel.
+  Call: FIX. The brief lists nohea as a standard user. Removing that account
              from wheel is least privilege.
 
   Brief: SSH must remain available for the admins.
@@ -525,8 +525,8 @@
                      hash is *. Check master.passwd first; act only if it has a
                      real password.
 
-  Brief: Investigation 1: what is the SHA-256 of /home/bob/plans.txt?
-  Action: Delete bob's unauthorized files first, then answer the questions.
+  Brief: Investigation 1: what is the SHA-256 of /home/koa/plans.txt?
+  Action: Delete koa's unauthorized files first, then answer the questions.
   Call: CHECK FIRST. Hash it first with sha256, then clean up. Evidence before
                      cleanup.
 
@@ -537,7 +537,7 @@
                      install patches the base system and kernel; only on a
                      pkgbase install does pkg upgrade cover the base too.
 
-  Brief: The company runs its website on apache24 on this host.
+  Brief: The school runs its website on apache24 on this host.
   Action: Run pkg delete -y apache24 to reduce attack surface.
   Call: BREAKS IT. Required service. Harden httpd.conf (ServerTokens Prod, no
                    indexes) and keep it running.
@@ -555,7 +555,7 @@
                      flag clears from a normal shell; a reboot wastes time and
                      drops every session for nothing.
 
-  Brief: Only alice and bob may use su to become root.
+  Brief: Only keoni and koa may use su to become root.
   Action: Remove the pam_group line from /etc/pam.d/su to simplify the config.
   Call: BREAKS IT. pam_group is what restricts su to wheel. Removing it lets
                    everyone su. Keep it and fix wheel membership instead.
@@ -571,17 +571,17 @@
      root:$6$...:0:0::0:0:Charlie &:/root:/bin/sh
   >> toor:$6$Qx9...:0:0::0:0:Bourne-again Superuser:/root:/bin/sh
      daemon:*:1:1::0:0:Owner of many system processes:/root:/usr/sbin/nologin
-     alice:$6$...:1001:1001::0:0:Alice:/home/alice:/bin/sh
+     keoni:$6$...:1001:1001::0:0:Keoni:/home/keoni:/bin/sh
   WHY: toor is normal only while its hash is *. A real hash means a second root
        with a password someone set. Lock it with pw lock toor, or use vipw to
        set the hash field back to *.
 
-  Output of pw groupshow wheel. Brief: alice is the only admin. Tap the finding.
-  >> wheel:*:0:root,alice,mallory
+  Output of pw groupshow wheel. Brief: keoni is the only admin. Tap the finding.
+  >> wheel:*:0:root,keoni,ikaika
      operator:*:5:root
      staff:*:20:
-     alice:*:1001:
-  WHY: mallory in wheel can su to root. pw groupmod wheel -d mallory.
+     keoni:*:1001:
+  WHY: ikaika in wheel can su to root. pw groupmod wheel -d ikaika.
 
   Lines from /etc/inetd.conf; rc.conf has inetd_enable=YES. Tap the finding.
      #ftp    stream  tcp  nowait  root  /usr/local/libexec/ftpd     ftpd -l

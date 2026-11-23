@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-7a4ii/BjGiifS4lKEJ1cLyzbqXpK0ugl80KlmUSVPiE=' 'sha256-K5OupLYl+8XODqF+hH5J88mQR0jiKGvpuyCF1WzcFqE='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-K5OupLYl+8XODqF+hH5J88mQR0jiKGvpuyCF1WzcFqE=' 'sha256-hL+YSL0rqprWaSz7EqMCFZK6od+RrcbsTCIjKXIMTyY='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Flag every risky line in a running-config, choose the best fix, and name the protections that are missing entirely. Four configs, including a Site B switch and router.">
 <link rel="canonical" href="https://freeapp4that.store/net-drills/config-audit/">
@@ -241,14 +241,14 @@ const ACL20 = {
 const SCEN = {
   r1: {
     name: 'R1 edge router', sub: '12 problems to find', grade: 'Sophomore', head: ['R1#show running-config', 'IOS 15.1, 2911-style router'],
-    intro: 'R1 connects the office LAN (G0/0) to the internet (G0/1). Besides console and VTY, a router has an AUX port: a second console-style line under line aux 0, often wired to a modem. The last admin left in a hurry. Tap any line you think is a problem.',
+    intro: 'R1 connects the school LAN (G0/0) to the internet (G0/1). Besides console and VTY, a router has an AUX port: a second console-style line under line aux 0, often wired to a modem. The last admin left in a hurry. Tap any line you think is a problem.',
     lines: [
       '!', 'version 15.1',
       ['no service timestamps log datetime msec', 'ts'], ['no service timestamps debug datetime msec', 'ts'],
       ['no service password-encryption', 'spe'], '!', 'hostname R1', '!',
       ['enable password cisco', 'en'], '!',
       ['username admin password 0 admin', 'user'], '!',
-      'ip domain-name corp.local', 'ip ssh version 2', '!',
+      'ip domain-name phn.k12.lan', 'ip ssh version 2', '!',
       'interface GigabitEthernet0/0', ' description LAN', ' ip address 192.168.1.1 255.255.255.0', ' duplex auto', ' speed auto', '!',
       'interface GigabitEthernet0/1', ' description WAN to ISP', ' ip address 203.0.113.2 255.255.255.252', ' duplex auto', ' speed auto', '!',
       'interface GigabitEthernet0/2', ' no ip address', ' duplex auto', ' speed auto', ' shutdown', '!',
@@ -383,7 +383,7 @@ const SCEN = {
       '!', 'version 15.0', 'no service pad', 'service timestamps debug datetime msec', 'service timestamps log datetime msec',
       'service password-encryption', '!', 'hostname SwB', '!', 'enable secret 5 $1$q7Lm$Vt3hR8wKpZ1eYc6NuD0sJ.', '!',
       'username netadmin privilege 15 secret 5 $1$Hx2n$Gm9dQ4tLs7vWb1KeRz5yP/', '!',
-      'ip domain-name school.lan', 'ip ssh version 2', 'vtp domain school.lan', 'vtp mode transparent', '!',
+      'ip domain-name phn.k12.lan', 'ip ssh version 2', 'vtp domain phn.k12.lan', 'vtp mode transparent', '!',
       'spanning-tree mode pvst', 'spanning-tree extend system-id', '!',
       'vlan 10', ' name STUDENTS', '!', 'vlan 20', ' name TEACHERS', '!', 'vlan 30', ' name PRINCIPALS', '!',
       'vlan 99', ' name NATIVE', '!', 'vlan 999', ' name PARKING', '!',
@@ -454,7 +454,7 @@ const SCEN = {
       '!', 'version 15.1', 'service timestamps debug datetime msec', 'service timestamps log datetime msec', 'service password-encryption', '!',
       'hostname RtrB', '!', ['enable password 7 13370300294121242A262436', 'enpw'], '!',
       'username netadmin privilege 15 secret 5 $1$Pz4c$Ka8sW2mNq6TfJh0XyL3vB.', '!',
-      'ip domain-name school.lan', 'ip ssh version 2', '!',
+      'ip domain-name phn.k12.lan', 'ip ssh version 2', '!',
       'interface GigabitEthernet0/0', ' description Trunk to SwB G0/1', ' no ip address', ' duplex auto', ' speed auto', '!',
       'interface GigabitEthernet0/0.10', ' description STUDENTS', ' encapsulation dot1Q 10', ' ip address 10.2.10.1 255.255.255.0', '!',
       'interface GigabitEthernet0/0.20', ' description TEACHERS', ' encapsulation dot1Q 20', ' ip address 10.2.20.1 255.255.255.0', '!',

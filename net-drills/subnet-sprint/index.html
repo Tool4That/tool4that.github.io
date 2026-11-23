@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-6cG3Nedgu6zOqXk//gBqCdfD6ygVAgYRoAoown9fLZY=' 'sha256-fdrbz9PDCKiE4XvnDBxiBpUjEuCA+0zwunDjBgyD0TQ='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-fdrbz9PDCKiE4XvnDBxiBpUjEuCA+0zwunDjBgyD0TQ=' 'sha256-vhhoWwY+WZUbpNlo4dFqdqUaRp8FvHAMsld/FLteJv4='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Slide the mask in the sandbox and watch every value react, then work out network, broadcast, and host ranges against the clock. Includes VLSM planning and IPv6 drills.">
 <link rel="canonical" href="https://freeapp4that.store/net-drills/subnet-sprint/">
@@ -521,7 +521,7 @@ const GEN = {
       : { q: `Convert ${spaced(b)} to decimal.`, a: d, kind: 'int', why: `Add the place values of the 1 bits: ${placeSum(d)} = ${d}.` };
   }
 };
-const NAMES = ['STUDENTS', 'TEACHERS', 'PRINCIPALS', 'USERS', 'SERVERS', 'GUESTS', 'PRINTERS', 'VOICE', 'LAB', 'STAFF', 'WIFI', 'CAMERAS', 'ADMIN'];
+const NAMES = ['STUDENTS', 'TEACHERS', 'PRINCIPALS', 'LIBRARY', 'SERVERS', 'GUEST', 'PRINTERS', 'VOICE', 'LAB', 'STAFF', 'WIFI', 'CAMERAS', 'MANAGEMENT'];
 const PLAN_LEVELS = {
   starter: { p: 24, lans: 3, wans: 1, pool: 3, base: () => [192, 168, rnd(0, 255), 0], hosts: [5, 10, 12, 20, 25, 28, 30, 45, 50, 60, 100, 120] },
   standard: { p: 22, lans: 4, wans: 1, base: () => [172, rnd(16, 31), rnd(0, 63) * 4, 0], hosts: [30, 60, 100, 120, 200, 250, 300, 400, 500] },

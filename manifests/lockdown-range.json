@@ -22,7 +22,7 @@
       ],
       "name": "Windows Range",
       "tagline": "Harden the workstation. Then the server.",
-      "description": "Windows 11 and Windows Server 2025 hardening scenarios in your browser. Sign in, read the scenario brief, answer the investigation questions, then fix each one with the real panels or the command line while a live Progress Check keeps count.",
+      "description": "Windows 11 and Windows Server 2025 hardening scenarios in your browser, in three levels (Recruit, Operator, and Captain) plus Level 4 · Advanced · extra credit, which builds a different machine on every attempt and gives a layout code a class can share. Sign in, read the scenario brief, answer the investigation questions, then fix each one with the real panels or the command line while a live Progress Check keeps count.",
       "badges": [
         "Windows",
         "Hardening",
@@ -42,7 +42,7 @@
       ],
       "name": "Linux Range",
       "tagline": "Harden the box from the shell.",
-      "description": "Ubuntu, Linux Mint, and Ubuntu Server, three scenarios in your browser. A real-feeling bash terminal with sudo, apt, systemctl, ufw, PAM, cron, and nano. A live Progress Check also runs availability checks that flag any authorized user, administrator, or critical service you break.",
+      "description": "Ubuntu, Linux Mint, and Ubuntu Server in your browser, in three levels (Recruit, Operator, and Captain) plus Level 4 · Advanced · extra credit, which builds a different machine on every attempt and gives a layout code a class can share. A real-feeling bash terminal with sudo, apt, systemctl, ufw, PAM, cron, and nano. A live Progress Check also runs availability checks that flag any authorized user, administrator, or critical service you break.",
       "badges": [
         "Linux",
         "Hardening",
@@ -62,7 +62,7 @@
       ],
       "name": "Cisco Range",
       "tagline": "Secure the topology. Prove it with ping.",
-      "description": "A Packet Tracer-style topology in your browser: IOS consoles with ? help, abbreviations, and the exact error messages, plus PC command prompts. Four scenarios, from one router to a two-site network with VLAN trunks, router-on-a-stick, and OSPF, with a live Progress Check.",
+      "description": "A Packet Tracer-style topology in your browser: IOS consoles with ? help, abbreviations, and the exact error messages, plus PC command prompts. Three levels (Recruit, Operator, and Captain) run from one router to two switches joined by a trunk. Level 4 · Advanced · extra credit is a two-site school network with VLAN trunks, router-on-a-stick, and OSPF that builds a different Site B on every attempt and gives a layout code a class can share. A live Progress Check keeps count.",
       "badges": [
         "Cisco IOS",
         "Hardening",

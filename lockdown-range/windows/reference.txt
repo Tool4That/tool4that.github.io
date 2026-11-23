@@ -4,18 +4,19 @@ Companion to windows-range.html (Tool4That, Lockdown Range series).
 For instructors and study groups, and for learners AFTER they have tried a
 scenario on their own.
 All names, companies, and addresses are fictional practice material.
-Unofficial training, independent of and unendorsed by the makers of the
-systems it names.
+Unofficial training, independent of and unendorsed by the makers of the systems it names.
 
 CONTENTS
   1. What the lab is (and is not)
   2. The routine: power-on to Progress Check
   3. Scenario 1 - Recruit:  Kaimana Dental Clinic — front desk PC
-  4. Scenario 2 - Operator: Hale Kula Robotics Lab — station 4
+  4. Scenario 2 - Operator: Pōhinahina Robotics Lab — station 4
   5. Scenario 3 - Captain:  Honua Logistics — portal server
-  6. Windows hardening quick reference (GUI paths and commands)
-  7. Where the real machine differs from the lab
-  8. Sources
+  6. Level 4 - Advanced (extra credit): layouts, the fault pool, and a
+     worked example
+  7. Windows hardening quick reference (GUI paths and commands)
+  8. Where the real machine differs from the lab
+  9. Sources
 
 Format of the check lists below:
   [points] Check title as it appears in the Progress Check
@@ -43,21 +44,26 @@ ones, with the real names, menu paths, and control types:
     Management (tpm.msc)
   - File Explorer (with the shell:startup folders), Notepad, and Server Manager
 Windows Terminal has Command Prompt and PowerShell tabs with the commands in
-section 6. Those include pipes, findstr, redirection (> and >>), secedit /export
+section 7. Those include pipes, findstr, redirection (> and >>), secedit /export
 and /configure, and reg query/add for the security registry values that
 hardening guides use. Each PowerShell tab keeps its variables ($ts = 'HKLM:\...'
 on one line, Test-Path $ts on the next) and runs if and foreach lines.
 
 Every panel and every command changes ONE machine state, and the Progress Check
 re-runs the checks after each change. Security includes availability: breaking
-something the Scenario Brief says the business needs (an authorized user, an
+something the Scenario Brief says the organization needs (an authorized user, an
 administrator, a required service) fails an availability check. That is a
 must-fix flag: your points stay where they are, the Progress Check shows it in
 red with its restore step, and Finish waits until it works again, because an
-outage is an incident you fix before you are done. Nothing on the page touches
-the real computer. Progress is saved in the browser; "Reset lab" restores the
-scenario's original state and keeps the best score (like reverting a VM
-snapshot).
+outage is an incident you fix before you are done. The header shows "Held: fix
+the flagged outage" while a flag is open. Deleting an authorized account and
+creating it again earns nothing: the new account is empty, so the checks about
+it keep the result they had before the deletion for the rest of the attempt. On
+a real system its files, group memberships, and settings come back only from a
+backup, so disable or fix an account instead of deleting it. Nothing on the page
+touches the real computer. Progress is saved in the browser; "Reset lab"
+restores the scenario's original state and keeps the best score (like reverting
+a VM snapshot).
 
 Levels: 1 Recruit lists every check as a to-do with hints that open in two steps
 (the hardening area and the principle, then the console path or command); 2
@@ -224,7 +230,7 @@ Checks (100 points)
        fix: secpol.msc > Audit Policy > Audit logon events = Success, Failure
        or:  auditpol /set /category:"Logon/Logoff" /success:enable
             /failure:enable
-       why: No audit trail means no way to see who signed in or what changed.
+       why: An audit trail shows who signed in and what changed.
   [5]  Windows Defender Firewall on for all profiles
        area: Secure configuration
        fix: Windows Security > Firewall & network protection > Domain, Private,
@@ -321,13 +327,13 @@ with its restore step, and holds Finish until it works again)
                 Manual).
 
 --------------------------------------------------------------------------------
-4. SCENARIO 2 - OPERATOR: HALE KULA ROBOTICS LAB — STATION 4
+4. SCENARIO 2 - OPERATOR: PŌHINAHINA ROBOTICS LAB — STATION 4
 --------------------------------------------------------------------------------
-Sign-in  labuser / Medium!2026        Host  HKROBOTICS-04
+Sign-in  labuser / Medium!2026        Host  PHN-ROBOTICS-04
 System   Windows 11 Pro, version 26H2, build 26300.9550
 
 Scenario Brief summary
-  Hale Kula High School robotics lab, shared workstation #4. Students sign in
+  Pōhinahina High School robotics lab, shared workstation #4. Students sign in
   with their own accounts to program the team robots. The coach (coachk)
   maintains the lab PCs. Someone installed "helper" software, a student account
   seems to have become an administrator, and the PC has been slow and noisy at
@@ -447,14 +453,14 @@ Checks (100 points)
        fix: secpol.msc > Audit Policy > Audit logon events = Success, Failure
        or:  auditpol /set /category:"Logon/Logoff" /success:enable
             /failure:enable
-       why: No audit trail means no way to see who signed in or what changed.
+       why: An audit trail shows who signed in and what changed.
   [3]  Audit account management audited for Success and Failure
        area: Audit logging
        fix: secpol.msc > Audit Policy > Audit account management = Success,
             Failure
        or:  auditpol /set /category:"Account Management" /success:enable
             /failure:enable
-       why: No audit trail means no way to see who signed in or what changed.
+       why: An audit trail shows who signed in and what changed.
   [2]  "Interactive logon: Don't display last signed-in" enabled
        area: Access control
        fix: secpol.msc > Security Options > "Interactive logon: Don't display
@@ -765,14 +771,14 @@ Checks (100 points)
        fix: secpol.msc > Audit Policy > Audit logon events = Success, Failure
        or:  auditpol /set /category:"Logon/Logoff" /success:enable
             /failure:enable
-       why: No audit trail means no way to see who signed in or what changed.
+       why: An audit trail shows who signed in and what changed.
   [3]  Audit account management audited for Success and Failure
        area: Audit logging
        fix: secpol.msc > Audit Policy > Audit account management = Success,
             Failure
        or:  auditpol /set /category:"Account Management" /success:enable
             /failure:enable
-       why: No audit trail means no way to see who signed in or what changed.
+       why: An audit trail shows who signed in and what changed.
   [2]  "Interactive logon: Don't display last signed-in" enabled
        area: Access control
        fix: secpol.msc > Security Options > "Interactive logon: Don't display
@@ -953,7 +959,572 @@ with its restore step, and holds Finish until it works again)
                 Manual).
 
 --------------------------------------------------------------------------------
-6. WINDOWS HARDENING QUICK REFERENCE
+6. LEVEL 4 - ADVANCED - EXTRA CREDIT
+--------------------------------------------------------------------------------
+Level 4 is extra credit for learners who finished Recruit, Operator, and
+Captain. It sits outside the three tiers (Recruit, Operator, and Captain stay
+the only tiers and credentials) and stays open to everyone; the page suggests
+finishing Captain first. Sign in as labuser / Advanced!2026.
+
+How layouts work
+  - Each attempt builds a different machine, so you practice your skills instead
+    of a memorized walkthrough. A six-character layout code picks everything:
+    which machine it is, its accounts, its address in the school network, the
+    faults it carries, the decoys, and the Scenario Brief.
+  - Codes use the 31 characters 23456789ABCDEFGHJKMNPQRSTUVWXYZ (the digits 2 to
+    9 and the letters A to Z without I, L, or O). The sixth character checks the
+    other five, so a mistyped code is refused instead of building a different
+    machine. Lower case and spaces are accepted.
+  - The page turns the code into the machine with a seeded generator, never a
+    random one, so the same code builds the identical machine in any browser. A
+    teacher can write one code on the board and give a whole class the same
+    machine.
+  - New layout (in the Progress Check) builds a different machine with a new
+    code. Enter a layout code builds the machine a code names. Reset lab
+    rebuilds the same code from the start. The code shows in the scenario
+    header, the Progress Check, the Debrief, and "Copy debrief as text".
+  - The Scenario Brief is built from the same code, and it is the ground truth:
+    the authorized administrators and users, the required services, and the
+    policy numbers it states are exactly what the checks and availability checks
+    use. Read it first.
+  - Faults come only from what Levels 1 to 3 teach. Every layout has 14 to 26
+    findings plus one to three investigation questions, and the checks always
+    total 100 points.
+  - Decoys look odd but belong: a print service account (svc_print); a school
+    service, scheduled task, or firewall rule under C:\Program Files\PHN (a
+    required school firewall rule always comes with its own school service); a
+    media player on the approved software list; and text files in Music or
+    Videos. When the brief names one as required, breaking it raises a must-fix
+    flag like any other availability check.
+  - Availability works as in Levels 1 to 3: breaking a requirement holds the
+    points, raises a must-fix flag with its restore step, and holds Finish, and
+    deleting and re-creating an authorized account earns nothing. A deleted
+    required scheduled task comes back with the schtasks /create line its
+    restore step gives (or with Register-ScheduledTask), and re-creating it
+    earns nothing either.
+  - Level 4 keeps one best score for the level as a whole, plus the last layout
+    code. Its Debrief adds "Hardening areas: where to invest next", which rates
+    each area Strong (every check passed) or Revisit (with what is still open),
+    weakest first.
+
+The four kinds of machine (all at Pōhinahina High School, domain phn.k12.lan)
+  - lab: computer-lab desktop (Windows 11), host PHN-LAB-NN, address in
+    10.20.4.0/24
+  - laptop: teacher laptop (Windows 11), host PHN-LAPTOP-NN, address in
+    10.20.7.0/24
+  - office: front-office PC (Windows 11), host PHN-OFFICE-NN, address in
+    10.20.7.0/24
+  - server: file and portal server (Windows Server), host PHN-FS-NN, address in
+    10.20.9.0/24
+
+The fault pool, by category (how to find each kind, then how to fix it)
+
+Accounts and groups
+  - An account the Scenario Brief does not list
+      find: net user lists every account; compare it with the brief's two lists.
+      fix:  net user NAME /delete (lusrmgr.msc > Users > Delete).
+  - An authorized standard user in Administrators
+      find: net localgroup Administrators; anyone there besides the brief's
+            administrators and the built-in Administrator.
+      fix:  net localgroup Administrators NAME /delete.
+  - A standard user in Backup Operators
+      find: net localgroup "Backup Operators".
+      fix:  net localgroup "Backup Operators" NAME /delete.
+  - Guest account enabled
+      find: net user Guest shows "Account active Yes".
+      fix:  net user Guest /active:no.
+  - "Password never expires" on a user account
+      find: net user NAME shows "Password expires Never" (after the maximum age
+            is set).
+      fix:  Set-LocalUser -Name NAME -PasswordNeverExpires $false.
+  - A blank password that is not required
+      find: net user NAME shows "Password required No".
+      fix:  net user NAME <strong password> /passwordreq:yes (at least the
+            brief's minimum length; /passwordreq:yes makes the account require a
+            password again).
+  - A saved password for a removed account
+      find: cmdkey /list shows a target that signs in as an account you removed.
+      fix:  cmdkey /delete:TARGET.
+
+Passwords and lockout
+  - Minimum password length below the brief
+      find: net accounts shows "Minimum password length".
+      fix:  net accounts /minpwlen:N (the brief's number).
+  - Password complexity off
+      find: secpol.msc > Password Policy, or secedit /export and read
+            PasswordComplexity.
+      fix:  secpol.msc > Enabled, or a secedit template with PasswordComplexity
+            = 1 and secedit /configure.
+  - Password history below 5
+      find: net accounts shows "Length of password history maintained".
+      fix:  net accounts /uniquepw:5.
+  - Maximum password age outside 30 to 90 days
+      find: net accounts shows "Maximum password age (days)".
+      fix:  net accounts /maxpwage:60.
+  - Minimum password age of 0
+      find: net accounts shows "Minimum password age (days)".
+      fix:  net accounts /minpwage:1.
+  - Reversible password encryption on
+      find: secedit /export shows ClearTextPassword = 1.
+      fix:  A secedit template with ClearTextPassword = 0 and secedit /configure
+            (or secpol.msc).
+  - Account lockout off
+      find: net accounts shows "Lockout threshold: Never".
+      fix:  net accounts /lockoutthreshold:5 /lockoutduration:30
+            /lockoutwindow:30.
+
+Auditing
+  - Logon events not audited
+      find: auditpol /get /category:"Logon/Logoff".
+      fix:  auditpol /set /category:"Logon/Logoff" /success:enable
+            /failure:enable.
+  - Account management not audited
+      find: auditpol /get /category:"Account Management".
+      fix:  auditpol /set /category:"Account Management" /success:enable
+            /failure:enable.
+
+Sign-in and UAC
+  - Last signed-in user shown
+      find: secpol.msc > Security Options, or reg query the
+            DontDisplayLastUserName value.
+      fix:  reg add ...\Policies\System /v DontDisplayLastUserName /t REG_DWORD
+            /d 1 /f.
+  - CTRL+ALT+DEL not required
+      find: secpol.msc > Security Options > "Do not require CTRL+ALT+DEL".
+      fix:  reg add ...\Policies\System /v DisableCAD /t REG_DWORD /d 0 /f.
+  - Blank passwords allowed over the network
+      find: reg query HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v
+            LimitBlankPasswordUse.
+      fix:  reg add HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v
+            LimitBlankPasswordUse /t REG_DWORD /d 1 /f.
+  - User Account Control turned down
+      find: UserAccountControlSettings shows the slider.
+      fix:  Move the slider to the default, or reg add
+            ConsentPromptBehaviorAdmin 5 and PromptOnSecureDesktop 1.
+  - LAN Manager authentication below level 5 (Server)
+      find: reg query HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v
+            LmCompatibilityLevel.
+      fix:  reg add ... /v LmCompatibilityLevel /t REG_DWORD /d 5 /f.
+
+Firewall
+  - A firewall profile turned off
+      find: netsh advfirewall show allprofiles.
+      fix:  netsh advfirewall set allprofiles state on.
+  - A planted inbound allow rule
+      find: netsh advfirewall firewall show rule name=all dir=in: a rule whose
+            Grouping sits outside the Windows groups (Core Networking, File and
+            Printer Sharing, Remote Desktop, and the like) and that the brief
+            does not name; wf.msc shows the program it opens, in a user-writable
+            folder. A rule the brief requires comes with its own school service
+            under C:\Program Files\PHN.
+      fix:  netsh advfirewall firewall delete rule name="NAME".
+
+Shares and permissions
+  - A share the brief does not list
+      find: net share.
+      fix:  net share NAME /delete.
+  - Everyone with full control of a records folder (Server)
+      find: icacls PATH.
+      fix:  icacls PATH /remove Everyone, then icacls PATH /grant
+            "USER:(OI)(CI)M".
+
+Malware defenses
+  - Microsoft Defender real-time protection off
+      find: Get-MpComputerStatus (RealTimeProtectionEnabled).
+      fix:  Set-MpPreference -DisableRealtimeMonitoring $false.
+  - A Microsoft Defender folder exclusion
+      find: Get-MpPreference | Select-Object ExclusionPath (administrator
+            window).
+      fix:  Remove-MpPreference -ExclusionPath "PATH".
+  - AutoRun on for some drives
+      find: reg query ...\Policies\Explorer /v NoDriveTypeAutoRun.
+      fix:  reg add ...\Policies\Explorer /v NoDriveTypeAutoRun /t REG_DWORD /d
+            255 /f.
+
+Patching
+  - Updates waiting or paused
+      find: Settings > Windows Update.
+      fix:  Resume updates, Check for updates, Install all, Restart now.
+
+Services
+  - Remote Registry running
+      find: sc query RemoteRegistry.
+      fix:  sc stop RemoteRegistry, then sc config RemoteRegistry start=
+            disabled.
+  - A service that runs from a user-writable folder
+      find: autorunsc -a * -s -m (Services), or sc qc NAME for BINARY_PATH_NAME.
+      fix:  sc stop NAME, then sc config NAME start= disabled (or sc delete
+            NAME).
+
+Tasks and startup
+  - A planted scheduled task
+      find: schtasks /query /fo LIST /v (Task To Run), or autorunsc (Task
+            Scheduler).
+      fix:  schtasks /delete /tn "NAME" /f.
+  - A Startup-folder shortcut for every account
+      find: dir "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp",
+            or autorunsc (Logon).
+      fix:  del the shortcut.
+
+Software and media
+  - Software outside the approved list
+      find: winget list, or Settings > Apps > Installed apps.
+      fix:  winget uninstall "NAME" (or Uninstall in Settings or appwiz.cpl).
+  - Music and video files in user folders
+      find: Get-ChildItem C:\Users -Recurse -Force -Include
+            *.mp3,*.m4a,*.wav,*.flac,*.mp4,*.mkv,*.avi,*.mov.
+      fix:  del /s /a C:\Users\*.EXT for each extension found.
+
+Features
+  - Telnet Client turned on
+      find: Get-WindowsOptionalFeature -Online -FeatureName TelnetClient.
+      fix:  Disable-WindowsOptionalFeature -Online -FeatureName TelnetClient (or
+            dism /online /disable-feature /featurename:TelnetClient).
+  - SMB 1.0 turned on
+      find: Get-WindowsOptionalFeature -Online -FeatureName SMB1Protocol.
+      fix:  Disable-WindowsOptionalFeature -Online -FeatureName SMB1Protocol (or
+            dism /online /disable-feature /featurename:SMB1Protocol).
+  - FTP server installed (Server)
+      find: Get-WindowsFeature Web-Ftp-Server.
+      fix:  Uninstall-WindowsFeature -Name Web-Ftp-Server.
+
+Remote access
+  - Remote Desktop on where the brief rules it out
+      find: SystemPropertiesRemote, or reg query fDenyTSConnections.
+      fix:  reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v
+            fDenyTSConnections /t REG_DWORD /d 1 /f.
+  - Required Remote Desktop without Network Level Authentication
+      find: SystemPropertiesRemote shows the NLA box.
+      fix:  reg add "...\WinStations\RDP-Tcp" /v UserAuthentication /t REG_DWORD
+            /d 1 /f.
+  - Remote Assistance on (Windows 11)
+      find: SystemPropertiesRemote; Get-NetFirewallRule -DisplayGroup "Remote
+            Assistance".
+      fix:  reg add "...\Remote Assistance" /v fAllowToGetHelp /t REG_DWORD /d 0
+            /f, then Disable-NetFirewallRule -Group "@FirewallAPI.dll,-33002"
+            (or netsh advfirewall firewall set rule group="Remote Assistance"
+            new enable=no).
+
+Investigation
+  - Which task runs a planted script
+      find: schtasks /query /fo LIST /v (TaskName and Task To Run).
+      fix:  Type the TaskName after ANSWER: and save.
+  - Which account has "Password never expires"
+      find: net user NAME for each account.
+      fix:  Type the account name.
+  - Who created an unauthorized account
+      find: Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4720} |
+            Format-List TimeCreated,Message (Subject: Account Name).
+      fix:  Type the account name.
+  - Which TCP port a planted rule allows
+      find: netsh advfirewall firewall show rule name="NAME" (LocalPort).
+      fix:  Type the port number.
+  - Which account does not require a password
+      find: net user NAME ("Password required No").
+      fix:  Type the account name.
+  - The SHA256 of a planted script
+      find: Get-FileHash -Algorithm SHA256 PATH.
+      fix:  Type the first 8 characters of the Hash.
+  - Which Administrators member the brief does not list
+      find: net localgroup Administrators.
+      fix:  Type the account name.
+  - Which folder Microsoft Defender skips
+      find: Get-MpPreference | Select-Object ExclusionPath.
+      fix:  Type the folder path.
+  - Which share the brief does not list
+      find: net share.
+      fix:  Type the share name.
+  - What a Startup-folder shortcut starts (Sysinternals)
+      find: autorunsc -a * -s -m (Logon), or the shortcut's Properties.
+      fix:  Type the program's file name.
+
+................................................................................
+WORKED EXAMPLE: LAYOUT CODE 3UP6VE
+................................................................................
+Enter 3UP6VE in Level 4 (Enter a layout code) to build this exact machine:
+Pōhinahina High School — computer-lab desktop PHN-LAB-07 · layout 3UP6VE.
+Sign-in  labuser / Advanced!2026    Host  PHN-LAB-07    Address  10.20.4.182
+System   Windows 11 Pro, version 26H2, build 26300.9550
+
+A good order: read the brief and write down the two account lists and the
+required items; answer the investigation questions while the evidence is still
+there; set the policy (net accounts) so "Password expires" means something; then
+work through accounts, services and tasks, firewall and shares, Defender,
+software and media, and features and remote access. Start Windows Update early
+and restart near the end.
+
+Scenario Brief summary
+  Pōhinahina High School (PHN), domain phn.k12.lan. This Windows 11 machine is
+  the school's computer-lab desktop PHN-LAB-07 at 10.20.4.182 (gateway
+  10.20.4.1). Students sign in with their own accounts for class projects. A
+  student says a "game helper" was installed on this desktop during lunch. This
+  is the extra-credit level: the machine changes with each layout code, so read
+  it before you change it.
+  Authorized administrators: labuser (you) - password: Advanced!2026; keoni
+    (school sysadmin)
+  Authorized users: kaipo (student), koa (student), malia (student, yearbook),
+    kekoa (new teacher), svc_print (print service account)
+  Required services and settings:
+    - The firewall must be on for every profile, and Microsoft Defender must
+      stay on.
+    - Windows Update must be able to install updates.
+    - Remote access stays off on this PC: Remote Desktop, Remote Assistance, and
+      Remote Registry.
+    - Required service: PHN Print Agent (PHNPrintAgent) keeps running. Sends
+      print jobs to the school print server.
+    - Required scheduled task: "PHN Lab Reset" keeps running each night.
+    - Required firewall rule: "PHN Print Agent (TCP-In)" stays enabled.
+    - SMB 1.0 and the Telnet client stay off.
+  Security policy:
+    - Only the authorized administrators (and the built-in Administrator
+      account) may be in the Administrators group, and only the authorized
+      administrators may be in Backup Operators.
+    - Guest must be disabled. Every user account keeps a real password, and
+      "Password never expires" stays cleared on every user account.
+    - Passwords: at least 14 characters, complex, 5 or more remembered, a
+      maximum age of 30 to 90 days, and a minimum age of 1 day or more.
+      Passwords are stored as one-way hashes only (reversible encryption off).
+    - Account lockout: after 10 or fewer failed attempts, for 15 minutes or
+      more. Logons and account management are audited for Success and Failure.
+    - The last signed-in user name stays hidden, CTRL+ALT+DEL is required, and
+      accounts with blank passwords stay limited to console sign-in.
+    - User Account Control stays at the default level or higher. AutoPlay and
+      AutoRun stay off for every drive.
+    - Microsoft Defender scans every folder: remove every exclusion.
+    - Only the shares this brief lists and the Windows default shares (ADMIN$,
+      C$, and IPC$) stay shared.
+    - Approved software: 7-Zip, Notepad++, Mozilla Firefox, Google Chrome, VLC
+      media player, and the Microsoft programs that come with Windows. Remove
+      everything else.
+    - Remove music and video files from every user folder.
+    - Remove anything an intruder planted: accounts, saved passwords for removed
+      accounts, firewall rules, shares, scheduled tasks, Startup-folder
+      shortcuts, and services that run from user-writable folders.
+
+Investigation questions
+  Q1  Microsoft Defender was told to skip one folder. What is the full path of
+      that folder?
+      ANSWER: C:\Users\Public\Music\.cache
+      (Hint: in an administrator PowerShell, Get-MpPreference | Select-Object
+       ExclusionPath)
+  Q2  An inbound firewall rule was planted that sits outside the Windows
+      defaults and the Scenario Brief. What TCP port does it allow?
+      ANSWER: 7070
+      (Hint: wf.msc > Inbound Rules, sort by Group, or: netsh advfirewall
+       firewall show rule name=all dir=in and read the LocalPort line of the
+       rule outside the Windows groups that the brief does not name.)
+  Q3  The Security log records who created each account. Which account created
+      the svc_sync account?
+      ANSWER: tester
+      (Hint: Event Viewer (eventvwr.msc) > Windows Logs > Security > Filter
+       Current Log, Event ID 4720, then read Subject: Account Name. Or, in
+       PowerShell as administrator: Get-WinEvent -FilterHashtable
+       @{LogName='Security'; Id=4720} | Format-List TimeCreated,Message)
+
+Checks (100 points)
+  [6]  Unauthorized user "tester" removed
+       area: Account management
+       fix: lusrmgr.msc > Users > tester > Delete
+       or:  net user tester /delete
+       why: An account nobody authorized is a door into the machine.
+  [6]  Unauthorized user "svc_sync" removed
+       area: Account management
+       fix: lusrmgr.msc > Users > svc_sync > Delete
+       or:  net user svc_sync /delete
+       why: An account nobody authorized is a door into the machine.
+  [5]  "kaipo" removed from the Administrators group (not an authorized
+       administrator)
+       area: Access control
+       fix: lusrmgr.msc > Groups > Administrators > Properties > kaipo > Remove
+       or:  net localgroup Administrators kaipo /delete
+       why: Administrators can undo every other fix; only the administrators
+            named in the Scenario Brief belong there (least privilege).
+  [3]  "koa" removed from Backup Operators (not an authorized administrator)
+       area: Access control
+       fix: lusrmgr.msc > Groups > Backup Operators > Properties > koa > Remove
+       or:  net localgroup "Backup Operators" koa /delete
+       why: Backup Operators can read and restore every file on the machine,
+            past any folder permission: an administrator-level right for the
+            brief's named administrators only.
+  [3]  Guest account disabled
+       area: Account management
+       fix: lusrmgr.msc > Guest > Properties > check "Account is disabled"
+       or:  net user Guest /active:no
+       why: Guest is an anonymous login with no password.
+  [3]  "Password never expires" cleared on kekoa
+       area: Account management
+       fix: lusrmgr.msc > kekoa > Properties > uncheck "Password never expires"
+       or:  Set-LocalUser -Name kekoa -PasswordNeverExpires $false
+       why: A password that never expires stays valid forever once leaked.
+  [5]  Blank password on account "malia" replaced with a real one
+       area: Account management
+       fix: net user malia Str0ng-Passw0rd!2026 /passwordreq:yes
+       or:  lusrmgr.msc > malia > Set Password..., then net user malia
+            /passwordreq:yes
+       why: An empty password lets anyone sign in with Enter. /passwordreq:yes
+            also stops the password being set back to blank.
+  [3]  Password complexity requirements enabled
+       area: Account management
+       fix: secpol.msc > Password Policy > "Password must meet complexity
+            requirements" = Enabled
+       or:  secedit /export /cfg C:\sec.inf, set PasswordComplexity = 1 in
+            Notepad, then secedit /configure /db C:\Windows\security\local.sdb
+            /cfg C:\sec.inf
+       why: Complexity blocks "password1" and the user's own name.
+  [3]  Password history of 5 or more enforced
+       area: Account management
+       fix: secpol.msc > Password Policy > Enforce password history = 5
+       or:  net accounts /uniquepw:5
+       why: Stops toggling between two favourite passwords.
+  [3]  Audit logon events audited for Success and Failure
+       area: Audit logging
+       fix: secpol.msc > Audit Policy > Audit logon events = Success, Failure
+       or:  auditpol /set /category:"Logon/Logoff" /success:enable
+            /failure:enable
+       why: An audit trail shows who signed in and what changed.
+  [3]  Suspicious inbound firewall rule "Lab Relay (TCP-In)" removed or disabled
+       area: Secure configuration
+       fix: wf.msc > Inbound Rules > "Lab Relay (TCP-In)" > Delete
+       or:  netsh advfirewall firewall delete rule name="Lab Relay (TCP-In)"
+       why: An allow-anything rule on an odd port is a planted back door.
+  [5]  Microsoft Defender real-time protection on
+       area: Malware defenses
+       fix: Windows Security > Virus & threat protection > Manage settings >
+            Real-time protection = On
+       or:  Set-MpPreference -DisableRealtimeMonitoring $false
+       why: With real-time protection off, malware runs unchallenged.
+  [5]  Microsoft Defender exclusion for C:\Users\Public\Music\.cache removed
+       area: Malware defenses
+       fix: Windows Security > Virus & threat protection > Manage settings > Add
+            or remove exclusions > C:\Users\Public\Music\.cache > Remove
+       or:  Remove-MpPreference -ExclusionPath "C:\Users\Public\Music\.cache"
+       why: An exclusion tells Microsoft Defender to skip a folder, so a program
+            stored there runs unscanned even with real-time protection on. An
+            intruder adds one for the folder their tools run from.
+  [3]  Windows updates installed and not paused
+       area: Patching
+       fix: Settings > Windows Update > Resume updates > Check for updates >
+            Install all > Restart now
+       why: The pending updates include fixes for publicly known
+            vulnerabilities.
+  [4]  Remote Registry service stopped and disabled
+       area: Secure configuration
+       fix: services.msc > Remote Registry > Stop, Startup type = Disabled
+       or:  sc.exe stop RemoteRegistry, then sc.exe config RemoteRegistry start=
+            disabled
+       why: Unneeded listening services are ways in; Disabled keeps them off
+            after a reboot.
+  [5]  Rogue service "Display Sync Service" (DisplaySyncSvc) disabled or removed
+       area: Malware defenses
+       fix: services.msc > "Display Sync Service" > Stop, Startup type =
+            Disabled
+       or:  sc.exe stop DisplaySyncSvc, then sc.exe delete DisplaySyncSvc
+       why: A homemade service running from a user folder is persistence for an
+            intruder.
+  [4]  Startup-folder launcher "CacheTray.lnk" removed
+       area: Malware defenses
+       fix: Win+R > shell:common startup > CacheTray.lnk > Delete
+       or:  del "C:\ProgramData\Microsoft\Windows\Start
+            Menu\Programs\StartUp\CacheTray.lnk"
+       why: A shortcut in the all-users Startup folder starts its program for
+            everyone who signs in, so a planted back door returns after every
+            restart.
+  [4]  Unauthorized software removed (ArcadeLoop, CoinSweeper Miner, PortProbe
+       Toolkit)
+       area: Secure configuration
+       fix: Settings > Apps > Installed apps > ... > Uninstall (each):
+            ArcadeLoop, CoinSweeper Miner, PortProbe Toolkit
+       or:  appwiz.cpl
+       why: File-sharing clients, miners, and scanners are banned by policy and
+            often carry malware.
+  [4]  Prohibited media files removed from user folders
+       area: Data protection
+       fix: File Explorer > C:\Users\<user>\Music, Videos, Downloads > Delete
+       or:  del /s /a C:\Users\*.mp3 C:\Users\*.m4a C:\Users\*.wav
+            C:\Users\*.flac C:\Users\*.mp4 C:\Users\*.mkv C:\Users\*.avi
+            C:\Users\*.mov
+       why: Policy bans media; it is also where pirated and malicious files
+            hide.
+  [2]  Telnet Client feature turned off
+       area: Secure configuration
+       fix: optionalfeatures > uncheck "Telnet Client"
+       or:  Disable-WindowsOptionalFeature -Online -FeatureName TelnetClient
+       why: Telnet sends every keystroke, passwords included, in clear text.
+  [4]  SMB 1.0/CIFS File Sharing Support feature turned off
+       area: Secure configuration
+       fix: optionalfeatures > uncheck "SMB 1.0/CIFS File Sharing Support"
+       or:  Disable-WindowsOptionalFeature -Online -FeatureName SMB1Protocol
+       why: SMBv1 is the protocol WannaCry spread over.
+  [2]  Remote Assistance turned off and its firewall rules disabled
+       area: Secure configuration
+       fix: SystemPropertiesRemote > Remote > clear "Allow Remote Assistance
+            connections to this computer"
+       or:  reg add "HKLM\SYSTEM\CurrentControlSet\Control\Remote Assistance" /v
+            fAllowToGetHelp /t REG_DWORD /d 0 /f, then Disable-NetFirewallRule
+            -Group "@FirewallAPI.dll,-33002"
+       why: Remote Assistance lets a helper on the network see and control this
+            screen once a user accepts an invitation, a favorite opening for
+            fake support callers. The brief rules out remote access here.
+  [5]  Investigation 1 answered
+       fix: Answer: C:\Users\Public\Music\.cache
+  [5]  Investigation 2 answered
+       fix: Answer: 7070
+  [5]  Investigation 3 answered
+       fix: Answer: tester
+
+Availability checks (must fix: breaking one keeps your points, shows it in red
+with its restore step, and holds Finish until it works again)
+  - Authorized user removed or disabled
+       restore: Turn the account back on: net user NAME /active:yes, or
+                lusrmgr.msc > Users > NAME > clear "Account is disabled". A
+                deleted account comes back with net user NAME <password> /add (a
+                password that meets the policy); then add it to its groups
+                again.
+  - Authorized administrator removed from Administrators
+       restore: Put the administrator back: net localgroup Administrators NAME
+                /add, or lusrmgr.msc > Groups > Administrators > Add. Bring back
+                a deleted account first.
+  - Your own account deleted, disabled, or locked out
+       restore: While you are still signed in: net user labuser /active:yes, or
+                lusrmgr.msc > Users > labuser > clear "Account is disabled" and
+                "Account is locked out". A deleted account comes back with net
+                user labuser <password> /add and net localgroup Administrators
+                labuser /add. Once the sign-in fails, Reset lab is the way back.
+  - Required service "PHN Print Agent" stopped or disabled
+       restore: Set it back to Automatic and start it: sc.exe config
+                PHNPrintAgent start= auto, then sc.exe start PHNPrintAgent (or
+                services.msc > PHN Print Agent > Startup type: Automatic >
+                Start).
+  - Required scheduled task "PHN Lab Reset" deleted or disabled
+       restore: Turn the task back on: schtasks /change /tn "PHN Lab Reset"
+                /enable (or Task Scheduler > right-click "PHN Lab Reset" >
+                Enable). A deleted task comes back when you create it again with
+                the same name and program: schtasks /create /tn "PHN Lab Reset"
+                /tr "\"C:\Program Files\PHN\LabReset\labreset.exe\" /nightly"
+                /sc daily /st 02:00 /ru SYSTEM /f (each \" keeps a quote around
+                the path, which has spaces). Disable a task you are unsure about
+                instead of deleting it.
+  - Required firewall rule "PHN Print Agent (TCP-In)" deleted or disabled
+       restore: Turn the rule back on: netsh advfirewall firewall set rule
+                name="PHN Print Agent (TCP-In)" new enable=yes. A deleted rule
+                comes back with netsh advfirewall firewall add rule name="PHN
+                Print Agent (TCP-In)" dir=in action=allow protocol=TCP
+                localport=9100.
+  - Required service "Windows Defender Firewall" stopped or disabled
+       restore: Set it back to Automatic and start it: sc.exe config mpssvc
+                start= auto, then sc.exe start mpssvc (or services.msc > Windows
+                Defender Firewall > Startup type: Automatic > Start).
+  - Required service "Microsoft Defender Antivirus" stopped or disabled
+       restore: Set it back to Automatic and start it: sc.exe config WinDefend
+                start= auto, then sc.exe start WinDefend (or services.msc >
+                Microsoft Defender Antivirus > Startup type: Automatic > Start).
+  - Windows Update service disabled
+       restore: Set Windows Update back to Manual: sc.exe config wuauserv start=
+                demand (or services.msc > Windows Update > Startup type:
+                Manual).
+
+--------------------------------------------------------------------------------
+7. WINDOWS HARDENING QUICK REFERENCE
 --------------------------------------------------------------------------------
 Open the tools (Start > Run, or Alt+R in this lab)
   lusrmgr.msc            Local Users and Groups
@@ -1028,6 +1599,12 @@ Services and tasks
   PowerShell: Get-Service; Set-Service -Name NAME -StartupType Disabled
   schtasks /query /fo LIST /v | findstr /i "TaskName Task.To.Run"
   schtasks /delete /tn "NAME" /f
+  schtasks /create /tn "NAME" /tr "\"PROGRAM\" ARGS" /sc daily /st 02:00
+    /ru SYSTEM   (each \" keeps a quote around a path with spaces;
+    /f replaces a task that has the same name)
+  PowerShell: Register-ScheduledTask -TaskName "NAME" -Action
+    (New-ScheduledTaskAction -Execute "PROGRAM" -Argument "ARGS")
+    -Trigger (New-ScheduledTaskTrigger -Daily -At 2am) -User SYSTEM
   netstat -abno (administrator)       port > PID > program
   tasklist /svc /fi "PID eq 1234"     services inside a PID
   PowerShell: Get-Process -Id 1234 | Select-Object Name,Path; Stop-Process -Id
@@ -1058,9 +1635,11 @@ Firewall, Defender, features
   netsh advfirewall show allprofiles
   netsh advfirewall set allprofiles state on
   netsh advfirewall firewall delete rule name="RULE NAME"
+  netsh advfirewall firewall set rule group="GROUP" new enable=no
   PowerShell: Set-MpPreference -DisableRealtimeMonitoring $false
   PowerShell: Disable-WindowsOptionalFeature -Online -FeatureName TelnetClient
               (SMB1Protocol, IIS-FTPServer the same way)
+  dism /online /disable-feature /featurename:TelnetClient   the same from cmd
   PowerShell (administrator): Get-MpPreference | Select-Object
     ExclusionPath,ExclusionProcess,ExclusionExtension
     Remove-MpPreference -ExclusionPath "PATH"
@@ -1082,7 +1661,7 @@ Files
   File Explorer: View > Show > Hidden items to see hidden folders
 
 --------------------------------------------------------------------------------
-7. WHERE THE REAL MACHINE DIFFERS
+8. WHERE THE REAL MACHINE DIFFERS
 --------------------------------------------------------------------------------
   - Real VMs are slow: updates take many minutes and a restart takes a minute or
     two. Take a VM snapshot before big changes; Reset lab is the equivalent
@@ -1092,7 +1671,7 @@ Files
   - Windows+R cannot be captured by a web page: use Alt+R or the Run tile.
   - Registry Editor, Task Manager, and most third-party programs sit outside the
     simulation. reg.exe and Set-ItemProperty store any value you write and read
-    it back; the values listed in section 6 are the ones that change how the lab
+    it back; the values listed in section 7 are the ones that change how the lab
     machine behaves.
   - Each scenario's event logs start with a short history. Then they record
     account and group changes once Account Management auditing is on (the User
@@ -1115,7 +1694,7 @@ Files
       sign-ins for 10 minutes by default.
 
 --------------------------------------------------------------------------------
-8. SOURCES
+9. SOURCES
 --------------------------------------------------------------------------------
   - Windows security policy settings reference (Microsoft Learn archive; applies
     to Windows 11; no newer edition exists)

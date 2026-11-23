@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-D2CouuupM5kEM6nwkFEH/uF7o63V1n+e4YqQRpwnUjE=' 'sha256-XuHSeFT2LliYygK7R9SdkI+73RBYBDz3YycuEOk4Ddg='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-XuHSeFT2LliYygK7R9SdkI+73RBYBDz3YycuEOk4Ddg=' 'sha256-Y6i7l++8BCttoyKa0+pQRbq577gmHYWsLv6yDL1NRSg='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Study the complaint and real device output, then pick the root cause. Every ticket ends with the fix and the configuration habits that prevent it.">
 <link rel="canonical" href="https://freeapp4that.store/net-drills/trouble-tickets/">
@@ -190,7 +190,7 @@ FastEthernet0 Connection:(default port)
   why: 'A 169.254.x.x address (APIPA) with no gateway means DHCP failed. Common causes: the DHCP server or pool is down or full, the port is in the wrong VLAN, or DHCP snooping is dropping the offers.',
   fix: 'Check the DHCP server and pool, the switch port VLAN, and DHCP snooping trust. Then on the laptop:\nipconfig /renew' },
 { id: 'gw', cat: 'Addressing', title: 'Local works, remote does not',
-  sym: 'I can print to the printer next to me, but I cannot reach anything outside our office.',
+  sym: 'I can print to the printer next to me, but I cannot reach anything outside our classroom.',
   ev: [['PC command prompt', `C:\\>ipconfig
 
    IPv4 Address....................: 192.168.10.25
@@ -270,7 +270,7 @@ GigabitEthernet0/1     192.168.20.1    YES manual administratively down down`]],
   opts: ['G0/1 has been shut down and needs no shutdown', 'The cable on G0/1 is bad', 'G0/1 has the wrong IP address', 'R1 needs a routing protocol for the second floor'],
   why: 'administratively down means the interface is disabled in the configuration. Someone typed shutdown, or the port kept its default state (router ports start shut down). A cabling fault shows plain down/down instead.',
   fix: 'interface g0/1\nno shutdown' },
-{ id: 'phys', cat: 'Physical', title: 'Dead link after the office move',
+{ id: 'phys', cat: 'Physical', title: 'Dead link after the classroom move',
   sym: 'The link from R1 to the second-floor switch has been dead since the move. The switch is powered on.',
   ev: [['R1 console', `R1#show ip interface brief
 Interface              IP-Address      OK? Method Status                Protocol
@@ -296,7 +296,7 @@ FastEthernet0/7 is up, line protocol is up (connected)
   why: 'A side set by hand stops negotiating. Fa0/7 still senses 100 Mb/s from the signal, but without a duplex offer to read, it falls back to half (a-half). The PC sends whenever it likes while the switch takes turns, so late collisions pile up. A duplex mismatch keeps the link up and slow.',
   fix: 'Give both ends the same settings. Simplest: set the PC adapter back to Auto Negotiation, so both ends negotiate 100 Mb/s full duplex. Or keep the PC at 100 Mbps Full Duplex and match it by hand on SwA:\ninterface f0/7\nspeed 100\nduplex full\nThen show interfaces f0/7 status reads full and 100.' },
 { id: 'dns', cat: 'Services', title: 'Websites fail, the internet works',
-  sym: 'Websites will not load, but the IT person says the internet connection is fine.',
+  sym: 'Websites will not load, but school IT says the internet connection is fine.',
   ev: [['PC command prompt', `C:\\>ping 8.8.8.8
 
 Pinging 8.8.8.8 with 32 bytes of data:
@@ -366,15 +366,15 @@ PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.
 --- 8.8.8.8 ping statistics ---
 2 packets transmitted, 2 received, 0% packet loss, time 1002ms
 rtt min/avg/max/mdev = 20.912/21.156/21.400/0.244 ms
-$ ping -c 2 intranet.school.lan
-ping: intranet.school.lan: Temporary failure in name resolution
+$ ping -c 2 intranet.phn.k12.lan
+ping: intranet.phn.k12.lan: Temporary failure in name resolution
 $ resolvectl status enp0s3
 Link 2 (enp0s3)
     Current Scopes: DNS
          Protocols: +DefaultRoute +LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
 Current DNS Server: 10.1.20.5
        DNS Servers: 10.1.20.5
-$ dig +short intranet.school.lan @10.1.20.50
+$ dig +short intranet.phn.k12.lan @10.1.20.50
 10.1.20.40`],
     ['RtrA running-config (excerpt)', `ip dhcp pool STUDENTS
  network 10.1.10.0 255.255.255.0
@@ -384,7 +384,7 @@ $ dig +short intranet.school.lan @10.1.20.50
   why: 'Pings by address cross the gateway and come back, so addressing and routing work. resolvectl names 10.1.20.5 as the DNS server, and that address stays silent, while dig against 10.1.20.50 answers at once. The STUDENTS pool on RtrA hands every laptop a mistyped DNS address.',
   fix: 'On RtrA:\nip dhcp pool STUDENTS\ndns-server 10.1.20.50\n(dns-server replaces the old address)\nOn the laptop, nmcli connection show names the profile. Bring it up again to renew the lease:\nsudo nmcli connection up "Wired connection 1"\nresolvectl status enp0s3 (expect DNS Servers: 10.1.20.50)' },
 { id: 'linuxport', cat: 'Services', title: 'The site answers ping, and HTTPS times out',
-  sym: 'After the web server hardening, staff load http://makani-web, and the https:// address spins until it times out.',
+  sym: 'After the web server hardening, staff load http://phn-web01, and the https:// address spins until it times out.',
   ev: [['Admin laptop terminal (Ubuntu 24.04)', `$ ping -c 2 10.1.20.80
 PING 10.1.20.80 (10.1.20.80) 56(84) bytes of data.
 64 bytes from 10.1.20.80: icmp_seq=1 ttl=64 time=0.412 ms
@@ -397,7 +397,7 @@ $ nc -zv -w 5 10.1.20.80 80
 Connection to 10.1.20.80 80 port [tcp/http] succeeded!
 $ nc -zv -w 5 10.1.20.80 443
 nc: connect to 10.1.20.80 port 443 (tcp) timed out: Operation now in progress`],
-    ['makani-web terminal (Ubuntu Server 24.04)', `$ sudo ss -tulnp | grep apache2
+    ['phn-web01 terminal (Ubuntu Server 24.04)', `$ sudo ss -tulnp | grep apache2
 tcp   LISTEN 0      511                *:80              *:*    users:(("apache2",pid=1104,fd=4),("apache2",pid=1103,fd=4),("apache2",pid=1101,fd=4))
 tcp   LISTEN 0      511                *:443             *:*    users:(("apache2",pid=1104,fd=6),("apache2",pid=1103,fd=6),("apache2",pid=1101,fd=6))
 $ sudo ufw status
@@ -410,7 +410,7 @@ To                         Action      From
 80/tcp (v6)                ALLOW       Anywhere (v6)`]],
   opts: ['ufw drops port 443, since only 80/tcp has an allow rule', 'Apache listens on port 80 alone', 'A router ACL blocks ICMP to the server', 'Apache stopped during the hardening'],
   why: 'ping and port 80 answer, so the path and Apache work, and ss shows apache2 listening on 443 as well. A closed port answers "Connection refused" at once; a timeout means something drops the packets on the way in. ufw allows 80/tcp and leaves 443 to its default deny, which drops silently.',
-  fix: 'On makani-web:\nsudo ufw allow 443/tcp\nsudo ufw status numbered (expect 443/tcp ALLOW IN Anywhere)\nFrom the laptop:\nnc -zv -w 5 10.1.20.80 443 (expect succeeded!)' },
+  fix: 'On phn-web01:\nsudo ufw allow 443/tcp\nsudo ufw status numbered (expect 443/tcp ALLOW IN Anywhere)\nFrom the laptop:\nnc -zv -w 5 10.1.20.80 443 (expect succeeded!)' },
 { id: 'svi', cat: 'Switching', title: 'Cannot manage the new switch',
   sym: 'PCs plugged into the new switch work fine, but I cannot ping or SSH to the switch itself at 10.1.20.2.',
   ev: [['SwA console', `SwA#show ip interface brief
@@ -503,7 +503,7 @@ SSH Disabled - version 1.99
 Authentication timeout: 120 secs; Authentication retries: 3`]],
   opts: ['The router has no RSA key pair yet', 'SSH also needs transport input telnet', 'The username must be admin', 'The router needs ip ssh version 1'],
   why: 'SSH stays disabled until an RSA key pair exists. Generating keys needs a non-default hostname and a domain name, and SSH version 2 needs at least 768 bits.',
-  fix: 'ip domain-name school.lan\ncrypto key generate rsa general-keys modulus 2048\nip ssh version 2' },
+  fix: 'ip domain-name phn.k12.lan\ncrypto key generate rsa general-keys modulus 2048\nip ssh version 2' },
 { id: 'psec', cat: 'Switching', title: 'New laptop, dead port',
   sym: 'A student swapped in a new laptop on the classroom port and lost all network access.',
   ev: [['S1 console log', `%PM-4-ERR_DISABLE: psecure-violation error detected on Fa0/5, putting Fa0/5 in err-disable state
@@ -537,37 +537,37 @@ GigabitEthernet0/0     192.168.1.1     YES manual down                  down`]],
   why: 'S1 sends untagged trunk frames as VLAN 99 and S2 as VLAN 1. Untagged frames can leak between those VLANs, which is why CDP warns about it. Both ends set native VLAN 99, a VLAN that stays free of hosts, so every user VLAN crosses the trunk tagged.',
   fix: 'On S2:\nvlan 99\nname NATIVE\ninterface g0/1\nswitchport trunk native vlan 99\nEvery trunk in the path uses native VLAN 99, including a router-on-a-stick link, whose native subinterface lacks an IP:\ninterface g0/0.99\nencapsulation dot1Q 99 native' },
 { id: 'vlan', cat: 'Switching', title: 'Wrong subnet on one desk',
-  sym: 'PC4 on port Fa0/4 keeps getting a 192.168.20.x address. It belongs on the users network, 192.168.10.x.',
+  sym: 'PC4 on port Fa0/4 keeps getting a 192.168.20.x address. It belongs on the staff network, 192.168.10.x.',
   ev: [['S1 console', `S1#show vlan brief
 
 VLAN Name                             Status    Ports
 ---- -------------------------------- --------- -------------------------------
 1    default                          active    Fa0/6, Fa0/7, Fa0/8, Fa0/9
-10   USERS                            active    Fa0/1, Fa0/2, Fa0/3
-20   GUESTS                           active    Fa0/4, Fa0/5`]],
-  opts: ['Fa0/4 is assigned to VLAN 20 (GUESTS) instead of VLAN 10', 'The DHCP server is handing out the wrong range', 'PC4 has a static IP address', 'The trunk is not carrying VLAN 10'],
-  why: 'The switch port decides the VLAN, and the VLAN decides which DHCP scope answers. Fa0/4 sits in GUESTS, so PC4 gets a guest address.',
+10   STAFF                            active    Fa0/1, Fa0/2, Fa0/3
+20   GUEST                            active    Fa0/4, Fa0/5`]],
+  opts: ['Fa0/4 is assigned to VLAN 20 (GUEST) instead of VLAN 10', 'The DHCP server is handing out the wrong range', 'PC4 has a static IP address', 'The trunk is not carrying VLAN 10'],
+  why: 'The switch port decides the VLAN, and the VLAN decides which DHCP scope answers. Fa0/4 sits in GUEST, so PC4 gets a guest address.',
   fix: 'interface f0/4\nswitchport access vlan 10' },
 { id: 'arpspoof', cat: 'Switching', title: 'Two neighbors, one MAC address',
-  sym: 'The student at KAILUA-WS07 says pages load slowly, and the browser warns about certificates on sites that worked yesterday.',
-  ev: [['KAILUA-WS07 command prompt', `C:\\>arp -a
+  sym: 'The student at PHN-LAB-07 says pages load slowly, and the browser warns about certificates on sites that worked yesterday.',
+  ev: [['PHN-LAB-07 command prompt', `C:\\>arp -a
 
 Interface: 10.1.10.37 --- 0xc
   Internet Address      Physical Address      Type
   10.1.10.1             5c-87-9c-11-22-33     dynamic
   10.1.10.44            5c-87-9c-11-22-33     dynamic
   10.1.10.255           ff-ff-ff-ff-ff-ff     static`],
-    ['Help desk notes: arp -a on KAILUA-WS07 last week (excerpt)', `  10.1.10.1             00-1a-2b-3c-4d-01     dynamic`]],
+    ['Help desk notes: arp -a on PHN-LAB-07 last week (excerpt)', `  10.1.10.1             00-1a-2b-3c-4d-01     dynamic`]],
   opts: ['10.1.10.44 sends forged ARP replies for the gateway, putting itself on-path', '10.1.10.44 is a second gateway that shares the load', 'A DHCP address conflict that clears itself at the next lease', "The websites' certificates expired"],
-  why: 'Two addresses share one physical address, and one of them is the gateway. Last week 10.1.10.1 answered as 00-1a-2b-3c-4d-01. Now 10.1.10.44 claims it with forged ARP replies (ARP spoofing), so KAILUA-WS07 hands that host every packet bound for another network. The on-path host slows pages and breaks certificate checks. Dynamic ARP inspection on the switch drops forged ARP replies.',
-  fix: 'Report it, and keep the arp -a output as evidence. Then find the port that MAC address uses and shut it:\nshow mac address-table address 5c87.9c11.2233\n(say it lists Fa0/3)\ninterface f0/3\nshutdown\nOn KAILUA-WS07, from an administrator prompt, drop the forged entry:\narp -d 10.1.10.1\nLasting fix: dynamic ARP inspection on the user VLANs, built on DHCP snooping.' },
+  why: 'Two addresses share one physical address, and one of them is the gateway. Last week 10.1.10.1 answered as 00-1a-2b-3c-4d-01. Now 10.1.10.44 claims it with forged ARP replies (ARP spoofing), so PHN-LAB-07 hands that host every packet bound for another network. The on-path host slows pages and breaks certificate checks. Dynamic ARP inspection on the switch drops forged ARP replies.',
+  fix: 'Report it, and keep the arp -a output as evidence. Then find the port that MAC address uses and shut it:\nshow mac address-table address 5c87.9c11.2233\n(say it lists Fa0/3)\ninterface f0/3\nshutdown\nOn PHN-LAB-07, from an administrator prompt, drop the forged entry:\narp -d 10.1.10.1\nLasting fix: dynamic ARP inspection on the user VLANs, built on DHCP snooping.' },
 { id: 'hostcase', cat: 'Config accuracy', title: 'Compliance check flags the new switch',
-  sym: 'The change request said to name the switch S1-Floor2. The switch works fine, but the nightly config compliance report marks it noncompliant.',
-  ev: [['Change request (excerpt)', `Configure the switch hostname as S1-Floor2.`],
-    ['S1 running-config (excerpt)', `hostname S1-floor2`]],
-  opts: ['The value is case-sensitive: S1-floor2 is not S1-Floor2', 'Hostnames cannot contain hyphens', 'The hostname only takes effect after a reload', 'Hostnames must be set from user EXEC mode'],
-  why: 'IOS keeps the hostname exactly as typed, and compliance scripts, inventory and monitoring systems, log searches, and lab checkers compare strings exactly. S1-floor2 forwards traffic fine and still fails a check for S1-Floor2. Copy names, VLAN names, and passwords character for character from the change record.',
-  fix: 'hostname S1-Floor2\nThen save it:\nend\ncopy running-config startup-config' },
+  sym: 'The change request said to name the switch PHN-SW-B201. The switch works fine, but the nightly config compliance report marks it noncompliant.',
+  ev: [['Change request (excerpt)', `Configure the switch hostname as PHN-SW-B201.`],
+    ['S1 running-config (excerpt)', `hostname PHN-SW-b201`]],
+  opts: ['The value is case-sensitive: PHN-SW-b201 is not PHN-SW-B201', 'Hostnames cannot contain hyphens', 'The hostname only takes effect after a reload', 'Hostnames must be set from user EXEC mode'],
+  why: 'IOS keeps the hostname exactly as typed, and compliance scripts, inventory and monitoring systems, log searches, and lab checkers compare strings exactly. PHN-SW-b201 forwards traffic fine and still fails a check for PHN-SW-B201. Copy names, VLAN names, and passwords character for character from the change record.',
+  fix: 'hostname PHN-SW-B201\nThen save it:\nend\ncopy running-config startup-config' },
 { id: 'bannertext', cat: 'Config accuracy', title: 'Security review rejects the banner',
   sym: 'The warning banner shows up when we log in, but the security review still lists it as a finding.',
   ev: [['Security policy (excerpt)', `Every network device must display this approved warning before login: Unauthorized Access Prohibited!`],
@@ -773,11 +773,11 @@ Gig0/1      10,20,99`]],
   why: 'show vlan brief lists PRINCIPALS with its ports, so the VLAN exists and its PCs reach each other. The trunk carries only 10, 20, and 99, so VLAN 30 frames stop before RtrA. RtrA learns 10.1.30.0/24 as a connected route from G0/0.30, so a static route adds nothing.',
   fix: 'interface g0/1\nswitchport trunk allowed vlan add 30\n(add keeps 10, 20, and 99; a bare list replaces them)' },
 { id: 'vtpwipe', cat: 'Switching', title: 'A spare switch went in, and the VLANs vanished',
-  sym: 'Right after a spare switch from the Mānoa office was connected to SwA with a trunk link, every Students, Teachers, and Principals port on SwA stopped working.',
+  sym: 'Right after a spare switch from Wiliwili Elementary was connected to SwA with a trunk link, every Students, Teachers, and Principals port on SwA stopped working.',
   ev: [['SwA console (excerpt)', `SwA#show vtp status
 VTP Version capable             : 1 to 3
 VTP version running             : 1
-VTP Domain Name                 : school.lan
+VTP Domain Name                 : phn.k12.lan
 ...
 Configuration last modified by 10.3.20.2 at 11-3-26 16:42:10
 ...
@@ -800,7 +800,7 @@ VLAN Name                             Status    Ports
   why: "In server mode (the default) or client mode, a switch adopts any VLAN list in its VTP domain with a higher configuration revision. The spare arrived with revision 14 and only the default VLANs, so SwA dropped VLANs 10, 20, 30, 99, and 999, and their ports went inactive. Transparent mode keeps a switch's own list, which is why the design sets it.",
   fix: 'On SwA:\nvtp mode transparent\nvlan 10\nname STUDENTS\nvlan 20\nname TEACHERS\nvlan 30\nname PRINCIPALS\nvlan 99\nname NATIVE\nvlan 999\nname PARKING\nend\nshow vlan brief (expect each access port back in its VLAN)\nBefore the spare rejoins, set it to vtp mode transparent as well.' },
 { id: 'trunkencap', cat: 'Switching', title: 'The donated switch refuses to trunk',
-  sym: "Kumu Leilani's team installed a donated 3560 multilayer switch at the Hilo office, and the trunk command from the setup guide fails on its uplink.",
+  sym: "Kumu Leilani's team installed a donated 3560 multilayer switch at Naupaka Intermediate, and the trunk command from the setup guide fails on its uplink.",
   ev: [['3560 console', `Switch(config)#interface g0/1
 Switch(config-if)#switchport mode trunk
 Command rejected: An interface whose trunk encapsulation is "Auto" can not be configured to "trunk" mode.`]],
@@ -974,12 +974,12 @@ const OPTWHY = {
     "A faulty cable gives no CDP neighbor at all. The two switches are talking; they disagree on the native VLAN."
   ],
   vlan: [
-    "The DHCP server answers per VLAN. It handed out a guest address because the port sits in the GUESTS VLAN.",
+    "The DHCP server answers per VLAN. It handed out a guest address because the port sits in the GUEST VLAN.",
     "A static address would stay the same whatever the port's VLAN. show vlan brief shows Fa0/4 under VLAN 20.",
-    "The other users ports (Fa0/1 to Fa0/3) in VLAN 10 work. The problem is one access port's VLAN."
+    "The other staff ports (Fa0/1 to Fa0/3) in VLAN 10 work. The problem is one access port's VLAN."
   ],
   hostcase: [
-    "Hyphens are valid in IOS hostnames. S1-Floor2 is a legal name.",
+    "Hyphens are valid in IOS hostnames. PHN-SW-B201 is a legal name.",
     "hostname takes effect at once; the prompt changes on the spot.",
     "hostname is a global configuration command, and it was accepted. The letter case is the issue."
   ],

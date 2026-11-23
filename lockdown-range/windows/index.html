@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-SkhQrXEB3fwV5tVL23ha/K1eI0JwmeYgEZ2b0PWNYpw='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-15R0+EbjgBe0o9gcaXHERuIz2meLb9BlIrqz0iMiKM8='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/lockdown-range/windows/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%96%A5%3C%2Ftext%3E%3C%2Fsvg%3E">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Tool4That">
 <meta property="og:title" content="Windows Range">
-<meta property="og:description" content="Windows 11 and Windows Server 2025 hardening scenarios in your browser. Sign in, read the scenario brief, answer the investigation questions, then fix each one with the real panels or the command line while a live Progress Check keeps count.">
+<meta property="og:description" content="Windows 11 and Windows Server 2025 hardening scenarios in your browser, in three levels (Recruit, Operator, and Captain) plus Level 4 · Advanced · extra credit, which builds a different machine on every attempt and gives a layout code a class can share. Sign in, read the scenario brief, answer the investigation questions, then fix each one with the real panels or the command line while a live Progress Check keeps count.">
 <meta property="og:url" content="https://freeapp4that.store/lockdown-range/windows/">
 <meta property="og:image" content="https://freeapp4that.store/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -52,6 +52,9 @@ header.top{position:sticky;top:0;z-index:50;background:var(--panel);border-botto
 .levels button .best{font-weight:400;opacity:.75;margin-left:4px;font-size:.8em}
 .score{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums;padding:4px 10px;border-radius:8px;background:var(--soft);border:1px solid var(--line);min-height:32px;display:flex;align-items:center}
 .score.neg{color:var(--bad)}
+/* a must-fix flag holds the points: the number keeps its color, and a short tag says why */
+.score.held{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;white-space:normal;border-color:var(--warn)}
+.score .held-tag{font-size:.78rem;font-weight:600;line-height:1.3;color:var(--ink);background:var(--warnbg);border:1px solid var(--warn);border-radius:6px;padding:1px 6px}
 .theme,.mbtn,.rbtn{min-height:32px;padding:4px 12px;border-radius:8px;border:1px solid var(--line);background:var(--soft);color:var(--ink);font-size:.9rem}
 .theme:hover,.mbtn:hover,.rbtn:hover{border-color:var(--muted)}
 nav.series{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:4px 16px 8px;max-width:1600px;margin:0 auto;font-size:.85rem;color:var(--muted)}
@@ -98,6 +101,8 @@ ul.mustfix li .pts{white-space:nowrap;font-weight:700;text-transform:uppercase;f
 ul.mustfix li .restore{flex-basis:100%;color:var(--ink);font-size:.86rem;overflow-wrap:anywhere}
 .report h3.mustfix-h{color:var(--bad)}
 .report .mustfix-note{color:var(--bad);margin-top:0}
+/* checks held for the rest of the attempt after an account was deleted */
+.gone-note{background:var(--warnbg);border-left:4px solid var(--warn);color:var(--ink);padding:6px 8px;border-radius:6px;font-size:.86rem;overflow-wrap:anywhere}
 .dbr-avail{margin:8px 0 12px}
 .dbr-avail h3{font-size:.98rem;margin:0 0 4px}
 .dbr-avail p{margin:4px 0}
@@ -119,6 +124,16 @@ ul.mustfix li .restore{flex-basis:100%;color:var(--ink);font-size:.86rem;overflo
 .report .bar .fill{height:100%;background:var(--ok);transition:width .3s}
 .modal .sum{font-weight:600;margin-bottom:10px}
 .modal .debrief-wrap{max-height:70vh;overflow:auto}
+/* phones: each Debrief row becomes a small card (mark, check, and points on one line; the fix and the reason below) */
+@media (max-width:600px){
+  .modal table.debrief thead{display:none}
+  .modal table.debrief,.modal table.debrief tbody{display:block;width:100%}
+  .modal table.debrief tr{display:grid;grid-template-columns:1.2rem minmax(0,1fr) auto;gap:4px 8px;border-top:1px solid var(--line);padding:8px 0}
+  .modal table.debrief td{border-top:0;padding:0;min-width:0;overflow-wrap:anywhere}
+  .modal table.debrief td:nth-child(3){white-space:nowrap;font-weight:600}
+  .modal table.debrief td.pts::after{content:" pts";font-weight:400;color:var(--muted)}
+  .modal table.debrief td:nth-child(4),.modal table.debrief td:nth-child(5){grid-column:2 / -1}
+}
 
 /* page-level modal (debrief / help / reset confirm) */
 .modal{position:fixed;inset:0;z-index:100;background:rgba(10,16,24,.55);display:flex;align-items:center;justify-content:center;padding:16px}
@@ -592,6 +607,27 @@ table.lv .dim{color:#888}
 .dbr-copy{ margin-top:.5rem; display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; font-size:.85rem; }
 .dbr-copy textarea{ width:100%; min-height:8em; font:12px/1.4 ui-monospace,Consolas,monospace; }
 .hintmark{ font-size:.78rem; opacity:.8; margin-left:.3rem; }
+/* Level 4 (Advanced, extra credit): the pill tag, the layout code panel, and the Debrief's areas */
+.levels button .xc{font-weight:400;font-size:.72em;margin-left:5px;padding:0 5px;border-radius:999px;border:1px solid currentColor;opacity:.8}
+.levels button[aria-selected="true"] .xc,.levels button[aria-selected="true"] .best{opacity:.92}
+.report .adv{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:0 0 8px}
+.report .adv-tag{font-weight:700;font-size:.85rem}
+.report .adv-code{margin:4px 0;overflow-wrap:anywhere}
+.report .adv-code b{font:700 1.05rem/1.3 ui-monospace,Consolas,monospace;letter-spacing:.08em;user-select:all}
+.report .adv .rbtns{margin-top:4px}
+.report .adv .note{margin:6px 0 0}
+.adv-form label{display:block;font-weight:600;margin:4px 0}
+.adv-form input{font:700 1.1rem ui-monospace,Consolas,monospace;letter-spacing:.1em;text-transform:uppercase;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);width:10em;max-width:100%}
+.adv-form .adv-err{color:var(--bad);min-height:1.2em}
+.dbr-areas{margin:8px 0 12px}
+.dbr-areas h3{font-size:.98rem;margin:0 0 4px}
+.dbr-areas ul{margin:4px 0 0;padding-left:1.1rem}
+.dbr-areas li{margin:3px 0;overflow-wrap:anywhere}
+/* Level 4 on a phone or tablet: the layout code and its two buttons sit under the machine bar, while the Progress Check stays collapsed */
+.adv-bar{display:none}
+@media (max-width:900px){.adv-bar:not([hidden]){display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:0 0 8px;padding:6px 10px;background:var(--soft);border:1px solid var(--line);border-radius:8px}}
+.adv-bar-code{margin-right:auto;font-weight:600}
+.adv-bar-code b{font:700 1.05rem/1.3 ui-monospace,Consolas,monospace;letter-spacing:.08em;user-select:all}
 </style>
 <style>a.jack{color:inherit;text-decoration:none}a.jack:hover,a.jack:focus-visible{color:var(--ink);text-decoration:underline;text-underline-offset:3px}</style>
 </head>
@@ -617,6 +653,7 @@ table.lv .dim{color:#888}
         <button type="button" id="fullscreen-btn" class="mbtn">Full screen</button>
       </div>
     </div>
+    <div class="adv-bar" id="adv-bar" hidden><span class="adv-bar-code">Layout code <b id="adv-bar-code"></b></span><button type="button" class="rbtn" id="adv-bar-new">New layout</button><button type="button" class="rbtn" id="adv-bar-enter">Enter a layout code</button></div>
     <div class="frame" id="frame">
       <div class="screen" id="screen" tabindex="-1"></div>
     </div>
@@ -1802,7 +1839,7 @@ function setPhase(phase) {
   else if (phase === 'desktop') renderDesktop();
   else if (phase === 'off') renderPowerOff();
   else if (phase === 'pwchange') renderPasswordChange();
-  $('#machine-name').textContent = CUR ? (CUR.hostname + ' · ' + osv().edition + ' · ' + CUR.name) : '';
+  $('#machine-name').textContent = CUR ? (CUR.hostname + ' · ' + osv().edition + ' · ' + CUR.name + (CUR.layout ? ' · layout ' + CUR.layout : '')) : '';
 }
 function bootMachine(o) {
   o = o || {};
@@ -4061,7 +4098,8 @@ function startTypeText(st) { return st === 'Disabled' ? '4   DISABLED' : st === 
 // sc OPERATION without a service name: [the description lines, what follows [service name] in the usage line]
 const SC_USAGE = { qc: [['Queries the configuration information for a service.'], ' <bufferSize>'], qtriggerinfo: [['Queries the trigger parameters of a service.'], ' <bufferSize>'], start: [['Starts a service running.'], ' <arg1> <arg2> ...'], stop: [['Sends a STOP control request to a service.'], ''], delete: [['Deletes a service entry from the registry.', 'If the service is running, or another process has an', 'open handle to the service, the service is simply marked', 'for deletion.'], ''] };
 const SC_CONFIG_USAGE = 'DESCRIPTION:\n        Modifies a service entry in the registry and Service Database.\nUSAGE:\n        sc <server> config [service name] <option1> <option2>...\n\nOPTIONS:\nNOTE: The option name includes the equal sign.\n      A space is required between the equal sign and the value.\n start= <boot|system|auto|demand|disabled|delayed-auto>';
-function stopServiceModel(s) { s.status = 'Stopped'; if (s.name === 'TermService') S.rdp.enabled = S.rdp.enabled && false; }
+// stopping Remote Desktop Services drops its listener, but the Remote Desktop setting (fDenyTSConnections) stays as it was, as on Windows
+function stopServiceModel(s) { s.status = 'Stopped'; }
 function listeningPorts() {
   const L = [{ port: 135, pid: 924, proc: 'svchost.exe' }, { port: 445, pid: 4, proc: 'System' }, { port: 139, pid: 4, proc: 'System' }, { port: 5040, pid: 1044, proc: 'svchost.exe' }];
   const on = n => S.services[n] && S.services[n].status === 'Running';
@@ -4516,12 +4554,14 @@ const CMDS = {
     }
     if (op === 'stop') { if (s.status !== 'Running') return { text: '[SC] ControlService FAILED 1062:\n\nThe service has not been started.\n', cls: 'err' }; if (s.name === 'mpssvc') return { text: '[SC] ControlService FAILED 1052:\n\nThe requested control is not valid for this service.\n', cls: 'err' }; const txt = serviceQueryBlock(s, true); mutate(() => stopServiceModel(s)); return { text: txt }; }
     if (op === 'start') { if (s.status === 'Running') return { text: '[SC] StartService FAILED 1056:\n\nAn instance of the service is already running.\n', cls: 'err' }; if (s.start === 'Disabled') return { text: '[SC] StartService FAILED 1058:\n\nThe service cannot be started, either because it is disabled or because it has no enabled devices associated with it.\n', cls: 'err' }; mutate(() => { s.status = 'Running'; }); return { text: serviceQueryBlock(s).replace('4  RUNNING', '2  START_PENDING') }; }
+    if (op === 'delete' && s.school) return { text: '[Range] ' + s.display + ' is a school service the Scenario Brief names, so the trainer keeps it installed. Read the brief first: a service it requires keeps running, and a service you need to turn off is disabled instead of deleted (sc.exe config ' + s.name + ' start= disabled).', cls: 'err' };
     if (op === 'delete') { if (!s.planted) return { text: '[SC] DeleteService FAILED 1072:\n\nThe specified service has been marked for deletion.\n[Range] Built-in services cannot be deleted here; disable them instead (sc.exe config NAME start= disabled).', cls: 'err' }; mutate(st => { delete st.services[s.name]; }); return { text: '[SC] DeleteService SUCCESS' }; }
     return { text: '[Range] "sc ' + op + '" is not simulated. Use query, qc, config, start, stop or delete.' };
   },
   /* ----- schtasks ----- */
-  schtasks: (ctx, a) => {
+  schtasks: (ctx, a, seg) => {
     const t = a.join(' '); const op = (a[0] || '/query').toLowerCase();
+    if (op === '/create') return schtasksCreate(ctx, a, seg);
     const tn = (() => { const i = a.findIndex(x => /^\/tn$/i.test(x)); return i >= 0 ? a[i + 1] : null; })();
     const list = tn ? [taskByName(tn)].filter(Boolean) : S.tasks.slice();
     if (op === '/query') {
@@ -4562,6 +4602,7 @@ const CMDS = {
     }
     if (/^advfirewall firewall delete rule name=/i.test(t)) { if (needAdmin(ctx)) return { text: 'The requested operation requires elevation (Run as administrator).', cls: 'err' }; const nm = nameTok; const hit = S.firewall.rules.filter(r => sameName(r.name, nm)); if (!hit.length) return { text: '\nNo rules match the specified criteria.' }; mutate(s => { s.firewall.rules = s.firewall.rules.filter(r => !sameName(r.name, nm)); }); return { text: '\nDeleted ' + hit.length + ' rule(s).\nOk.' }; }
     if (/^advfirewall firewall set rule name=/i.test(t) && (m = /new enable=(yes|no)/i.exec(t))) { m = [m[0], null, m[1]]; if (needAdmin(ctx)) return { text: 'The requested operation requires elevation (Run as administrator).', cls: 'err' }; const nm = nameTok; const hit = S.firewall.rules.filter(r => sameName(r.name, nm)); if (!hit.length) return { text: '\nNo rules match the specified criteria.' }; mutate(() => hit.forEach(r => { r.enabled = m[2].toLowerCase() === 'yes'; })); return { text: '\nUpdated ' + hit.length + ' rule(s).\nOk.' }; }
+    if (/^advfirewall firewall set rule group=/i.test(t) && (m = /new enable=(yes|no)/i.exec(t))) { if (needAdmin(ctx)) return { text: 'The requested operation requires elevation (Run as administrator).', cls: 'err' }; const g = (a.find(x => /^group=/i.test(x)) || '').replace(/^group=/i, '').replace(/^"|"$/g, ''); const dir = (a.find(x => /^dir=/i.test(x)) || '').replace(/^dir=/i, ''); const hit = S.firewall.rules.filter(r => sameName(r.group || '', g) && (!dir || r.direction.toLowerCase().startsWith(dir.toLowerCase()))); if (!hit.length) return { text: '\nNo rules match the specified criteria.' }; const on = m[1].toLowerCase() === 'yes'; mutate(() => hit.forEach(r => { r.enabled = on; })); return { text: '\nUpdated ' + hit.length + ' rule(s).\nOk.' }; }
     if (/^advfirewall reset/i.test(t)) return { text: '[Range] "netsh advfirewall reset" would wipe every rule, including the ones the Scenario Brief requires. It is not simulated; delete or disable individual rules instead.' };
     return { text: 'The following command was not found: ' + t + '.', cls: 'err' };
   },
@@ -7117,6 +7158,166 @@ function tcpvconCmd(ctx, a) {
 Object.assign(CMDS, { sigcheck: sigcheckCmd, autorunsc: autorunscCmd, accesschk: accesschkCmd, streams: streamsCmd, tcpvcon: tcpvconCmd });
 CMD_NAMES.push('accesschk', 'autorunsc', 'sigcheck', 'streams', 'tcpvcon');
 
+/* ===== 78-cmds-tasks: schtasks /create, Register-ScheduledTask (with New-ScheduledTaskAction and New-ScheduledTaskTrigger),
+   and the DISM feature commands (dism /online /get-features, /get-featureinfo, /enable-feature, /disable-feature) ===== */
+
+/* ---------- schtasks /create ---------- */
+const SCHT_OPTS = /^\/(tn|tr|sc|st|sd|ed|et|du|ri|mo|d|m|i|ru|rp|rl|s|u|p|f|v1|z|xml|it|np|k|delay|ec|hresult)$/i;
+function schtOpt(a, k) { const i = a.findIndex(x => sameName(x, '/' + k)); return i < 0 ? null : a[i + 1] != null && !SCHT_OPTS.test(a[i + 1]) ? a[i + 1] : ''; }
+// the /tr value as Command Prompt passes it: inside the quotes, \" is a literal quote, so
+// schtasks /create /tr "\"C:\Program Files\App\app.exe\" /run" keeps the quotes around a path with spaces
+function schtTr(seg, a) {
+  const s = String(seg || ''), m = /(?:^|\s)\/tr\s+/i.exec(s);
+  if (!m) return schtOpt(a, 'tr');
+  let i = m.index + m[0].length;
+  if (s[i] !== '"') { const w = /^\S+/.exec(s.slice(i)); return w ? w[0] : ''; }
+  let out = ''; i++;
+  while (i < s.length) { if (s[i] === '\\' && s[i + 1] === '"') { out += '"'; i += 2; continue; } if (s[i] === '"') break; out += s[i++]; }
+  return out;
+}
+const DOW = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+function clock12(h, m) { return ((h + 11) % 12 + 1) + ':' + String(m).padStart(2, '0') + ' ' + (h < 12 ? 'AM' : 'PM'); }
+// a new task from a schedule type (DAILY, WEEKLY, ...), a start time, and a modifier: [trigger text, next run] or an error string
+function taskSchedule(sc, hh, mm, mo, days) {
+  const at = clock12(hh, mm), n = Math.max(1, parseInt(mo, 10) || 1), next = d => winDateTime(daysAgo(-d, hh, mm), true);
+  switch (sc) {
+    case 'daily': return [n > 1 ? 'At ' + at + ' every ' + n + ' days' : 'At ' + at + ' every day', next(1)];
+    case 'weekly': { const ds = (days || DOW[new Date().getDay()].slice(0, 3)).split(',').map(x => DOW.find(d => sameName(d.slice(0, 3), x.trim().slice(0, 3)))); if (ds.some(x => !x)) return 'ERROR: Invalid value for /D option.'; return ['At ' + at + ' every ' + andList(ds) + ' of every ' + (n > 1 ? n + ' weeks' : 'week'), next(7)]; }
+    case 'monthly': return ['At ' + at + ' on day ' + (parseInt(days, 10) || 1) + ' of every month', next(30)];
+    case 'once': return ['At ' + at + ' on ' + winDate(daysAgo(0)), next(0)];
+    case 'minute': return ['At ' + at + ' every day - After triggered, repeat every ' + n + ' minute' + (n === 1 ? '' : 's') + ' indefinitely.', next(0)];
+    case 'hourly': return ['At ' + at + ' every day - After triggered, repeat every ' + n + ' hour' + (n === 1 ? '' : 's') + ' indefinitely.', next(0)];
+    case 'onlogon': return ['At log on of any user', ''];
+    case 'onstart': return ['At system startup', ''];
+    case 'onidle': return ['When computer is idle', ''];
+    default: return 'ERROR: Invalid value for /SC option.';
+  }
+}
+function taskAuthor() { const u = currentUser(); return (CUR ? CUR.hostname : 'RANGE-PC') + '\\' + (u ? u.name : 'labuser'); }
+// a task path (\Folder\Name) as the folder and name the task list keeps
+function taskSplit(tn) { const parts = String(tn).replace(/^\\+/, '').split('\\').filter(Boolean); return { folder: parts.length > 1 ? '\\' + parts.slice(0, -1).join('\\') : '\\', name: parts[parts.length - 1] || '' }; }
+function addTask(tn, o) {
+  const { folder, name } = taskSplit(tn);
+  mutate(s => { const old = taskByName(tn); if (old) s.tasks = s.tasks.filter(x => x !== old); s.tasks.push(mkTask(name, Object.assign({ folder, author: taskAuthor(), lastRun: 'N/A', description: '' }, o))); });
+}
+function schtasksCreate(ctx, a, seg) {
+  const usage = '\nType "SCHTASKS /CREATE /?" for usage.';
+  const sc = schtOpt(a, 'sc'), tn = schtOpt(a, 'tn'), tr = schtTr(seg, a), st = schtOpt(a, 'st'), ru = schtOpt(a, 'ru') || '', rl = schtOpt(a, 'rl') || '';
+  if (schtOpt(a, 'xml') != null) return { text: '[Range] The trainer creates tasks from /tn, /tr, and /sc; importing a task from XML stays outside it.' };
+  if (sc == null || sc === '') return { text: "ERROR: Invalid syntax. Mandatory option 'sc' is missing." + usage, cls: 'err' };
+  if (tn == null || tn === '') return { text: "ERROR: Invalid syntax. Mandatory option 'tn' is missing." + usage, cls: 'err' };
+  if (tr == null || tr === '') return { text: "ERROR: Invalid syntax. Mandatory option 'tr' is missing." + usage, cls: 'err' };
+  if (/^onevent$/i.test(sc)) return { text: '[Range] The trainer creates time, logon, startup, and idle tasks; ONEVENT tasks stay outside it.' };
+  let hh = new Date().getHours(), mm = new Date().getMinutes();
+  if (st) { const m = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(st); if (!m || +m[1] > 23 || +m[2] > 59) return { text: 'ERROR: Invalid Start Time.' + usage, cls: 'err' }; hh = +m[1]; mm = +m[2]; }
+  const sch = taskSchedule(sc.toLowerCase(), hh, mm, schtOpt(a, 'mo'), schtOpt(a, 'd'));
+  if (typeof sch === 'string') return { text: sch + usage, cls: 'err' };
+  // a task that runs as SYSTEM or with the highest privileges needs an administrator window
+  if (needAdmin(ctx) && (/^(system|nt authority\\system)$/i.test(ru) || /^highest$/i.test(rl))) return { text: 'ERROR: Access is denied.', cls: 'err' };
+  const old = taskByName(tn);
+  if (old && !a.some(x => /^\/f$/i.test(x))) return { text: 'WARNING: The task name "' + tn + '" already exists. Do you want to replace it (Y/N)? \n[Range] Add /f to replace it without the question.' };
+  addTask(tn, { status: 'Ready', triggers: sch[0], nextRun: sch[1], action: tr, runAs: ru || (currentUser() || {}).name || '' });
+  return { text: 'SUCCESS: The scheduled task "' + taskSplit(tn).name + '" has successfully been created.' };
+}
+
+/* ---------- Register-ScheduledTask, New-ScheduledTaskAction, New-ScheduledTaskTrigger ---------- */
+const TASK_ACTION = 'MSFT_TaskExecAction', TASK_TRIGGER = 'MSFT_TaskTrigger';
+// an -Action or -Trigger value: a variable that holds the object ($a), or the command in parentheses
+function taskArgObj(ctx, v) {
+  if (v && typeof v === 'object') return Array.isArray(v) ? v[0] : v;
+  const s = String(v == null ? '' : v).trim();
+  let m = /^\$([A-Za-z_]\w*)$/.exec(s);
+  if (m) { const x = psVarGet(ctx.t, m[1]); const o = x && x.r ? psValueOf(x.r) : x; return Array.isArray(o) ? o[0] : o; }
+  m = /^\(([\s\S]*)\)$/.exec(s);
+  if (m) { const r = psRun(ctx.t, m[1].trim()); const o = psValueOf(r); return Array.isArray(o) ? o[0] : o; }
+  return null;
+}
+function psUnq(v) { return String(v == null || v === true ? '' : v).replace(/^(["'])([\s\S]*)\1$/, '$2'); }
+function newTaskAction(ctx, a, seg) {
+  const p = psParams(a), exe = psUnq(p.execute != null ? p.execute : p._[0]);
+  if (!exe) return psError('New-ScheduledTaskAction', "Cannot process command because of one or more missing mandatory parameters: Execute.", seg, 'InvalidArgument', '', 'MissingMandatoryParameter,New-ScheduledTaskAction');
+  const arg = psUnq(p.argument), wd = psUnq(p.workingdirectory);
+  const o = Object.assign(Object.create({ toString: () => TASK_ACTION }), { Id: '', Arguments: arg, Execute: exe, WorkingDirectory: wd, PSComputerName: '' });
+  return { objs: [o], cols: ['Id', 'Arguments', 'Execute', 'WorkingDirectory', 'PSComputerName'], view: 'list' };
+}
+// -At takes 2am, 2:00, 02:00, or "2:00 AM"
+function psTimeOf(v) {
+  const s = psUnq(v).trim(), m = /^(\d{1,2})(?::(\d{2}))?(?::\d{2})?\s*([ap]\.?m\.?)?$/i.exec(s);
+  if (!m) return null; let h = +m[1]; const mi = +(m[2] || 0);
+  if (m[3]) { if (h < 1 || h > 12) return null; h = h % 12 + (/^p/i.test(m[3]) ? 12 : 0); }
+  return h > 23 || mi > 59 ? null : [h, mi];
+}
+function newTaskTrigger(ctx, a, seg) {
+  const p = psParams(a), cm = 'New-ScheduledTaskTrigger';
+  const kind = ['daily', 'weekly', 'once', 'atlogon', 'atstartup'].find(k => p[k] != null);
+  if (!kind) return psError(cm, 'Parameter set cannot be resolved using the specified named parameters.', seg, 'InvalidArgument', '', 'AmbiguousParameterSet,' + cm);
+  let hh = 0, mm = 0;
+  if (/^(daily|weekly|once)$/.test(kind)) { const tm = p.at != null ? psTimeOf(p.at) : null; if (!tm) return psError(cm, p.at == null ? 'Cannot process command because of one or more missing mandatory parameters: At.' : 'Cannot bind parameter \'At\'. Cannot convert value "' + psUnq(p.at) + '" to type "System.DateTime".', seg, 'InvalidArgument', '', 'ParameterArgumentTransformationError,' + cm); [hh, mm] = tm; }
+  const days = kind === 'weekly' ? psUnq(p.daysofweek || DOW[new Date().getDay()]) : null;
+  const sch = taskSchedule({ atlogon: 'onlogon', atstartup: 'onstart' }[kind] || kind, hh, mm, kind === 'daily' ? p.daysinterval : kind === 'weekly' ? p.weeksinterval : 1, days);
+  if (typeof sch === 'string') return psError(cm, 'Cannot bind parameter \'DaysOfWeek\'.', seg, 'InvalidArgument', '', 'ParameterArgumentTransformationError,' + cm);
+  const o = Object.assign(Object.create({ toString: () => TASK_TRIGGER }), { Enabled: 'True', StartBoundary: /^at/.test(kind) ? '' : new Date(2026, 0, 1, hh, mm).toISOString().slice(0, 19), Schedule: sch[0] });
+  Object.defineProperty(o, '_next', { value: sch[1], enumerable: false });
+  return { objs: [o], cols: ['Enabled', 'StartBoundary', 'Schedule'], view: 'list' };
+}
+function registerTask(ctx, a, seg) {
+  const p = psParams(a), cm = 'Register-ScheduledTask', tn = psUnq(p.taskname != null ? p.taskname : p._[0]);
+  if (!tn) return psError(cm, 'Cannot process command because of one or more missing mandatory parameters: TaskName.', seg, 'InvalidArgument', '', 'MissingMandatoryParameter,' + cm);
+  // (New-ScheduledTaskAction ...) stays one argument the way PowerShell reads the line
+  const raw = n => { const A = psArgSplit(seg), i = A.findIndex(x => sameName(x, '-' + n)); return i >= 0 && A[i + 1] != null ? A[i + 1] : null; };
+  if (p.action != null) p.action = raw('Action') || p.action;
+  if (p.trigger != null) p.trigger = raw('Trigger') || p.trigger;
+  const act = taskArgObj(ctx, p.action != null ? p.action : p._[1]);
+  if (!act || !act.Execute) return psError(cm, p.action == null ? 'Cannot process command because of one or more missing mandatory parameters: Action.' : 'Cannot bind parameter \'Action\'. Create the action with New-ScheduledTaskAction -Execute "PROGRAM" -Argument "ARGUMENTS" and pass it in parentheses or as a variable.', seg, 'InvalidArgument', '', 'ParameterArgumentTransformationError,' + cm);
+  const trg = p.trigger != null ? taskArgObj(ctx, p.trigger) : null;
+  if (p.trigger != null && !(trg && trg.Schedule)) return psError(cm, 'Cannot bind parameter \'Trigger\'. Create the trigger with New-ScheduledTaskTrigger (for example -Daily -At 2am) and pass it in parentheses or as a variable.', seg, 'InvalidArgument', '', 'ParameterArgumentTransformationError,' + cm);
+  const user = psUnq(p.user), rl = psUnq(p.runlevel);
+  if (!ctx.admin && (/^(system|nt authority\\system)$/i.test(user) || /^highest$/i.test(rl))) return psError(cm, 'Access is denied.', seg, 'PermissionDenied', tn, 'HRESULT 0x80070005,' + cm);
+  const path = psUnq(p.taskpath), full = (path ? path.replace(/\\?$/, '\\') : '\\') + tn;
+  if (taskByName(full) && p.force == null) return psError(cm, 'Cannot create a file when that file already exists.', seg, 'ResourceExists', 'PS_ScheduledTask', 'HRESULT 0x800700b7,' + cm);
+  const exe = /\s/.test(act.Execute) ? '"' + act.Execute + '"' : act.Execute;
+  addTask(full, { status: 'Ready', triggers: trg ? trg.Schedule : '', nextRun: trg ? trg._next || '' : '', action: exe + (act.Arguments ? ' ' + act.Arguments : ''), description: psUnq(p.description), runAs: user || (currentUser() || {}).name || '' });
+  const { folder, name } = taskSplit(full);
+  return { objs: [{ TaskPath: folder === '\\' ? '\\' : folder + '\\', TaskName: name, State: 'Ready' }], cols: ['TaskPath', 'TaskName', 'State'] };
+}
+
+/* ---------- DISM: the optional features of the running system ---------- */
+function featFindAny(name) { let hit = null; featWalk(f => { if (!hit && sameName(f.id, name)) hit = f; }); return hit; }
+function dismCmd(ctx, a) {
+  const opt = re => a.find(x => re.test(x)), has = re => a.some(x => re.test(x));
+  const head = '\nDeployment Image Servicing and Management tool\nVersion: 10.0.' + osBuild().split('.')[0] + '.1\n\n';
+  if (!a.length || has(/^\/\?$/)) return { text: head + 'DISM.exe [dism_options] {Imaging_command} [<Imaging_arguments>]\nDISM.exe {/Image:<path_to_offline_image> | /Online} [dism_options]\n         {servicing_command} [<servicing_arguments>]\n\n[Range] The trainer models: dism /online /get-features, /get-featureinfo /featurename:NAME,\n        /enable-feature /featurename:NAME, and /disable-feature /featurename:NAME.' };
+  if (!has(/^\/online$/i)) return { text: head + 'Error: 87\n\n[Range] The trainer models DISM on the running system: add /online, for example dism /online /disable-feature /featurename:TelnetClient', cls: 'err' };
+  if (needAdmin(ctx)) return { text: head + 'Error: 740\n\nElevated permissions are required to run DISM.\nUse an elevated command prompt to complete these tasks.', cls: 'err' };
+  const img = head + 'Image Version: 10.0.' + osBuild() + '\n\n', done = '\nThe operation completed successfully.';
+  const names = a.filter(x => /^\/featurename:/i.test(x)).map(x => x.replace(/^\/featurename:/i, '').replace(/^"|"$/g, '')).join(',').split(',').map(x => x.trim()).filter(Boolean);
+  const unknown = n => ({ text: img + 'Error: 0x800f080c\n\nFeature name ' + n + ' is unknown.\nA Windows feature name was not recognized.\nUse the /Get-Features option to find the name of the feature in the image and try the command again.\n\nThe DISM log file can be found at C:\\Windows\\Logs\\DISM\\dism.log', cls: 'err' });
+  if (has(/^\/get-features$/i)) {
+    const rows = []; featWalk(f => rows.push(f));
+    if (/table/i.test(opt(/^\/format:/i) || '')) return { text: img + 'Features listing for package : Microsoft-Windows-Foundation-Package~31bf3856ad364e35~amd64~~10.0.' + osBuild().split('.')[0] + '.1\n\n' + padR('Feature Name', 49) + '| State\n' + '-'.repeat(49) + ' | --------\n' + rows.map(f => padR(f.id, 49) + '| ' + (f.on ? 'Enabled' : 'Disabled')).join('\n') + '\n' + done };
+    return { text: img + 'Features listing for package : Microsoft-Windows-Foundation-Package~31bf3856ad364e35~amd64~~10.0.' + osBuild().split('.')[0] + '.1\n\n' + rows.map(f => 'Feature Name : ' + f.id + '\nState : ' + (f.on ? 'Enabled' : 'Disabled') + '\n').join('\n') + done };
+  }
+  if (has(/^\/get-featureinfo$/i)) {
+    if (!names.length) return { text: img + 'Error: 87\n\nThe get-featureinfo option requires a /FeatureName.', cls: 'err' };
+    const f = featFindAny(names[0]); if (!f) return unknown(names[0]);
+    return { text: img + 'Feature Information:\n\nFeature Name : ' + f.id + '\nDisplay Name : ' + f.name + '\nDescription : ' + f.name + '\nRestart Required : Possible\nState : ' + (f.on ? 'Enabled' : 'Disabled') + '\n\nCustom Properties:\n\n(No custom properties found)\n' + done };
+  }
+  const en = has(/^\/enable-feature$/i), dis = has(/^\/disable-feature$/i);
+  if (en || dis) {
+    if (!names.length) return { text: img + 'Error: 87\n\nThe ' + (en ? 'enable' : 'disable') + '-feature option requires a /FeatureName.', cls: 'err' };
+    const bad = names.find(n => !featFindAny(n)); if (bad) return unknown(bad);
+    mutate(() => names.forEach(n => setFeature(featFindAny(n).id, en)));
+    return { text: img + (en ? 'Enabling' : 'Disabling') + ' feature(s)\n[==========================100.0%==========================]' + done };
+  }
+  return { text: img + '[Range] The trainer models dism /online with /get-features, /get-featureinfo, /enable-feature, and /disable-feature. For Windows capabilities, use Get-WindowsCapability and Remove-WindowsCapability in PowerShell.' };
+}
+
+Object.assign(CMDS, { dism: dismCmd });
+Object.assign(PS_CMDS, { 'register-scheduledtask': registerTask, 'new-scheduledtaskaction': newTaskAction, 'new-scheduledtasktrigger': newTaskTrigger });
+['Register-ScheduledTask', 'New-ScheduledTaskAction', 'New-ScheduledTaskTrigger'].forEach(n => { CMDLET_FQ[n] = n; });
+CMD_NAMES.push('dism');
+PS_NAMES.push('Register-ScheduledTask', 'New-ScheduledTaskAction', 'New-ScheduledTaskTrigger');
+
 /* ===== 85-scenarios: the three practice labs (state builders, scenario brief, investigation questions, checks, availability checks) ===== */
 function investigationFile(n, q) { return 'Investigation ' + n + '\r\n\r\n' + q.text.replace(/(.{1,72})(\s+|$)/g, '$1\r\n') + '\r\n' + (q.hint ? ('(' + q.hint + ')').replace(/(.{1,72})(\s+|$)/g, '$1\r\n') + '\r\n' : '\r\n') + 'ANSWER: \r\n'; }
 function normAnswer(t) { return String(t || '').toLowerCase().replace(/[“”"']/g, '').replace(/\s+/g, ' ').trim(); }
@@ -7128,10 +7329,12 @@ function answerOk(path, answers) {
   lines.forEach((l, i) => { const m = /^answer:\s*(.*)$/.exec(l); if (!m) return; const v = m[1].trim() || (lines.slice(i + 1).find(x => x.trim()) || ''); const g = v.trim().replace(/[.\s]+$/, ''); if (g) given.push(g); });
   return given.some(g => answers.some(a => canonAnswer(a) === canonAnswer(g)));
 }
+/* the organization a scenario serves, as the availability lines name it: the school on a Pōhinahina High School machine */
+function orgWord(sc) { sc = sc || CUR; return sc && sc.brief && /\bschool\b/i.test(sc.brief.company || '') ? 'school' : 'business'; }
 function briefText(sc) {
   const r = sc.brief; const wrap = s => s.replace(/(.{1,76})(\s+|$)/g, '$1\r\n');
   const li = a => a.map(x => '  - ' + x.replace(/(.{1,72})(\s+|$)/g, '$1\r\n    ').replace(/\s+$/, '')).join('\r\n');
-  return ['SCENARIO BRIEF - Lockdown Range: Windows', '='.repeat(60), '', 'Organization: ' + r.company, '', wrap(r.blurb), 'AUTHORIZED ADMINISTRATORS', li(r.admins), '', 'AUTHORIZED USERS', li(r.users), '', 'REQUIRED SERVICES AND SETTINGS (keep these available)', li(r.services), '', 'SECURITY POLICY', li(r.policy), '', 'Security includes availability: keep authorized users, administrators, and', 'required services working. Breaking something the business relies on is an', 'outage: the Progress Check flags it in red with its restore step, and Finish', 'waits until it works again.', '', 'Start with the investigation questions on the Desktop (open each .txt in', 'Notepad, type the answer after ANSWER: and press Ctrl+S). Then harden the', 'machine. The Progress Check beside the screen updates as you work.', ''].join('\r\n');
+  return ['SCENARIO BRIEF - Lockdown Range: Windows', '='.repeat(60), ''].concat(r.layout ? ['Level 4 (Advanced, extra credit) - layout code ' + r.layout, ''] : [], ['Organization: ' + r.company, '', wrap(r.blurb), 'AUTHORIZED ADMINISTRATORS', li(r.admins), '', 'AUTHORIZED USERS', li(r.users), '', 'REQUIRED SERVICES AND SETTINGS (keep these available)', li(r.services), '', 'SECURITY POLICY', li(r.policy), '', 'Security includes availability: keep authorized users, administrators, and', 'required services working. Breaking something the ' + orgWord(sc) + ' relies on is an', 'outage: the Progress Check flags it in red with its restore step, and Finish', 'waits until it works again.', '', 'Start with the investigation questions on the Desktop (open each .txt in', 'Notepad, type the answer after ANSWER: and press Ctrl+S). Then harden the', 'machine. The Progress Check beside the screen updates as you work.', '']).join('\r\n');
 }
 /* ---------- base machine ---------- */
 function baseState(sc) {
@@ -7204,13 +7407,13 @@ const LEARN = {
 };
 /* ---------- reusable checks ---------- */
 const CK = {
-  userGone: (name, pts) => ({ id: 'user-' + name, title: 'Unauthorized user "' + name + '" removed', pts, cat: AREA.acct, test: s => !userByName(name), hint: 'Local Users and Groups (lusrmgr.msc) > Users > right-click ' + name + ' > Delete, or net user ' + name + ' /delete. Deleting the account leaves its profile folder C:\\Users\\' + name + ' in place; review its files before you remove the folder.', fix: 'lusrmgr.msc > Users > ' + name + ' > Delete   |   net user ' + name + ' /delete', why: 'An account nobody authorized is a door into the machine.' }),
-  demote: (name, pts) => ({ id: 'demote-' + name, title: '"' + name + '" removed from the Administrators group (not an authorized administrator)', pts, cat: AREA.access, test: s => !userByName(name) || !isAdmin(name), hint: 'lusrmgr.msc > Groups > Administrators > Remove ' + name + '. Or: net localgroup Administrators ' + name + ' /delete', fix: 'lusrmgr.msc > Groups > Administrators > Properties > ' + name + ' > Remove   |   net localgroup Administrators ' + name + ' /delete', why: 'Administrators can undo every other fix; only the administrators named in the Scenario Brief belong there (least privilege).' }),
-  privGroup: (group, name, pts) => ({ id: 'grp-' + group.toLowerCase().replace(/\s+/g, '-') + '-' + name, title: '"' + name + '" removed from ' + group + ' (not an authorized administrator)', pts, cat: AREA.access, test: s => { const g = groupByName(group); return !userByName(name) || !g || !g.members.some(m => sameName(m, name)); }, hint: 'net localgroup "' + group + '" lists the members; lusrmgr.msc > Groups > ' + group + ' > Remove ' + name + '. Or: net localgroup "' + group + '" ' + name + ' /delete', fix: 'lusrmgr.msc > Groups > ' + group + ' > Properties > ' + name + ' > Remove   |   net localgroup "' + group + '" ' + name + ' /delete', why: 'Backup Operators can read and restore every file on the machine, past any folder permission: an administrator-level right for the brief\'s named administrators only.', learn: [LEARN.drill('B-03', 'Audit the Administrators group', 'Audit the privileged groups'), LEARN.dl('sophomore', 's2', 'Windows 11 hardening')] }),
+  userGone: (name, pts) => ({ id: 'user-' + name, title: 'Unauthorized user "' + name + '" removed', pts, cat: AREA.acct, test: s => !userByName(name) && !Object.values(s.users).some(u => sameName(String(u.home || '').replace(/^.*\\/, ''), name)), hint: 'Local Users and Groups (lusrmgr.msc) > Users > right-click ' + name + ' > Delete, or net user ' + name + ' /delete. Deleting the account leaves its profile folder C:\\Users\\' + name + ' in place; review its files before you remove the folder.', fix: 'lusrmgr.msc > Users > ' + name + ' > Delete   |   net user ' + name + ' /delete', why: 'An account nobody authorized is a door into the machine.' }),
+  demote: (name, pts) => ({ id: 'demote-' + name, acct: name, title: '"' + name + '" removed from the Administrators group (not an authorized administrator)', pts, cat: AREA.access, test: s => !userByName(name) || !isAdmin(name), hint: 'lusrmgr.msc > Groups > Administrators > Remove ' + name + '. Or: net localgroup Administrators ' + name + ' /delete', fix: 'lusrmgr.msc > Groups > Administrators > Properties > ' + name + ' > Remove   |   net localgroup Administrators ' + name + ' /delete', why: 'Administrators can undo every other fix; only the administrators named in the Scenario Brief belong there (least privilege).' }),
+  privGroup: (group, name, pts) => ({ id: 'grp-' + group.toLowerCase().replace(/\s+/g, '-') + '-' + name, acct: name, title: '"' + name + '" removed from ' + group + ' (not an authorized administrator)', pts, cat: AREA.access, test: s => { const g = groupByName(group); return !userByName(name) || !g || !g.members.some(m => sameName(m, name)); }, hint: 'net localgroup "' + group + '" lists the members; lusrmgr.msc > Groups > ' + group + ' > Remove ' + name + '. Or: net localgroup "' + group + '" ' + name + ' /delete', fix: 'lusrmgr.msc > Groups > ' + group + ' > Properties > ' + name + ' > Remove   |   net localgroup "' + group + '" ' + name + ' /delete', why: 'Backup Operators can read and restore every file on the machine, past any folder permission: an administrator-level right for the brief\'s named administrators only.', learn: [LEARN.drill('B-03', 'Audit the Administrators group', 'Audit the privileged groups'), LEARN.dl('sophomore', 's2', 'Windows 11 hardening')] }),
   guest: pts => ({ id: 'guest', title: 'Guest account disabled', pts, cat: AREA.acct, test: s => !s.users.Guest || !s.users.Guest.enabled, hint: 'lusrmgr.msc > Users > Guest > Properties > Account is disabled. Or: net user Guest /active:no', fix: 'lusrmgr.msc > Guest > Properties > check "Account is disabled"   |   net user Guest /active:no', why: 'Guest is an anonymous login with no password.' }),
   builtinAdmin: pts => ({ id: 'builtin-admin', title: 'Built-in Administrator account disabled', pts, cat: AREA.acct, test: s => { const u = Object.values(s.users).find(x => x.builtin === 'Administrator'); return !u || !u.enabled; }, hint: 'lusrmgr.msc > Users > Administrator > Properties > Account is disabled (or: net user Administrator /active:no).', fix: 'lusrmgr.msc > Administrator > Properties > "Account is disabled"   |   net user Administrator /active:no', why: 'The well-known Administrator account is the first name guessed; workstations should keep it off.' }),
-  noNeverExpires: (name, pts) => ({ id: 'pwexp-' + name, title: '"Password never expires" cleared on ' + name, pts, cat: AREA.acct, test: s => { const u = userByName(name); return !u || !u.pwNeverExpires; }, hint: 'lusrmgr.msc > Users > ' + name + ' > Properties > uncheck "Password never expires". PowerShell: Set-LocalUser -Name ' + name + ' -PasswordNeverExpires $false', fix: 'lusrmgr.msc > ' + name + ' > Properties > uncheck "Password never expires"   |   Set-LocalUser -Name ' + name + ' -PasswordNeverExpires $false', why: 'A password that never expires stays valid forever once leaked.' }),
-  blankPw: (name, pts) => ({ id: 'blankpw-' + name, title: 'Blank password on account "' + name + '" replaced with a real one', pts, cat: AREA.acct, test: s => { const u = userByName(name); return !u || (u.password !== '' && u.password.length >= 8); }, hint: 'lusrmgr.msc > Users > right-click ' + name + ' > Set Password... (8+ characters). Or: net user ' + name + ' NewP@ssw0rd! /passwordreq:yes', fix: 'lusrmgr.msc > ' + name + ' > Set Password...   |   net user ' + name + ' Str0ng-Passw0rd! /passwordreq:yes', why: 'An empty password lets anyone sign in with Enter. /passwordreq:yes also stops the password being set back to blank.' }),
+  noNeverExpires: (name, pts) => ({ id: 'pwexp-' + name, acct: name, title: '"Password never expires" cleared on ' + name, pts, cat: AREA.acct, test: s => { const u = userByName(name); return !u || !u.pwNeverExpires; }, hint: 'lusrmgr.msc > Users > ' + name + ' > Properties > uncheck "Password never expires". PowerShell: Set-LocalUser -Name ' + name + ' -PasswordNeverExpires $false', fix: 'lusrmgr.msc > ' + name + ' > Properties > uncheck "Password never expires"   |   Set-LocalUser -Name ' + name + ' -PasswordNeverExpires $false', why: 'A password that never expires stays valid forever once leaked.' }),
+  blankPw: (name, pts) => ({ id: 'blankpw-' + name, acct: name, title: 'Blank password on account "' + name + '" replaced with a real one', pts, cat: AREA.acct, test: s => { const u = userByName(name); return !u || (u.password !== '' && u.password.length >= 8); }, hint: 'lusrmgr.msc > Users > right-click ' + name + ' > Set Password... (8+ characters). Or: net user ' + name + ' NewP@ssw0rd! /passwordreq:yes', fix: 'lusrmgr.msc > ' + name + ' > Set Password...   |   net user ' + name + ' Str0ng-Passw0rd! /passwordreq:yes', why: 'An empty password lets anyone sign in with Enter. /passwordreq:yes also stops the password being set back to blank.' }),
   minLen: (pts, len = 10) => ({ id: 'minpwlen', title: 'Minimum password length is ' + len + ' or more', pts, cat: AREA.acct, test: s => s.policy.minPwLen >= len, hint: 'secpol.msc > Account Policies > Password Policy > Minimum password length. Or: net accounts /minpwlen:12', fix: 'secpol.msc > Password Policy > Minimum password length = 12   |   net accounts /minpwlen:12', why: 'Short passwords fall to guessing in minutes.' }),
   complexity: pts => ({ id: 'complexity', title: 'Password complexity requirements enabled', pts, cat: AREA.acct, test: s => s.policy.complexity, hint: 'secpol.msc > Password Policy > Password must meet complexity requirements > Enabled.', fix: 'secpol.msc > Password Policy > "Password must meet complexity requirements" = Enabled   |   secedit /export /cfg C:\\sec.inf, set PasswordComplexity = 1 in Notepad, then secedit /configure /db C:\\Windows\\security\\local.sdb /cfg C:\\sec.inf', why: 'Complexity blocks "password1" and the user\'s own name.' }),
   history: pts => ({ id: 'history', title: 'Password history of 5 or more enforced', pts, cat: AREA.acct, test: s => s.policy.pwHistory >= 5, hint: 'secpol.msc > Password Policy > Enforce password history = 5 (or more). Or: net accounts /uniquepw:5', fix: 'secpol.msc > Password Policy > Enforce password history = 5   |   net accounts /uniquepw:5', why: 'Stops toggling between two favourite passwords.' }),
@@ -7218,7 +7421,7 @@ const CK = {
   minAge: pts => ({ id: 'minage', title: 'Minimum password age is 1 day or more', pts, cat: AREA.acct, test: s => s.policy.minPwAge >= 1 && (s.policy.maxPwAge === 0 || s.policy.minPwAge < s.policy.maxPwAge), hint: 'secpol.msc > Password Policy > Minimum password age = 1. Or: net accounts /minpwage:1', fix: 'secpol.msc > Password Policy > Minimum password age = 1   |   net accounts /minpwage:1', why: 'A minimum age of 1 day makes each password change wait a day, so cycling through the history to reuse an old password takes days instead of seconds. When a maximum age is set, the minimum must stay lower than it.' }),
   reversible: pts => ({ id: 'reversible', title: 'Store passwords using reversible encryption disabled', pts, cat: AREA.acct, test: s => !s.policy.reversible, hint: 'secpol.msc > Account Policies > Password Policy > Store passwords using reversible encryption > Disabled. net accounts has no switch for it: secedit /export /cfg C:\\sec.inf, set ClearTextPassword = 0 in Notepad, then secedit /configure /db C:\\Windows\\security\\local.sdb /cfg C:\\sec.inf', fix: 'secpol.msc > Password Policy > "Store passwords using reversible encryption" = Disabled   |   secedit template line ClearTextPassword = 0, then secedit /configure /db C:\\Windows\\security\\local.sdb /cfg C:\\sec.inf', why: 'Reversible encryption stores each password in a form that decrypts back to the plain text. One stolen copy of the account database then reveals every password.', learn: [LEARN.drill('B-06', 'Password policy', 'Password policy where it actually lives')] }),
   lockout: pts => ({ id: 'lockout', title: 'Account lockout after 1 to 10 failed attempts, with a lockout duration of 15 minutes or more', pts, cat: AREA.access, test: s => s.policy.lockoutThreshold >= 1 && s.policy.lockoutThreshold <= 10 && (s.policy.lockoutDuration === 0 || s.policy.lockoutDuration >= 15), hint: 'secpol.msc > Account Lockout Policy > Account lockout threshold = 5 (duration 30, reset 30). Or: net accounts /lockoutthreshold:5 /lockoutduration:30 /lockoutwindow:30', fix: 'secpol.msc > Account Lockout Policy > threshold 5, duration 30, reset 30   |   net accounts /lockoutthreshold:5 /lockoutduration:30 /lockoutwindow:30', why: 'Lockout turns a million guesses into five. A duration of 0 also passes: it keeps the account locked until an administrator unlocks it.' }),
-  audit: (key, label, pts) => ({ id: 'audit-' + key, title: label + ' audited for Success and Failure', pts, cat: AREA.audit, test: s => auditAllOn(s, key), hint: 'secpol.msc > Local Policies > Audit Policy > ' + label + ' > check Success and Failure. Or: auditpol /set /category:"' + AUDIT_SUBS[key][0] + '" /success:enable /failure:enable', fix: 'secpol.msc > Audit Policy > ' + label + ' = Success, Failure   |   auditpol /set /category:"' + AUDIT_SUBS[key][0] + '" /success:enable /failure:enable', why: 'No audit trail means no way to see who signed in or what changed.' }),
+  audit: (key, label, pts) => ({ id: 'audit-' + key, title: label + ' audited for Success and Failure', pts, cat: AREA.audit, test: s => auditAllOn(s, key), hint: 'secpol.msc > Local Policies > Audit Policy > ' + label + ' > check Success and Failure. Or: auditpol /set /category:"' + AUDIT_SUBS[key][0] + '" /success:enable /failure:enable', fix: 'secpol.msc > Audit Policy > ' + label + ' = Success, Failure   |   auditpol /set /category:"' + AUDIT_SUBS[key][0] + '" /success:enable /failure:enable', why: 'An audit trail shows who signed in and what changed.' }),
   lastUser: pts => ({ id: 'lastuser', title: '"Interactive logon: Don\'t display last signed-in" enabled', pts, cat: AREA.access, test: s => !!s.secopt.dontDisplayLastUser, hint: 'secpol.msc > Local Policies > Security Options > Interactive logon: Don\'t display last signed-in > Enabled (older guides call it "Do not display last user name"). Or: reg add HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System /v DontDisplayLastUserName /t REG_DWORD /d 1 /f', fix: 'secpol.msc > Security Options > "Interactive logon: Don\'t display last signed-in" = Enabled   |   reg add HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System /v DontDisplayLastUserName /t REG_DWORD /d 1 /f', why: 'Showing the last user hands an attacker half of the credentials.' }),
   cad: pts => ({ id: 'cad', title: 'CTRL+ALT+DEL required to sign in', pts, cat: AREA.access, test: s => !s.secopt.noCAD, hint: 'secpol.msc > Security Options > Interactive logon: Do not require CTRL+ALT+DEL > Disabled.', fix: 'secpol.msc > Security Options > "Interactive logon: Do not require CTRL+ALT+DEL" = Disabled   |   reg add HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System /v DisableCAD /t REG_DWORD /d 0 /f', why: 'The secure attention sequence defeats fake login screens.' }),
   blankConsole: pts => ({ id: 'blankpw-console', title: 'Blank-password accounts limited to console sign-in', pts, cat: AREA.access, test: s => s.secopt.blankPwConsoleOnly !== false, hint: 'secpol.msc > Local Policies > Security Options > Accounts: Limit local account use of blank passwords to console logon only > Enabled. Or: reg add HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa /v LimitBlankPasswordUse /t REG_DWORD /d 1 /f', fix: 'secpol.msc > Security Options > "Accounts: Limit local account use of blank passwords to console logon only" = Enabled   |   reg add HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa /v LimitBlankPasswordUse /t REG_DWORD /d 1 /f', why: 'With this off, an account with an empty password also signs in over the network (file shares and Remote Desktop), well beyond the keyboard.', learn: [LEARN.drill('I-02', 'Security Options in secpol.msc')] }),
@@ -7246,12 +7449,12 @@ const CK = {
   folderAcl: (path, who, user, pts) => ({ id: 'acl-' + path.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + who.toLowerCase(), title: who + ' removed from the NTFS permissions on ' + path, pts, cat: AREA.access, test: s => !!s.fs[fsKey(path)] && !aclOf(path).some(x => x.who === who), hint: 'icacls ' + path + ' lists the folder\'s permissions: ' + who + ' has (F), full control. Entries marked (I) come from the parent folder. File Explorer > the folder > Properties lists the same entries. Remove ' + who + ', then give the ' + user + ' account Modify: icacls "' + path + '" /remove ' + who + ', then icacls "' + path + '" /grant "' + user + ':(OI)(CI)M"', fix: 'icacls "' + path + '" /remove ' + who + ', then icacls "' + path + '" /grant "' + user + ':(OI)(CI)M"', why: 'Full control for ' + who + ' lets any account read, change, or delete these records and even rewrite who may open them. Grant access to the people the brief names.', learn: [LEARN.drill('A-07', 'NTFS permissions'), LEARN.dl('sophomore', 's2', 'Windows 11 hardening')] }),
   answer: (n, answers, pts) => ({ id: 'investigation-' + n, title: 'Investigation ' + n + ' answered', pts, cat: AREA.inv, investigation: true, test: s => answerOk('C:\\Users\\' + CUR.login.user + '\\Desktop\\Investigation ' + n + '.txt', answers), hint: 'Open "Investigation ' + n + '.txt" on the Desktop, put the answer after ANSWER: and press Ctrl+S.', fix: 'Answer: ' + answers[0], why: 'Investigating first makes you read the machine before you change it.' })
 };
-/* ---------- availability checks: harm to what the Scenario Brief says the business needs ----------
+/* ---------- availability checks: harm to what the Scenario Brief says the organization needs ----------
    A failed one is a must-fix flag: the points stay, the Progress Check names it in red with its restore step, and
    Finish waits until it works again. which(s) names the broken items; restore is the way back. */
 const AVAIL = {
-  users: names => ({ id: 'avail-user', title: 'Authorized user removed or disabled', need: 'Authorized users can sign in', which: s => names.filter(n => { const u = userByName(n); return !u || !u.enabled; }).join(', '), test: s => names.some(n => { const u = userByName(n); return !u || !u.enabled; }), why: 'The Scenario Brief lists these people as authorized; they need their accounts to work.', restore: 'Turn the account back on: net user NAME /active:yes, or lusrmgr.msc > Users > NAME > clear "Account is disabled". A deleted account comes back with net user NAME <password> /add (a password that meets the policy); then add it to its groups again.' }),
-  admins: names => ({ id: 'avail-admin', title: 'Authorized administrator removed from Administrators', need: 'Authorized administrators keep their rights', which: s => names.filter(n => !userByName(n) || !isAdmin(n)).join(', '), test: s => names.some(n => !userByName(n) || !isAdmin(n)), why: 'The administrators named in the Scenario Brief must keep their rights.', restore: 'Put the administrator back: net localgroup Administrators NAME /add, or lusrmgr.msc > Groups > Administrators > Add. Bring back a deleted account first.' }),
+  users: names => ({ id: 'avail-user', accts: names, title: 'Authorized user removed or disabled', need: 'Authorized users can sign in', which: s => names.filter(n => { const u = userByName(n); return !u || !u.enabled; }).join(', '), test: s => names.some(n => { const u = userByName(n); return !u || !u.enabled; }), why: 'The Scenario Brief lists these people as authorized; they need their accounts to work.', restore: 'Turn the account back on: net user NAME /active:yes, or lusrmgr.msc > Users > NAME > clear "Account is disabled". A deleted account comes back with net user NAME <password> /add (a password that meets the policy); then add it to its groups again.' }),
+  admins: names => ({ id: 'avail-admin', accts: names, title: 'Authorized administrator removed from Administrators', need: 'Authorized administrators keep their rights', which: s => names.filter(n => !userByName(n) || !isAdmin(n)).join(', '), test: s => names.some(n => !userByName(n) || !isAdmin(n)), why: 'The administrators named in the Scenario Brief must keep their rights.', restore: 'Put the administrator back: net localgroup Administrators NAME /add, or lusrmgr.msc > Groups > Administrators > Add. Bring back a deleted account first.' }),
   self: () => ({ id: 'avail-self', title: 'Your own account deleted, disabled, or locked out', need: 'Your own account works', test: s => { const u = userByName(CUR.login.user); return !u || !u.enabled || u.lockedOut; }, why: 'Lock yourself out and the next sign-in fails.', restore: 'While you are still signed in: net user labuser /active:yes, or lusrmgr.msc > Users > labuser > clear "Account is disabled" and "Account is locked out". A deleted account comes back with net user labuser <password> /add and net localgroup Administrators labuser /add. Once the sign-in fails, Reset lab is the way back.' }),
   svc: (name, label) => ({ id: 'avail-svc-' + name, title: 'Required service "' + label + '" stopped or disabled', need: 'Required service "' + label + '" keeps running', test: s => { const v = s.services[name]; return !v || v.status !== 'Running' || v.start === 'Disabled'; }, why: 'The Scenario Brief calls this service required.', restore: 'Set it back to Automatic and start it: sc.exe config ' + name + ' start= auto, then sc.exe start ' + name + ' (or services.msc > ' + label + ' > Startup type: Automatic > Start).' }),
   wu: () => ({ id: 'avail-wu', title: 'Windows Update service disabled', need: 'Windows Update can install updates', test: s => !s.services.wuauserv || s.services.wuauserv.start === 'Disabled', why: 'Disabling Windows Update stops every future security fix.', restore: 'Set Windows Update back to Manual: sc.exe config wuauserv start= demand (or services.msc > Windows Update > Startup type: Manual).' }),
@@ -7259,7 +7462,7 @@ const AVAIL = {
   web: () => ({ id: 'avail-web', title: 'Web server (IIS) stopped, removed, or blocked by the firewall', need: 'The company portal (IIS) stays reachable on port 80', test: s => !featOn('IIS-WebServer') || !(s.services.W3SVC && s.services.W3SVC.status === 'Running') || !(ruleByName('World Wide Web Services (HTTP Traffic-In)') && ruleByName('World Wide Web Services (HTTP Traffic-In)').enabled), why: 'The company portal must stay reachable on port 80.', restore: 'Bring the portal back: turn Internet Information Services back on in optionalfeatures, start the web service (sc.exe start W3SVC), and turn its firewall rule back on: netsh advfirewall firewall set rule name="World Wide Web Services (HTTP Traffic-In)" new enable=yes.' }),
   shares: names => ({ id: 'avail-share', title: 'Required file share removed (' + names.join(', ') + ')', need: 'Required file shares stay shared (' + names.join(', ') + ')', which: s => names.filter(n => !(s.shares || defaultShares(s.edition)).some(x => sameName(x.name, n))).join(', '), test: s => names.some(n => !(s.shares || defaultShares(s.edition)).some(x => sameName(x.name, n))), why: 'The Scenario Brief says the office works from these shares.', restore: 'Share the folder again: ' + names.map(n => 'net share ' + n + '=C:\\Shares\\' + n).join(' or ') + ' (in PowerShell: New-SmbShare -Name ' + names[0] + ' -Path C:\\Shares\\' + names[0] + ').' }),
   // the account still reads the folder: an entry for it, one of its groups, Everyone, or Authenticated Users (inherit-only entries leave the folder itself out)
-  folderAccess: (path, user) => ({ id: 'avail-acl-' + user, title: user + ' lost Modify access to ' + path, need: user + ' keeps Modify access to ' + path, test: s => { const u = userByName(user); if (!u || !s.fs[fsKey(path)]) return false; const mine = [hostnameUpper() + '\\' + u.name, 'Everyone', 'NT AUTHORITY\\Authenticated Users'].concat(userGroups(u.name).map(g => 'BUILTIN\\' + g)); return !aclOf(path).some(x => mine.includes(x.who) && !/\(IO\)/.test(x.fl) && x.perm.split(',').some(r => r === 'F' || r === 'M')); }, why: 'The Scenario Brief says the HR clerk keeps Modify on this folder to update the records. Removing Everyone must leave that person Modify, through an entry of their own or one of their groups.', restore: 'Give ' + user + ' Modify again: icacls "' + path + '" /grant "' + user + ':(OI)(CI)M" (or the folder\'s Properties > Security > Edit > Add).' })
+  folderAccess: (path, user) => ({ id: 'avail-acl-' + user, accts: [user], title: user + ' lost Modify access to ' + path, need: user + ' keeps Modify access to ' + path, test: s => { const u = userByName(user); if (!u || !s.fs[fsKey(path)]) return false; const mine = [hostnameUpper() + '\\' + u.name, 'Everyone', 'NT AUTHORITY\\Authenticated Users'].concat(userGroups(u.name).map(g => 'BUILTIN\\' + g)); return !aclOf(path).some(x => mine.includes(x.who) && !/\(IO\)/.test(x.fl) && x.perm.split(',').some(r => r === 'F' || r === 'M')); }, why: 'The Scenario Brief says the HR clerk keeps Modify on this folder to update the records. Removing Everyone must leave that person Modify, through an entry of their own or one of their groups.', restore: 'Give ' + user + ' Modify again: icacls "' + path + '" /grant "' + user + ':(OI)(CI)M" (or the folder\'s Properties > Security > Edit > Add).' })
 };
 /* ---------- the scenarios ---------- */
 const SCENARIOS = [
@@ -7316,10 +7519,10 @@ const SCENARIOS = [
     availability: [AVAIL.users(['nalani', 'kekoa', 'ailani', 'moana', 'leilani']), AVAIL.admins(['nalani']), AVAIL.self(), AVAIL.svc('mpssvc', 'Windows Defender Firewall'), AVAIL.svc('WinDefend', 'Microsoft Defender Antivirus'), AVAIL.wu()]
   },
   {
-    id: 'operator', level: 2, rev: 3, name: 'Operator', title: 'Hale Kula Robotics Lab — station 4', edition: 'win11', hostname: 'HKROBOTICS-04', ip: '10.20.7.14',
+    id: 'operator', level: 2, rev: 3, name: 'Operator', title: 'Pōhinahina Robotics Lab — station 4', edition: 'win11', hostname: 'PHN-ROBOTICS-04', ip: '10.20.7.14',
     login: { user: 'labuser', password: 'Medium!2026' },
     brief: {
-      company: 'Hale Kula High School robotics lab, shared workstation #4',
+      company: 'Pōhinahina High School robotics lab, shared workstation #4',
       blurb: 'Students sign in with their own accounts to program the team robots. The coach (coachk) maintains the lab PCs. Someone installed "helper" software, a student account seems to have become an administrator, and the PC has been slow and noisy at night.',
       admins: ['labuser (you) - password: Medium!2026', 'coachk'],
       users: ['tavita', 'hiro', 'pua', 'mele', 'keahi'],
@@ -7328,7 +7531,7 @@ const SCENARIOS = [
     },
     users: [
       { name: 'labuser', password: 'Medium!2026', fullName: 'Lab User', groups: ['Administrators', 'Users'] },
-      { name: 'coachk', password: 'Coach-Kula-2026!', fullName: 'Coach K', groups: ['Administrators', 'Users'] },
+      { name: 'coachk', password: 'Coach-Pohina-2026!', fullName: 'Coach K', groups: ['Administrators', 'Users'] },
       { name: 'tavita', password: 'Tavita#2026', fullName: 'Tavita', groups: ['Users'] },
       { name: 'hiro', password: 'Hiro!2026', fullName: 'Hiro', groups: ['Administrators', 'Users'] },
       { name: 'pua', password: '', pwRequired: false, fullName: 'Pua', groups: ['Users'] },
@@ -7358,7 +7561,7 @@ const SCENARIOS = [
       st.services.RemoteRegistry.status = 'Running'; st.services.RemoteRegistry.start = 'Automatic';
       st.rdp.enabled = true; st.services.TermService.status = 'Running';
       setFeature('TelnetClient', true); setFeature('SMB1Protocol', true);
-      st.tasks.push(mkTask('DriverCleanupSvc', { triggers: 'Daily at 11:30 PM - After triggered, repeat every 30 minutes indefinitely.', nextRun: winDateTime(daysAgo(0, 23, 30), true), author: 'HKROBOTICS-04\\hiro', action: 'C:\\Users\\Public\\Libraries\\dc.bat', planted: true }));
+      st.tasks.push(mkTask('DriverCleanupSvc', { triggers: 'Daily at 11:30 PM - After triggered, repeat every 30 minutes indefinitely.', nextRun: winDateTime(daysAgo(0, 23, 30), true), author: 'PHN-ROBOTICS-04\\hiro', action: 'C:\\Users\\Public\\Libraries\\dc.bat', planted: true }));
       fsAddFile(st.fs, 'C:\\Users\\Public\\Libraries\\dc.bat', { text: DC_BAT, mtime: daysAgo(18, 23, 31) });
       // a second way back in: a shortcut in the all-users Startup folder starts the remote helper at every sign-in
       fsAddFile(st.fs, 'C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\StartUp\\RobotSync.lnk', { size: 1446, mtime: daysAgo(18, 23, 33), lnk: 'C:\\Users\\Public\\Libraries\\rhelper.exe -l 4444' });
@@ -7435,6 +7638,418 @@ const SCENARIOS = [
 ];
 SCENARIOS.forEach(sc => { const sum = sc.checks.reduce((a, c) => a + c.pts, 0); if (sum !== 100) throw new Error('scenario ' + sc.id + ' totals ' + sum + ' points'); });
 
+/* ===== 87-advanced: Level 4 (Advanced, extra credit). Each attempt builds a different machine from a layout code =====
+   A layout code is six characters from an alphabet without look-alikes (five free characters and one check character).
+   A seeded generator (never Math.random) turns the code into a plan: the edition and role of the machine, its accounts,
+   its address, the faults it carries (drawn only from what Levels 1 to 3 teach), its decoys, and the Scenario Brief that
+   states the ground truth. The same code builds the same machine in any browser, so a teacher can give a class one code. */
+const ADV_ID = 'advanced';
+const ADV_REV = 2;                                     // raise when a code would build a different machine (saved Level 4 labs rebuild)
+const ADV_ALPHA = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';  // 31 characters: no 0, O, 1, I, or L
+const ADV_PW = 'Advanced!2026';
+const ADV_LABEL = 'Level 4 · Advanced · extra credit';
+const ADV_EXAMPLE = '3UP6VE';                          // the layout the solution walkthrough works through in full
+function advCheckChar(body) { let s = 0; for (let i = 0; i < body.length; i++) s += (ADV_ALPHA.indexOf(body[i]) + 1) * (i + 2); return ADV_ALPHA[s % ADV_ALPHA.length]; }
+function advNormalize(t) { return String(t == null ? '' : t).toUpperCase().replace(/[\s-]+/g, ''); }
+function advValid(t) { const c = advNormalize(t); return c.length === 6 && c.split('').every(ch => ADV_ALPHA.indexOf(ch) >= 0) && advCheckChar(c.slice(0, 5)) === c[5]; }
+/* a new code: the only random step. The machine itself always comes from the code. */
+function advNewCode() {
+  const b = new Uint32Array(5);
+  try { crypto.getRandomValues(b); } catch (e) { const t = Date.now(); for (let i = 0; i < 5; i++) b[i] = Math.floor(t / Math.pow(31, i)) + i * 7919; }
+  let s = ''; for (let i = 0; i < 5; i++) s += ADV_ALPHA[b[i] % ADV_ALPHA.length];
+  return s + advCheckChar(s);
+}
+/* the seeded generator: FNV-1a of the code into mulberry32 */
+function advRng(code) {
+  let h = 2166136261; const seed = 'phn-level4:' + code;
+  for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619) >>> 0;
+  let a = h;
+  const f = () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const int = n => Math.floor(f() * n);
+  const shuffle = arr => { const x = arr.slice(); for (let i = x.length - 1; i > 0; i--) { const j = int(i + 1); const t = x[i]; x[i] = x[j]; x[j] = t; } return x; };
+  return { f, int, shuffle, pick: arr => arr[int(arr.length)], chance: p => f() < p, sample: (arr, k) => shuffle(arr).slice(0, k), range: (lo, hi) => lo + int(hi - lo + 1) };
+}
+/* ---------- the fault pool: every kind Levels 1 to 3 teach, with how to find and fix it (the walkthrough prints this) ---------- */
+const ADV_POOL = [
+  ['intruder', 'Accounts and groups', 'An account the Scenario Brief does not list', 'net user lists every account; compare it with the brief\'s two lists.', 'net user NAME /delete (lusrmgr.msc > Users > Delete).'],
+  ['demote', 'Accounts and groups', 'An authorized standard user in Administrators', 'net localgroup Administrators; anyone there besides the brief\'s administrators and the built-in Administrator.', 'net localgroup Administrators NAME /delete.'],
+  ['backupops', 'Accounts and groups', 'A standard user in Backup Operators', 'net localgroup "Backup Operators".', 'net localgroup "Backup Operators" NAME /delete.'],
+  ['guest', 'Accounts and groups', 'Guest account enabled', 'net user Guest shows "Account active Yes".', 'net user Guest /active:no.'],
+  ['neverexpires', 'Accounts and groups', '"Password never expires" on a user account', 'net user NAME shows "Password expires Never" (after the maximum age is set).', 'Set-LocalUser -Name NAME -PasswordNeverExpires $false.'],
+  ['blankpw', 'Accounts and groups', 'A blank password that is not required', 'net user NAME shows "Password required No".', 'net user NAME <strong password> /passwordreq:yes (at least the brief\'s minimum length; /passwordreq:yes makes the account require a password again).'],
+  ['savedcred', 'Accounts and groups', 'A saved password for a removed account', 'cmdkey /list shows a target that signs in as an account you removed.', 'cmdkey /delete:TARGET.'],
+  ['minlen', 'Passwords and lockout', 'Minimum password length below the brief', 'net accounts shows "Minimum password length".', 'net accounts /minpwlen:N (the brief\'s number).'],
+  ['complexity', 'Passwords and lockout', 'Password complexity off', 'secpol.msc > Password Policy, or secedit /export and read PasswordComplexity.', 'secpol.msc > Enabled, or a secedit template with PasswordComplexity = 1 and secedit /configure.'],
+  ['history', 'Passwords and lockout', 'Password history below 5', 'net accounts shows "Length of password history maintained".', 'net accounts /uniquepw:5.'],
+  ['maxage', 'Passwords and lockout', 'Maximum password age outside 30 to 90 days', 'net accounts shows "Maximum password age (days)".', 'net accounts /maxpwage:60.'],
+  ['minage', 'Passwords and lockout', 'Minimum password age of 0', 'net accounts shows "Minimum password age (days)".', 'net accounts /minpwage:1.'],
+  ['reversible', 'Passwords and lockout', 'Reversible password encryption on', 'secedit /export shows ClearTextPassword = 1.', 'A secedit template with ClearTextPassword = 0 and secedit /configure (or secpol.msc).'],
+  ['lockout', 'Passwords and lockout', 'Account lockout off', 'net accounts shows "Lockout threshold: Never".', 'net accounts /lockoutthreshold:5 /lockoutduration:30 /lockoutwindow:30.'],
+  ['auditlogon', 'Auditing', 'Logon events not audited', 'auditpol /get /category:"Logon/Logoff".', 'auditpol /set /category:"Logon/Logoff" /success:enable /failure:enable.'],
+  ['auditacct', 'Auditing', 'Account management not audited', 'auditpol /get /category:"Account Management".', 'auditpol /set /category:"Account Management" /success:enable /failure:enable.'],
+  ['lastuser', 'Sign-in and UAC', 'Last signed-in user shown', 'secpol.msc > Security Options, or reg query the DontDisplayLastUserName value.', 'reg add ...\\Policies\\System /v DontDisplayLastUserName /t REG_DWORD /d 1 /f.'],
+  ['cad', 'Sign-in and UAC', 'CTRL+ALT+DEL not required', 'secpol.msc > Security Options > "Do not require CTRL+ALT+DEL".', 'reg add ...\\Policies\\System /v DisableCAD /t REG_DWORD /d 0 /f.'],
+  ['blankconsole', 'Sign-in and UAC', 'Blank passwords allowed over the network', 'reg query HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa /v LimitBlankPasswordUse.', 'reg add HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa /v LimitBlankPasswordUse /t REG_DWORD /d 1 /f.'],
+  ['uac', 'Sign-in and UAC', 'User Account Control turned down', 'UserAccountControlSettings shows the slider.', 'Move the slider to the default, or reg add ConsentPromptBehaviorAdmin 5 and PromptOnSecureDesktop 1.'],
+  ['lmauth', 'Sign-in and UAC', 'LAN Manager authentication below level 5 (Server)', 'reg query HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa /v LmCompatibilityLevel.', 'reg add ... /v LmCompatibilityLevel /t REG_DWORD /d 5 /f.'],
+  ['firewall', 'Firewall', 'A firewall profile turned off', 'netsh advfirewall show allprofiles.', 'netsh advfirewall set allprofiles state on.'],
+  ['rogue-rule', 'Firewall', 'A planted inbound allow rule', 'netsh advfirewall firewall show rule name=all dir=in: a rule whose Grouping sits outside the Windows groups (Core Networking, File and Printer Sharing, Remote Desktop, and the like) and that the brief does not name; wf.msc shows the program it opens, in a user-writable folder. A rule the brief requires comes with its own school service under C:\\Program Files\\PHN.', 'netsh advfirewall firewall delete rule name="NAME".'],
+  ['rogue-share', 'Shares and permissions', 'A share the brief does not list', 'net share.', 'net share NAME /delete.'],
+  ['folder-acl', 'Shares and permissions', 'Everyone with full control of a records folder (Server)', 'icacls PATH.', 'icacls PATH /remove Everyone, then icacls PATH /grant "USER:(OI)(CI)M".'],
+  ['defender', 'Malware defenses', 'Microsoft Defender real-time protection off', 'Get-MpComputerStatus (RealTimeProtectionEnabled).', 'Set-MpPreference -DisableRealtimeMonitoring $false.'],
+  ['exclusion', 'Malware defenses', 'A Microsoft Defender folder exclusion', 'Get-MpPreference | Select-Object ExclusionPath (administrator window).', 'Remove-MpPreference -ExclusionPath "PATH".'],
+  ['autorun', 'Malware defenses', 'AutoRun on for some drives', 'reg query ...\\Policies\\Explorer /v NoDriveTypeAutoRun.', 'reg add ...\\Policies\\Explorer /v NoDriveTypeAutoRun /t REG_DWORD /d 255 /f.'],
+  ['updates', 'Patching', 'Updates waiting or paused', 'Settings > Windows Update.', 'Resume updates, Check for updates, Install all, Restart now.'],
+  ['remote-registry', 'Services', 'Remote Registry running', 'sc query RemoteRegistry.', 'sc stop RemoteRegistry, then sc config RemoteRegistry start= disabled.'],
+  ['rogue-service', 'Services', 'A service that runs from a user-writable folder', 'autorunsc -a * -s -m (Services), or sc qc NAME for BINARY_PATH_NAME.', 'sc stop NAME, then sc config NAME start= disabled (or sc delete NAME).'],
+  ['rogue-task', 'Tasks and startup', 'A planted scheduled task', 'schtasks /query /fo LIST /v (Task To Run), or autorunsc (Task Scheduler).', 'schtasks /delete /tn "NAME" /f.'],
+  ['startup-lnk', 'Tasks and startup', 'A Startup-folder shortcut for every account', 'dir "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\StartUp", or autorunsc (Logon).', 'del the shortcut.'],
+  ['programs', 'Software and media', 'Software outside the approved list', 'winget list, or Settings > Apps > Installed apps.', 'winget uninstall "NAME" (or Uninstall in Settings or appwiz.cpl).'],
+  ['media', 'Software and media', 'Music and video files in user folders', 'Get-ChildItem C:\\Users -Recurse -Force -Include *.mp3,*.m4a,*.wav,*.flac,*.mp4,*.mkv,*.avi,*.mov.', 'del /s /a C:\\Users\\*.EXT for each extension found.'],
+  ['telnet', 'Features', 'Telnet Client turned on', 'Get-WindowsOptionalFeature -Online -FeatureName TelnetClient.', 'Disable-WindowsOptionalFeature -Online -FeatureName TelnetClient (or dism /online /disable-feature /featurename:TelnetClient).'],
+  ['smb1', 'Features', 'SMB 1.0 turned on', 'Get-WindowsOptionalFeature -Online -FeatureName SMB1Protocol.', 'Disable-WindowsOptionalFeature -Online -FeatureName SMB1Protocol (or dism /online /disable-feature /featurename:SMB1Protocol).'],
+  ['ftp', 'Features', 'FTP server installed (Server)', 'Get-WindowsFeature Web-Ftp-Server.', 'Uninstall-WindowsFeature -Name Web-Ftp-Server.'],
+  ['rdp-off', 'Remote access', 'Remote Desktop on where the brief rules it out', 'SystemPropertiesRemote, or reg query fDenyTSConnections.', 'reg add "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 1 /f.'],
+  ['rdp-nla', 'Remote access', 'Required Remote Desktop without Network Level Authentication', 'SystemPropertiesRemote shows the NLA box.', 'reg add "...\\WinStations\\RDP-Tcp" /v UserAuthentication /t REG_DWORD /d 1 /f.'],
+  ['remote-assist', 'Remote access', 'Remote Assistance on (Windows 11)', 'SystemPropertiesRemote; Get-NetFirewallRule -DisplayGroup "Remote Assistance".', 'reg add "...\\Remote Assistance" /v fAllowToGetHelp /t REG_DWORD /d 0 /f, then Disable-NetFirewallRule -Group "@FirewallAPI.dll,-33002" (or netsh advfirewall firewall set rule group="Remote Assistance" new enable=no).'],
+  ['inv-task', 'Investigation', 'Which task runs a planted script', 'schtasks /query /fo LIST /v (TaskName and Task To Run).', 'Type the TaskName after ANSWER: and save.'],
+  ['inv-never', 'Investigation', 'Which account has "Password never expires"', 'net user NAME for each account.', 'Type the account name.'],
+  ['inv-creator', 'Investigation', 'Who created an unauthorized account', 'Get-WinEvent -FilterHashtable @{LogName=\'Security\'; Id=4720} | Format-List TimeCreated,Message (Subject: Account Name).', 'Type the account name.'],
+  ['inv-port', 'Investigation', 'Which TCP port a planted rule allows', 'netsh advfirewall firewall show rule name="NAME" (LocalPort).', 'Type the port number.'],
+  ['inv-blank', 'Investigation', 'Which account does not require a password', 'net user NAME ("Password required No").', 'Type the account name.'],
+  ['inv-hash', 'Investigation', 'The SHA256 of a planted script', 'Get-FileHash -Algorithm SHA256 PATH.', 'Type the first 8 characters of the Hash.'],
+  ['inv-admin', 'Investigation', 'Which Administrators member the brief does not list', 'net localgroup Administrators.', 'Type the account name.'],
+  ['inv-exclusion', 'Investigation', 'Which folder Microsoft Defender skips', 'Get-MpPreference | Select-Object ExclusionPath.', 'Type the folder path.'],
+  ['inv-share', 'Investigation', 'Which share the brief does not list', 'net share.', 'Type the share name.'],
+  ['inv-autostart', 'Investigation', 'What a Startup-folder shortcut starts (Sysinternals)', 'autorunsc -a * -s -m (Logon), or the shortcut\'s Properties.', 'Type the program\'s file name.']
+].map(([id, group, label, find, fix]) => ({ id, group, label, find, fix }));
+/* weights become points: each check gets a share of 100 by weight, kept between 2 and 10 */
+const ADV_W = { intruder: 5, demote: 4, backupops: 3, guest: 3, neverexpires: 3, blankpw: 4, savedcred: 2, minlen: 3, complexity: 3, history: 3, maxage: 2, minage: 2, reversible: 2, lockout: 3, auditlogon: 3, auditacct: 3, lastuser: 2, cad: 2, blankconsole: 2, uac: 3, lmauth: 3, firewall: 4, 'rogue-rule': 3, 'rogue-share': 3, 'folder-acl': 3, defender: 4, exclusion: 4, autorun: 2, updates: 3, 'remote-registry': 3, 'rogue-service': 4, 'rogue-task': 4, 'startup-lnk': 3, programs: 3, media: 3, telnet: 2, smb1: 3, ftp: 3, 'rdp-off': 3, 'rdp-nla': 4, 'remote-assist': 2, inv: 4 };
+function advPoints(ws) {
+  const W = ws.reduce((a, b) => a + b, 0), raw = ws.map(w => w * 100 / W);
+  const pts = raw.map(r => Math.max(2, Math.min(10, Math.round(r))));
+  let diff = 100 - pts.reduce((a, b) => a + b, 0), guard = 0;
+  while (diff !== 0 && guard++ < 500) {
+    let best = -1;
+    raw.forEach((r, i) => { const ok = diff > 0 ? pts[i] < 10 : pts[i] > 2; if (!ok) return; const gap = (r - pts[i]) * Math.sign(diff); if (best < 0 || gap > (raw[best] - pts[best]) * Math.sign(diff)) best = i; });
+    if (best < 0) break;
+    pts[best] += Math.sign(diff); diff -= Math.sign(diff);
+  }
+  return pts;
+}
+/* ---------- names, places, and planted items (fictional; people from the Pōhinahina High School roster) ---------- */
+const ADV_PEOPLE = {
+  keoni: ['Keoni', 'school sysadmin'], kanoa: ['Kanoa', 'complex-area sysadmin'], hoku: ['Hoku', 'help-desk tech'], mahina: ['Mahina', 'registrar'], iolana: ['Iolana', 'counselor'],
+  nohea: ['Nohea', 'teacher'], keola: ['Keola', 'teacher'], kekoa: ['Kekoa', 'new teacher'], koa: ['Koa', 'student'], kaipo: ['Kaipo', 'student'], ikaika: ['Ikaika', 'student'],
+  malia: ['Malia', 'student, yearbook'], lani: ['Lani', 'student'], makana: ['Makana', 'principal'], kalea: ['Kalea', 'vice principal'], pualei: ['Pualei', 'office clerk']
+};
+const ADV_INTRUDERS = [['formertech', 'Former help-desk tech', 'Help desk (left in June)'], ['helpdesk-tmp', 'Help desk (temporary)', 'Temporary support account'], ['tester', 'Test account', 'Testing'], ['tech2', 'Tech 2', 'Second tech account'], ['svc_sync', 'svc_sync', 'Sync service account'], ['backup_svc', 'backup_svc', 'Nightly backup account'], ['labadmin', 'Lab admin', 'Lab maintenance'], ['support2', 'Support', 'Remote support account']];
+const ADV_DROP = ['C:\\Users\\Public\\Libraries', 'C:\\Users\\Public\\Documents\\Updates', 'C:\\ProgramData\\SyncCache', 'C:\\Users\\Public\\Music\\.cache', 'C:\\ProgramData\\DisplayHelper'];
+const ADV_BACKDOOR = ['rhelper.exe', 'lrelay.exe', 'dcast.exe', 'syncagent.exe', 'orh.exe'];
+const ADV_RSVC = [['WinSysHelper', 'Windows System Helper', 'wsh.exe', 'Keeps system helper components up to date.'], ['DisplaySyncSvc', 'Display Sync Service', 'dsync.exe', 'Keeps display settings in step across sign-ins.'], ['LabTelemetry', 'Lab Telemetry Agent', 'ltagent.exe', 'Collects lab usage statistics.'], ['CloudCacheSvc', 'Cloud Cache Service', 'ccache.exe', 'Caches cloud files for faster opening.'], ['SrvHealthMon', 'Server Health Monitor', 'shm.exe', 'Monitors health and reports to the management console.']];
+const ADV_TASKS = [['SystemUpdaterSvc', 'upd.bat'], ['DriverCleanupSvc', 'dc.bat'], ['CacheRefresh', 'refresh.cmd'], ['PrinterSyncTask', 'psync.ps1'], ['DisplayHelperTask', 'dhelper.bat'], ['TempCleanupDaily', 'tclean.ps1']];
+const ADV_RULES = ['Remote Helper', 'Sync Agent', 'Lab Relay', 'Display Cast', 'Ops Remote Helper'];
+const ADV_PORTS = ['4444', '5554', '6667', '7070', '9001', '12345'];
+const ADV_LNK = ['RobotSync.lnk', 'LabSync.lnk', 'DisplayHelper.lnk', 'CacheTray.lnk', 'PrinterAssist.lnk'];
+const ADV_SHARES = ['Tools$', 'Drop$', 'Cache$', 'Media$', 'Pub$'];
+const ADV_PROGS = [['TorrentBolt 3.1', 'TorrentBolt Project', '3.1.2', '46.0 MB'], ['GameLoop Arcade', 'GameLoop Studios', '2.7.0', '1.21 GB'], ['PortProbe Toolkit', 'PortProbe', '1.4.9', '12.8 MB'], ['CoinSweeper Miner', 'CoinSweeper', '0.9.4', '9.1 MB'], ['ArcadeLoop', 'ArcadeLoop Games', '5.2.1', '2.4 GB']];
+const ADV_MEDIA = [['pep-rally-mix.mp3', 7340032], ['homecoming-highlights.mp4', 94371840], ['study-beats.m4a', 4194304], ['band-practice.wav', 31457280], ['movie-night.mkv', 734003200], ['surf-session.mov', 52428800], ['song-demo.flac', 26214400], ['game-clip.avi', 41943040]];
+const ADV_NOT_MEDIA = [['Music\\lyrics-draft.txt', 'Verse 1 - first draft for the spring concert\r\n'], ['Videos\\storyboard-notes.txt', 'Shot list for the science fair video\r\n'], ['Documents\\playlist-for-class.txt', 'Songs to ask about for the class party (links only)\r\n']];
+// decoys the brief protects: a school service, a scheduled task, and a firewall rule, all from C:\Program Files\PHN
+const ADV_DSVC = [['PHNClassMon', 'PHN Classroom Monitor', 'C:\\Program Files\\PHN\\Classroom\\classmon.exe', 'Lets the teacher see the screens in this room.'], ['PHNPrintAgent', 'PHN Print Agent', 'C:\\Program Files\\PHN\\PrintAgent\\printagent.exe', 'Sends print jobs to the school print server.']];
+const ADV_DTASK = [['PHN Lab Reset', 'C:\\Program Files\\PHN\\LabReset\\labreset.exe /nightly'], ['PHN Nightly Backup', 'C:\\Program Files\\PHN\\Backup\\phnbackup.exe /run']];
+const ADV_DRULE = [['PHN Classroom Monitor (TCP-In)', 'PHN Classroom Monitor', '4900', 'C:\\Program Files\\PHN\\Classroom\\classmon.exe'], ['PHN Print Agent (TCP-In)', 'PHN Print Agent', '9100', 'C:\\Program Files\\PHN\\PrintAgent\\printagent.exe']];
+const ADV_KINDS = {
+  lab: { edition: 'win11', role: 'computer-lab desktop', host: n => 'PHN-LAB-' + n, net: 4, admins: ['keoni'], extraAdmin: ['hoku'], users: ['koa', 'kaipo', 'ikaika', 'malia', 'lani'], nUsers: [3, 5], staff: ['nohea', 'keola', 'kekoa'] },
+  laptop: { edition: 'win11', role: 'teacher laptop', host: n => 'PHN-LAPTOP-' + n, net: 7, admins: ['hoku'], extraAdmin: ['keoni'], users: ['nohea', 'keola', 'kekoa'], nUsers: [2, 3], staff: [] },
+  office: { edition: 'win11', role: 'front-office PC', host: n => 'PHN-OFFICE-' + n, net: 7, admins: ['keoni'], extraAdmin: ['hoku'], users: ['mahina', 'iolana', 'makana', 'kalea', 'pualei'], nUsers: [3, 5], staff: [] },
+  server: { edition: 'server', role: 'file and portal server', host: n => 'PHN-FS-' + n, net: 9, admins: ['keoni', 'kanoa'], extraAdmin: [], users: ['mahina', 'nohea', 'keola', 'iolana', 'hoku', 'makana'], nUsers: [4, 6], staff: [] }
+};
+const ADV_STORY = {
+  lab: ['After a long weekend, the lab teacher reported pop-ups and a fan that never stops.', 'A student says a "game helper" was installed on this desktop during lunch.', 'The lab sat open during a club meeting, and the next day the machine ran slowly.'],
+  laptop: ['A substitute used the laptop for a week, and the teacher noticed changed settings when it came back.', 'The laptop went home over break, and now it shows programs nobody remembers installing.', 'The help desk found the laptop on the wrong network last week and wants it checked.'],
+  office: ['A temporary clerk worked here over the summer, and the principal wants the PC checked before school starts.', 'The registrar got a phone call from someone claiming to be support, and then the PC changed.', 'The front office shares this PC, and nobody knows who installed the newest programs.'],
+  server: ['The district asked for an audit after the summer staff left.', 'A former help-desk tech kept an account here, and the complex area wants the server checked.', 'The portal slowed down last week, and the logs show sign-ins at night.']
+};
+/* ---------- the plan: plain data, built only from the code ---------- */
+function advPlan(code) {
+  const R = advRng(code);
+  const kind = R.pick(['lab', 'laptop', 'office', 'server']), K = ADV_KINDS[kind], srv = K.edition === 'server';
+  const num = srv ? '0' + R.range(1, 3) : String(R.range(1, 30)).padStart(2, '0');
+  const hostname = K.host(num), ip = '10.20.' + K.net + '.' + (srv ? R.range(10, 40) : R.range(20, 199));
+  const admins = K.admins.concat(K.extraAdmin.length && R.chance(0.5) ? [R.pick(K.extraAdmin)] : []);
+  let users = R.sample(K.users, R.range(K.nUsers[0], K.nUsers[1]));
+  if (K.staff.length) users = users.concat([R.pick(K.staff)]);
+  users = users.filter(n => !admins.includes(n));
+  const svcAcct = !srv && R.chance(0.4) ? 'svc_print' : null;                 // a decoy: an authorized service account
+  const rdpReq = srv || (kind === 'laptop' && R.chance(0.5));
+  const P = { code, kind, edition: K.edition, role: K.role, hostname, ip, gw: '10.20.' + K.net + '.1', admins, users: users.slice(), svcAcct, rdpReq, story: R.pick(ADV_STORY[kind]), minLen: R.pick([10, 12, 14]) };
+  // the planted toolkit: one drop folder, one back door that listens on a port, one rogue service
+  P.drop = R.pick(ADV_DROP); P.backdoor = R.pick(ADV_BACKDOOR); P.port = R.pick(ADV_PORTS);
+  P.rsvc = R.pick(srv ? ADV_RSVC : ADV_RSVC.slice(0, 4));
+  P.task = R.pick(ADV_TASKS); P.rule = R.pick(ADV_RULES) + ' (TCP-In)'; P.lnk = R.pick(ADV_LNK); P.share = R.pick(ADV_SHARES);
+  P.credTarget = hostname === 'PHN-FS-01' ? 'PHN-DC-01' : 'PHN-FS-01';
+  // the required items the brief names
+  P.reqSvc = []; if (kind === 'lab' || kind === 'office') { if (R.chance(0.6)) P.reqSvc.push(['Spooler', 'Print Spooler', 'the room printer']); } if (kind === 'laptop' && R.chance(0.6)) P.reqSvc.push(['WlanSvc', 'WLAN AutoConfig', 'the school Wi-Fi']);
+  P.dsvc = R.chance(0.6) ? R.pick(ADV_DSVC) : null; P.dtask = R.chance(0.5) ? R.pick(ADV_DTASK) : null; const dr = R.chance(0.5) ? ADV_DRULE.find(r => P.dsvc && r[1] === P.dsvc[1]) || R.pick(ADV_DRULE) : null;
+  P.drule = dr && P.dsvc ? dr : null;   // a required school rule only comes with its own school service (the draws stay the same for every other layout)
+  if (srv) { P.shares = ['Records'].concat(R.sample(['Staff', 'Lessons', 'Athletics', 'Library'], R.range(1, 2))); P.recordsUser = 'mahina'; if (!P.users.includes('mahina')) P.users.push('mahina'); }
+  // faults: updates always, at least one intruder, then each kind with a chance
+  const F = [];
+  const nIntr = R.chance(0.45) ? 2 : 1; P.intruders = R.sample(ADV_INTRUDERS, nIntr).map(x => ({ name: x[0], full: x[1], desc: x[2], admin: R.chance(0.6), rdu: srv && R.chance(0.5) }));
+  P.intruders.forEach(x => F.push({ k: 'intruder', name: x.name }));
+  const regular = P.users.slice();
+  const take = () => { const free = regular.filter(n => !F.some(f => f.name === n)); return free.length ? R.pick(free) : null; };
+  const maybe = (k, p, o) => { if (R.chance(p)) F.push(Object.assign({ k }, o || {})); };
+  if (R.chance(0.6)) { const n = take(); if (n) F.push({ k: 'demote', name: n }); }
+  if (R.chance(0.35)) { const n = take(); if (n) F.push({ k: 'backupops', name: n }); }
+  maybe('guest', 0.55);
+  if (R.chance(0.55)) { const n = take(); if (n) F.push({ k: 'neverexpires', name: n }); }
+  if (R.chance(0.45)) { const n = take(); if (n) F.push({ k: 'blankpw', name: n }); }
+  if (R.chance(0.4)) F.push({ k: 'savedcred', target: P.credTarget, name: P.intruders[0].name });
+  ['minlen', 'complexity', 'history', 'maxage', 'minage', 'reversible', 'lockout', 'auditlogon', 'auditacct', 'lastuser', 'cad', 'blankconsole', 'uac'].forEach(k => maybe(k, 0.45));
+  if (srv) maybe('lmauth', 0.6);
+  maybe('firewall', 0.6); maybe('rogue-rule', 0.55); maybe('rogue-share', 0.45);
+  if (srv) maybe('folder-acl', 0.6);
+  maybe('defender', 0.55); maybe('exclusion', 0.45); maybe('autorun', 0.45);
+  F.push({ k: 'updates' });
+  maybe('remote-registry', 0.45); maybe('rogue-service', 0.6); maybe('rogue-task', 0.6); maybe('startup-lnk', 0.45);
+  if (R.chance(0.65)) F.push({ k: 'programs', names: R.sample(ADV_PROGS, R.range(1, srv ? 2 : 3)).map(p => p[0]) });
+  maybe('media', srv ? 0.3 : 0.65); maybe('telnet', 0.45); maybe('smb1', 0.5);
+  if (srv) maybe('ftp', 0.6);
+  if (P.rdpReq) maybe('rdp-nla', 0.6); else maybe('rdp-off', 0.5);
+  if (!srv) maybe('remote-assist', 0.5);
+  // keep the machine between 14 and 26 findings (the order above is fixed, so trimming and topping up stay deterministic)
+  const optional = ['minage', 'maxage', 'autorun', 'cad', 'lastuser', 'blankconsole', 'history', 'reversible', 'telnet', 'backupops', 'savedcred', 'remote-assist', 'auditacct', 'remote-registry', 'guest'];
+  while (F.length > 26) { const i = F.findIndex(f => optional.includes(f.k)); if (i < 0) break; F.splice(i, 1); }
+  const topUp = R.shuffle(['complexity', 'lockout', 'auditlogon', 'firewall', 'defender', 'rogue-task', 'minlen', 'uac', 'smb1', 'rogue-service']);
+  while (F.length < 14 && topUp.length) { const k = topUp.shift(); if (!F.some(f => f.k === k)) F.push({ k }); }
+  P.faults = F;
+  const has = k => F.some(f => f.k === k);
+  P.mediaFiles = has('media') ? R.sample(ADV_MEDIA, R.range(2, 4)).map((m, i) => { const owner = i === 0 || !regular.length ? 'Public' : R.pick(regular.filter(n => n !== 'svc_print')); return { path: 'C:\\Users\\' + owner + '\\' + (/\.(mp3|m4a|wav|flac)$/.test(m[0]) ? R.pick(['Music', 'Downloads']) : R.pick(['Videos', 'Downloads'])) + '\\' + m[0], size: m[1], hidden: R.chance(0.3) }; }) : [];
+  P.decoyFile = !srv && regular.length ? (f => ({ path: 'C:\\Users\\' + R.pick(regular) + '\\' + f[0], text: f[1] }))(R.pick(ADV_NOT_MEDIA)) : null;
+  P.fwOff = has('firewall') ? R.sample(['Domain', 'Private', 'Public'], R.range(1, 2)) : [];
+  P.minLenAt = R.pick([0, 4, 6, 8].filter(x => x < P.minLen));
+  P.wuPaused = R.chance(0.6);
+  // the creator of the first intruder: a demoted student who became an administrator, the first intruder for the second, or the built-in Administrator
+  const dem = F.find(f => f.k === 'demote');
+  P.culprit = dem ? dem.name : 'Administrator';
+  // investigations: one to three, each about a finding this machine really has
+  const inv = [];
+  if (has('rogue-task')) inv.push('inv-task');
+  if (has('neverexpires')) inv.push('inv-never');
+  if (dem || P.intruders.length > 1) inv.push('inv-creator');
+  if (has('rogue-rule')) inv.push('inv-port');
+  if (has('blankpw')) inv.push('inv-blank');
+  if (has('rogue-task')) inv.push('inv-hash');
+  if (P.intruders.some(x => x.admin) || dem) inv.push('inv-admin');
+  if (has('exclusion')) inv.push('inv-exclusion');
+  if (has('rogue-share')) inv.push('inv-share');
+  if (has('startup-lnk')) inv.push('inv-autostart');
+  P.inv = R.sample(inv, Math.min(inv.length, R.range(2, 3)));
+  if (!P.inv.length) P.inv = ['inv-creator'];          // every layout has an intruder, and the Security log names who created it
+  P.days = { intr: R.range(9, 40), task: R.range(5, 30) };
+  return P;
+}
+/* ---------- the scenario the engine runs, built from the plan ---------- */
+function advPerson(n) { return n === 'svc_print' ? ['svc_print', 'print service account'] : ADV_PEOPLE[n] || [n, 'staff']; }
+function advPw(n) { const p = advPerson(n)[0].replace(/[^A-Za-z]/g, ''); return p.charAt(0).toUpperCase() + p.slice(1) + '-PHN-2026!'; }
+function advScriptText(P) {
+  const exe = P.drop + '\\' + P.backdoor, ext = P.task[1].split('.').pop();
+  if (ext === 'ps1') return '# refresh the print queue\r\nStart-Process -WindowStyle Hidden ' + exe + ' -ArgumentList "-l ' + P.port + '"\r\n' + (P.faults.some(f => f.k === 'rogue-service') ? 'Start-Service ' + P.rsvc[0] + '\r\n' : '');
+  return '@echo off\r\nrem keep-alive for the lab helper\r\nstart /b ' + exe + ' -l ' + P.port + '\r\n' + (P.faults.some(f => f.k === 'rogue-service') ? 'sc start ' + P.rsvc[0] + '\r\n' : '');
+}
+function advTaskAction(P) { const p = P.drop + '\\' + P.task[1]; return /\.ps1$/.test(p) ? 'powershell.exe -ExecutionPolicy Bypass -File ' + p : p; }
+const ADV_CACHE = {};
+function advScenario(code) {
+  code = advNormalize(code);
+  if (ADV_CACHE[code]) return ADV_CACHE[code];
+  const P = advPlan(code), srv = P.edition === 'server', has = k => P.faults.some(f => f.k === k), F = k => P.faults.filter(f => f.k === k);
+  const fam = srv ? VERSIONS.server.family : VERSIONS.win11.family, H = P.hostname;
+  const dem = F('demote')[0], never = F('neverexpires')[0], blank = F('blankpw')[0], progF = F('programs')[0];
+  const taskPath = P.drop + '\\' + P.task[1], script = advScriptText(P), sha = sha256Hex(utf8Bytes(script)).toUpperCase();
+  const listUsers = P.users.concat(P.svcAcct ? [P.svcAcct] : []);
+  /* ----- the Scenario Brief: every line here is the ground truth the checks and availability checks use ----- */
+  const who = n => n + ' (' + advPerson(n)[1] + ')';
+  const services = [];
+  services.push('The firewall must be on for every profile, and Microsoft Defender must stay on.');
+  services.push('Windows Update must be able to install updates.');
+  if (P.rdpReq) services.push('Remote Desktop MUST stay on, with Network Level Authentication, for ' + (srv ? 'the administrators' : 'the help desk') + '. Remote ' + (srv ? 'Registry stays off.' : 'Assistance and Remote Registry stay off.'));
+  else services.push('Remote access stays off on this PC: Remote Desktop, Remote Assistance, and Remote Registry.');
+  P.reqSvc.forEach(([n, l, why]) => services.push('Required service: ' + l + ' (' + n + ') keeps running for ' + why + '.'));
+  if (P.dsvc) services.push('Required service: ' + P.dsvc[1] + ' (' + P.dsvc[0] + ') keeps running. ' + P.dsvc[3]);
+  if (P.dtask) services.push('Required scheduled task: "' + P.dtask[0] + '" keeps running each night.');
+  if (P.drule) services.push('Required firewall rule: "' + P.drule[0] + '" stays enabled.');
+  if (srv) { services.push('The staff portal (IIS, World Wide Web Publishing Service) must stay running and allowed on port 80.'); services.push('These file shares must stay shared: ' + andList(P.shares) + '.'); services.push(P.recordsUser + ' (registrar) keeps Modify on C:\\Shares\\Records.'); }
+  services.push((srv ? 'FTP, SMB 1.0, and the Telnet client' : 'SMB 1.0 and the Telnet client') + ' stay off.');
+  const policy = [
+    'Only the authorized administrators (and the built-in Administrator account) may be in the Administrators group, and only the authorized administrators may be in Backup Operators.',
+    'Guest must be disabled. Every user account keeps a real password, and "Password never expires" stays cleared on every user account.',
+    'Passwords: at least ' + P.minLen + ' characters, complex, 5 or more remembered, a maximum age of 30 to 90 days, and a minimum age of 1 day or more. Passwords are stored as one-way hashes only (reversible encryption off).',
+    'Account lockout: after 10 or fewer failed attempts, for 15 minutes or more. Logons and account management are audited for Success and Failure.',
+    'The last signed-in user name stays hidden, CTRL+ALT+DEL is required, and accounts with blank passwords stay limited to console sign-in.' + (srv ? ' NTLMv2 only (LAN Manager authentication level 5).' : ''),
+    'User Account Control stays at the default level or higher. AutoPlay and AutoRun stay off for every drive.',
+    'Microsoft Defender scans every folder: remove every exclusion.',
+    'Only the shares this brief lists and the Windows default shares (ADMIN$, C$, and IPC$) stay shared.',
+    'Approved software: 7-Zip, Notepad++, ' + (srv ? '' : 'Mozilla Firefox, Google Chrome, VLC media player, ') + 'and the Microsoft programs that come with Windows. Remove everything else.',
+    'Remove music and video files from every user folder.',
+    'Remove anything an intruder planted: accounts, saved passwords for removed accounts, firewall rules, shares, scheduled tasks, Startup-folder shortcuts, and services that run from user-writable folders.'
+  ];
+  if (srv) policy.push('Everyone loses its full control of C:\\Shares\\Records; ' + P.recordsUser + ' keeps Modify.');
+  const brief = {
+    company: 'Pōhinahina High School (PHN), domain phn.k12.lan',
+    blurb: 'This ' + fam + ' machine is the school\'s ' + P.role + ' ' + H + ' at ' + P.ip + ' (gateway ' + P.gw + '). ' + (srv ? 'It holds the school file shares and the staff portal, and the administrators manage it over Remote Desktop. ' : P.kind === 'laptop' ? 'It belongs to ' + (P.users.find(n => /teacher/.test(advPerson(n)[1])) || P.users[0]) + ', and the help desk supports it. ' : P.kind === 'lab' ? 'Students sign in with their own accounts for class projects. ' : 'The front-office staff share it for school records and letters. ') + P.story + ' This is the extra-credit level: the machine changes with each layout code, so read it before you change it.',
+    admins: ['labuser (you) - password: ' + ADV_PW].concat(P.admins.map(who)).concat(srv ? ['Administrator (built-in; must stay enabled on this server)'] : []),
+    users: listUsers.map(who),
+    services, policy, layout: code
+  };
+  /* ----- investigations: each answer comes from this machine ----- */
+  const intr = P.intruders;
+  const INV = {
+    'inv-task': () => ({ text: 'A scheduled task on this machine runs ' + taskPath + '. What is the name of that task?', hint: 'Hint: Task Scheduler (taskschd.msc) > Task Scheduler Library, or: schtasks /query /fo LIST /v', answers: [P.task[0]] }),
+    'inv-never': () => ({ text: 'Which user account (not a built-in account) has "Password never expires" set?', hint: 'Hint: net user <name> shows "Password expires"; or lusrmgr.msc > Users > Properties', answers: [never.name] }),
+    'inv-creator': () => { const tgt = intr.length > 1 ? intr[1].name : intr[0].name, by = intr.length > 1 ? intr[0].name : P.culprit; return { text: 'The Security log records who created each account. Which account created the ' + tgt + ' account?', hint: 'Hint: Event Viewer (eventvwr.msc) > Windows Logs > Security > Filter Current Log, Event ID 4720, then read Subject: Account Name. Or, in PowerShell as administrator: Get-WinEvent -FilterHashtable @{LogName=\'Security\'; Id=4720} | Format-List TimeCreated,Message', answers: [by] }; },
+    'inv-port': () => ({ text: 'An inbound firewall rule was planted that sits outside the Windows defaults and the Scenario Brief. What TCP port does it allow?', hint: 'Hint: wf.msc > Inbound Rules, sort by Group, or: netsh advfirewall firewall show rule name=all dir=in and read the LocalPort line of the rule outside the Windows groups that the brief does not name.', answers: [P.port] }),
+    'inv-blank': () => ({ text: 'One user account was set up so that it does not require a password, and its password is blank. Which account is it?', hint: 'Hint: net user <name> shows "Password required" (No means the account may have a blank password).', answers: [blank.name] }),
+    'inv-hash': () => ({ text: 'What are the first 8 characters of the SHA256 hash of ' + taskPath + '? Record it before you remove the file.', hint: 'Hint: in PowerShell, Get-FileHash -Algorithm SHA256 ' + taskPath + '; the Hash column holds the value.', answers: [sha.slice(0, 8), sha] }),
+    'inv-admin': () => ({ text: 'Which account is a member of the Administrators group but is NOT listed in the Scenario Brief as an authorized administrator? (Leave out the built-in Administrator.)', hint: 'Hint: net localgroup Administrators, or lusrmgr.msc > Groups > Administrators', answers: intr.filter(x => x.admin).map(x => x.name).concat(dem ? [dem.name] : []) }),
+    'inv-exclusion': () => ({ text: 'Microsoft Defender was told to skip one folder. What is the full path of that folder?', hint: 'Hint: in an administrator PowerShell, Get-MpPreference | Select-Object ExclusionPath', answers: [P.drop, P.drop + '\\'] }),
+    'inv-share': () => ({ text: 'One shared folder sits outside the Windows default shares and the Scenario Brief. What is its share name?', hint: 'Hint: net share (or Get-SmbShare in PowerShell).', answers: [P.share, P.share.replace(/\$$/, '')] }),
+    'inv-autostart': () => ({ text: 'A shortcut in the all-users Startup folder starts a program at every sign-in. What is the file name of that program?', hint: 'Hint: autorunsc -a * -s -m lists it under Logon (Sysinternals); or open shell:common startup and read the shortcut\'s Properties.', answers: [P.backdoor, P.drop + '\\' + P.backdoor] })
+  };
+  const investigations = P.inv.map(k => Object.assign({ kind: k }, INV[k]()));
+  /* ----- the accounts ----- */
+  const users = [{ name: 'labuser', password: ADV_PW, fullName: 'Lab User', groups: ['Administrators', 'Users'].concat(P.rdpReq ? ['Remote Desktop Users'] : []) }];
+  P.admins.forEach(n => users.push({ name: n, password: advPw(n), fullName: advPerson(n)[0] + ' (' + advPerson(n)[1] + ')', groups: ['Administrators', 'Users'].concat(P.rdpReq ? ['Remote Desktop Users'] : []) }));
+  listUsers.forEach(n => {
+    const f = P.faults.filter(x => x.name === n), u = { name: n, password: advPw(n), fullName: n === 'svc_print' ? 'svc_print' : advPerson(n)[0], description: n === 'svc_print' ? 'Print service account (school IT)' : '', groups: ['Users'] };
+    if (f.some(x => x.k === 'demote')) u.groups.push('Administrators');
+    if (f.some(x => x.k === 'backupops')) u.groups.push('Backup Operators');
+    if (f.some(x => x.k === 'neverexpires')) u.pwNeverExpires = true;
+    if (f.some(x => x.k === 'blankpw')) { u.password = ''; u.pwRequired = false; }
+    users.push(u);
+  });
+  intr.forEach((x, i) => users.push({ name: x.name, password: ['Welcome1', 'Support123', 'Backup2024', 'Summer2025'][i % 4], fullName: x.full, description: x.desc, groups: ['Users'].concat(x.admin ? ['Administrators'] : []).concat(x.rdu ? ['Remote Desktop Users'] : []), planted: true, lastLogon: daysAgo(P.days.intr - 3 - i, 2, 10 + i) }));
+  /* ----- the Security log before you arrived ----- */
+  const history = [];
+  const d0 = P.days.intr;
+  if (dem) history.push(['Security', 4732, d0 + 8, 15, 2, { by: P.admins[0], user: dem.name, group: 'Administrators' }]);
+  history.push(['Security', 4720, d0, 22, 41, { by: P.culprit, user: intr[0].name }]);
+  if (intr[0].admin) history.push(['Security', 4732, d0, 22, 44, { by: P.culprit, user: intr[0].name, group: 'Administrators' }]);
+  if (intr[1]) { history.push(['Security', 4720, d0 - 2, 23, 5, { by: intr[0].name, user: intr[1].name }]); if (intr[1].admin) history.push(['Security', 4732, d0 - 2, 23, 7, { by: intr[0].name, user: intr[1].name, group: 'Administrators' }]); }
+  if (has('auditlogon')) history.push(['Security', 4719, d0 - 2, 23, 52, { by: intr[0].name, cat: 'Logon/Logoff', sub: 'Logon', guid: '{0cce9215-69ae-11d9-bed3-505054503030}', change: 'Success removed, Failure removed' }]);
+  if (has('auditacct')) history.push(['Security', 4719, d0 - 2, 23, 53, { by: intr[0].name, cat: 'Account Management', sub: 'User Account Management', guid: '{0cce9235-69ae-11d9-bed3-505054503030}', change: 'Success removed' }]);
+  /* ----- checks ----- */
+  const svcHint = 'Judge services by path: services.msc > the service > Properties shows the Path to executable, and sc.exe qc NAME shows it as BINARY_PATH_NAME. A service that runs from a user-writable folder (C:\\Users or C:\\ProgramData outside Microsoft) is planted, and autorunsc -a * -s -m lists it as not verified. Stop it and set Startup type Disabled: sc.exe stop NAME, then sc.exe config NAME start= disabled (sc.exe delete NAME removes it).';
+  const mk = {
+    intruder: f => CK.userGone(f.name, 0), demote: f => CK.demote(f.name, 0), backupops: f => CK.privGroup('Backup Operators', f.name, 0), guest: () => CK.guest(0),
+    neverexpires: f => CK.noNeverExpires(f.name, 0), blankpw: f => Object.assign(CK.blankPw(f.name, 0), { test: s => { const u = userByName(f.name); return !u || (u.password !== '' && u.password.length >= P.minLen && u.pwRequired !== false); }, hint: 'Set a password of ' + P.minLen + ' or more characters, complex, per the brief, and make the account require a password again: net user ' + f.name + ' Str0ng-Passw0rd!2026 /passwordreq:yes (lusrmgr.msc > Users > right-click ' + f.name + ' > Set Password... sets the password; net user ' + f.name + ' /passwordreq:yes then clears "Password required No").', fix: 'net user ' + f.name + ' Str0ng-Passw0rd!2026 /passwordreq:yes   |   lusrmgr.msc > ' + f.name + ' > Set Password..., then net user ' + f.name + ' /passwordreq:yes' }), savedcred: f => CK.savedCred(f.target, f.name, 0),
+    minlen: () => Object.assign(CK.minLen(0, P.minLen), { hint: 'secpol.msc > Account Policies > Password Policy > Minimum password length. Or: net accounts /minpwlen:' + P.minLen, fix: 'secpol.msc > Password Policy > Minimum password length = ' + P.minLen + '   |   net accounts /minpwlen:' + P.minLen }), complexity: () => CK.complexity(0), history: () => CK.history(0), maxage: () => CK.maxAge(0), minage: () => CK.minAge(0), reversible: () => CK.reversible(0), lockout: () => CK.lockout(0),
+    auditlogon: () => CK.audit('LogonEvents', 'Audit logon events', 0), auditacct: () => CK.audit('AccountManagement', 'Audit account management', 0),
+    lastuser: () => CK.lastUser(0), cad: () => CK.cad(0), blankconsole: () => CK.blankConsole(0), uac: () => CK.uac(0), lmauth: () => CK.lmAuth(0),
+    firewall: () => CK.firewall(0), 'rogue-rule': () => CK.rogueRule(P.rule, 0), 'rogue-share': () => CK.share(P.share, P.drop, 0), 'folder-acl': () => CK.folderAcl('C:\\Shares\\Records', 'Everyone', P.recordsUser, 0),
+    defender: () => CK.defender(0), exclusion: () => CK.exclusion(P.drop, 0), autorun: () => CK.autorun(0), updates: () => CK.updates(0),
+    'remote-registry': () => CK.svcOff('RemoteRegistry', 'Remote Registry', 0), 'rogue-service': () => Object.assign(CK.svcGone(P.rsvc[0], P.rsvc[1], 0), { hint: svcHint.replace(/NAME/g, P.rsvc[0]) }),
+    'rogue-task': () => CK.taskGone(P.task[0], 0), 'startup-lnk': () => CK.startupLnk('C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\StartUp', P.lnk, 0),
+    programs: f => CK.programs(f.names, 0), media: () => CK.media(0), telnet: () => CK.feature('TelnetClient', 'Telnet Client', 0), smb1: () => CK.feature('SMB1Protocol', 'SMB 1.0/CIFS File Sharing Support', 0), ftp: () => CK.ftpGone(0),
+    'rdp-off': () => CK.rdpOff(0), 'rdp-nla': () => CK.rdpNla(0), 'remote-assist': () => CK.remoteAssist(0)
+  };
+  const checks = P.faults.map(f => Object.assign(mk[f.k](f), { kind: f.k }));
+  investigations.forEach((q, i) => checks.push(Object.assign(CK.answer(i + 1, q.answers, 0), { kind: q.kind })));
+  const pts = advPoints(checks.map(c => ADV_W[/^inv-/.test(c.kind) ? 'inv' : c.kind] || 3));
+  checks.forEach((c, i) => { c.pts = pts[i]; });
+  /* ----- availability: one per item the brief marks as authorized or required ----- */
+  const availability = [AVAIL.users(listUsers.filter(n => n !== 'labuser').concat(srv ? ['Administrator'] : [])), AVAIL.admins(P.admins.concat(srv ? ['Administrator'] : [])), AVAIL.self()];
+  if (P.rdpReq) availability.push(srv ? AVAIL.rdpReq() : Object.assign(AVAIL.rdpReq(), { title: 'Remote Desktop disabled on a machine that requires it', why: 'The help desk supports this laptop over Remote Desktop.' }));
+  if (srv) {
+    availability.push(Object.assign(AVAIL.web(), { need: 'The staff portal (IIS) stays reachable on port 80', why: 'The staff portal must stay reachable on port 80.' }));
+    availability.push(Object.assign(AVAIL.shares(P.shares), { why: 'The Scenario Brief says the school works from these shares.' }));
+    availability.push(Object.assign(AVAIL.folderAccess('C:\\Shares\\Records', P.recordsUser), { why: 'The Scenario Brief says the registrar keeps Modify on this folder to update the records. Removing Everyone must leave that person Modify, through an entry of their own or one of their groups.' }));
+  }
+  P.reqSvc.forEach(([n, l]) => availability.push(AVAIL.svc(n, l)));
+  if (P.dsvc) availability.push(Object.assign(AVAIL.svc(P.dsvc[0], P.dsvc[1]), { why: 'The Scenario Brief calls this school service required; it runs from C:\\Program Files, where a standard account cannot plant files.' }));
+  if (P.dtask) {
+    const tn = P.dtask[0], prog = P.dtask[1].split(' /')[0], args = P.dtask[1].slice(prog.length + 1);
+    availability.push({ id: 'avail-task', title: 'Required scheduled task "' + tn + '" deleted or disabled', need: 'Required scheduled task "' + tn + '" keeps running', test: s => { const t = s.tasks.find(x => sameName(x.name, tn)); return !t || t.status === 'Disabled' || !String(t.action || '').replace(/"/g, '').toLowerCase().includes(prog.toLowerCase()); }, why: 'The Scenario Brief says the school relies on this task each night.', restore: 'Turn the task back on: schtasks /change /tn "' + tn + '" /enable (or Task Scheduler > right-click "' + tn + '" > Enable). A deleted task comes back when you create it again with the same name and program: schtasks /create /tn "' + tn + '" /tr "\\"' + prog + '\\" ' + args + '" /sc daily /st 02:00 /ru SYSTEM /f (each \\" keeps a quote around the path, which has spaces). Disable a task you are unsure about instead of deleting it.' });
+  }
+  if (P.drule) { const rn = P.drule[0], port = P.drule[2]; availability.push({ id: 'avail-rule', title: 'Required firewall rule "' + rn + '" deleted or disabled', need: 'Required firewall rule "' + rn + '" stays enabled', test: s => { const r = ruleByName(rn); return !r || !r.enabled; }, why: 'The Scenario Brief says the school needs this rule; its program runs from C:\\Program Files\\PHN.', restore: 'Turn the rule back on: netsh advfirewall firewall set rule name="' + rn + '" new enable=yes. A deleted rule comes back with netsh advfirewall firewall add rule name="' + rn + '" dir=in action=allow protocol=TCP localport=' + port + '.' }); }
+  availability.push(AVAIL.svc('mpssvc', 'Windows Defender Firewall'), AVAIL.svc('WinDefend', 'Microsoft Defender Antivirus'), AVAIL.wu());
+  /* ----- the machine: a compliant base, then only the planted faults and the decoys ----- */
+  function plant(st) {
+    st.layout = code;
+    st.network.gw = P.gw;
+    st.policy = { pwHistory: has('history') ? 0 : 24, maxPwAge: has('maxage') ? (has('neverexpires') ? 180 : 0) : 60, minPwAge: has('minage') ? 0 : 1, minPwLen: has('minlen') ? P.minLenAt : P.minLen, complexity: !has('complexity'), reversible: has('reversible'), lockoutThreshold: has('lockout') ? 0 : 5, lockoutDuration: 30, lockoutReset: 30, adminLockout: true };
+    st.audit.LogonEvents = has('auditlogon') ? { s: false, f: false } : { s: true, f: true };
+    st.audit.AccountManagement = has('auditacct') ? { s: true, f: false } : { s: true, f: true };
+    st.secopt.dontDisplayLastUser = !has('lastuser'); st.secopt.noCAD = has('cad'); st.secopt.blankPwConsoleOnly = !has('blankconsole');
+    if (srv) st.secopt.lmAuth = has('lmauth') ? 2 : 5;
+    if (has('uac')) st.uac = 0;
+    st.autorun = { noDriveType: has('autorun') ? 145 : 255, noAutorun: null };
+    if (has('guest')) st.users.Guest.enabled = true;
+    P.fwOff.forEach(p => { st.firewall.profiles[p].on = false; });
+    if (has('defender')) { st.defender.realtime = false; st.defender.tamper = false; }
+    if (has('exclusion')) st.defender.exclusions = { path: [P.drop], process: [], extension: [] };
+    st.update.paused = P.wuPaused; if (P.wuPaused) st.update.pausedUntil = winDate(daysAgo(-9)); st.update.lastCheckedDaysAgo = P.wuPaused ? 21 : 12;
+    if (has('remote-registry')) { st.services.RemoteRegistry.status = 'Running'; st.services.RemoteRegistry.start = 'Automatic'; }
+    if (P.rdpReq) { st.rdp.enabled = true; st.rdp.nla = !has('rdp-nla'); st.services.TermService.status = 'Running'; }
+    else if (has('rdp-off')) { st.rdp.enabled = true; st.services.TermService.status = 'Running'; }
+    if (!srv && !has('remote-assist')) raSet(false);
+    if (has('telnet')) setFeature('TelnetClient', true);
+    if (has('smb1')) setFeature('SMB1Protocol', true);
+    if (srv && !has('ftp')) setFeature('IIS-FTPServer', false);
+    if (P.kind === 'laptop' && P.reqSvc.length) { st.services.WlanSvc.status = 'Running'; st.services.WlanSvc.start = 'Automatic'; }
+    // the planted toolkit, in its drop folder
+    const drop = P.drop, bd = drop + '\\' + P.backdoor;
+    fsAddDir(st.fs, drop, { hidden: /Libraries|\.cache/.test(drop) });
+    fsAddFile(st.fs, bd, { size: 143360, hidden: true, mtime: daysAgo(d0, 23, 10) });
+    st.procs = [{ name: P.backdoor, pid: 7356, mem: '9,212 K', port: +P.port, planted: true, user: intr[0].name, cmd: bd + ' -l ' + P.port }];
+    if (has('rogue-service')) {
+      const [n, l, exe, desc] = P.rsvc; st.services[n] = svc(n, l, desc, 'Running', 'Automatic', 'Local System', { path: drop + '\\' + exe, planted: true });
+      fsAddFile(st.fs, drop + '\\' + exe, { size: 184320, hidden: true, mtime: daysAgo(d0, 23, 12) });
+      st.procs.push({ name: exe, pid: 6124, mem: '18,440 K', planted: true, cmd: drop + '\\' + exe });
+    }
+    if (has('rogue-task')) {
+      st.tasks.push(mkTask(P.task[0], { triggers: 'At log on of any user - After triggered, repeat every 30 minutes indefinitely.', nextRun: winDateTime(daysAgo(-1, 1, 30), true), author: H + '\\' + intr[0].name, action: advTaskAction(P), planted: true }));
+      fsAddFile(st.fs, taskPath, { text: script, mtime: daysAgo(P.days.task, 23, 31) });
+    }
+    if (has('rogue-rule')) st.firewall.rules.push(rule(P.rule, P.rule.replace(/ \(TCP-In\)$/, ''), { localPort: P.port, program: bd, planted: true }));
+    if (has('startup-lnk')) fsAddFile(st.fs, 'C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\StartUp\\' + P.lnk, { size: 1446, mtime: daysAgo(P.days.task, 23, 33), lnk: bd + ' -l ' + P.port });
+    if (has('savedcred')) st.creds = [{ target: 'Domain:target=' + P.credTarget, user: P.credTarget + '\\' + intr[0].name }];
+    if (progF) progF.names.forEach(n => { const p = ADV_PROGS.find(x => x[0] === n); plantProgram(st, p[0], p[1], p[2], p[3]); });
+    P.mediaFiles.forEach(m => fsAddFile(st.fs, m.path, { size: m.size, hidden: m.hidden, mtime: daysAgo(14, 21, 15) }));
+    if (P.decoyFile) fsAddFile(st.fs, P.decoyFile.path, { text: P.decoyFile.text, mtime: daysAgo(6, 15, 0) });
+    // decoys the brief protects: a school service, task, and rule installed under C:\Program Files\PHN
+    if (P.dsvc) { const [n, l, path, desc] = P.dsvc; st.services[n] = svc(n, l, desc, 'Running', 'Automatic', 'Local System', { path, school: true }); fsAddFile(st.fs, path, { size: 2211840, mtime: daysAgo(90, 10, 0) }); }
+    if (P.dtask) { fsAddFile(st.fs, P.dtask[1].split(' /')[0], { size: 912384, mtime: daysAgo(90, 10, 0) }); st.tasks.push(mkTask(P.dtask[0], { triggers: 'At 2:00 AM every day', nextRun: winDateTime(daysAgo(-1, 2, 0), true), author: H + '\\' + P.admins[0], action: P.dtask[1], description: 'Pōhinahina High School IT' })); }
+    if (P.drule) st.firewall.rules.push(rule(P.drule[0], P.drule[1], { localPort: P.drule[2], program: P.drule[3] }));
+    if (srv) {
+      // the school's shares replace the Range's sample shares; the records folder carries the ACL the brief names
+      Object.keys(st.fs).forEach(k => { if (/^c:\\shares\\(hr|ops)(\\|$)/.test(k)) delete st.fs[k]; });
+      st.shares = st.shares.filter(x => x.special).concat(P.shares.map(n => ({ name: n, path: 'C:\\Shares\\' + n, remark: '' })));
+      P.shares.forEach(n => fsAddDir(st.fs, 'C:\\Shares\\' + n));
+      fsAddFile(st.fs, 'C:\\Shares\\Records\\enrollment-2026.xlsx', { size: 48210 });
+      st.acl = { 'c:\\shares\\records': { prot: false, aces: has('folder-acl') ? [['Everyone', '(OI)(CI)', 'F']] : [[H + '\\' + P.recordsUser, '(OI)(CI)', 'M']] } };
+      const idx = st.fs[fsKey('C:\\inetpub\\wwwroot\\iisstart.htm')]; if (idx) { idx.text = '<!DOCTYPE html>\r\n<html>\r\n<head><title>IIS Windows Server</title></head>\r\n<body><h1>Pōhinahina High School - Staff Portal</h1></body>\r\n</html>\r\n'; idx.size = idx.text.length; }
+    }
+    if (has('rogue-share')) st.shares.push({ name: P.share, path: drop, remark: '' });
+  }
+  const sc = {
+    id: ADV_ID, level: 4, rev: ADV_REV, name: 'Advanced', layout: code, kind: P.kind, plan: P,
+    title: 'Pōhinahina High School — ' + P.role + ' ' + H + ' · layout ' + code,
+    edition: P.edition, hostname: H, ip: P.ip, login: { user: 'labuser', password: ADV_PW },
+    brief, users, investigations, history, plant, checks, availability, faults: P.faults.map(f => f.k).concat(P.inv)
+  };
+  const sum = checks.reduce((a, c) => a + c.pts, 0); if (sum !== 100) throw new Error('layout ' + code + ' totals ' + sum + ' points');
+  ADV_CACHE[code] = sc;
+  return sc;
+}
+/* the area summary for the Level 4 Debrief: where to invest next, by hardening area */
+function advAreas() {
+  const by = {};
+  CUR.checks.forEach(c => { const a = by[c.cat] || (by[c.cat] = { n: 0, ok: 0, miss: [] }); a.n++; if (LAST.earned.includes(c)) a.ok++; else a.miss.push(c.title); });
+  return Object.keys(by).map(k => Object.assign({ area: k }, by[k])).sort((a, b) => (a.ok / a.n) - (b.ok / b.n) || a.area.localeCompare(b.area));
+}
+
 /* ===== 90-ui: scenario selection, progress check, debrief, help, reset, theme, persistence, screen scaling ===== */
 const STORE_KEY = 'lockdown-range-windows-v3';
 const THEME_KEY = 'lockdown-range-theme';
@@ -7455,26 +8070,50 @@ function scheduleEvaluate() { clearTimeout(EVAL_T); EVAL_T = setTimeout(evaluate
 /* points come from checks only. A failed availability check is a must-fix flag: it holds the points where they are,
    shows in red with its restore step, and holds Finish until it works again. S.availBroke remembers every one the
    learner broke this attempt, so the Debrief can name the ones broken and restored. */
-/* a break holds the score: a check whose result changes in the same step that breaks a business need keeps its
+/* a break holds the score: a check whose result changes in the same step that breaks a required need keeps its
    earlier result until that need works again, so a break neither raises nor lowers the points (deleting an authorized
-   user earns none of that user's checks and costs none). S.hold keeps the held results across a reload. */
-var HOLD_MEMO = null;
+   user earns none of that user's checks and costs none). S.hold keeps the held results across a reload.
+   A deleted account stays deleted for the points: re-creating it makes a new, empty account. S.gone[name] is 1 while
+   an account the Scenario Brief names is missing and 2 once it exists again. The step that deletes it and the step
+   that re-creates it hold every check they change, and every check about that account (c.acct), at the result it had
+   just before, with keep set, so that hold lasts for the rest of the attempt (saved in S; Reset lab clears it). */
+var HOLD_MEMO = null, HOLD_SIG = null, HOLD_DIRTY = false;
+function briefAccounts() { const set = new Set(); CUR.availability.forEach(p => (p.accts || []).forEach(n => set.add(n))); set.add(CUR.login.user); return [...set]; }
 function holdResults(checks, failed, live) {
   const keys = new Set();
   failed.forEach(p => { const w = availWhich(p); if (w) w.split(', ').forEach(x => keys.add(p.id + ':' + x)); else keys.add(p.id); });
-  const memo = HOLD_MEMO && HOLD_MEMO.s === S ? HOLD_MEMO : null, hold = S.hold || {};
-  Object.keys(hold).forEach(id => { if (!(hold[id].by || []).some(k => keys.has(k))) delete hold[id]; });
+  const memo = HOLD_MEMO && HOLD_MEMO.s === S ? HOLD_MEMO : null, hold = S.hold || {}, gone = S.gone || {};
+  Object.keys(hold).forEach(id => { if (!hold[id].keep && !(hold[id].by || []).some(k => keys.has(k))) delete hold[id]; });
   const fresh = memo ? [...keys].filter(k => !memo.keys.has(k)) : [];
   if (fresh.length) checks.forEach(c => { if (!memo.live.has(c.id) || memo.live.get(c.id) === live.get(c.id)) return; if (hold[c.id]) hold[c.id].by = hold[c.id].by.concat(fresh); else hold[c.id] = { v: memo.live.get(c.id) ? 1 : 0, by: fresh }; });
+  const keepAt = (c, why) => { if (hold[c.id]) { hold[c.id].keep = 1; return; } if (memo && memo.live.has(c.id)) hold[c.id] = { v: memo.live.get(c.id) ? 1 : 0, by: [why], keep: 1 }; };
+  const changed = c => memo && memo.live.has(c.id) && memo.live.get(c.id) !== live.get(c.id);
+  // ids[n]: the account object; a renamed account keeps its object under the new name, so it counts as renamed, not deleted
+  const ids = {}, users = Object.values(S.users);
+  briefAccounts().forEach(n => {
+    const u = userByName(n), was = memo && memo.ids[n];
+    ids[n] = u || (was && users.includes(was) ? was : null);
+    if (!u && was && !users.includes(was) && gone[n] !== 1) { gone[n] = 1; checks.forEach(c => { if (c.acct === n || changed(c)) keepAt(c, 'gone:' + n); }); Object.keys(hold).forEach(id => { if ((hold[id].by || []).some(k => k.slice(-n.length - 1) === ':' + n)) hold[id].keep = 1; }); }
+    else if (u && gone[n] === 1) { gone[n] = 2; checks.forEach(c => { if (changed(c)) keepAt(c, 'back:' + n); }); }
+  });
   if (Object.keys(hold).length) S.hold = hold; else delete S.hold;
-  HOLD_MEMO = { s: S, keys, live };
+  if (Object.keys(gone).length) S.gone = gone; else delete S.gone;
+  HOLD_MEMO = { s: S, keys, live, ids };
+  // a changed hold is saved right away, so a reload keeps it
+  const sig = JSON.stringify([S.hold || null, S.gone || null]); if (HOLD_SIG !== null && sig !== HOLD_SIG) HOLD_DIRTY = true; HOLD_SIG = sig;
   return c => S.hold && S.hold[c.id] ? !!S.hold[c.id].v : !!live.get(c.id);
 }
+/* the accounts deleted this attempt, for the Progress Check note and the Debrief */
+function goneNames() { return Object.keys((S && S.gone) || {}); }
+function andList(a) { return a.length < 3 ? a.join(' and ') : a.slice(0, -1).join(', ') + ', and ' + a[a.length - 1]; }
+const GONE_LINE = 'Re-creating an account gives a new, empty account: on a real system, its files, group memberships, and settings come back only from a backup, so disable or fix an account instead of deleting it.';
+function goneHeld() { const g = goneNames(); return 'The checks about ' + andList(g) + ' keep the result they had before ' + (g.length === 1 ? 'that account was' : 'those accounts were') + ' deleted, for the rest of this attempt. Reset lab starts over.'; }
 /* which(): the broken items right now; S.availBroke[id] keeps 1, or every name that broke this attempt ("kekoa, moana") */
 function availWhich(p) { let w = ''; try { w = p.which ? String(p.which(S) || '') : ''; } catch (e) { w = ''; } return w; }
 function brokeWhich(prev, p) { const w = availWhich(p); if (!w) return prev || 1; const names = typeof prev === 'string' ? prev.split(', ') : []; w.split(', ').forEach(n => { if (!names.includes(n)) names.push(n); }); return names.join(', '); }
 function brokeNames(p) { const v = S && S.availBroke && S.availBroke[p.id]; return typeof v === 'string' ? v : ''; }
-function fillName(text, w) { return w && w.indexOf(',') < 0 ? text.replace(/\bNAME\b/g, w) : text; }
+/* NAME in a restore step: one broken item fills it in; several are listed after the step */
+function fillName(text, w) { if (!w || !/\bNAME\b/.test(text)) return text; const n = w.split(', '); return n.length === 1 ? text.replace(/\bNAME\b/g, w) : text + ' Use each name in place of NAME: ' + andList(n) + '.'; }
 /* the need in plain words (what keeps working), for the Debrief; the title names the failure, for the must-fix flag */
 function availNeed(p) { return p.need || p.title; }
 function evaluate() {
@@ -7487,8 +8126,9 @@ function evaluate() {
   const total = earned.reduce((a, c) => a + c.pts, 0);
   if (failed.length) { S.availBroke = S.availBroke || {}; failed.forEach(p => { S.availBroke[p.id] = brokeWhich(S.availBroke[p.id], p); }); }
   LAST = { earned, failed, total, max: 100 };
+  if (HOLD_DIRTY) { HOLD_DIRTY = false; persistNow(); }
   const rec = STORE.scen[CUR.id] || (STORE.scen[CUR.id] = { best: 0 });
-  if (!failed.length && total > (rec.best || 0)) { rec.best = total; rec.bestHints = hintCount(); rec.bestCoach = coachMode(CUR.level); storage.set(STORE_KEY, STORE); }
+  if (!failed.length && total > (rec.best || 0)) { rec.best = total; rec.bestHints = hintCount(); rec.bestCoach = coachMode(CUR.level); if (CUR.layout) rec.bestCode = CUR.layout; storage.set(STORE_KEY, STORE); }
   renderScore(); renderReport(); renderLevels();
 }
 /* Coach: how much the Progress Check tells you, chosen apart from the scenario level (the level sets the default) */
@@ -7506,11 +8146,13 @@ function coachControl(lvl) {
   return h('div', { class: 'coach' }, h('label', { for: 'coach-sel', text: 'Coach:' }), sel, h('span', { class: 'hintmark', text: 'now: ' + coachLabel(coachMode(lvl)) }));
 }
 function renderScore() {
-  const el = $('.score'); el.textContent = LAST.total + ' / ' + LAST.max + ' pts'; el.classList.toggle('neg', LAST.failed.length > 0);
-  el.title = LAST.failed.length ? plural(LAST.failed.length, 'availability check') + ' to fix before you finish' : '';
+  const el = $('.score'); el.textContent = LAST.total + ' / ' + LAST.max + ' pts'; el.classList.remove('neg'); el.classList.toggle('held', LAST.failed.length > 0); el.removeAttribute('title');
+  // a must-fix flag holds the points: the number keeps its color and a short visible tag says why
+  if (LAST.failed.length) el.appendChild(h('span', { class: 'held-tag', text: HELD_TAG }));
 }
 /* ---------- availability: the must-fix flags ---------- */
-const OUTAGE_LINE = 'Finish waits until every business need works again, because an outage is an incident you fix before you are done.';
+function outageLine() { return 'Finish waits until every ' + orgWord() + ' need works again, because an outage is an incident you fix before you are done.'; }
+const HELD_TAG = 'Held: fix the flagged outage';
 function availName(p) { const w = availWhich(p); return p.title + (w ? ' (' + w + ')' : ''); }
 /* the restore step with NAME filled in when exactly one item broke */
 function availRestore(p) { return fillName(p.restore, availWhich(p)); }
@@ -7521,16 +8163,18 @@ function mustFixList() {
   return ul;
 }
 function finishWaits() {
-  pageModal({ title: 'Finish waits for a fix', body: h('div', { class: 'debrief-wrap' }, h('p', { class: 'sum', text: OUTAGE_LINE }), mustFixList(), h('p', { class: 'note', text: 'Your points stay as they are. Reset lab also brings everything back, and keeps your best score.' })), buttons: [{ label: 'Back to the lab', value: 'close', primary: true }] });
+  pageModal({ title: 'Finish waits for a fix', body: h('div', { class: 'debrief-wrap' }, h('p', { class: 'sum', text: outageLine() }), mustFixList(), h('p', { class: 'note', text: 'Your points stay as they are. Reset lab also brings everything back, and keeps your best score.' })), buttons: [{ label: 'Back to the lab', value: 'close', primary: true }] });
 }
-function availSummary() { const n = CUR.availability.filter(availBroke).length; return LAST.failed.length ? plural(LAST.failed.length, 'availability check') + ' to fix' : n ? n + ' business ' + (n === 1 ? 'need' : 'needs') + ' broken and restored' : 'every business need kept working'; }
+function availSummary() { const n = CUR.availability.filter(availBroke).length; return LAST.failed.length ? plural(LAST.failed.length, 'availability check') + ' to fix' : n ? n + ' ' + orgWord() + ' ' + (n === 1 ? 'need' : 'needs') + ' broken and restored' : 'every ' + orgWord() + ' need kept working'; }
 /* the Debrief's availability section, in the where-to-invest-next style: Strong when a need kept working all along, Revisit when you broke it and restored it */
 function availInvest() {
   const broke = CUR.availability.filter(availBroke);
   const box = h('div', { class: 'dbr-avail' }, h('h3', { text: 'Availability: where to invest next' }),
-    h('p', { text: 'Availability is the A in confidentiality, integrity, and availability: hardening keeps the people and services the business relies on working. ' + (broke.length ? 'You broke ' + plural(broke.length, 'business need') + ' and restored ' + (broke.length === 1 ? 'it' : 'them') + '. Next time, read the Scenario Brief’s required list before each change that touches it.' : 'You kept every business need working the whole time.') }));
+    h('p', { text: 'Availability is the A in confidentiality, integrity, and availability: hardening keeps the people and services the ' + orgWord() + ' relies on working. ' + (broke.length ? 'You broke ' + plural(broke.length, orgWord() + ' need') + ' and restored ' + (broke.length === 1 ? 'it' : 'them') + '. Next time, read the Scenario Brief’s required list before each change that touches it.' : 'You kept every ' + orgWord() + ' need working the whole time.') }));
   const ul = h('ul');
-  CUR.availability.slice().sort((a, b) => availBroke(b) - availBroke(a)).forEach(p => { const b = availBroke(p), w = brokeNames(p); ul.appendChild(h('li', {}, h('b', { class: b ? 'rate-revisit' : 'rate-strong', text: b ? 'Revisit' : 'Strong' }), ' ' + availNeed(p) + ': ' + (b ? 'broken' + (w ? ' (' + w + ')' : '') + ', then restored. ' + p.why + ' The way back: ' + fillName(p.restore, w) : 'kept working the whole time.'))); });
+  // the first Revisit row about a deleted account says what re-creating it does
+  const goneRow = CUR.availability.slice().sort((a, b) => availBroke(b) - availBroke(a)).find(p => availBroke(p) && (p.accts || []).some(n => goneNames().includes(n))) || (goneNames().length ? CUR.availability.find(availBroke) : null);
+  CUR.availability.slice().sort((a, b) => availBroke(b) - availBroke(a)).forEach(p => { const b = availBroke(p), w = brokeNames(p); ul.appendChild(h('li', {}, h('b', { class: b ? 'rate-revisit' : 'rate-strong', text: b ? 'Revisit' : 'Strong' }), ' ' + availNeed(p) + ': ' + (b ? 'broken' + (w ? ' (' + w + ')' : '') + ', then restored. ' + p.why + ' The way back: ' + fillName(p.restore, w) + (p === goneRow ? ' ' + GONE_LINE + ' ' + goneHeld() : '') : 'kept working the whole time.'))); });
   box.appendChild(ul);
   return box;
 }
@@ -7543,6 +8187,37 @@ function renderLevels() {
     b.addEventListener('click', () => loadScenario(sc.id));
     host.appendChild(b);
   });
+  // Level 4 sits outside the three tiers: extra credit, open to everyone, one best score for the level as a whole
+  const ar = STORE.scen[ADV_ID] || {};
+  const ab = h('button', { type: 'button', role: 'tab', 'aria-selected': CUR && CUR.id === ADV_ID ? 'true' : 'false', title: ADV_LABEL + ': a different machine for each layout code', dataset: { id: ADV_ID } }, h('span', { class: 'n', text: '4 · ' }), h('span', { text: 'Advanced' }), h('span', { class: 'xc', text: 'extra credit' }));
+  if (ar.best > 0) ab.appendChild(h('span', { class: 'best', text: 'best ' + ar.best + (ar.bestHints ? ' · ' + ar.bestHints + ' hint' + (ar.bestHints === 1 ? '' : 's') : '') }));
+  ab.addEventListener('click', () => loadScenario(ADV_ID));
+  host.appendChild(ab);
+}
+/* ---------- Level 4: the layout code panel, New layout, and Enter a layout code ---------- */
+function advPanel() {
+  const cap = (STORE.scen.captain || {}).best || 0;
+  const nb = h('button', { type: 'button', class: 'rbtn', id: 'adv-new', text: 'New layout' }); nb.addEventListener('click', advNewLayout);
+  const eb = h('button', { type: 'button', class: 'rbtn', id: 'adv-enter', text: 'Enter a layout code' }); eb.addEventListener('click', advEnterCode);
+  return h('div', { class: 'adv' }, h('div', { class: 'adv-tag', text: ADV_LABEL }), h('div', { class: 'adv-code' }, 'Layout code: ', h('b', { id: 'adv-code', text: CUR.layout })), h('div', { class: 'rbtns' }, nb, eb),
+    h('p', { class: 'note', text: 'Extra credit for learners who finished the three levels; it sits outside the Recruit, Operator, and Captain tiers and stays open to everyone. Each layout code builds its own machine, and anyone who enters the same code gets the same one.' + (cap < 100 ? ' Tip: finish Captain first, because this level uses everything Levels 1 to 3 teach.' : '') }));
+}
+function advLoad(code) { const rec = STORE.scen[ADV_ID] || {}; STORE.scen[ADV_ID] = { best: rec.best || 0, bestHints: rec.bestHints, bestCoach: rec.bestCoach, bestCode: rec.bestCode, code }; loadScenario(ADV_ID, true, code); }
+function advNewLayout() {
+  pageModal({ title: 'Build a new layout?', text: 'This builds a different machine with a new layout code. The current machine and its progress end; your best Level 4 score is kept.', buttons: [{ label: 'New layout', value: 'yes', primary: true, id: 'advNewConfirm' }, { label: 'Cancel', value: 'no' }] }).then(v => { if (v === 'yes') advLoad(advNewCode()); });
+}
+function advEnterCode(err) {
+  const inp = h('input', { type: 'text', id: 'adv-code-in', maxlength: '9', autocomplete: 'off', spellcheck: 'false', 'aria-describedby': 'adv-code-err' });
+  const msg = h('p', { class: 'adv-err', id: 'adv-code-err', role: 'status', text: typeof err === 'string' ? err : '' });
+  const body = h('div', { class: 'adv-form' }, h('p', { text: 'A layout code is six characters, such as the one a teacher writes on the board. The same code builds the same machine on any computer. Building it ends the current machine; your best Level 4 score is kept.' }), h('label', { for: 'adv-code-in', text: 'Layout code' }), inp, msg);
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); const b = document.getElementById('advCodeBuild'); if (b) b.click(); } });
+  setTimeout(() => inp.focus(), 10);
+  pageModal({ title: 'Enter a layout code', body, buttons: [{ label: 'Build this layout', value: 'yes', primary: true, id: 'advCodeBuild' }, { label: 'Cancel', value: 'no' }] }).then(v => {
+    if (v !== 'yes') return;
+    const c = advNormalize(inp.value);
+    if (!advValid(c)) { advEnterCode(c ? '"' + c + '" is not a layout code. Check each character: codes use the digits 2 to 9 and the letters A to Z without I, L, or O, and the last character checks the others.' : 'Type the six characters of the layout code.'); return; }
+    advLoad(c);
+  });
 }
 function catSummary() {
   const left = {}; CUR.checks.forEach(c => { if (!LAST.earned.includes(c)) left[c.cat] = (left[c.cat] || 0) + 1; });
@@ -7553,6 +8228,8 @@ function renderReport() {
   body.innerHTML = '';
   body.appendChild(h('h2', { text: 'Progress Check' }));
   body.appendChild(h('div', { class: 'scen', text: CUR.title + ' (' + CUR.name + ')' }));
+  if (CUR.layout) body.appendChild(advPanel());
+  const ab = $('#adv-bar'); if (ab) { ab.hidden = !CUR.layout; if (CUR.layout) $('#adv-bar-code').textContent = CUR.layout; }
   body.appendChild(coachControl(CUR.level));
   const mode = coachMode(CUR.level);
   body.appendChild(h('div', { class: 'total' + (LAST.total < 0 ? ' neg' : ''), text: 'Score: ' + LAST.total + ' / ' + LAST.max + ' points' }));
@@ -7567,8 +8244,9 @@ function renderReport() {
   if (LAST.failed.length) {
     body.appendChild(h('h3', { class: 'mustfix-h', text: 'Must fix: availability checks failed' }));
     body.appendChild(mustFixList());
-    body.appendChild(h('p', { class: 'note mustfix-note', text: 'Your points stay as they are. ' + OUTAGE_LINE }));
+    body.appendChild(h('p', { class: 'note mustfix-note', text: 'Your points stay as they are. ' + outageLine() }));
   }
+  if (goneNames().length) body.appendChild(h('p', { class: 'note gone-note', text: 'Held for this attempt: ' + goneHeld() + ' ' + GONE_LINE }));
   if (mode === 'todo') {
     body.appendChild(h('h3', { text: 'Still to do (with hints)' }));
     const tl = h('ul');
@@ -7592,7 +8270,7 @@ function renderReport() {
   const rec = STORE.scen[CUR.id] || {};
   body.appendChild(h('div', { class: 'timer' }, h('span', { id: 'elapsed', text: 'Elapsed ' + fmtElapsed(S.elapsed || 0) }), h('span', { text: 'Best: ' + (rec.best || 0) + ' pts' + (rec.best ? (rec.bestHints ? ' with ' + rec.bestHints + ' hint' + (rec.bestHints === 1 ? '' : 's') : ', no hints') + (rec.bestCoach ? ' (' + coachLabel(rec.bestCoach) + ')' : '') : '') }), h('span', { text: 'Hints now: ' + hintCount() })));
   const btns = h('div', { class: 'rbtns' });
-  const fin = h('button', { type: 'button', class: 'rbtn primary', text: 'Finish / Debrief' }); fin.addEventListener('click', openDebrief);
+  const fin = h('button', { type: 'button', class: 'rbtn primary', id: 'finBtn', text: 'Finish / Debrief' }); fin.addEventListener('click', openDebrief);
   btns.appendChild(fin); body.appendChild(btns);
   body.appendChild(h('div', { class: 'note', text: mode === 'passed' ? 'Passed checks only: no hints and no areas. Coach changes that at any level.' : 'Progress and the machine state are saved in this browser.' }));
 }
@@ -7601,13 +8279,20 @@ function tickTimer() {
   TICK = setInterval(() => { if (S && UI.phase === 'desktop') { S.elapsed = (S.elapsed || 0) + 1; const el = $('#elapsed'); if (el) el.textContent = 'Elapsed ' + fmtElapsed(S.elapsed); if (S.elapsed % 15 === 0) persistNow(); } }, 1000);
 }
 /* ---------- scenario load / reset ---------- */
-function loadScenario(id, fresh) {
-  const sc = scenarioById(id);
+/* Level 4's code: the one asked for, else the last one this browser used, else a new one (kept in STORE.scen.advanced.code) */
+function advCode(want) {
+  const rec = STORE.scen[ADV_ID] || (STORE.scen[ADV_ID] = { best: 0 });
+  const c = want && advValid(want) ? advNormalize(want) : rec.code && advValid(rec.code) ? advNormalize(rec.code) : advNewCode();
+  rec.code = c; return c;
+}
+function loadScenario(id, fresh, code) {
+  const sc = id === ADV_ID ? advScenario(advCode(code)) : scenarioById(id);
   CUR = sc;
   const rec = STORE.scen[sc.id];
   let st = null;
-  /* a scenario whose plant or checks change gets a higher rev; a saved lab built from an older rev is rebuilt (the best score in STORE.scen[id].best stays) */
-  if (!fresh && rec && rec.S && rec.S.hostname === sc.hostname && rec.S.users && (rec.S.rev || 0) === (sc.rev || 0)) st = rec.S;
+  /* a scenario whose plant or checks change gets a higher rev; a saved lab built from an older rev is rebuilt (the best score in STORE.scen[id].best stays).
+     A Level 4 lab is kept only for the layout code it was built from. */
+  if (!fresh && rec && rec.S && rec.S.hostname === sc.hostname && rec.S.users && (rec.S.rev || 0) === (sc.rev || 0) && (rec.S.layout || null) === (sc.layout || null)) st = rec.S;
   if (!st) st = buildLab(sc);
   S = st;
   UI.uacGranted = false; UI.pendingLogin = null;
@@ -7620,7 +8305,7 @@ function loadScenario(id, fresh) {
   tickTimer();
 }
 function resetLab() {
-  pageModal({ title: 'Reset lab?', text: 'This puts "' + CUR.title + '" back to its original state, like reverting a VM snapshot. Your best score is kept.', buttons: [{ label: 'Reset lab', value: 'yes', primary: true, id: 'resetConfirm' }, { label: 'Cancel', value: 'no' }] }).then(v => { if (v === 'yes') { const rec = STORE.scen[CUR.id] || {}; STORE.scen[CUR.id] = { best: rec.best || 0 }; loadScenario(CUR.id, true); } });
+  pageModal({ title: 'Reset lab?', text: 'This puts "' + CUR.title + '" back to its original state, like reverting a VM snapshot. Your best score is kept.', buttons: [{ label: 'Reset lab', value: 'yes', primary: true, id: 'resetConfirm' }, { label: 'Cancel', value: 'no' }] }).then(v => { if (v === 'yes') { if (CUR.layout) { advLoad(CUR.layout); return; } const rec = STORE.scen[CUR.id] || {}; STORE.scen[CUR.id] = { best: rec.best || 0 }; loadScenario(CUR.id, true); } });
 }
 /* ---------- page-level modal (outside the screen) ---------- */
 function pageModal(o) {
@@ -7630,37 +8315,50 @@ function pageModal(o) {
   if (o.text) card.appendChild(h('p', { text: o.text }));
   if (o.body) card.appendChild(o.body);
   const bt = h('div', { class: 'mbtns' });
+  // keyboard: Tab and Shift+Tab stay inside the dialog, and closing it puts focus back where it was (the same control, rebuilt or not)
+  const prev = m.contains(document.activeElement) ? pageModal.prev : pageModal.opener || document.activeElement; pageModal.prev = prev; pageModal.opener = null;
+  const back = () => { let t = prev; if (t && !t.isConnected) t = t.id ? document.getElementById(t.id) : null; if (t && t.focus && t !== document.body) { try { t.focus({ preventScroll: true }); } catch (e) { } } };
   return new Promise(resolve => {
-    const done = v => { m.hidden = true; m.innerHTML = ''; resolve(v); };
+    const done = v => { m.hidden = true; m.innerHTML = ''; m.onkeydown = null; back(); resolve(v); };
     (o.buttons || [{ label: 'Close', value: 'close', primary: true }]).forEach(b => { const btn = h('button', { type: 'button', class: 'rbtn' + (b.primary ? ' primary' : ''), text: b.label }); if (b.id) btn.id = b.id; btn.addEventListener('click', () => done(b.value)); bt.appendChild(btn); });
     card.appendChild(bt); m.appendChild(card);
-    m.onkeydown = null;
-    m.addEventListener('keydown', e => { if (e.key === 'Escape') done('no'); });
-    setTimeout(() => { const f = $('.rbtn.primary', card) || $('button', card); if (f) f.focus(); }, 0);
+    m.onkeydown = e => {
+      if (e.key === 'Escape') { done('no'); return; }
+      if (e.key !== 'Tab') return;
+      const f = Array.from(card.querySelectorAll('a[href], button, input, textarea, select, [tabindex]:not([tabindex="-1"])')).filter(x => !x.disabled && !x.hidden && x.offsetParent !== null);
+      if (!f.length) { e.preventDefault(); return; }
+      const i = f.indexOf(document.activeElement);
+      if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); } else if (!e.shiftKey && (i < 0 || i === f.length - 1)) { e.preventDefault(); f[0].focus(); }
+    };
+    // focus the main button without scrolling: a long dialog (the Debrief) opens at its top
+    setTimeout(() => { const f = $('.rbtn.primary', card) || $('button', card); if (f) f.focus({ preventScroll: true }); card.scrollTop = 0; m.scrollTop = 0; }, 0);
   });
 }
 function openDebrief() {
-  evaluate();
+  pageModal.opener = document.activeElement; evaluate();
   if (LAST.failed.length) { finishWaits(); return; }
   const tbl = h('table', { class: 'debrief' });
   tbl.appendChild(h('thead', {}, h('tr', {}, h('th', { text: '' }), h('th', { text: 'Check' }), h('th', { text: 'Pts' }), h('th', { text: 'Fix' }), h('th', { text: 'Why it matters' }))));
   const tb = h('tbody');
   const learnIt = c => !c.learn ? null : h('div', {}, 'Learn it: ', c.learn.map(LEARN.link).map((l, i) => [i ? '; ' : '', h('a', { href: l.href, target: '_blank', rel: 'noopener', style: 'color:var(--accent)', text: l.text })]));
-  CUR.checks.forEach(c => { const ok = LAST.earned.includes(c); const st = hintStep(c.id); tb.appendChild(h('tr', {}, h('td', { class: ok ? 'ok' : 'ko', text: ok ? '✓' : '✗' }), h('td', { text: c.title }), h('td', { text: String(c.pts) }), h('td', { class: 'fix', text: c.fix }), h('td', { class: 'why' }, c.why, learnIt(c), st ? h('span', { class: 'hintmark', text: st >= 2 ? ' (hint: command shown)' : ' (hint: principle)' }) : null))); });
+  CUR.checks.forEach(c => { const ok = LAST.earned.includes(c); const st = hintStep(c.id); tb.appendChild(h('tr', {}, h('td', { class: ok ? 'ok' : 'ko', text: ok ? '✓' : '✗' }), h('td', { text: c.title }), h('td', { class: 'pts', text: String(c.pts) }), h('td', { class: 'fix', text: c.fix }), h('td', { class: 'why' }, c.why, learnIt(c), st ? h('span', { class: 'hintmark', text: st >= 2 ? ' (hint: command shown)' : ' (hint: principle)' }) : null))); });
   CUR.availability.forEach(p => { const hit = LAST.failed.includes(p); tb.appendChild(h('tr', {}, h('td', { class: hit ? 'ko' : 'ok', text: hit ? '✗' : '✓' }), h('td', { text: 'Availability check: ' + (hit ? availName(p) : availNeed(p)) }), h('td', { text: hit ? 'must fix' : '—' }), h('td', { class: 'fix', text: hit ? 'Restore: ' + availRestore(p) : availBroke(p) ? 'Broken' + (brokeNames(p) ? ' (' + brokeNames(p) + ')' : '') + ', then restored. ' + fillName(p.restore, brokeNames(p)) : 'Kept working the whole time.' }), h('td', { class: 'why', text: p.why }))); });
   tbl.appendChild(tb);
-  const sum = h('p', { class: 'sum', text: 'Score ' + LAST.total + ' / ' + LAST.max + '  ·  ' + LAST.earned.length + ' of ' + CUR.checks.length + ' checks passed  ·  ' + availSummary() + '  ·  Time ' + fmtElapsed(S.elapsed || 0) });
+  const sum = h('p', { class: 'sum', text: 'Score ' + LAST.total + ' / ' + LAST.max + '  ·  ' + LAST.earned.length + ' of ' + CUR.checks.length + ' checks passed  ·  ' + availSummary() + '  ·  Time ' + fmtElapsed(S.elapsed || 0) + (CUR.layout ? '  ·  Layout code ' + CUR.layout : '') });
+  // Level 4: the hardening areas in the where-to-invest-next style (Strong: every check passed; Revisit: the misses, weakest first)
+  const areas = !CUR.layout ? null : (() => { const box = h('div', { class: 'dbr-areas' }, h('h3', { text: 'Hardening areas: where to invest next' }), h('p', { text: 'Layout ' + CUR.layout + ' built this machine. Enter the same code to try it again, or build a new layout to practice on a different machine.' })); const ul = h('ul'); advAreas().forEach(a => ul.appendChild(h('li', {}, h('b', { class: a.ok === a.n ? 'rate-strong' : 'rate-revisit', text: a.ok === a.n ? 'Strong' : 'Revisit' }), ' ' + a.area + ': ' + a.ok + ' of ' + a.n + (a.ok === a.n ? ' passed.' : ' passed. Still open: ' + a.miss.join('; ') + '.')))); box.appendChild(ul); return box; })();
   const rec = STORE.scen[CUR.id] || (STORE.scen[CUR.id] = { best: 0 });
   const hints = h('p', { class: 'dbr-hints', text: 'Hints this attempt: ' + hintCount() + ' of ' + CUR.checks.length + ' checks (' + hintCommands() + ' with the command shown). Coach: ' + coachLabel(coachMode(CUR.level)) + '. A pass with no hints on a fresh attempt is the one that counts.' });
   const ta = h('textarea', { id: 'dbr-reflect' }); ta.value = rec.reflect || ''; ta.addEventListener('input', () => { rec.reflect = ta.value; storage.set(STORE_KEY, STORE); });
   const refl = h('label', { class: 'dbr-reflect' }, h('span', { text: 'What broke, and what will you do first next time? (saved with this scenario)' }), ta);
   const cp = h('button', { type: 'button', class: 'rbtn', id: 'dbr-copy', text: 'Copy debrief as text' }); const st = h('span', { role: 'status' }); const out = h('textarea', { hidden: true, 'aria-label': 'Debrief as text' }); out.readOnly = true;
-  const debriefText = () => { const lines = ['Lockdown Range: Windows - ' + CUR.title + ' (' + CUR.name + ')', 'Progress ' + LAST.total + ' / ' + LAST.max + ' - checks passed ' + LAST.earned.length + ' of ' + CUR.checks.length + ' - availability: ' + availSummary() + ' - time ' + fmtElapsed(S.elapsed || 0) + ' - hints ' + hintCount() + ' (' + hintCommands() + ' with the command) - coach: ' + coachLabel(coachMode(CUR.level)), ''];
+  const debriefText = () => { const lines = ['Lockdown Range: Windows - ' + CUR.title + ' (' + CUR.name + ')', 'Progress ' + LAST.total + ' / ' + LAST.max + ' - checks passed ' + LAST.earned.length + ' of ' + CUR.checks.length + ' - availability: ' + availSummary() + ' - time ' + fmtElapsed(S.elapsed || 0) + ' - hints ' + hintCount() + ' (' + hintCommands() + ' with the command) - coach: ' + coachLabel(coachMode(CUR.level))].concat(CUR.layout ? [ADV_LABEL + ' - layout code ' + CUR.layout + ' (enter it in Level 4 to build this same machine)'] : [], ['']);
+    if (CUR.layout) { advAreas().forEach(a => lines.push((a.ok === a.n ? 'Strong: ' : 'Revisit: ') + a.area + ' ' + a.ok + ' of ' + a.n)); lines.push(''); }
     CUR.checks.forEach(c => { const s2 = hintStep(c.id); lines.push((LAST.earned.includes(c) ? '[x] ' : '[ ] ') + c.title + ' (' + c.pts + ' pts)' + (s2 ? '  [hint: ' + (s2 >= 2 ? 'command shown' : 'principle') + ']' : '')); });
     CUR.availability.forEach(p => lines.push((LAST.failed.includes(p) ? '[!] ' : availBroke(p) ? '[restored] ' : '[ok] ') + 'Availability: ' + (LAST.failed.includes(p) ? availName(p) + ' (must fix)' : availNeed(p) + (availBroke(p) ? ' (Revisit: ' + (brokeNames(p) ? brokeNames(p) + ' ' : '') + 'broken, then restored)' : ' (Strong: kept working)'))));
     if (rec.reflect) lines.push('', 'What broke, and what I will do first next time:', rec.reflect); return lines.join('\n') + '\n'; };
   cp.addEventListener('click', () => { const txt = debriefText(); const show = () => { out.hidden = false; out.value = txt; st.textContent = 'Select the text below and copy it.'; }; if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(() => { st.textContent = 'Copied.'; }, show); else show(); });
-  pageModal({ title: 'Debrief: ' + CUR.title, body: h('div', { class: 'debrief-wrap' }, sum, hints, availInvest(), tbl, refl, h('div', { class: 'dbr-copy' }, cp, st, out), h('p', { class: 'note', text: 'Reset lab starts this scenario over (your best score is kept). Switch levels with the pills in the header.' })), buttons: [{ label: 'Close', value: 'close', primary: true }] });
+  pageModal({ title: 'Debrief: ' + CUR.title, body: h('div', { class: 'debrief-wrap' }, sum, hints, areas, availInvest(), tbl, refl, h('div', { class: 'dbr-copy' }, cp, st, out), h('p', { class: 'note', text: 'Reset lab starts this scenario over (your best score is kept). Switch levels with the pills in the header.' })), buttons: [{ label: 'Close', value: 'close', primary: true }] });
 }
 function openHelp() {
   const body = h('div', { class: 'help-body' });
@@ -7671,6 +8369,7 @@ function openHelp() {
   sec('Keyboard', ['Windows: title bar focused + arrow keys moves, Shift+arrows resizes, Alt+F4 closes.', 'Terminal: Up/Down history, Tab completes, Ctrl+L clears, Ctrl+C cancels.', 'Desktop icons: arrows to move, Enter opens, Delete sends to the Recycle Bin.', 'Esc closes menus and dialogs.']);
   sec('What the simulation covers', ['A faithful subset of ' + VERSIONS.win11.family + ' (version ' + VERSIONS.win11.version + ') and ' + VERSIONS.server.family + ': the panels and commands an administrator uses to harden a standalone machine. Nothing touches your real computer.', 'Outside the simulation: Registry Editor, Task Manager, real program windows, the Microsoft Store, and networking beyond this machine.', 'Progress and the machine state save in this browser. Reset lab reverts to the original snapshot.', 'Setting names and commands follow Microsoft Learn (Windows security policy settings reference, Windows Commands reference) and the CIS Critical Security Controls v8.', 'Practice only on machines you own or are authorized to manage.']);
   sec('Coach and hints', ['Coach, at the top of the Progress Check, sets how much the panel shows. Pick the to-do list with hints, the remaining count per area, or passed checks only.', 'A hint opens in two steps: the hardening area and the principle, then the console path or command.','Your best score remembers how many hints it took. A pass with no hints on a fresh attempt is the one that counts.']);
+  sec(ADV_LABEL, ['Extra credit for learners who finished Recruit, Operator, and Captain. It sits outside the three tiers and stays open to everyone. Sign in as labuser / ' + ADV_PW + '.', 'Each attempt builds a different machine from a six-character layout code: a computer-lab desktop, a teacher laptop, a front-office PC, or a file and portal server at Pōhinahina High School, with its own accounts, address, faults, and decoys. The faults come only from what Levels 1 to 3 teach.', 'The Scenario Brief is built from the same code, so its lists of authorized people, required services, and policy numbers are the ground truth. Read it first: some items that look odd are required.', 'New layout builds a different machine. Enter a layout code builds the machine a teacher or a friend names, the same one in any browser. The code shows in the Progress Check, the Debrief, and the copied debrief.', 'Level 4 keeps one best score for the level as a whole, plus the last layout code.']);
   sec('After you try', ['Solution walkthrough for every scenario: windows-range-reference.txt beside this page (the hub card offers it as a download). Try each scenario on your own first, then read it to see what you missed.']);
   pageModal({ title: 'How to use Windows Range', body, buttons: [{ label: 'Close', value: 'close', primary: true }] });
 }
@@ -7711,6 +8410,7 @@ function initPage() {
   initTheme();
   $('#reset').addEventListener('click', resetLab);
   $('#help-btn').addEventListener('click', openHelp);
+  $('#adv-bar-new').addEventListener('click', advNewLayout); $('#adv-bar-enter').addEventListener('click', advEnterCode);
   $('#fullscreen-btn').addEventListener('click', () => { const f = $('#frame'); if (document.fullscreenElement) { document.exitFullscreen().catch(() => { }); } else if (f.requestFullscreen) f.requestFullscreen().catch(() => { }); });
   document.addEventListener('fullscreenchange', () => { fitScreen(); $('#fullscreen-btn').textContent = document.fullscreenElement ? 'Exit full screen' : 'Full screen'; });
   const rt = $('#report-toggle'), rb = $('#report-body');

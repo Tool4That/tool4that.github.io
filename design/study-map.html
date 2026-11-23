@@ -409,7 +409,9 @@ a.chip{text-decoration:none}
         if (i) kids.push(i === c.pug.length - 1 ? (c.pug.length > 2 ? ', and ' : ' and ') : ', ');
         kids.push(el('a', {href: atlasHref('cmd=' + encodeURIComponent(id))}, [el('code', {text: x[1]})]));
       });
-      kids.push('. ', el('span', {cls: 'utw', text: 'Untested on a real system'}), ': they stay apart from the drills and labs.');
+      // pugT: some of these lines ran cleanly on a real system, so the note points to each line's own mark
+      if (c.pugT) kids.push('. ', el('span', {cls: 'utw', text: 'Experimental'}), ': lines marked ⚠︎ in Command Atlas are untested on a real system, and all of them stay apart from the drills and labs.');
+      else kids.push('. ', el('span', {cls: 'utw', text: 'Untested on a real system'}), ': they stay apart from the drills and labs.');
       d.appendChild(el('p', {cls: 'pugx'}, kids));
     }
     if (c.check.length) { d.appendChild(el('h3', {text: 'Check yourself'})); d.appendChild(linkList(c.check, 'Quiz')); }
@@ -474,7 +476,7 @@ a.chip{text-decoration:none}
     if (CI) return CI;
     try { CI = JSON.parse($('#cmd-index').textContent); } catch (e) { CI = null; }
     if (!CI || !Array.isArray(CI.c)) CI = {c: [], systems: []};
-    CI.list = CI.c.map(function (x) { return {id: x[0], name: x[1], os: x[2], nameN: norm(x[1]), hay: norm(x[1] + ' ' + (x[3] || ''))}; });
+    CI.list = CI.c.map(function (x) { return {id: x[0], name: x[1], os: x[2], xp: !!x[4], nameN: norm(x[1]), hay: norm(x[1] + ' ' + (x[3] || ''))}; });
     return CI;
   }
   function atlasHref(h) { return href('command-atlas/') + (h ? '#' + h : ''); }
@@ -503,8 +505,10 @@ a.chip{text-decoration:none}
       .slice(0, max).map(function (x) { return x[0]; });
   }
   function sysBubble(os) { return el('span', {cls: 'sb sb-' + os, text: D.systems[os] || os}); }
-  function cmdLink(id, name, os) {
-    return el('a', {cls: 'chip cmdc', href: atlasHref('cmd=' + encodeURIComponent(id))}, [el('code', {text: name}), ' ', sysBubble(os)]);
+  function cmdLink(id, name, os, xp) {
+    // xp: a command that only Cyber PUG's experimental checklist lines use so far
+    return el('a', {cls: 'chip cmdc', href: atlasHref('cmd=' + encodeURIComponent(id)), title: xp ? 'Experimental: only in ' + (D.pugName || 'Cyber PUG') + ' so far' : null},
+      [el('code', {text: name}), ' ', sysBubble(os), xp ? el('span', {cls: 'utk', 'aria-label': 'experimental', text: ' ⚠︎'}) : null]);
   }
   function atlasTarget(q) {
     var top = cmdMatches(q, 1)[0];
@@ -521,7 +525,7 @@ a.chip{text-decoration:none}
     if (!list.length) {
       box.appendChild(el('p', {cls: 'empty', text: 'Command Atlas searches what each command does as well as its name: open it to look for “' + q + '” there.'}));
     } else {
-      box.appendChild(el('div', {cls: 'chips'}, list.map(function (f) { return cmdLink(f.id, f.name, f.os); })));
+      box.appendChild(el('div', {cls: 'chips'}, list.map(function (f) { return cmdLink(f.id, f.name, f.os, f.xp); })));
     }
     box.appendChild(el('p', {cls: 'atl'}, [el('a', {href: atlasHref('q=' + encodeURIComponent(q)), text: 'Search Command Atlas for “' + q + '”'})]));
   }

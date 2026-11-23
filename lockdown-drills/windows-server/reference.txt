@@ -103,7 +103,7 @@
   PS> Disable-ADAccount -Identity Guest
   CMD> net user Administrator /active:no
   PS> Set-ADUser -Identity Administrator -PasswordNeverExpires $false
-  PS> Get-LapsADPassword -Identity KAILUA-WS07 -AsPlainText   (Windows LAPS: each computer's own local Administrator password, rotated and readable only by granted groups)
+  PS> Get-LapsADPassword -Identity PHN-LAB-07 -AsPlainText   (Windows LAPS: each computer's own local Administrator password, rotated and readable only by granted groups)
   WHY: Well-known names invite brute force. Disable Guest; keep Administrator
        enabled only when the brief uses it, with a strong password. Match SID
        -500 (Administrator) and -501 (Guest) to catch renames.
@@ -116,14 +116,14 @@
 [B-05] Strong passwords and forced change
   AREA: Account management (CIS Control 5)
   PS> Get-ADUser -Filter * -Properties PasswordLastSet,PasswordNeverExpires | Select-Object Name,Enabled,PasswordLastSet,PasswordNeverExpires
-  PS> Set-ADAccountPassword -Identity alice -Reset -NewPassword (Read-Host -AsSecureString 'New password')
-  PS> Set-ADUser -Identity alice -PasswordNeverExpires $false -PasswordNotRequired $false
-  PS> Set-ADUser -Identity alice -ChangePasswordAtLogon $true
-  PS> Get-ADUser -Identity alice -Properties PasswordNeverExpires,pwdLastSet | Select-Object Name,PasswordNeverExpires,pwdLastSet
+  PS> Set-ADAccountPassword -Identity keoni -Reset -NewPassword (Read-Host -AsSecureString 'New password')
+  PS> Set-ADUser -Identity keoni -PasswordNeverExpires $false -PasswordNotRequired $false
+  PS> Set-ADUser -Identity keoni -ChangePasswordAtLogon $true
+  PS> Get-ADUser -Identity keoni -Properties PasswordNeverExpires,pwdLastSet | Select-Object Name,PasswordNeverExpires,pwdLastSet
   PS> Get-ADUser -Filter 'Enabled -eq $true' | Where-Object SamAccountName -ne $env:USERNAME | Set-ADUser -PasswordNeverExpires $false
-  CMD> net user alice *
-  CMD> net user alice /logonpasswordchg:yes
-  PS> Set-LocalUser -Name alice -PasswordNeverExpires $false   (member server)
+  CMD> net user keoni *
+  CMD> net user keoni /logonpasswordchg:yes
+  PS> Set-LocalUser -Name keoni -PasswordNeverExpires $false   (member server)
   WHY: Weak, shared, or blank passwords let attackers in. PasswordNotRequired
        allows blank ones despite policy; PasswordNeverExpires defeats aging.
        Clear both, force a change at next sign-in, and confirm pwdLastSet is
@@ -155,7 +155,7 @@
   PS> Set-ADDefaultDomainPasswordPolicy -Identity (Get-ADDomain).DNSRoot -LockoutThreshold 5 -LockoutDuration 00:30:00 -LockoutObservationWindow 00:30:00
   CMD> net accounts /lockoutthreshold:5 /lockoutduration:30 /lockoutwindow:30   (member server)
   PS> Search-ADAccount -LockedOut | Select-Object Name
-  PS> Unlock-ADAccount -Identity alice
+  PS> Unlock-ADAccount -Identity keoni
   WHY: Turns an online brute force from thousands of guesses a minute into
        five per half hour. Search-ADAccount shows who is locked out right now,
        which is also an investigation clue.
@@ -304,15 +304,15 @@
 [B-15] Create the users and groups the brief lists
   AREA: Account management (CIS Control 5)
   PS> New-ADUser -Name 'kekoa' -SamAccountName 'kekoa' -AccountPassword (Read-Host -AsSecureString 'Password') -Enabled $true
-  PS> New-ADGroup -Name 'Accounting' -GroupScope Global
-  PS> Add-ADGroupMember -Identity 'Accounting' -Members kekoa
-  PS> Get-ADGroupMember -Identity 'Accounting'
+  PS> New-ADGroup -Name 'Teachers' -GroupScope Global
+  PS> Add-ADGroupMember -Identity 'Teachers' -Members kekoa
+  PS> Get-ADGroupMember -Identity 'Teachers'
   CMD> net user kekoa * /add   (member server)
   PS> New-LocalUser -Name 'kekoa' -Password (Read-Host -AsSecureString 'Password')   (member server)
-  PS> New-LocalGroup -Name Accounting   (member server)
-  CMD> net localgroup Accounting /add   (member server)
-  CMD> net localgroup Accounting kekoa /add   (member server)
-  PS> Add-LocalGroupMember -Group Accounting -Member kekoa   (member server)
+  PS> New-LocalGroup -Name Teachers   (member server)
+  CMD> net localgroup Teachers /add   (member server)
+  CMD> net localgroup Teachers kekoa /add   (member server)
+  PS> Add-LocalGroupMember -Group Teachers -Member kekoa   (member server)
   WHY: A listed user or group missing from the machine locks someone out of
        sign-in and the job's files. Create exactly that set; the brief is the
        source of truth.
@@ -467,9 +467,9 @@
   CMD> net share
   PS> Get-SmbShare | Where-Object { $_.Name -notmatch '^(ADMIN|IPC|PRINT|FAX)\$$' -and -not ($_.Name -match '^[A-Z]\$$' -and $_.Path -eq ($_.Name.Substring(0,1) + ':\')) } | Select-Object Name,Path,Description
   PS> Remove-SmbShare -Name "badshare" -Force
-  PS> Get-SmbShareAccess -Name "Finance"
-  PS> Revoke-SmbShareAccess -Name "Finance" -AccountName Everyone -Force
-  PS> Grant-SmbShareAccess -Name "Finance" -AccountName "CORP\Finance" -AccessRight Change -Force
+  PS> Get-SmbShareAccess -Name "Records"
+  PS> Revoke-SmbShareAccess -Name "Records" -AccountName Everyone -Force
+  PS> Grant-SmbShareAccess -Name "Records" -AccountName "PHN\Records" -AccessRight Change -Force
   CMD> auditpol /set /subcategory:"File Share" /success:enable /failure:enable
   WHY: An unexpected share is a data exfiltration path. Check the ACLs on the
        shares you must keep. Event 5142 names who added a share once File
@@ -639,9 +639,9 @@
 [I-16] DNS and DHCP hygiene when the server runs them
   AREA: Secure configuration (CIS Control 4)
   PS> Get-DnsServerZone | Select-Object ZoneName,ZoneType,DynamicUpdate,SecureSecondaries
-  PS> Get-DnsServerResourceRecord -ZoneName corp.local   (look for A and CNAME records missing from the brief)
-  CMD> nslookup -type=mx corp.local
-  PS> Set-DnsServerPrimaryZone -Name corp.local -DynamicUpdate Secure -SecureSecondaries NoTransfer
+  PS> Get-DnsServerResourceRecord -ZoneName phn.k12.lan   (look for A and CNAME records missing from the brief)
+  CMD> nslookup -type=mx phn.k12.lan
+  PS> Set-DnsServerPrimaryZone -Name phn.k12.lan -DynamicUpdate Secure -SecureSecondaries NoTransfer
   PS> Get-DhcpServerInDC
   PS> Get-DhcpServerv4Scope | Select-Object ScopeId,Name,State
   WHY: Open zone transfers hand an attacker the whole network map; insecure
@@ -846,11 +846,11 @@
 
 [A-07] NTFS permissions
   AREA: Access control (CIS Control 6)
-  CMD> icacls "C:\CompanyData" /save C:\Windows\Temp\acl.txt /t /c
-  CMD> icacls "C:\CompanyData"
-  CMD> icacls "C:\CompanyData" /inheritance:r /grant:r "Administrators:(OI)(CI)F" "Users:(OI)(CI)RX" /t
-  CMD> icacls "C:\CompanyData" /remove:g Everyone /t
-  PS> Get-Acl "C:\CompanyData" | Format-List
+  CMD> icacls "C:\SchoolData" /save C:\Windows\Temp\acl.txt /t /c
+  CMD> icacls "C:\SchoolData"
+  CMD> icacls "C:\SchoolData" /inheritance:r /grant:r "Administrators:(OI)(CI)F" "Users:(OI)(CI)RX" /t
+  CMD> icacls "C:\SchoolData" /remove:g Everyone /t
+  PS> Get-Acl "C:\SchoolData" | Format-List
   CMD> accesschk -accepteula -uwcqv "Authenticated Users" *   (Sysinternals, public: services a standard account can reconfigure)
   CMD> accesschk -accepteula -s -w Users "C:\Program Files"   (Sysinternals, public: files and folders a standard account can write)
   WHY: Everyone with Full control on shares or Program Files lets anyone swap
@@ -931,7 +931,7 @@
   PS> Search-ADAccount -AccountInactive -TimeSpan 90.00:00:00 | Select-Object Name,LastLogonDate
   PS> Get-ADUser -Filter {PasswordNotRequired -eq $true} | Select-Object Name
   PS> Get-ADUser -Filter {DoesNotRequirePreAuth -eq $true} | Select-Object Name
-  PS> Set-ADAccountControl -Identity alice -DoesNotRequirePreAuth $false -PasswordNotRequired $false
+  PS> Set-ADAccountControl -Identity keoni -DoesNotRequirePreAuth $false -PasswordNotRequired $false
   PS> Get-ADUser -Filter {ServicePrincipalName -like "*"} -Properties ServicePrincipalName | Select-Object Name,ServicePrincipalName
   CMD> klist   (each cached ticket's KerbTicket Encryption Type: AES-256 is the goal, RSADSI RC4-HMAC(NT) the finding)
   PS> Get-ADUser -Filter {AdminCount -eq 1} | Select-Object Name
@@ -1023,9 +1023,9 @@
         everything a bare-metal restore needs to drive E:.
 
 ------------------------------ FIX OR BREAK? (practice cards) ------------------
-  Brief: Authorized administrators: alice. Authorized users: bob, carol.
-  Action: Remove bob from the Administrators group.
-  Call: FIX. Bob is a standard user per the brief. Demoting that account is
+  Brief: Authorized administrators: keoni. Authorized users: koa, nohea.
+  Action: Remove koa from the Administrators group.
+  Call: FIX. Koa is a standard user per the brief. Demoting that account is
              least privilege.
 
   Brief: Investigation 1: what is the MD5 hash of C:\Users\Public\secret.mp3?
@@ -1034,8 +1034,8 @@
   Call: CHECK FIRST. Answer the investigation question before you destroy the
                      evidence. Evidence first, fixes second.
 
-  Brief: You log in as alice. Alice is an authorized administrator.
-  Action: Change the password of every user including alice to a strong one.
+  Brief: You log in as keoni. Keoni is an authorized administrator.
+  Action: Change the password of every user including keoni to a strong one.
   Call: CHECK FIRST. Changing the sign-in account's password is usually fine but
                      can lock you out if it is recorded wrong; the brief
                      decides. Record every password you set.
@@ -1049,13 +1049,13 @@
                      tasks, then ask the owner before removing a backup or
                      monitoring agent.
 
-  Brief: This is the domain controller for corp.local. Authorized Domain Admins:
-         alice, dsmith.
+  Brief: This is the domain controller for phn.k12.lan. Authorized Domain Admins:
+         keoni, kanoa.
   Action: Remove svc_print from Domain Admins.
   Call: FIX. Unauthorized Domain Admin membership is the single most valuable
              fix on a domain controller.
 
-  Brief: The DC runs DNS for the whole company.
+  Brief: The DC runs DNS for the whole school.
   Action: Uninstall-WindowsFeature DNS to reduce attack surface.
   Call: BREAKS IT. Required role. Harden the zones (no transfers, secure
                    updates) instead.
@@ -1066,12 +1066,12 @@
                      Get-ADDefaultDomainPasswordPolicy and change the domain
                      policy.
 
-  Brief: The Finance share is for the Finance group only.
-  Action: Revoke-SmbShareAccess for Everyone on the Finance share and grant
-          CORP\Finance Change.
+  Brief: The Records share is for the Records group only.
+  Action: Revoke-SmbShareAccess for Everyone on the Records share and grant
+          PHN\Records Change.
   Call: FIX. Least privilege on a required share: keep it, scope it.
 
-  Brief: IIS hosts the public company website; anonymous visitors must be able
+  Brief: IIS hosts the public school website; anonymous visitors must be able
          to read it.
   Action: Disable Anonymous Authentication on the Default Web Site.
   Call: BREAKS IT. That takes the public site offline. Keep anonymous read, turn
@@ -1087,7 +1087,8 @@
   Call: BREAKS IT. That destroys the evidence (and logs event 1102 against you).
                    Filter for 4728 and 4756 instead.
 
-  Brief: svc_sql runs the SQL service and must keep working.
+  Brief: svc_sql runs the student information system database and must keep
+         working.
   Action: Set-ADAccountControl -Identity svc_sql -DoesNotRequirePreAuth $false,
           give svc_sql a new 25-character random password, and update the SQL
           service's logon password to match.
@@ -1170,18 +1171,18 @@
        minutes. Set it to 5. Check the level on older releases and mixed
        domains; Windows 11 24H2 and Windows Server 2025 remove NTLMv1.
 
-  Get-ADGroupMember "Domain Admins". Brief: authorized Domain Admins are alice, dsmith, and the built-in Administrator. Tap the finding.
-     alice
-     dsmith
+  Get-ADGroupMember "Domain Admins". Brief: authorized Domain Admins are keoni, kanoa, and the built-in Administrator. Tap the finding.
+     keoni
+     kanoa
   >> svc_print
      Administrator
   WHY: A service account in Domain Admins is the highest-value finding on a
        domain controller. Remove it and investigate what it runs.
 
   Get-ADUser output. Tap the finding.
-     alice   Enabled True  PasswordNotRequired False
-  >> bob     Enabled True  PasswordNotRequired True
-     carol   Enabled True  PasswordNotRequired False
+     keoni   Enabled True  PasswordNotRequired False
+  >> koa     Enabled True  PasswordNotRequired True
+     nohea   Enabled True  PasswordNotRequired False
      krbtgt  Enabled False PasswordNotRequired False
   WHY: PasswordNotRequired True allows a blank password regardless of policy.
        Set-ADAccountControl -PasswordNotRequired $false, then reset the
@@ -1196,8 +1197,8 @@
        -Remove for a final pass the brief allows.
 
   Get-DnsServerZone output. Tap the finding.
-  >> corp.local   Primary  DynamicUpdate Secure   SecureSecondaries TransferAnyServer
-     _msdcs.corp.local  Primary  DynamicUpdate Secure  SecureSecondaries NoTransfer
+  >> phn.k12.lan   Primary  DynamicUpdate Secure   SecureSecondaries TransferAnyServer
+     _msdcs.phn.k12.lan  Primary  DynamicUpdate Secure  SecureSecondaries NoTransfer
      0.in-addr.arpa  Primary  DynamicUpdate None  SecureSecondaries NoTransfer
      .  Forwarder
   WHY: TransferAnyServer lets anyone dump the zone. Set-DnsServerPrimaryZone

@@ -29,7 +29,7 @@
       "prereqs": [],
       "locations": [
         {"tool": "defense-ladder", "kind": "learn", "find": ["OSI"]},
-        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Physical › Dead link after the office move", "note": "Name each ticket's layer before you answer: Physical tickets are layer 1, Switching 2, Addressing 3, Services 7."}
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Physical › Dead link after the classroom move", "note": "Name each ticket's layer before you answer: Physical tickets are layer 1, Switching 2, Addressing 3, Services 7."}
       ],
       "refs": [
         {"title": "ITU-T X.200: OSI basic reference model", "url": "https://www.itu.int/rec/T-REC-X.200-199407-I/en", "src": "standard"}
@@ -361,7 +361,7 @@
         {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Config accuracy › Site B loses 8.8.8.8 in the failover test"},
         {"tool": "net-drills/config-audit", "kind": "fix", "where": "Site B router", "find": ["redistribute static"]},
         {"tool": "lockdown-drills/cisco-ios", "kind": ["learn", "drill"], "find": ["ip route 8.8.8.8"]},
-        {"tool": "lockdown-range/cisco-ios", "kind": "lab", "find": ["redistribute static subnets"], "note": "Level 4, Two sites: RtrB shares its host route with RtrA through OSPF."}
+        {"tool": "lockdown-range/cisco-ios", "kind": "lab", "find": ["redistribute static subnets"], "note": "Level 4 (layout CLASSIC): RtrB shares its host route with RtrA through OSPF."}
       ],
       "refs": [
         {"title": "RFC 1812: Requirements for IP version 4 routers", "url": "https://www.rfc-editor.org/rfc/rfc1812", "src": "standard"}
@@ -1861,14 +1861,13 @@
     },
     {
       "id": "careers", "name": "Roles, certifications, and practice", "domain": "governance", "layers": [],
-      "aka": ["career", "SOC analyst", "security engineer", "penetration tester", "certification", "CompTIA Security+", "ISC2 CC", "NICE Framework"],
-      "summary": "Security work spans many roles, each described in the NICE Framework: analyst, engineer, tester, auditor, and responder. Entry certifications such as ISC2 CC and CompTIA Security+ check the basics; legal practice ranges and capture-the-flag games build the skill.",
+      "aka": ["career", "SOC analyst", "security engineer", "penetration tester", "certification", "CompTIA Security+", "ISC2 CC", "work role"],
+      "summary": "Security work spans many work roles, such as analyst, engineer, tester, auditor, and responder. A work role describes one kind of cybersecurity job, with its tasks, knowledge, and skills. Entry certifications such as ISC2 CC and CompTIA Security+ check the basics; legal practice ranges and capture-the-flag games build the skill.",
       "prereqs": [],
       "locations": [
-        {"tool": "defense-ladder", "kind": "learn", "find": ["certification", "certifications", "Security+", "NICE Framework"]}
+        {"tool": "defense-ladder", "kind": "learn", "find": ["certification", "certifications", "Security+"]}
       ],
       "refs": [
-        {"title": "NICE Workforce Framework for Cybersecurity", "url": "https://niccs.cisa.gov/tools/nice-framework", "src": "standard"},
         {"title": "CompTIA certifications", "url": "https://www.comptia.org/certifications", "src": "vendor"},
         {"title": "ISC2 Certified in Cybersecurity", "url": "https://www.isc2.org/certifications/cc", "src": "vendor"}
       ]

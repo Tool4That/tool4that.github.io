@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/X3+kdvW9NIw4IS0xpUvKdshcspuIO0pDWUO0WlOMns=' 'sha256-EJUo6x7FMJBCtLbdASMoHTewo5O+8qSveS6aF0fMm8o=' 'sha256-t8RrFkd/HsVxGFVyHLwaloPqwyajr96gFdkGj/yO3bc=' 'sha256-vvupNOdurWeXQeDiyzHmiufX6Sy5JRpCbek45co3P9g=' 'sha256-zaNKp79p2RHFZp7lCvMvymbf+DCccd/OPw3A3V+LWGw='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/X3+kdvW9NIw4IS0xpUvKdshcspuIO0pDWUO0WlOMns=' 'sha256-BGKrUJRba4K4bloyzQ0eBI2rWJNf8ne6etVMAklv9HE=' 'sha256-EJUo6x7FMJBCtLbdASMoHTewo5O+8qSveS6aF0fMm8o=' 'sha256-vvupNOdurWeXQeDiyzHmiufX6Sy5JRpCbek45co3P9g=' 'sha256-zaNKp79p2RHFZp7lCvMvymbf+DCccd/OPw3A3V+LWGw='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/defense-ladder/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%8E%93%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -1176,14 +1176,14 @@ const RES={
   't4t-ios':['IOS CLI Lab','https://freeapp4that.store/net-drills/ios-cli-lab/','Configure a simulated router and switch from their consoles, then prove it from two PCs.','tool4that'],
   't4t-audit':['Config Audit','https://freeapp4that.store/net-drills/config-audit/','Read a running-config, flag every risky line, choose the best fix, and name the missing protections.','tool4that'],
   't4t-tickets':['Trouble Tickets','https://freeapp4that.store/net-drills/trouble-tickets/','Read the complaint, study device output, and pick the root cause.','tool4that'],
-  't4t-drills':['Lockdown Drills','https://freeapp4that.store/lockdown-drills/','Baseline-hardening trainers for Windows 11, Windows Server, Linux Mint, Ubuntu, FreeBSD, and Cisco IOS, at three tiers: Doorman, Watchman, and Hunter.','tool4that'],
+  't4t-drills':['Lockdown Drills','https://freeapp4that.store/lockdown-drills/','Baseline-hardening trainers for Windows 11, Windows Server, Linux Mint, Ubuntu, FreeBSD, and Cisco IOS, each in three levels: Doorman, Watchman, and Hunter.','tool4that'],
   't4t-ld-win11':['Lockdown Drills: Windows 11','https://freeapp4that.store/lockdown-drills/windows-11/','Step-by-step Windows 11 hardening drills with the reason behind each command.','tool4that'],
   't4t-ld-winsrv':['Lockdown Drills: Windows Server','https://freeapp4that.store/lockdown-drills/windows-server/','Hardening drills for Windows Server, Active Directory, and Group Policy.','tool4that'],
   't4t-ld-mint':['Lockdown Drills: Linux Mint','https://freeapp4that.store/lockdown-drills/linux-mint/','Hardening drills for Linux Mint: users, sudo, ufw, updates, services, and SSH.','tool4that'],
   't4t-ld-ubuntu':['Lockdown Drills: Ubuntu','https://freeapp4that.store/lockdown-drills/ubuntu/','Hardening drills for Ubuntu, from accounts to PAM and services.','tool4that'],
   't4t-ld-fbsd':['Lockdown Drills: FreeBSD','https://freeapp4that.store/lockdown-drills/freebsd/','Hardening drills for FreeBSD: pw, rc.conf, pf, and updates.','tool4that'],
   't4t-ld-ios':['Lockdown Drills: Cisco IOS','https://freeapp4that.store/lockdown-drills/cisco-ios/','Hardening drills for Cisco routers and switches: passwords, SSH, unused ports, and ACLs.','tool4that'],
-  't4t-range':['Lockdown Range','https://freeapp4that.store/lockdown-range/','Hands-on labs that run in your browser without a virtual machine: Windows, Linux, and a Cisco IOS network. Read the scenario brief, fix the machine, and watch the Progress Check, at three tiers: Recruit, Operator, and Captain.','tool4that'],
+  't4t-range':['Lockdown Range','https://freeapp4that.store/lockdown-range/','Hands-on labs that run in your browser without a virtual machine: Windows, Linux, and a Cisco IOS network. Read the scenario brief, fix the machine, and watch the Progress Check, in three levels: Recruit, Operator, and Captain. Each Range also has Level 4 · Advanced · extra credit, which builds a different machine on every attempt.','tool4that'],
   't4t-pug':['Cyber PUG (experimental)','https://freeapp4that.store/cyber-pug/','Team practice: shared checklists for taking over and securing a practice network together, with a map of the network as you work.','tool4that'],
   't4t-lr-win':['Lockdown Range: Windows','https://freeapp4that.store/lockdown-range/windows/','A simulated Windows 11 or Windows Server lab to harden end to end in your browser.','tool4that'],
   't4t-lr-linux':['Lockdown Range: Linux','https://freeapp4that.store/lockdown-range/linux/','A simulated Ubuntu, Linux Mint, or Debian machine to harden from a bash-like terminal.','tool4that'],
@@ -1320,16 +1320,16 @@ const PACE={wpm:130,fixed:{"quizItem":1,"flashCard":0.25,"matchPair":0.5,"spotLi
 const PLAN_GRADE={
   freshman:{practice:'Alongside: OverTheWire Bandit levels 0 to 5, and Subnet Sprint for binary and masks. Set up one Windows and one Linux virtual machine you own, and take a clean snapshot of each.',
     milestone:'Every Freshman quiz item at Strong, Core skills first. Explain authorization, scope, and the CIA triad in your own words, and name the console or command that lists the users and the administrators on Windows and on Linux.'},
-  sophomore:{practice:'Practice: the Doorman tier in Lockdown Drills, then Recruit scenarios in Lockdown Range for Windows and Linux. Keep a change log every session, even when you practice alone.',
+  sophomore:{practice:'Practice: the Doorman level in Lockdown Drills, then Recruit scenarios in Lockdown Range for Windows and Linux. Keep a change log every session, even when you practice alone.',
     milestone:'Harden one Windows and one Linux lab end to end with a change log, passing every availability check, and fill in the Hardening scorecard for each machine.'},
-  junior:{practice:'Practice: the Watchman tier in Lockdown Drills, Operator scenarios in Lockdown Range, Config Audit, and Trouble Tickets. Build a small two-VLAN network in Packet Tracer and route between the VLANs.',
+  junior:{practice:'Practice: the Watchman level in Lockdown Drills, Operator scenarios in Lockdown Range, Config Audit, and Trouble Tickets. Build a small two-VLAN network in Packet Tracer and route between the VLANs.',
     milestone:'Rank the findings on a lab by impact and explain the order to a peer. Explain one ACL and one Group Policy setting line by line.'},
-  senior:{practice:'Practice: the Hunter tier in Lockdown Drills and Captain scenarios in Lockdown Range; OWASP Juice Shop on your own machine.',
+  senior:{practice:'Practice: the Hunter level in Lockdown Drills and Captain scenarios in Lockdown Range; OWASP Juice Shop on your own machine.',
     milestone:'Write a checklist for each operating system from standards, with a source for every line.'}
 };
 const PLAN_CAPSTONE=['Run a timed practice session as a small team, with a written runbook, a scribe, a timekeeper, and your own checklist.',
   'Debrief: what was missed, what broke, and what goes on the checklist.',
-  'Then keep going: Captain scenarios in Lockdown Range, the Hunter tier in Lockdown Drills, Cyber PUG for team practice (experimental), student capture-the-flag events and competitions, and the cybersecurity work roles that interest you.'];
+  'Then keep going: Captain scenarios in Lockdown Range, the Hunter level in Lockdown Drills, Cyber PUG for team practice (experimental), student capture-the-flag events and competitions, and the cybersecurity work roles that interest you.'];
 
 /* ---- the six hardening areas (CIS Critical Security Controls v8.1) ----
    Used by the Sophomore brief unit and the Hardening scorecard page. */
@@ -3630,7 +3630,7 @@ function renderLevel(){
 
   const U=L.units.find(u=>u.id===current.unit)||L.units[0];
   const uh=el('div','uhead');
-  uh.innerHTML=`<div class="upos"><p class="unum">${L.grade} · Unit ${L.units.indexOf(U)+1} of ${L.units.length}<span class="sr upsay"></span></p><ol class="upath" aria-hidden="true">${L.units.map(()=>'<li></li>').join('')}</ol></div><h2 tabindex="-1">${U.title}<span class="sr">, thinking level: </span><span class="blm">${U.bloom}</span></h2><p class="sum">${U.sum}</p>`;
+  uh.innerHTML=`<div class="upos"><p class="unum">${L.grade} · ${unitPlace(L.units.map(u=>u.id),U.id)}<span class="sr upsay"></span></p><ol class="upath" aria-hidden="true">${L.units.map(()=>'<li></li>').join('')}</ol></div><h2 tabindex="-1">${U.title}<span class="sr">, thinking level: </span><span class="blm">${U.bloom}</span></h2><p class="sum">${U.sum}</p>`;
   if(U.can){const cp=el('p','ucan');cp.innerHTML='<b>By the end you can</b> '+U.can+'.';uh.appendChild(cp);}
   const ps=practiceStrip(U);if(ps)uh.appendChild(ps);
   main.appendChild(uh);
@@ -4900,6 +4900,7 @@ function renderPlan(){
   const fx=PACE.fixed;
   how.appendChild(el('p',null,esc('These hours are estimates, worked out once from each unit itself, so use them as a guide. Every word you read in a unit, its activities included, counts at about '+PACE.wpm+' words a minute, a steady pace for technical text. Each activity adds time to think and check: '+fx.quizItem+' minute per quiz question, '+fx.matchPair*60+' seconds per matching pair, '+fx.spotLine*60+' seconds per line in a spot-the-problem drill, '+fx.orderItem*60+' seconds per step to put in order, '+fx.flashCard*60+' seconds per flashcard, '+fx.labStep+' minutes per lab step, '+fx.reflect+' minutes per reflection, '+fx.typein+' minutes to type a line, '+fx.builderSection+' minutes per builder section, '+fx.planner+' minutes for the session planner, and '+fx.diagram+' minute per diagram. Deeper detail panels and Go further links are extras on top. Each unit rounds to the nearest quarter hour.')));
   how.appendChild(el('p',null,esc('Practice time on this site comes out of your weekly hours first: with a quarter of each week for practice, 4 hours a week leaves 3 hours for the units. A unit you have started counts in full; From where I am now drops each unit you have finished. Reading speeds differ a lot, so after a few weeks compare the plan with your progress and move the slider to match.')));
+  how.appendChild(el('p',null,esc('Weeks count from your start date: week 1 is the start date and the six days after it, week 2 is the next seven days, and so on. The planner fills each week with the hours left for units after practice, one step after another in course order, where a step is a unit or a readiness check. A step that needs more time than its week has left runs on into the next week, so its label reads Weeks 3 to 4 instead of Week 3. A grade’s Finish by date is the last day of the week its last step lands in, so more hours a week fit more steps into each week and move every date sooner.')));
   main.appendChild(how);
 
   const row=el('div','row');
@@ -4923,25 +4924,26 @@ function renderPlan(){
     }
     const weeks=plan[plan.length-1].w1;
     const scopeName=s.scope==='grade'?gradeInfo(s.grade).grade:s.scope==='now'?'the rest of the course':'the whole course';
-    sum.textContent='At '+paceWeekText(s.h)+practice+', you finish '+scopeName+' ('+paceHoursText(total)+' of units) in about '+weeks+(weeks===1?' week':' weeks')+': by '+paceDateText(endOf(weeks))+'.'+(skipped?' '+skipped+(skipped===1?' unit you have finished is':' units you have finished are')+' left out.':'');
-    /* each grade's finish */
+    sum.textContent='At '+paceWeekText(s.h)+practice+', you finish '+scopeName+' in about '+weeks+(weeks===1?' week':' weeks')+': by '+paceDateText(endOf(weeks))+'. The plan holds '+stepsText(rows.map(r=>r[1]))+', about '+paceHoursText(total)+' in all.'+(skipped?' '+skipped+(skipped===1?' step you have finished is':' steps you have finished are')+' left out.':'');
+    /* each grade's finish; a step is a unit or a readiness check */
+    const stepCell=ids=>{ const p=stepParts(ids); return p.c?unitsWord(p.u)+', '+p.c+(p.c===1?' check':' checks'):unitsWord(p.u); };
     const t=el('table','pace-t');
     const cap=el('caption',null,'Finish dates');t.appendChild(cap);
-    const hr=el('tr');['Grade','Units','Hours','Finish by'].forEach(x=>{ const th=el('th',null,x);th.scope='col';hr.appendChild(th); });
+    const hr=el('tr');['Grade','Steps','Hours','Finish by'].forEach(x=>{ const th=el('th',null,x);th.scope='col';hr.appendChild(th); });
     const thead=el('thead');thead.appendChild(hr);t.appendChild(thead);
     const tb=el('tbody');
     GRADE_INDEX.forEach(g=>{
       const ps=plan.filter(p=>p.r[0]===g.id);if(!ps.length) return;
       const tr=el('tr');
       const th=el('th',null,esc(g.grade));th.scope='row';tr.appendChild(th);
-      tr.appendChild(el('td',null,String(ps.length)));
+      tr.appendChild(el('td',null,esc(stepCell(ps.map(p=>p.r[1])))));
       tr.appendChild(el('td',null,esc(paceShort(ps.reduce((a,p)=>a+p.r[3],0)))));
       tr.appendChild(el('td',null,esc(paceDay(endOf(ps[ps.length-1].w1)))));
       tb.appendChild(tr);
     });
     if(tb.children.length>1){
       const tr=el('tr','pace-tot');const th=el('th',null,'Course');th.scope='row';tr.appendChild(th);
-      tr.appendChild(el('td',null,String(plan.length)));tr.appendChild(el('td',null,esc(paceShort(total))));tr.appendChild(el('td',null,esc(paceDay(endOf(weeks)))));
+      tr.appendChild(el('td',null,esc(stepCell(rows.map(r=>r[1])))));tr.appendChild(el('td',null,esc(paceShort(total))));tr.appendChild(el('td',null,esc(paceDay(endOf(weeks)))));
       tb.appendChild(tr);
     }
     t.appendChild(tb);
@@ -5551,7 +5553,8 @@ function renderAbout(){
 
   const cw=el('div','card');
   cw.innerHTML=`<h3>What changed</h3>
-    <ul><li><b>October 2026.</b> Sophomore, Junior, and Senior each open with a readiness check whose every reason links to the unit that teaches it. Senior gains a unit on Windows credentials and the domain attack surface, a new Glossary page links each term to its unit, and Deeper detail panels hold the lookup facts. The Windows and Linux labs from First look at Windows and First look at Linux now open the Sophomore hardening units. New activities raise each grade’s count on My progress, so your percentage may read lower for a while; everything you saved stays saved.</li></ul>`;
+    <ul><li><b>November 22, 2026.</b> Study plan is now a pace planner: set your hours a week and a start date, and it lays out every unit and readiness check by week, with the date you finish each grade and the whole course. Move your progress gains Save everything to a file and Load from a file, which carry your progress, reflections, and settings to another browser and keep everything already saved there. The last Senior unit, Power and responsibility, ends with Next steps inside the site: Captain scenarios in Lockdown Range, the Hunter level in Lockdown Drills, and Cyber PUG for team practice. The docs link beside each command now opens Command Atlas, which holds every command in the course with its options, the lessons and labs that use it, and its vendor documentation.</li>
+    <li><b>October 2026.</b> Sophomore, Junior, and Senior each open with a readiness check whose every reason links to the unit that teaches it. Senior gains a unit on Windows credentials and the domain attack surface, a new Glossary page links each term to its unit, and Deeper detail panels hold the lookup facts. The Windows and Linux labs from First look at Windows and First look at Linux now open the Sophomore hardening units. New activities raise each grade’s count on My progress, so your percentage may read lower for a while; everything you saved stays saved.</li></ul>`;
   main.appendChild(cw);
 
   const c2=el('div','card');
@@ -5622,6 +5625,25 @@ function unitState(U,seen){
 }
 function nextUnit(L){ const seen=visitedSet(); return L.units.find(U=>unitState(U,seen)!=='done')||null; }
 const READY={sophomore:'s0q',junior:'j0q',senior:'se0q'};
+/* the readiness checks that open Sophomore, Junior, and Senior sit in the unit lists as steps, apart from the 51 units,
+   so every count names them: "12 steps: 11 units and a readiness check" */
+const READY_UNITS=['s0','j0','se0'];
+function stepParts(ids){ const c=ids.filter(id=>READY_UNITS.includes(id)).length; return {n:ids.length,u:ids.length-c,c}; }
+function unitsWord(u){ return u+(u===1?' unit':' units'); }
+function checksWord(c){ return c===1?'a readiness check':c+' readiness checks'; }
+/* "54 steps: 51 units and 3 readiness checks", or "13 units" when the list holds no readiness check */
+function stepsText(ids){ const p=stepParts(ids); return p.c?p.n+' steps: '+unitsWord(p.u)+' and '+checksWord(p.c):unitsWord(p.u); }
+/* a grade's done count: "3 of 12 done (11 units and a readiness check)", or "3 of 13 units done" */
+function gradeDoneText(L,done){ const p=stepParts(L.units.map(U=>U.id)); return p.c?done+' of '+p.n+' done ('+unitsWord(p.u)+' and '+checksWord(p.c)+')':done+' of '+unitsWord(p.n)+' done'; }
+/* a step's place in its grade: a readiness check is named as one, and "Unit N of M" counts the units alone
+   (Sophomore: "Readiness check", then "Unit 1 of 11" to "Unit 11 of 11") */
+function isReadyUnit(id){ return READY_UNITS.includes(id); }
+function unitNo(ids,id){ return isReadyUnit(id)?0:ids.filter(x=>!isReadyUnit(x)).indexOf(id)+1; }
+function unitPlace(ids,id){ return isReadyUnit(id)?'Readiness check':'Unit '+unitNo(ids,id)+' of '+ids.filter(x=>!isReadyUnit(x)).length; }
+/* the short name for a list entry: "Readiness check" or "Unit N" */
+function unitLabel(ids,id){ return isReadyUnit(id)?'Readiness check':'Unit '+unitNo(ids,id); }
+/* the number column of a unit list: the unit's number, or a blank (with "Readiness check" for screen readers) */
+function unitNumHtml(ids,id,cls){ return isReadyUnit(id)?`<span class="${cls}" aria-hidden="true"></span><span class="sr">Readiness check: </span>`:`<span class="${cls}">${unitNo(ids,id)}</span>`; }
 /* the lowest item from this grade's readiness check: Core skills first, Explore before Revisit */
 function readinessLow(L){
   const qid=READY[L.id];if(!qid)return null;
@@ -5633,7 +5655,7 @@ function readinessLow(L){
 }
 function nextUpNote(L,U){
   const p=el('p','nextup');p.id='nx-'+L.id;
-  p.textContent=U?`Next up: unit ${L.units.indexOf(U)+1}, ${titleText(U.title)}`:`Every ${L.grade} unit is done. Open any of them to review.`;
+  p.textContent=U?(isReadyUnit(U.id)?`Next up: the readiness check, ${titleText(U.title)}`:`Next up: unit ${unitNo(L.units.map(u=>u.id),U.id)}, ${titleText(U.title)}`):`Every ${L.grade} unit is done. Open any of them to review.`;
   const low=readinessLow(L);
   if(low){const a=el('a',null,low.link.text);a.href=low.link.href;const s=el('span','nx-ready');s.append(' From your readiness check: ',a,' ('+low.res+(low.core?' on a Core skill':'')+').');p.appendChild(s);}
   return p;
@@ -5648,10 +5670,11 @@ function openGrade(id){
 /* ---- unit lists: the rail (laptops), the Menu (phones), and the control by the pager ---- */
 function unitList(L){
   const ol=el('ol','toc');ol.setAttribute('role','list');ol.setAttribute('aria-label',L.grade+' units');ol.dataset.g=L.id;
-  L.units.forEach((U,i)=>{
+  const ids=L.units.map(u=>u.id);
+  L.units.forEach(U=>{
     const li=el('li'), a=el('a','tu');
     a.href='#'+L.id+'/'+U.id;a.dataset.u=U.id;
-    a.innerHTML=`<span class="tn">${i+1}</span><span class="tt">${U.title}</span><span class="tg" aria-hidden="true"></span><span class="sr ts"></span>`;
+    a.innerHTML=`${unitNumHtml(ids,U.id,'tn')}<span class="tt">${U.title}</span><span class="tg" aria-hidden="true"></span><span class="sr ts"></span>`;
     li.appendChild(a);ol.appendChild(li);
   });
   return ol;
@@ -5679,7 +5702,7 @@ function navMark(){
   grades.forEach((g,i)=>{
     const n=lvs[i]&&lvs[i].querySelector('.lv-n'); if(!n) return;
     const L=levelById(g.id);
-    const t=L?`${L.units.filter(U=>unitState(U,seen)==='done').length} of ${L.units.length} units done`:'';
+    const t=L?gradeDoneText(L,L.units.filter(U=>unitState(U,seen)==='done').length):'';
     if(n.textContent!==t) n.textContent=t;
   });
   /* the open grade's units list once, in #mtoc under the grade grid (the rail on laptops, the Menu on phones) */
@@ -5720,7 +5743,7 @@ function navWhere(){
     const b=el('button','wbtn'), t=el('span','wtx');
     b.type='button';b.setAttribute('aria-haspopup','dialog');b.setAttribute('aria-controls','navPanel');
     t.appendChild(el('span','wg',esc(gi.grade)));
-    if(ids.includes(current.unit)) t.appendChild(el('span','wu',esc(` · Unit ${ids.indexOf(current.unit)+1} of ${ids.length}`)));
+    if(ids.includes(current.unit)) t.appendChild(el('span','wu',esc(` · ${unitPlace(ids,current.unit)}`)));
     b.append(t,el('span','wcar','▾'),el('span','sr',esc(`, open the ${gi.grade} unit list`)));
     b.querySelector('.wcar').setAttribute('aria-hidden','true');
     b.addEventListener('click',()=>{ menuFrom=b; openMenu(); });
@@ -5739,13 +5762,13 @@ function navPath(){
     let q=li.firstElementChild;
     if(!q){
       q=el(here?'span':'a');
-      if(!here){ q.href='#'+L.id+'/'+U.id; q.tabIndex=-1; q.title=`Unit ${i+1}: ${titleText(U.title)}`; }
+      if(!here){ q.href='#'+L.id+'/'+U.id; q.tabIndex=-1; q.title=`${unitLabel(L.units.map(u=>u.id),U.id)}: ${titleText(U.title)}`; }
       q.appendChild(el('i'));
       li.appendChild(q);
     }
     const c='uq st-'+sts[i]+(here?' cur':''); if(q.className!==c) q.className=c;
   });
-  const say=main.querySelector('.uhead .upsay'), done=sts.filter(s=>s==='done').length, t=`; ${done} of ${L.units.length} ${L.grade} units done`;
+  const say=main.querySelector('.uhead .upsay'), done=sts.filter(s=>s==='done').length, t=`; ${gradeDoneText(L,done)}`;
   if(say&&say.textContent!==t) say.textContent=t;
 }
 /* ---- the phone bar: it hides while the reader scrolls down and returns on the way up ---- */
@@ -5844,7 +5867,7 @@ function continueCard(o){
   a.addEventListener('click',()=>{ flowResume=o.u; });
   a.textContent='Continue: '+(U?titleText(U.title):String(o.t||gi.grade))+' →';
   c.appendChild(a);
-  c.appendChild(el('p','cont-s',esc(`${gi.grade} · Unit ${n+1} of ${ids.length}. Your place stays saved in this browser.`)));
+  c.appendChild(el('p','cont-s',esc(`${gi.grade} · ${unitPlace(ids,o.u)}. Your place stays saved in this browser.`)));
   /* someone else's progress (a shared computer): Start fresh opens in a dialog, below the one primary action */
   const f=el('p','cont-f'), x=el('button','linkbtn','Not your progress? Start fresh'), host=el('div','fin');
   x.type='button';host.hidden=true;
@@ -5935,8 +5958,7 @@ function jumpTo(n){
 function unitFoot(L,U,pager){
   const w=el('div','ufoot');
   const d=el('details','ujump');
-  const i=L.units.indexOf(U);
-  d.appendChild(el('summary',null,`<span class="uj-n">Unit ${i+1} of ${L.units.length}</span> <span class="uj-l">· All ${esc(L.grade)} units</span>`));
+  d.appendChild(el('summary',null,`<span class="uj-n">${unitPlace(L.units.map(u=>u.id),U.id)}</span> <span class="uj-l">· All ${esc(L.grade)} units</span>`));
   d.appendChild(unitList(L));
   /* mobile round (2026-10-24): the unit list lives in the bar's "Unit N of M" (phones) and the rail (laptops) */
   w.append(pager);
@@ -5952,14 +5974,15 @@ function progressMap(host){
   c.appendChild(key);
   LEVELS.forEach(L=>{
     const sts=L.units.map(U=>unitState(U,seen)), done=sts.filter(s=>s==='done').length;
-    c.appendChild(el('h4',null,`${L.grade}<small>${done} of ${L.units.length} units done</small>`));
+    c.appendChild(el('h4',null,`${L.grade}<small>${esc(gradeDoneText(L,done))}</small>`));
     const ol=el('ol','ugrid');ol.setAttribute('role','list');ol.setAttribute('aria-label',L.grade+' units');
+    const ids=L.units.map(u=>u.id);
     L.units.forEach((U,i)=>{
       const li=el('li'), a=el('a','uc st-'+sts[i]), t=titleText(U.title);
       a.href='#'+L.id+'/'+U.id;
       a.title=`${t}: ${ST_TEXT[sts[i]]}`;
-      a.setAttribute('aria-label',`Unit ${i+1}: ${t}, ${ST_TEXT[sts[i]]}`);
-      a.innerHTML=`<span class="un">${i+1}</span><span class="ug" aria-hidden="true">${ST_GLYPH[sts[i]]}</span><span class="ut" aria-hidden="true">${esc(t)}</span>`;
+      a.setAttribute('aria-label',`${unitLabel(ids,U.id)}: ${t}, ${ST_TEXT[sts[i]]}`);
+      a.innerHTML=`<span class="un"${isReadyUnit(U.id)?' aria-hidden="true">':'>'+unitNo(ids,U.id)}</span><span class="ug" aria-hidden="true">${ST_GLYPH[sts[i]]}</span><span class="ut" aria-hidden="true">${esc(t)}</span>`;
       li.appendChild(a);ol.appendChild(li);
     });
     c.appendChild(ol);

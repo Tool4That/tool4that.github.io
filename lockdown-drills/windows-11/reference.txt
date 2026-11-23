@@ -86,7 +86,7 @@
   CMD> net localgroup "Backup Operators"
   CMD> net localgroup Administrators baduser /delete
   PS> Remove-LocalGroupMember -Group Administrators -Member baduser
-  CMD> net localgroup Administrators alice /add
+  CMD> net localgroup Administrators keoni /add
   WHY: An admin can switch off every other control. Least privilege is the
        single highest-value idea in system hardening. Demote users the brief
        calls standard; promote only its listed admins.
@@ -116,9 +116,9 @@
 [B-05] Strong passwords for every user
   AREA: Account management (CIS Control 5)
   PS> Get-LocalUser | Select-Object Name,Enabled,PasswordLastSet,PasswordExpires
-  CMD> net user alice *
+  CMD> net user keoni *
   PS> Get-LocalUser | Where-Object { $_.Enabled -and $_.Name -ne $env:USERNAME } | Set-LocalUser -PasswordNeverExpires $false
-  CMD> net user alice /logonpasswordchg:yes
+  CMD> net user keoni /logonpasswordchg:yes
   WHY: Weak, shared, or blank passwords are the top way in. Password never
        expires defeats the aging policy: clear it first, then ask for a change
        at next logon. The * makes net user prompt, hiding the password from
@@ -304,11 +304,11 @@
   AREA: Account management (CIS Control 5)
   PS> New-LocalUser -Name 'kekoa' -Password (Read-Host -AsSecureString 'Password')
   CMD> net user kekoa * /add
-  PS> New-LocalGroup -Name Accounting
-  CMD> net localgroup Accounting /add
-  CMD> net localgroup Accounting kekoa /add
-  PS> Add-LocalGroupMember -Group Accounting -Member kekoa
-  PS> Get-LocalGroupMember -Group Accounting
+  PS> New-LocalGroup -Name Teachers
+  CMD> net localgroup Teachers /add
+  CMD> net localgroup Teachers kekoa /add
+  PS> Add-LocalGroupMember -Group Teachers -Member kekoa
+  PS> Get-LocalGroupMember -Group Teachers
   WHY: A listed user or group missing from the machine locks someone out of
        sign-in and the job's files. Create exactly that set; the brief is the
        source of truth.
@@ -821,11 +821,11 @@
 
 [A-07] NTFS permissions
   AREA: Access control (CIS Control 6)
-  CMD> icacls "C:\CompanyData" /save C:\Windows\Temp\acl.txt /t /c
-  CMD> icacls "C:\CompanyData"
-  CMD> icacls "C:\CompanyData" /inheritance:r /grant:r "Administrators:(OI)(CI)F" "Users:(OI)(CI)RX" /t
-  CMD> icacls "C:\CompanyData" /remove:g Everyone /t
-  PS> Get-Acl "C:\CompanyData" | Format-List
+  CMD> icacls "C:\SchoolData" /save C:\Windows\Temp\acl.txt /t /c
+  CMD> icacls "C:\SchoolData"
+  CMD> icacls "C:\SchoolData" /inheritance:r /grant:r "Administrators:(OI)(CI)F" "Users:(OI)(CI)RX" /t
+  CMD> icacls "C:\SchoolData" /remove:g Everyone /t
+  PS> Get-Acl "C:\SchoolData" | Format-List
   CMD> accesschk -accepteula -uwcqv "Authenticated Users" *   (Sysinternals, public: services a standard account can reconfigure)
   CMD> accesschk -accepteula -s -w Users "C:\Program Files"   (Sysinternals, public: files and folders a standard account can write)
   WHY: Everyone with Full control on shares or Program Files lets anyone swap
@@ -998,12 +998,12 @@
         and everything a bare-metal restore needs to drive E:.
 
 ------------------------------ FIX OR BREAK? (practice cards) ------------------
-  Brief: Authorized administrators: alice. Authorized users: bob, carol.
-  Action: Remove bob from the Administrators group.
-  Call: FIX. Bob is a standard user per the brief. Demoting that account is
+  Brief: Authorized administrators: keoni. Authorized users: koa, nohea.
+  Action: Remove koa from the Administrators group.
+  Call: FIX. Koa is a standard user per the brief. Demoting that account is
              least privilege.
 
-  Brief: The company depends on this machine's FTP server for client uploads.
+  Brief: The school depends on this machine's FTP server for teacher uploads.
   Action: Stop and disable the FTP service because FTP is insecure.
   Call: BREAKS IT. Required services must stay up. Harden FTP (no anonymous,
                    strong passwords, firewall rule) instead of killing it.
@@ -1014,8 +1014,8 @@
   Call: CHECK FIRST. Answer the investigation question before you destroy the
                      evidence. Evidence first, fixes second.
 
-  Brief: You log in as alice. Alice is an authorized administrator.
-  Action: Change the password of every user including alice to a strong one.
+  Brief: You log in as keoni. Keoni is an authorized administrator.
+  Action: Change the password of every user including keoni to a strong one.
   Call: CHECK FIRST. Changing the sign-in account's password is usually fine but
                      can lock you out if it is recorded wrong; the brief
                      decides. Record every password you set.
@@ -1035,29 +1035,30 @@
                    Authentication, and audit the Remote Desktop Users group
                    instead.
 
-  Brief: No media files are allowed on company computers.
-  Action: Delete C:\Users\bob\Music\mixtape.mp3 after confirming no
+  Brief: No media files are allowed on school computers.
+  Action: Delete C:\Users\koa\Music\mixtape.mp3 after confirming no
           investigation question refers to it.
   Call: FIX. Policy violation plus confirmation that it is not evidence. Note
              the path in your change log.
 
-  Brief: The company runs an IIS web server on this host.
+  Brief: The school runs an IIS web server on this host.
   Action: Run Disable-WindowsOptionalFeature for the IIS-WebServer feature to
           shrink attack surface.
   Call: BREAKS IT. Required service. Harden IIS (authentication, directory
                    browsing, updates) rather than removing it.
 
-  Brief: Auditing must be enabled per company policy.
+  Brief: Auditing must be enabled per school policy.
   Action: Run auditpol /clear to start from a clean baseline.
   Call: BREAKS IT. That removes all auditing. Set categories or subcategories to
                    Success and Failure instead.
 
-  Brief: The company handles customer PII; nothing is said about screen locks.
+  Brief: The school handles student records (PII); nothing is said about
+         screen locks.
   Action: Set a password-protected screen saver with a 10 minute timeout.
   Call: FIX. Standard policy for any machine that touches PII, and a CIS
              Benchmark recommendation for Windows desktops.
 
-  Brief: IT administers this laptop remotely over SSH.
+  Brief: School IT administers this laptop remotely over SSH.
   Action: Run Remove-WindowsCapability for OpenSSH.Server.
   Call: BREAKS IT. Required service. Keep it, harden sshd_config, and restrict
                    the firewall rule to the admin subnet.
@@ -1079,7 +1080,7 @@
                      its support first (a firmware update often adds it), then
                      require signing.
 
-  Brief: Staff clock in at http://timeclock.honua.example, a required site that
+  Brief: Staff clock in at http://timeclock.phn.k12.lan, a required site that
          has only plain HTTP.
   Action: Force HTTPS-Only in every browser for every site, the time clock
           included.
@@ -1087,12 +1088,12 @@
                      host as an exception first (HttpAllowlist in Chrome, Manage
                      Exceptions in Firefox), then force it for everything else.
 
-  Brief: The brief requires the intranet site at intranet.honua.example. It
+  Brief: The brief requires the intranet site at intranet.phn.k12.lan. It
          stopped loading after this morning's hardening.
   Action: Undo every change from this morning until the site loads again.
   Call: CHECK FIRST. Find the broken link first: ipconfig /all, ping the
                      gateway, nslookup the name, then Test-NetConnection
-                     intranet.honua.example -Port 443. Your change log then
+                     intranet.phn.k12.lan -Port 443. Your change log then
                      points to the one change to undo.
 
   Brief: The brief requires BitLocker on this PC's C: drive. Get-BitLockerVolume
@@ -1122,8 +1123,8 @@
        profile disabled.
 
   Get-LocalUser output. Tap the finding.
-     alice   True   PasswordRequired: True
-     bob     True   PasswordRequired: True
+     keoni   True   PasswordRequired: True
+     koa     True   PasswordRequired: True
   >> svc_backup  True   PasswordRequired: False
      Guest   False  PasswordRequired: False
   WHY: An enabled account with PasswordRequired False is allowed a blank
@@ -1161,7 +1162,7 @@
      127.0.0.1       localhost
      ::1             localhost
   >> 127.0.0.1       update.antivirus-vendor.example
-     10.0.0.5        intranet.example.com
+     10.0.0.5        intranet.phn.k12.lan
   WHY: This line points the antivirus update site at this PC itself, so every
        update check fails and signatures go stale. Remove it. The intranet line
        matches the brief, so it stays.

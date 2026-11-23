@@ -81,7 +81,7 @@ h1{margin:0;font:700 var(--t-title)/1 var(--title)}
 .it .tg{flex:none;font-size:var(--t-xs);font-weight:600;color:var(--muted);white-space:nowrap}
 .inline{margin:.2rem 0 .7rem .3rem;padding:.8rem .9rem;border:1px solid var(--rule);border-radius:8px;background:var(--face)}
 /* detail: title 18 > section heading 16 > body 15 > secondary 13 > badges 12 */
-.d{font-size:var(--t-base)}
+.d{font-size:var(--t-base);overflow-wrap:anywhere}  /* a long path or setting name wraps in place of pushing the page sideways */
 .d h2{margin:0;font:700 var(--t-xl)/1.3 var(--body)}
 .d h2 code{font:700 var(--t-xl)/1.3 var(--mono)}
 .d h2 .sb{margin-left:.5rem;vertical-align:.2em}
@@ -99,7 +99,9 @@ code{font:var(--t-sm) var(--mono);overflow-wrap:anywhere}
 .how{margin:.2rem 0 .4rem;font-size:var(--t-sm);color:var(--muted)}
 .how code{color:var(--ink)}
 .care{margin:.6rem 0;padding:.5rem .75rem;border-left:4px solid var(--int);border-radius:4px;background:color-mix(in srgb,var(--int) 10%,var(--face));font-size:var(--t-md)}
-.opts{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.35rem .8rem;margin:0}
+.opts{display:grid;grid-template-columns:minmax(0,max-content) minmax(12rem,1fr);gap:.35rem .8rem;margin:0}
+/* phones: each option above its meaning, so a long option never pushes the page sideways */
+@media (max-width:600px){.opts{grid-template-columns:minmax(0,1fr);gap:.1rem 0}.opts dd{margin:0 0 .45rem .8rem}}
 .opts dt{font-weight:600;min-width:0}
 .opts dd{margin:0;font-size:var(--t-md);min-width:0}
 .opts .k{margin-left:.3rem}
@@ -141,6 +143,7 @@ a.chip{color:var(--accent)}
 .utm{color:var(--ut);font-weight:700}
 .utw{color:var(--ut);font-weight:600;font-size:var(--t-sm)}
 .pls.pug>li{border-left-color:var(--ut)}
+.it .tg-pug{color:var(--ut)}
 .pls .fam{margin-left:.35rem;font-size:var(--t-xs);font-weight:600;color:var(--muted)}
 .foot{margin-top:1.4rem;padding-top:.8rem;border-top:1px solid var(--rule);font-size:var(--t-sm);color:var(--muted)}
 .foot p{margin:0 0 .4rem}
@@ -268,10 +271,13 @@ a.chip{color:var(--accent)}
       .sort(function (a, z) { return z[1] - a[1] || (a[0].name < z[0].name ? -1 : 1); }).map(function (x) { return x[0]; });
   }
   function sysBubble(os) { return el('span', {cls: 'sb sb-' + os, text: C.sysName[os] || os}); }
+  function pugName() { return (C.pug && C.pug.name) || 'Cyber PUG'; }
   function cliItem(f) {
     var li = el('li', null, [el('button', {cls: 'it', type: 'button', 'data-cmd': f.id, 'aria-current': String(S.cmd === f.id),
       'aria-expanded': wide.matches ? null : String(S.cmd === f.id)}, [
-      el('code', {cls: 't', text: f.name}), sysBubble(f.os), el('span', {cls: 'tg', text: String(f.n), title: plural(f.n, 'use', 'uses') + ' in the apps'})
+      el('code', {cls: 't', text: f.name}), sysBubble(f.os),
+      f.xp ? el('span', {cls: 'tg tg-pug', text: '⚠︎ ' + pugName(), title: 'Only in ' + pugName() + '’s experimental checklist lines so far'})
+        : el('span', {cls: 'tg', text: String(f.n), title: plural(f.n, 'use', 'uses') + ' in the apps'})
     ])]);
     if (!wide.matches && S.cmd === f.id) li.appendChild(el('div', {cls: 'inline'}, [cmdDetail(f)]));
     return li;
@@ -366,9 +372,14 @@ a.chip{color:var(--accent)}
     var rows = f.pug || [], P = C.pug;
     if (!rows.length || !P) return;
     var label = 'Checklist line · ' + P.name + ' (experimental)';
-    d.appendChild(el('h3', {cls: 'pugh', text: 'Also in ' + P.name + ' (experimental)'}));
-    d.appendChild(el('p', {cls: 'pugn'}, [utMark(), ' ', el('span', {cls: 'utw', text: 'Untested on a real system'}),
-      ': lines from ' + P.name + '’s team takeover checklists that use this command. They stay apart from the drills and labs and count as practice nowhere, so rehearse a line on a practice machine before you trust it.']));
+    d.appendChild(el('h3', {cls: 'pugh', text: (f.xp ? 'In ' : 'Also in ') + P.name + ' (experimental)'}));
+    // the note matches the lines below it: every line untested, some untested (each marked), or every line run cleanly
+    var nUt = rows.filter(function (r) { return r[3]; }).length;
+    var about = 'lines from ' + P.name + '’s team takeover checklists that use this command. They stay apart from the drills and labs and count as practice nowhere';
+    d.appendChild(el('p', {cls: 'pugn'}, nUt === rows.length
+      ? [utMark(), ' ', el('span', {cls: 'utw', text: 'Untested on a real system'}), ': ' + about + ', so rehearse a line on a practice machine before you trust it.']
+      : nUt ? [el('span', {cls: 'utw', text: 'Experimental'}), ': ' + about + '. Lines marked ', utMark(), ' are untested on a real system, so rehearse one on a practice machine before you trust it.']
+      : [el('span', {cls: 'utw', text: 'Experimental'}), ': ' + about + '. Every line here ran cleanly on a real system; still rehearse it on a practice machine first.']));
     var byTab = {}, tabs = [];
     rows.forEach(function (r) {
       var stp = P.steps[r[0]];
@@ -406,8 +417,10 @@ a.chip{color:var(--accent)}
       return el('sup', {cls: 'cite'}, [el('a', {href: u, target: '_blank', rel: 'noopener noreferrer', title: t + ' (opens the vendor’s page)', 'aria-label': 'Source ' + n + ': ' + t, text: String(n)})]);
     }
     d.appendChild(el('h2', null, [el('code', {text: f.name}), doc ? cite(doc.u, doc.t) : null, sysBubble(f.os)]));
-    var meta = [f.cat, plural(f.n, 'use', 'uses') + ' in the apps'];
+    var meta = [f.cat, f.xp ? 'only in ' + pugName() + ' (experimental) so far' : plural(f.n, 'use', 'uses') + ' in the apps'];
     d.appendChild(el('p', {cls: 'meta', text: meta.join(' · ')}));
+    if (f.xp) d.appendChild(el('p', {cls: 'pugn'}, [el('span', {cls: 'k k-pug', text: 'Experimental entry'}), ' This command appears only in ' + pugName() +
+      '’s team takeover checklists so far, apart from the lessons, drills, and labs. Check it against the vendor documentation and a practice machine before you rely on it.']));
     if (f.what) d.appendChild(el('p', {text: f.what}));
     if (f.how) d.appendChild(el('p', {cls: 'how'}, ['Type it at: ', el('code', {text: f.how})]));
     if (f.care) d.appendChild(el('p', {cls: 'care'}, [el('b', {text: 'Careful: '}), f.care]));
@@ -445,11 +458,11 @@ a.chip{color:var(--accent)}
       d.appendChild(more);
     }
     // every place it appears, app by app, in the order students meet them
-    d.appendChild(el('h3', {text: 'Where it appears'}));
     var groups = {};
     f.forms.forEach(function (x) { x.p.forEach(function (p) { (groups[p.t] = groups[p.t] || []).push([p, x.l]); }); });
     var order = C.toolOrder.filter(function (t) { return groups[t]; });
-    if (!order.length) d.appendChild(el('p', {cls: 'none', text: 'Only in the simulators so far: try it there.'}));
+    if (!f.xp) d.appendChild(el('h3', {text: 'Where it appears'}));
+    if (!order.length && !f.xp) d.appendChild(el('p', {cls: 'none', text: 'Only in the simulators so far: try it there.'}));
     order.forEach(function (t, i) {
       var key = function (x) { return x[0].r === 'reference' ? 1 : 0; };
       var ps = placeGroups(groups[t].sort(function (a, z) { return key(a) - key(z); }));
@@ -495,6 +508,8 @@ a.chip{color:var(--accent)}
     if (C.pug) {
       dl.appendChild(el('dt', null, [el('span', {cls: 'k k-pug', text: 'Checklist line'})]));
       dl.appendChild(el('dd', null, ['A line from ' + C.pug.name + ', an experimental team checklist, apart from the drills and labs. ', utMark(), ' marks a line untested on a real system.']));
+      dl.appendChild(el('dt', null, [el('span', {cls: 'k k-pug', text: 'Experimental entry'})]));
+      dl.appendChild(el('dd', {text: 'A command that only ' + C.pug.name + '’s checklist lines use so far; the list marks it ⚠︎ ' + C.pug.name + ' in place of a count of uses.'}));
     }
     lg.appendChild(dl);
     d.appendChild(lg);

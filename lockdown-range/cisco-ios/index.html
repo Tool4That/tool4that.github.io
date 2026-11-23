@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-YG2dni0GRvZL0AR8bCRVdZOBcwRcOyIIt6Cd28Sexrk='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+H1kcZtpaNHNd1/zKBZhHu+KGT4tNm3TB7Zg/8hxFio='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/lockdown-range/cisco-ios/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%96%A5%3C%2Ftext%3E%3C%2Fsvg%3E">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Tool4That">
 <meta property="og:title" content="Cisco Range">
-<meta property="og:description" content="A Packet Tracer-style topology in your browser: IOS consoles with ? help, abbreviations, and the exact error messages, plus PC command prompts. Four scenarios, from one router to a two-site network with VLAN trunks, router-on-a-stick, and OSPF, with a live Progress Check.">
+<meta property="og:description" content="A Packet Tracer-style topology in your browser: IOS consoles with ? help, abbreviations, and the exact error messages, plus PC command prompts. Three levels (Recruit, Operator, and Captain) run from one router to two switches joined by a trunk. Level 4 · Advanced · extra credit is a two-site school network with VLAN trunks, router-on-a-stick, and OSPF that builds a different Site B on every attempt and gives a layout code a class can share. A live Progress Check keeps count.">
 <meta property="og:url" content="https://freeapp4that.store/lockdown-range/cisco-ios/">
 <meta property="og:image" content="https://freeapp4that.store/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -22,7 +22,7 @@
 <style>
 :root{
   --bg:#EDF0F4; --panel:#FFFFFF; --ink:#16212D; --muted:#5F6E7E; --line:#CFD7E0; --soft:#F4F6F9;
-  --term:#0E1A2B; --termink:#D9E4F1; --prompt:#7FA6D6; --accent:#B8690E; --accent-ink:#FFFFFF;
+  --term:#0E1A2B; --termink:#D9E4F1; --prompt:#7FA6D6; --accent:#B8690E; --accent-ink:#FFFFFF; --pill-on:#965509;
   --ok:#1C8A57; --okbg:#E3F5EB; --bad:#C03A3A; --badbg:#FBE7E7; --warn:#A8690F; --warnbg:#FBF0DA; --focus:#FFB300;
   --sans:"Segoe UI Variable Text","Segoe UI","Avenir Next",Avenir,Roboto,"Helvetica Neue",Arial,sans-serif;
   --mono:"Cascadia Mono","JetBrains Mono","Fira Code","SF Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
@@ -55,13 +55,16 @@ header.top{ position:sticky; top:0; z-index:40; background:var(--panel); border-
 .brand span{ display:block; font-weight:400; font-size:.8rem; color:var(--muted); line-height:1.2; }
 .levels{ display:flex; gap:6px; flex-wrap:wrap; }
 .levels button{ border-radius:999px; padding:3px 12px; display:flex; align-items:center; gap:6px; }
-.levels button[aria-selected="true"]{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+.levels button[aria-selected="true"]{ background:var(--pill-on); color:var(--accent-ink); border-color:var(--pill-on); }
 .levels button .lv{ font-size:.75rem; opacity:.85; }
 .levels button .best{ font-size:.72rem; background:rgba(0,0,0,.12); border-radius:999px; padding:0 6px; }
-.levels button[aria-selected="true"] .best{ background:rgba(255,255,255,.25); }
+.levels button[aria-selected="true"] .best{ background:rgba(0,0,0,.22); }
 .levels button .gr{ font-size:.72rem; opacity:.85; }
 .score{ margin-left:auto; font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; padding:4px 12px; border-radius:8px; background:var(--soft); border:1px solid var(--line); }
 .score.neg{ color:var(--bad); }
+/* a must-fix flag holds the points: the number keeps its color, and a short tag says why */
+.score.held{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;white-space:normal;border-color:var(--warn)}
+.score .held-tag{font-size:.78rem;font-weight:600;line-height:1.3;color:var(--ink);background:var(--warnbg);border:1px solid var(--warn);border-radius:6px;padding:1px 6px}
 .theme{ white-space:nowrap; }
 nav.series{ display:flex; flex-wrap:wrap; gap:6px 12px; align-items:center; padding:4px 16px 8px; max-width:1600px; margin:0 auto; font-size:.82rem; color:var(--muted); }
 nav.series .jack{ border:1px solid var(--line); border-radius:999px; padding:1px 10px; background:var(--soft); color:var(--ink); }
@@ -214,6 +217,16 @@ footer .spacer{ flex:1; }
 .debrief tr.no td:first-child{ color:var(--bad); font-weight:700; }
 .debrief td.fix{ font-family:var(--mono); font-size:.8rem; white-space:pre-wrap; }
 .debrief td.why{ color:var(--muted); }
+/* phones: each Debrief row becomes a small card (mark, check, and points on one line; the fix and the reason below) */
+@media (max-width:600px){
+  .debrief .tblwrap table thead{ display:none; }
+  .debrief .tblwrap table,.debrief .tblwrap tbody{ display:block; width:100%; }
+  .debrief .tblwrap tr{ display:grid; grid-template-columns:1.2rem minmax(0,1fr) auto; gap:4px 8px; border-top:1px solid var(--line); padding:8px 0; }
+  .debrief .tblwrap td{ border-top:0; padding:0; min-width:0; overflow-wrap:anywhere; }
+  .debrief .tblwrap td:nth-child(3){ white-space:nowrap; font-weight:600; }
+  .debrief .tblwrap td.pts::after{ content:" pts"; font-weight:400; color:var(--muted); }
+  .debrief .tblwrap td:nth-child(4),.debrief .tblwrap td:nth-child(5){ grid-column:2 / -1; }
+}
 .debrief .sum{ display:flex; gap:16px; flex-wrap:wrap; margin-bottom:10px; font-weight:600; }
 .debrief .learn{ margin:0 0 10px; font-size:.9rem; }
 .help dl{ display:grid; grid-template-columns:auto 1fr; gap:4px 12px; margin:8px 0; }
@@ -259,6 +272,13 @@ footer .spacer{ flex:1; }
 .dbr-copy{ margin-top:.5rem; display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; font-size:.85rem; }
 .dbr-copy textarea{ width:100%; min-height:8em; font:12px/1.4 ui-monospace,Consolas,monospace; }
 .hintmark{ font-size:.78rem; opacity:.8; margin-left:.3rem; }
+/* Level 4 layout bar and the layout code dialog */
+.l4bar{ border:1px solid var(--line); border-left:4px solid var(--accent); background:var(--soft); border-radius:8px; padding:8px 10px; margin:0 0 10px; }
+.l4bar p{ margin:4px 0; }
+.l4bar code{ font-family:var(--mono); font-weight:700; font-size:1rem; letter-spacing:.08em; overflow-wrap:anywhere; }
+.l4bar .l4note{ color:var(--muted); font-size:.9rem; }
+.l4btns{ display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
+#l4-input{ display:block; width:100%; max-width:16rem; min-height:36px; margin:4px 0; border:1px solid var(--line); border-radius:8px; padding:4px 10px; background:var(--panel); font-family:var(--mono); font-size:1.05rem; letter-spacing:.1em; text-transform:uppercase; }
 </style>
 </head>
 <body>
@@ -1640,7 +1660,8 @@ function reloadLinked(tab) {
   const d = S.devices[tab], A = ospfAdj(S), me = A.info[tab], far = [];
   for (const l of S.links) {
     const f = l.a === tab ? { dev: l.b, iface: l.bi } : l.b === tab ? { dev: l.a, iface: l.ai } : null;
-    if (f && S.devices[f.dev] && S.devices[f.dev].running.ifaces[f.iface]) { f.up = ifStatus(S, f.dev, f.iface).proto === 'up'; far.push(f); }
+    // a PC at the far end keeps no running-config or log, so only IOS neighbours log the outage
+    if (f && S.devices[f.dev] && S.devices[f.dev].running && S.devices[f.dev].running.ifaces[f.iface]) { f.up = ifStatus(S, f.dev, f.iface).proto === 'up'; far.push(f); }
   }
   for (const f of far) if (f.up) {
     logMsg(f.dev, '%LINK-3-UPDOWN: Interface ' + f.iface + ', changed state to down');
@@ -1723,6 +1744,7 @@ function runIos(s, line, priv, isDo) {
     const r1 = resolve(trees[1], tokens, ctx);
     if (r1.type === 'run' || (res.type === 'invalid' && res.col === tokens[0].i)) res = r1;
   }
+  if (res.type === 'invalid' && !exec) { const alt = tsReorder(tokens); if (alt) for (const tr of trees) { const r2 = resolve(tr, alt, ctx); if (r2.type === 'run' && r2.node.run === cfgSvcTimestamps) { res = r2; break; } } }
   if (res.type === 'invalid') { printInvalid(ctx, res.col); rangeHint(ctx, body); return false; }
   if (res.type === 'ambiguous') { printAmbiguous(ctx, body); return false; }
   if (res.type === 'incomplete') { printIncomplete(ctx); return false; }
@@ -2423,12 +2445,15 @@ function cfgEnableSecret(ctx) {
   if (w[2] === '0' || w[2] === '5') { type = w[2]; i = 3; }
   const text = ctx.line.slice(indexOfWord(ctx.line, i)).trim();
   if (!text) { printIncomplete(ctx); return; }
-  if (type === '5') { cfg.enableSecret = { hashed: true, hash: text, type: 5 }; return; }
+  if (type === '5') { if (!sameSecretHash(cfg.enableSecret, text)) cfg.enableSecret = { hashed: true, hash: text, type: 5 }; return; }
   if (tooShort(ctx, text)) return;
   if (cfg.enablePassword && cfg.enablePassword.text === text) { ctx.print('The enable secret you have chosen is the same as your enable password.'); ctx.print('This is not recommended.  Re-enter the enable secret.'); ctx.print(''); return; }
   cfg.enableSecret = { text: text, type: 5 };
   if (type === null) secretTypeNote(ctx, text, 'enable secret');
 }
+/* a pasted type 5 hash that is the hash the secret already has leaves the secret as it is, as on IOS: the device still
+   accepts the same password afterwards */
+function sameSecretHash(sec, hash) { return !!(sec && !sec.hashed && sec.type !== 9 && secretLine(sec) === '5 ' + hash); }
 /* These releases take 0 or 5 after enable secret and username NAME secret, so the cleartext form reads a typed 8 or 9
    as the start of the secret, and IOS stores the whole text as a type 5 hash */
 function secretTypeNote(ctx, text, cmd) {
@@ -2507,7 +2532,7 @@ function cfgUsername(ctx) {
       let text = ctx.line.slice(indexOfWord(ctx.line, i)).trim(); i = w.length;
       if (!text) { printIncomplete(ctx); return; }
       if (kind === 'secret') {
-        if (type === '5') secret = { hashed: true, hash: text, type: 5 };
+        if (type === '5') { const cur = userByName(cfg, name); secret = cur && sameSecretHash(cur.secret, text) ? cur.secret : { hashed: true, hash: text, type: 5 }; }
         else { if (tooShort(ctx, text)) return; secret = { text: text, type: 5 }; if (type === null) secretTypeNote(ctx, text, 'username NAME secret'); }
       } else {
         if (type === '7') { const dec = type7Decode(text); if (dec === null) { ctx.print('Invalid encrypted password: ' + text); return; } text = dec; }
@@ -2749,6 +2774,18 @@ const SEVERITY = ['emergencies', 'alerts', 'critical', 'errors', 'warnings', 'no
 // gets its own list of the keywords after it, so the command index lists every combination
 const TS_KW = [['msec', 'Include milliseconds in timestamp'], ['localtime', 'Use local time zone for timestamps'], ['show-timezone', 'Add time zone information to timestamp'], ['year', 'Include year in timestamp']];
 const tsAfter = i => TS_KW.slice(i).map(([k, h], j) => { const n = { k: k, h: h, run: cfgSvcTimestamps }, c = tsAfter(i + j + 1); if (c.length) n.c = c; return n; });
+/* IOS takes the datetime keywords in any order; the tree lists them in the reference order, so a line that names them
+   out of order is retried with them sorted (the running-config prints that order) */
+function tsReorder(tokens) {
+  const kw = TS_KW.map(x => x[0]), idx = t => { const low = t.toLowerCase(), m = kw.filter(x => x.startsWith(low)); return m.length === 1 ? kw.indexOf(m[0]) : -1; };
+  let k = tokens.length;
+  while (k > 0 && idx(tokens[k - 1].t) >= 0) k--;
+  const tail = tokens.slice(k);
+  if (k === 0 || tail.length < 2 || !'datetime'.startsWith(tokens[k - 1].t.toLowerCase())) return null;
+  if (new Set(tail.map(x => idx(x.t))).size !== tail.length) return null;
+  const sorted = tail.slice().sort((a, b) => idx(a.t) - idx(b.t));
+  return sorted.every((x, i) => x === tail[i]) ? null : tokens.slice(0, k).concat(sorted);
+}
 const TS_OPTS = [{ k: 'datetime', h: 'Timestamp with date and time', run: cfgSvcTimestamps, c: tsAfter(0) }, { k: 'uptime', h: 'Timestamp with system uptime', run: cfgSvcTimestamps }];
 const USER_TAIL = [
   { k: 'secret', h: 'Specify the secret for the user', inc: true, run: cfgUsername, c: [{ k: '0', h: 'Specifies an UNENCRYPTED secret will follow', c: [{ a: 'LINE', h: 'The UNENCRYPTED (cleartext) user secret', run: cfgUsername }] }, { k: '5', h: 'Specifies an ENCRYPTED secret will follow', c: [{ a: 'WORD', h: 'The ENCRYPTED secret string', run: cfgUsername }] }, { a: 'LINE', h: 'The UNENCRYPTED (cleartext) user secret', run: cfgUsername }] },
@@ -2880,7 +2917,7 @@ const CONFIG_TREE = [
       { k: 'default', h: 'The default authentication list.', inc: true, run: cfgAaaAuth, c: aaaMethods(4) },
       { a: 'WORD', h: 'Named authentication list (max 31 characters, longer will be rejected).', inc: true, run: cfgAaaAuth, c: aaaMethods(4) }] }] },
     { k: 'session-id', h: 'AAA Session ID', when: ctx => !!ctx.cfg.aaa, c: [{ k: 'common', h: 'Common Session ID', run: noop }] }] },
-  { k: 'snmp-server', h: 'Modify SNMP engine parameters', c: [
+  { k: 'snmp-server', h: 'Modify SNMP engine parameters', inc: true, run: snmpOff, c: [
     { k: 'community', h: 'Enable SNMP; set community string and access privs', inc: true, run: snmpCommunity, c: [{ a: 'WORD', h: 'SNMP community string', run: snmpCommunity, c: [
       { k: 'RO', h: 'Read-only access with this community string', run: snmpCommunity, c: [{ a: 'NUM', min: 1, max: 99, h: 'Std IP accesslist allowing access with this community string', run: snmpCommunity }] },
       { k: 'RW', h: 'Read-write access with this community string', run: snmpCommunity, c: [{ a: 'NUM', min: 1, max: 99, h: 'Std IP accesslist allowing access with this community string', run: snmpCommunity }] },
@@ -3419,6 +3456,8 @@ function cfgAaaAuth(ctx) {
 /* ---- SNMP: communities and v3 groups show in the config; v3 users stay out of it, as on IOS ---- */
 function snmpOf(cfg) { return cfg.snmp || (cfg.snmp = { comm: [], groups: [], users: [] }); }
 function snmpTidy(cfg) { const s = cfg.snmp; if (s && !s.comm.length && !s.groups.length && !s.users.length && !s.location && !s.contact) delete cfg.snmp; }
+/* no snmp-server turns the SNMP agent off and removes every snmp-server line, as on IOS */
+function snmpOff(ctx) { if (ctx.no) delete ctx.cfg.snmp; }
 function snmpCommunity(ctx) {
   const w = ctx.w, name = w[2]; if (!name) return;
   const s = snmpOf(ctx.cfg);
@@ -5040,7 +5079,7 @@ function hardenedDevice(d, host, domain) { // the district-managed template
 const SCENARIOS = [
   /* ---------------------------------------------------------------- 1 Recruit */
   {
-    id: 's1', level: 1, levelName: 'Recruit', grade: 'Sophomore', name: 'Harbor Lights Tutoring Center', short: 'Branch router hardening',
+    id: 's1', level: 1, levelName: 'Recruit', grade: 'Sophomore', name: 'Kōnane Tutoring Center', short: 'Branch router hardening',
     learn: [['sophomore/s5', 'Sophomore', 'Cisco: configure a switch and a router']],
     layout: { R1: { x: 220, y: 80 }, PC1: { x: 220, y: 215 } },
     build() {
@@ -5055,7 +5094,7 @@ const SCENARIOS = [
       return { devices: { R1: R1, PC1: PC1 }, links: [{ a: 'R1', ai: 'GigabitEthernet0/0', b: 'PC1', bi: 'FastEthernet0' }] };
     },
     brief: {
-      blurb: ['You are the new network technician at Harbor Lights Tutoring Center, an after-school program with one branch router (R1) and a front-desk PC (PC1). The previous technician left R1 wide open: it still has its factory hostname, a plaintext enable password, an unused account, and Telnet access.',
+      blurb: ['You are the new network technician at Kōnane Tutoring Center, an after-school program with one branch router (R1) and a front-desk PC (PC1). The previous technician left R1 wide open: it still has its factory hostname, a plaintext enable password, an unused account, and Telnet access.',
         'Harden R1 so it meets the policy below. Work from R1\'s console tab and test from PC1. The R1 console starts password-free: press RETURN at the console to begin.'],
       admins: ['techlead (existing account, privilege 15) - keep it', 'netadmin (your account - create it with privilege 15 and a secret of 10+ characters)'],
       users: ['No other accounts are authorized. The "guest" account is not authorized.'],
@@ -5079,7 +5118,7 @@ const SCENARIOS = [
       { id: 'con', title: 'Console line protected with a password and login', pts: 6, cat: CAT.access, test: St => { const L = C(St, 'R1').lines.con[0]; return !!(L.password && L.password.text.length >= 10 && L.login !== 'none'); }, hint: 'line console 0, password <10+ chars>, login', fix: 'R1(config)# line console 0\nR1(config-line)# password C0nsole-Pass!\nR1(config-line)# login', why: 'Without it anyone with a console cable owns the device.' },
       { id: 'vtylocal', title: 'VTY lines use local user authentication (login local)', pts: 6, cat: CAT.access, test: St => vtyEvery(C(St, 'R1'), L => L.login === 'local'), hint: 'line vty 0 4, login local', fix: 'R1(config)# line vty 0 4\nR1(config-line)# login local', why: 'SSH needs usernames; a shared line password cannot be audited or revoked per person.' },
       { id: 'vtyssh', title: 'VTY lines accept SSH only (Telnet disabled)', pts: 6, cat: CAT.access, test: St => vtyEvery(C(St, 'R1'), sshOnly), hint: 'line vty 0 4, transport input ssh', fix: 'R1(config-line)# transport input ssh', why: 'Telnet sends passwords in clear text on the wire.' },
-      { id: 'domain', title: 'Domain name configured', pts: 3, cat: CAT.access, test: St => !!C(St, 'R1').domainName, hint: 'ip domain-name harborlights.lan', fix: 'R1(config)# ip domain-name harborlights.lan', why: 'The RSA key is named hostname.domain; IOS refuses to generate one without a domain.' },
+      { id: 'domain', title: 'Domain name configured', pts: 3, cat: CAT.access, test: St => !!C(St, 'R1').domainName, hint: 'ip domain-name konane.lan', fix: 'R1(config)# ip domain-name konane.lan', why: 'The RSA key is named hostname.domain; IOS refuses to generate one without a domain.' },
       { id: 'rsa', title: 'RSA key pair generated (2048 bits)', pts: 6, cat: CAT.access, test: St => { const k = C(St, 'R1').rsa; return !!(k && k.bits >= 2048); }, hint: 'crypto key generate rsa general-keys modulus 2048 (needs hostname + domain first)', fix: 'R1(config)# crypto key generate rsa general-keys modulus 2048', why: 'Keys shorter than 2048 bits are considered weak; the key is what enables the SSH server.' },
       { id: 'sshv2', title: 'SSH version 2 enforced', pts: 5, cat: CAT.access, test: St => C(St, 'R1').sshVersion === 2, hint: 'ip ssh version 2 (after the RSA key exists)', fix: 'R1(config)# ip ssh version 2', why: 'SSHv1 has known weaknesses; v2 only is the standard.' },
       { id: 'banner', title: 'MOTD banner warns unauthorized users (and leaves out "welcome")', pts: 4, cat: CAT.config, test: St => bannerOk(C(St, 'R1').bannerMotd), hint: 'banner motd #Authorized access only. Activity is monitored.#', fix: 'R1(config)# banner motd #Authorized access only. Activity is monitored.#', why: 'The banner states that access is restricted and monitored. Cisco advises banners that reveal nothing about the device or owner. "Welcome" reads as an invitation, and legal wording is a question for counsel.' },
@@ -5266,15 +5305,15 @@ const SCENARIOS = [
   },
   /* ---------------------------------------------------------------- 4 Two sites */
   {
-    id: 's4', level: 4, levelName: 'Two sites', grade: 'Senior', name: 'Two-site school network', short: 'VLANs, router-on-a-stick, OSPF, and SSH across two sites',
+    id: 's4', level: 4, levelName: 'Advanced', extra: true, grade: 'Senior', name: 'Pōhinahina High School two-site network', short: 'VLANs, router-on-a-stick, OSPF, and SSH across two sites',
     learn: [['senior/se6', 'Senior', 'Cisco: audit and extend the two-site network'], ['junior/j4', 'Junior', 'Cisco: VLANs, routing, and ACLs', 'the DHCP pool']],
     layout: { ISP: { x: 186, y: 30 }, Resolver: { x: 372, y: 30 }, RtrA: { x: 62, y: 110 }, RtrB: { x: 352, y: 110 }, SwA: { x: 62, y: 190 }, SwB: { x: 352, y: 190 }, 'Teacher-A': { x: 62, y: 270 }, 'Student-B': { x: 196, y: 270 }, 'Teacher-B': { x: 352, y: 270 } },
     build() {
       const R = '255.255.255.0', P30 = '255.255.255.252';
       // Site A: finished by the Site A team, the worked example to read
       const siteA = cfg => {
-        cfg.enableSecret = { text: 'En@ble-A1', type: 5 }; cfg.pwEnc = true; cfg.domainName = 'school.lan'; cfg.domainLookup = false; cfg.httpServer = false;
-        cfg.rsa = { bits: 2048, name: cfg.hostname + '.school.lan' }; cfg.sshVersion = 2;
+        cfg.enableSecret = { text: 'En@ble-A1', type: 5 }; cfg.pwEnc = true; cfg.domainName = 'phn.k12.lan'; cfg.domainLookup = false; cfg.httpServer = false;
+        cfg.rsa = { bits: 2048, name: cfg.hostname + '.phn.k12.lan' }; cfg.sshVersion = 2;
         cfg.bannerMotd = 'Authorized school staff only. Activity is monitored.'; cfg.bannerLogin = 'Site A network equipment. Sign in with your own account.';
         usr(cfg, 'netadmin', { privilege: 15, secret: { text: 'Adm1n-A1', type: 5 } });
         usr(cfg, 'techlead', { privilege: 15, secret: { text: 'T3chl3ad-A1', type: 5 } });
@@ -5309,8 +5348,8 @@ const SCENARIOS = [
       usr(ic, 'provider', { privilege: 15, secret: { text: 'Pr0vider-Adm1n', type: 5 } });
       setLine(ic.lines.con[0], { login: 'local', exec: { m: 5, s: 0 } });
       vty16(ic); vtyAll(ic, { login: 'local', transport: 'ssh' });
-      ifc(ic, 'GigabitEthernet0/0', { ip: '203.0.113.1', mask: P30, shutdown: false, description: 'School Site A' });
-      ifc(ic, 'GigabitEthernet0/1', { ip: '198.51.100.1', mask: P30, shutdown: false, description: 'School Site B' });
+      ifc(ic, 'GigabitEthernet0/0', { ip: '203.0.113.1', mask: P30, shutdown: false, description: 'PHN Site A' });
+      ifc(ic, 'GigabitEthernet0/1', { ip: '198.51.100.1', mask: P30, shutdown: false, description: 'PHN Site B' });
       ifc(ic, 'GigabitEthernet0/2', { ip: '8.8.8.1', mask: R, shutdown: false, description: 'Resolver LAN' });
       ic.routes.push({ prefix: '10.1.0.0', mask: '255.255.0.0', nextHop: '203.0.113.2' }, { prefix: '10.2.0.0', mask: '255.255.0.0', nextHop: '198.51.100.2' },
         { prefix: '10.1.0.0', mask: '255.255.0.0', nextHop: '198.51.100.2', ad: 5 }, { prefix: '10.2.0.0', mask: '255.255.0.0', nextHop: '203.0.113.2', ad: 5 });
@@ -5346,7 +5385,7 @@ const SCENARIOS = [
         'OSPF hellos stay on the inter-site link: like RtrA, RtrB makes g0/0.10, .20, and .30 passive interfaces (or uses passive-interface default with no passive-interface g0/2).',
         'RtrB G0/1 filters what arrives from the provider with a named extended ACL, EDGE-IN, applied with ip access-group EDGE-IN in. It permits replies (permit tcp any any established and permit icmp any any echo-reply) and DNS answers from the resolver (permit udp host 8.8.8.8 eq domain any), and it ends in deny ip any any log.',
         'Student PCs lease their addresses from RtrB, as Site A\'s do from RtrA (pool STUDENTS). RtrB excludes 10.2.10.1 to 10.2.10.9 with ip dhcp excluded-address and serves pool STUDENTS-B: network 10.2.10.0 255.255.255.0, default-router 10.2.10.1, and dns-server 8.8.8.8. Student-B is a DHCP client, so ipconfig /renew on Student-B then leases 10.2.10.10, the first free address and the one in the addressing table.',
-        'Remote management is SSH version 2 only: domain school.lan, 2048-bit RSA key, login local, user netadmin at privilege 15. Only Teachers at either site connect: access-list 20 permits 10.1.20.0 0.0.0.255 and 10.2.20.0 0.0.0.255, applied with access-class 20 in on every VTY line (vty 0 15 on SwB; on RtrB, every VTY range show running-config lists).',
+        'Remote management is SSH version 2 only: domain phn.k12.lan, 2048-bit RSA key, login local, user netadmin at privilege 15. Only Teachers at either site connect: access-list 20 permits 10.1.20.0 0.0.0.255 and 10.2.20.0 0.0.0.255, applied with access-class 20 in on every VTY line (vty 0 15 on SwB; on RtrB, every VTY range show running-config lists).',
         'Both new devices use an enable secret, a console password with login, a MOTD banner, and a login banner. Give every secret and password its own passphrase, and save both configurations.'],
       warning: 'Changing SwA, RtrA, or the ISP router, or locking Site A Teachers out of SSH to SwB or RtrB, fails an availability check.',
       creds: 'SwA and RtrA console password: C0nsole-A1; enable secret: En@ble-A1 (read them, then leave them as they are). SwB and RtrB: factory defaults, so answer no to the initial configuration dialog and press RETURN. ISP: provider equipment, open to provider staff only. Pick your own Site B secrets with a different passphrase for each, for example En@ble-B1, C0nsole-B1, and Adm1n-B1.',
@@ -5370,7 +5409,7 @@ const SCENARIOS = [
       { id: 'trunk', title: 'SwB G0/1 trunk: mode trunk, nonegotiate, native 99, allowed 10,20,30,99', pts: 5, cat: CAT.config, test: St => { const f = C(St, 'SwB').ifaces['GigabitEthernet0/1']; return f.mode === 'trunk' && f.nonegotiate && f.nativeVlan === 99 && JSON.stringify(f.allowed) === '[10,20,30,99]'; }, hint: 'interface gi0/1: switchport mode trunk / switchport nonegotiate / switchport trunk native vlan 99 / switchport trunk allowed vlan 10,20,30,99', fix: 'SwB(config)# interface gi0/1\nSwB(config-if)# switchport mode trunk\nSwB(config-if)# switchport nonegotiate\nSwB(config-if)# switchport trunk native vlan 99\nSwB(config-if)# switchport trunk allowed vlan 10,20,30,99', why: 'The trunk carries the three user VLANs tagged to RtrB. Native VLAN 99 carries no hosts, which defeats double-tagging. It stays in the allowed list, because a trunk drops any VLAN missing from that list, spanning tree included. show interfaces trunk then lists 99 as allowed and forwarding.' },
       { id: 'park', title: 'SwB unused ports (Fa0/3-24, Gi0/2) parked in VLAN 999 and shut down', pts: 4, cat: CAT.config, test: St => { const c = C(St, 'SwB'); if (!c.vlans[999]) return false; const ns = ['GigabitEthernet0/2']; for (let i = 3; i <= 24; i++) ns.push('FastEthernet0/' + i); return ns.every(n => { const f = c.ifaces[n]; return f.mode === 'access' && f.accessVlan === 999 && f.shutdown; }); }, hint: 'interface range fa0/3 - 24 , gi0/2: switchport mode access / switchport access vlan 999 / shutdown', fix: 'SwB(config)# interface range fa0/3 - 24 , gi0/2\nSwB(config-if-range)# switchport mode access\nSwB(config-if-range)# switchport access vlan 999\nSwB(config-if-range)# shutdown', why: 'A shut port stays closed, and if someone enables it by mistake it lands in a dead-end VLAN that is separate from the native VLAN.' },
       { id: 'mgmt', title: 'SwB management: Vlan20 10.2.20.2 up, gateway 10.2.20.1, Vlan1 shut down', pts: 4, cat: CAT.config, test: St => { const c = C(St, 'SwB'), v = c.ifaces['Vlan20'], v1 = c.ifaces['Vlan1']; return !!(v && v.ip === '10.2.20.2' && v.mask === '255.255.255.0' && ifStatus(St, 'SwB', 'Vlan20').proto === 'up' && c.defaultGateway === '10.2.20.1' && v1.shutdown && !v1.ip); }, hint: 'interface vlan 20 / ip address 10.2.20.2 255.255.255.0 / no shutdown; ip default-gateway 10.2.20.1; interface vlan 1 / shutdown', fix: 'SwB(config)# interface vlan 20\nSwB(config-if)# ip address 10.2.20.2 255.255.255.0\nSwB(config-if)# no shutdown\nSwB(config-if)# exit\nSwB(config)# ip default-gateway 10.2.20.1\nSwB(config)# interface vlan 1\nSwB(config-if)# shutdown', why: 'The SVI comes up once VLAN 20 exists and has an up port. The default gateway lets the switch answer managers at the other site.' },
-      { id: 'sshsw', title: 'SwB SSH: hostname SwB, domain, 2048-bit key, version 2, netadmin, SSH-only VTY 0-15', pts: 5, cat: CAT.access, test: St => sshCfgOk(C(St, 'SwB'), 'SwB'), hint: 'hostname SwB; ip domain-name school.lan; crypto key generate rsa general-keys modulus 2048; ip ssh version 2; username netadmin privilege 15 secret ...; line vty 0 15 / login local / transport input ssh', fix: 'Switch(config)# hostname SwB\nSwB(config)# ip domain-name school.lan\nSwB(config)# crypto key generate rsa general-keys modulus 2048\nSwB(config)# ip ssh version 2\nSwB(config)# username netadmin privilege 15 secret Adm1n-B1\nSwB(config)# line vty 0 15\nSwB(config-line)# login local\nSwB(config-line)# transport input ssh', why: 'SSH encrypts the session, and login local ties every login to a named account.' },
+      { id: 'sshsw', title: 'SwB SSH: hostname SwB, domain, 2048-bit key, version 2, netadmin, SSH-only VTY 0-15', pts: 5, cat: CAT.access, test: St => sshCfgOk(C(St, 'SwB'), 'SwB'), hint: 'hostname SwB; ip domain-name phn.k12.lan; crypto key generate rsa general-keys modulus 2048; ip ssh version 2; username netadmin privilege 15 secret ...; line vty 0 15 / login local / transport input ssh', fix: 'Switch(config)# hostname SwB\nSwB(config)# ip domain-name phn.k12.lan\nSwB(config)# crypto key generate rsa general-keys modulus 2048\nSwB(config)# ip ssh version 2\nSwB(config)# username netadmin privilege 15 secret Adm1n-B1\nSwB(config)# line vty 0 15\nSwB(config-line)# login local\nSwB(config-line)# transport input ssh', why: 'SSH encrypts the session, and login local ties every login to a named account.' },
       { id: 'aclsw', title: 'SwB VTY ACL 20: Teachers at both sites only (access-class 20 in on vty 0 15)', pts: 3, cat: CAT.access, test: St => aclOnly(St, 'SwB', TEACHERS, TEACHER_PCS), hint: 'access-list 20 permit 10.1.20.0 0.0.0.255; access-list 20 permit 10.2.20.0 0.0.0.255; line vty 0 15 / access-class 20 in', fix: 'SwB(config)# access-list 20 permit 10.1.20.0 0.0.0.255\nSwB(config)# access-list 20 permit 10.2.20.0 0.0.0.255\nSwB(config)# line vty 0 15\nSwB(config-line)# access-class 20 in', why: 'Only Teachers see a login prompt: SSH from a Students PC gets "% Connection refused by remote host" instead.' },
       // RtrB (39)
       { id: 'subif', title: 'RtrB G0/0 up with subinterfaces .10, .20, and .30 (dot1Q plus gateway addresses)', pts: 6, cat: CAT.config, test: St => { const c = C(St, 'RtrB'); if (c.ifaces['GigabitEthernet0/0'].shutdown) return false; return [[10, '10.2.10.1'], [20, '10.2.20.1'], [30, '10.2.30.1']].every(([v, ip]) => { const f = c.ifaces['GigabitEthernet0/0.' + v]; return !!(f && f.encap && f.encap.vlan === v && !f.encap.native && f.ip === ip && f.mask === '255.255.255.0' && !f.shutdown); }); }, hint: 'interface g0/0 / no shutdown; interface g0/0.10 / encapsulation dot1Q 10 / ip address 10.2.10.1 255.255.255.0; the same for .20 and .30', fix: 'RtrB(config)# interface g0/0\nRtrB(config-if)# no shutdown\nRtrB(config-if)# interface g0/0.10\nRtrB(config-subif)# encapsulation dot1Q 10\nRtrB(config-subif)# ip address 10.2.10.1 255.255.255.0\n(repeat for .20 with 10.2.20.1 and .30 with 10.2.30.1)', why: 'Router-on-a-stick: one physical link carries every VLAN, and each subinterface is one VLAN\'s gateway. Set the dot1Q tag first; IOS refuses an address on an untagged LAN subinterface.' },
@@ -5379,7 +5418,7 @@ const SCENARIOS = [
       { id: 'hostrt', title: 'RtrB static host route: ip route 8.8.8.8 255.255.255.255 198.51.100.1', pts: 4, cat: CAT.config, test: St => C(St, 'RtrB').routes.some(r => r.prefix === '8.8.8.8' && r.mask === '255.255.255.255' && r.nextHop === '198.51.100.1' && (r.ad || 1) === 1), hint: 'ip route 8.8.8.8 255.255.255.255 198.51.100.1 (check it with show ip route 8.8.8.8)', fix: 'RtrB(config)# ip route 8.8.8.8 255.255.255.255 198.51.100.1', why: 'The /32 mask matches the resolver alone, so only that destination uses this uplink path. The route installs while 198.51.100.1 sits on an up, connected subnet.' },
       { id: 'ospf', title: 'RtrB OSPF neighbour FULL with RtrA', pts: 5, cat: CAT.conn, test: St => ospfNeighbors(St, 'RtrB').some(n => n.dev === 'RtrA'), hint: 'router ospf 1 / network 10.0.0.0 0.0.0.3 area 0 / network 10.2.0.0 0.0.255.255 area 0; then show ip ospf neighbor', fix: 'RtrB(config)# router ospf 1\nRtrB(config-router)# router-id 2.2.2.2\nRtrB(config-router)# network 10.0.0.0 0.0.0.3 area 0\nRtrB(config-router)# network 10.2.0.0 0.0.255.255 area 0', why: 'Neighbours form when both ends enable OSPF on the shared subnet in the same area. Each router then learns the other site\'s VLANs as O routes, so OSPF replaces hand-typed inter-site static routes.' },
       { id: 'redist', title: 'RtrB redistributes its static route: redistribute static subnets', pts: 3, cat: CAT.config, test: St => { const o = C(St, 'RtrB').ospf; return !!(o && o.redist === 'subnets'); }, hint: 'router ospf 1 / redistribute static subnets', fix: 'RtrB(config)# router ospf 1\nRtrB(config-router)# redistribute static subnets', why: 'Without subnets, classic IOS 15 redistributes classful networks only and drops the /32. With it, RtrB floods a type-5 LSA for 8.8.8.8 (show ip ospf database on RtrA). RtrA installs it as O E2 8.8.8.8 [110/20] only once its own static route leaves the table.' },
-      { id: 'sshrtr', title: 'RtrB SSH: hostname RtrB, domain, 2048-bit key, version 2, netadmin, SSH-only on every VTY line', pts: 3, cat: CAT.access, test: St => sshCfgOk(C(St, 'RtrB'), 'RtrB'), hint: 'the same SSH steps as SwB; configure line vty 0 15; show running-config then lists line vty 0 4 and line vty 5 15', fix: 'Router(config)# hostname RtrB\nRtrB(config)# ip domain-name school.lan\nRtrB(config)# crypto key generate rsa general-keys modulus 2048\nRtrB(config)# ip ssh version 2\nRtrB(config)# username netadmin privilege 15 secret Adm1n-B2\nRtrB(config)# line vty 0 15\nRtrB(config-line)# login local\nRtrB(config-line)# transport input ssh', why: 'show running-config lists every VTY range: line vty 0 4, plus line vty 5 15 once line vty 0 15 creates those lines. One range left open to Telnet leaves the whole router open, so every range counts.' },
+      { id: 'sshrtr', title: 'RtrB SSH: hostname RtrB, domain, 2048-bit key, version 2, netadmin, SSH-only on every VTY line', pts: 3, cat: CAT.access, test: St => sshCfgOk(C(St, 'RtrB'), 'RtrB'), hint: 'the same SSH steps as SwB; configure line vty 0 15; show running-config then lists line vty 0 4 and line vty 5 15', fix: 'Router(config)# hostname RtrB\nRtrB(config)# ip domain-name phn.k12.lan\nRtrB(config)# crypto key generate rsa general-keys modulus 2048\nRtrB(config)# ip ssh version 2\nRtrB(config)# username netadmin privilege 15 secret Adm1n-B2\nRtrB(config)# line vty 0 15\nRtrB(config-line)# login local\nRtrB(config-line)# transport input ssh', why: 'show running-config lists every VTY range: line vty 0 4, plus line vty 5 15 once line vty 0 15 creates those lines. One range left open to Telnet leaves the whole router open, so every range counts.' },
       { id: 'aclrtr', title: 'RtrB VTY ACL 20: Teachers at both sites only, on every VTY line', pts: 3, cat: CAT.access, test: St => aclOnly(St, 'RtrB', TEACHERS, TEACHER_PCS), hint: 'access-list 20 permit 10.1.20.0 0.0.0.255; access-list 20 permit 10.2.20.0 0.0.0.255; line vty 0 15 / access-class 20 in', fix: 'RtrB(config)# access-list 20 permit 10.1.20.0 0.0.0.255\nRtrB(config)# access-list 20 permit 10.2.20.0 0.0.0.255\nRtrB(config)# line vty 0 15\nRtrB(config-line)# access-class 20 in', why: 'access-class filters who may open a session to the router itself, whatever address they aim at. The implicit deny at the end refuses everyone else.' },
       { id: 'passive', title: 'RtrB keeps OSPF hellos off G0/0.10, .20, and .30 (passive) while the G0/2 neighbour stays FULL', pts: 2, cat: CAT.config, test: St => { const o = C(St, 'RtrB').ospf; return !!o && ['GigabitEthernet0/0.10', 'GigabitEthernet0/0.20', 'GigabitEthernet0/0.30'].every(n => ospfPassive(o, n)) && ospfNeighbors(St, 'RtrB').some(n => n.dev === 'RtrA'); }, hint: 'router ospf 1, then passive-interface g0/0.10 (repeat for .20 and .30), or passive-interface default followed by no passive-interface g0/2', fix: 'RtrB(config)# router ospf 1\nRtrB(config-router)# passive-interface g0/0.10\nRtrB(config-router)# passive-interface g0/0.20\nRtrB(config-router)# passive-interface g0/0.30', why: 'A passive interface still advertises its subnet, so Site A keeps its O routes to the Site B VLANs. It stops sending hellos into rooms full of PCs, where a rogue device could try to form an adjacency. G0/2 keeps its hellos, so the RtrA neighbour stays FULL.' },
       { id: 'edgeacl', title: 'RtrB G0/1 inbound extended ACL ends in deny ip any any log; Student-B still reaches 8.8.8.8', pts: 3, cat: CAT.access, test: St => edgeAclOk(St), hint: 'ip access-list extended EDGE-IN: permit tcp any any established, permit icmp any any echo-reply, permit udp host 8.8.8.8 eq domain any, deny ip any any log; then interface g0/1 / ip access-group EDGE-IN in; the ping part needs Student-B\'s DHCP lease (ipconfig /renew)', fix: 'RtrB(config)# ip access-list extended EDGE-IN\nRtrB(config-ext-nacl)# permit tcp any any established\nRtrB(config-ext-nacl)# permit icmp any any echo-reply\nRtrB(config-ext-nacl)# permit udp host 8.8.8.8 eq domain any\nRtrB(config-ext-nacl)# deny ip any any log\nRtrB(config-ext-nacl)# exit\nRtrB(config)# interface g0/1\nRtrB(config-if)# ip access-group EDGE-IN in', why: 'An interface ACL judges each packet on its own, unlike a stateful firewall. The edge list lets in the replies inside hosts need (established TCP, echo replies, and DNS answers from the resolver) and logs everything else it drops, such as a Telnet attempt from outside. show access-lists counts the matches on each line.' },
@@ -5432,6 +5471,595 @@ function dhcpBOk(St) {
 function sshCfgOk(cfg, host) { return cfg.hostname === host && !!cfg.domainName && !!(cfg.rsa && cfg.rsa.bits >= 2048) && cfg.sshVersion === 2 && hasAdmin(cfg, 'netadmin') && vtyEvery(cfg, L => L.login === 'local' && sshOnly(L)); }
 function scenarioById(id) { return SCENARIOS.find(s => s.id === id) || SCENARIOS[0]; }
 
+/* ---- 87-advanced.js ---- */
+/* ================= Level 4 · Advanced · extra credit: layouts ================= */
+/* Level 4 (scenario s4) sits outside the three tiers: extra credit for learners who finished Levels 1-3, open to
+   everyone. Each attempt builds Site B from a layout code. Six characters from an unambiguous alphabet seed a small
+   PRNG in the page, so one code builds the same machine in any browser, and a teacher can hand a whole class one
+   code. A layout picks which faults are present (only kinds Levels 1-3 teach), the rogue account names, the PC
+   access ports, the ACL details, the passwords to replace, and the decoys. The topology, the Site A / Site B plan,
+   VLANs 10/20/30 with native 99, and every address stay fixed. The reserved code CLASSIC is the original
+   build-from-factory exercise (SCENARIOS s4), so its walkthrough and saved progress stay valid. */
+const L4_ID = 's4', L4_CLASSIC = 'CLASSIC', L4_ABC = 'ACDEFHJKMNPRTUVWXY347', L4_LEN = 6;
+/* a typed code: case and spaces do not matter; anything else returns null */
+function l4Norm(code) {
+  const c = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (c === L4_CLASSIC) return c;
+  return c.length === L4_LEN && c.split('').every(ch => L4_ABC.includes(ch)) ? c : null;
+}
+/* a fresh code for "New layout": the browser's random source picks the code; generation itself only ever uses the
+   seeded PRNG below */
+function l4NewCode() {
+  let buf = null;
+  try { buf = new Uint32Array(L4_LEN); crypto.getRandomValues(buf); } catch (e) { buf = null; }
+  let out = '';
+  for (let i = 0; i < L4_LEN; i++) out += L4_ABC[(buf ? buf[i] : hash32(Date.now() + ':' + i + ':' + (typeof performance !== 'undefined' ? performance.now() : 0))) % L4_ABC.length];
+  return out;
+}
+/* mulberry32, seeded from the code: the same code draws the same numbers in every browser */
+function l4Rng(code) {
+  let a = hash32('lockdown-range-l4/' + code, 0x9E3779B9) >>> 0;
+  const next = () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const r = { next: next };
+  r.int = (lo, hi) => lo + Math.floor(next() * (hi - lo + 1));
+  r.pick = list => list[Math.floor(next() * list.length)];
+  r.shuffle = list => { const b = list.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(next() * (i + 1)); const t = b[i]; b[i] = b[j]; b[j] = t; } return b; };
+  return r;
+}
+const L4_WORDS = ['Pueo', 'Honu', 'Nalu', 'Lehua', 'Mauna', 'Moana', 'Kukui', 'Hala', 'Iwa', 'Kolea', 'Ulu', 'Pali', 'Akala', 'Naio', 'Ohia', 'Mamo'];
+const L4_WEAK_CON = ['cisco', 'console', 'letmein', 'phn123'];
+const L4_WEAK_EN = ['class', 'cisco', 'enable', 'admin1'];
+/* accounts that never belong on network equipment: student accounts and setup leftovers */
+const L4_ROGUES = [['koa', 'a student'], ['kaipo', 'a student'], ['ikaika', 'a student'], ['malia', 'a student'], ['lani', 'a student'],
+  ['contractor', 'the contractor who left'], ['setup', 'the contractor\'s setup work'], ['formertech', 'a former technician'], ['vendor', 'a vendor test']];
+/* authorized staff accounts a layout may add (decoys: they look extra, and the Scenario Brief authorizes them) */
+const L4_STAFF = [['keoni', 'school sysadmin'], ['kanoa', 'complex-area sysadmin, Pōhinahina Complex Area IT'], ['hoku', 'help-desk tech']];
+const L4_TEACHERS = [['Nohea', 'nohea'], ['Keola', 'keola']];
+const L4_PATHS = { r1: ['Student-B', '10.2.20.10', 'Student-B reaches Teacher-B', 'Student-B cannot reach Teacher-B'], r2: ['Teacher-B', '10.1.20.10', 'Teacher-B reaches Teacher-A across the inter-site link', 'Teacher-B cannot reach Teacher-A'], r3: ['Student-B', '8.8.8.8', 'Student-B reaches the resolver at 8.8.8.8', 'Student-B cannot reach the resolver at 8.8.8.8'] };
+const L4_LEARN = [['senior/se6', 'Senior', 'Cisco: audit and extend the two-site network'], ['sophomore/s5', 'Sophomore', 'Cisco: configure a switch and a router', 'device hardening'], ['junior/j4', 'Junior', 'Cisco: VLANs, routing, and ACLs']];
+function l4Lines(cfg, range) { const [a, b] = range.split(' ').map(Number); return cfg.lines.vty.slice(a, b + 1); }
+function l4Unused(L) { const used = [L.ports['Student-B'], L.ports['Teacher-B']], ns = []; for (let i = 1; i <= 24; i++) if (!used.includes('FastEthernet0/' + i)) ns.push('FastEthernet0/' + i); ns.push('GigabitEthernet0/2'); return ns; }
+function l4PortAnswers(n) { const num = ifNum(n), t = ifType(n); return t === 'FastEthernet' ? ['Fa' + num, n, 'F' + num, 'Fas' + num, 'Fast Ethernet' + num] : [ifBrief(n), n]; }
+const l4OfPc = (L, pc) => L.ports[pc];
+const L4_SW = ['SwB'], L4_BOTH = ['SwB', 'RtrB'];
+/* the fault kinds. Each one: hardening area (cat), raw weight (w, scaled so a layout totals 100), the devices it can
+   sit on, pick (its parameters, drawn from the PRNG), apply (on the delivered devices), test (true = fixed; reads a
+   {SwB, RtrB} pair of configurations, so the save check can run it on the startup-config too), the Progress Check
+   texts, an optional investigation question (q), and for Troubleshooting kinds the required paths it breaks. */
+const L4_KINDS = {
+  rogue: { cat: CAT.acct, w: 6, devs: L4_BOTH, max: 2,
+    pick: (r, L) => { const x = r.pick(L4_ROGUES.filter(n => !L.usedNames.includes(n[0]))); L.usedNames.push(x[0]); return { name: x[0], who: x[1], priv: r.pick([15, 15, 1]), how: r.pick(['password', 'secret']), text: r.pick(['summer2025', 'cisco123', 'Passw0rd', 'letmein']), at: r.int(0, 9) }; },
+    apply: (D, d, p) => { const c = D[d].running, u = { name: p.name, privilege: p.priv === 15 ? 15 : null, secret: null, password: null }; if (p.how === 'secret') u.secret = { text: p.text, type: 5 }; else u.password = { text: p.text, t7: c.pwEnc }; c.users.splice(p.at % (c.users.length + 1), 0, u); },
+    test: (cs, d, p) => !hasUser(cs[d], p.name),
+    title: (d, p) => 'Unauthorized account "' + p.name + '" removed from ' + d,
+    hint: (d, p) => d + ': show running-config | include username, compare every name with the Scenario Brief, then no username ' + p.name,
+    fix: (d, p) => d + '(config)# no username ' + p.name,
+    why: (d, p) => 'Every account the Scenario Brief leaves out is a way in. This one belongs to ' + p.who + ', and accounts like it never belong on network equipment.',
+    q: (d, p) => ({ text: 'An unauthorized local account exists on ' + d + '. What is its username? (Hint: show running-config | include username)', answers: [p.name] }) },
+  enable: { cat: CAT.acct, w: 5, devs: L4_BOTH,
+    pick: r => ({ v: r.pick(['both', 'only', 'weak']), weak: r.pick(L4_WEAK_EN) }),
+    apply: (D, d, p, L) => { const c = D[d].running; if (p.v === 'both') c.enablePassword = { text: p.weak + '2019', t7: c.pwEnc }; else if (p.v === 'only') { c.enableSecret = null; c.enablePassword = { text: L.pw[d].en, t7: c.pwEnc }; } else c.enableSecret = { text: p.weak, type: 5 }; },
+    test: (cs, d, p) => { const c = cs[d], s = c.enableSecret; if (!s || c.enablePassword) return false; return p.v !== 'weak' || (s.hashed ? s.hash !== md5Style(p.weak) : s.text !== p.weak && s.text.length >= 10); },
+    title: (d, p) => p.v === 'weak' ? 'Short enable secret on ' + d + ' replaced with a passphrase of 10+ characters' : p.v === 'only' ? d + ' uses an enable secret in place of an enable password' : 'Leftover plaintext enable password removed from ' + d,
+    hint: (d, p) => p.v === 'weak' ? d + ': the handover note lists a short enable secret; set a new one with enable secret <passphrase>' : p.v === 'only' ? d + ': show running-config | include enable, then enable secret <passphrase> and no enable password' : d + ': show running-config | include enable lists two lines; no enable password removes the leftover one',
+    fix: (d, p) => p.v === 'weak' ? d + '(config)# enable secret <a new passphrase of 10+ characters>' : p.v === 'only' ? d + '(config)# enable secret <a passphrase of 10+ characters>\n' + d + '(config)# no enable password' : d + '(config)# no enable password',
+    why: (d, p) => p.v === 'weak' ? 'The enable secret guards privileged mode, and a short one falls to the first few guesses. The passphrase rule keeps every secret at 10 characters or more.' : p.v === 'only' ? 'An enable password is stored readably (or with reversible type 7); the enable secret is hashed and replaces it.' : 'With a secret set, the old enable password only leaks: anyone who reads the configuration learns it, and it may still open other devices.' },
+  pwenc: { cat: CAT.acct, w: 3, devs: L4_BOTH, last: true,
+    pick: () => ({}),
+    apply: (D, d) => { const c = D[d].running; c.pwEnc = false; if (c.enablePassword) c.enablePassword = { text: c.enablePassword.text, t7: false }; c.users.forEach(u => { if (u.password) u.password = { text: u.password.text, t7: false }; }); ['con', 'aux', 'vty'].forEach(g => c.lines[g].forEach(L => { if (L.password) L.password = { text: L.password.text, t7: false }; })); },
+    test: (cs, d) => !!cs[d].pwEnc,
+    title: d => 'Service password-encryption on ' + d,
+    hint: d => d + ': show running-config prints no service password-encryption and readable passwords; turn it on with service password-encryption',
+    fix: d => d + '(config)# service password-encryption',
+    why: () => 'Type 7 hides line and user passwords from anyone reading a printed configuration or a screen over your shoulder. It reverses in seconds, so it is obfuscation rather than encryption: secrets hold the real hashes.' },
+  minlen: { cat: CAT.acct, w: 3, devs: L4_BOTH,
+    pick: r => ({ v: r.pick([null, 6, 8]) }),
+    apply: (D, d, p) => { D[d].running.minLength = p.v; },
+    test: (cs, d) => (cs[d].minLength || 0) >= 10,
+    title: d => 'Minimum password length 10 or more on ' + d,
+    hint: d => d + ': show running-config | include min-length, then security passwords min-length 10',
+    fix: d => d + '(config)# security passwords min-length 10',
+    why: () => 'IOS then refuses any new password or secret shorter than 10 characters, so a rushed change cannot bring a short one back.' },
+  conweak: { cat: CAT.access, w: 4, devs: L4_BOTH,
+    pick: r => ({ weak: r.pick(L4_WEAK_CON) }),
+    apply: (D, d, p) => { const c = D[d].running; c.lines.con[0].password = { text: p.weak, t7: c.pwEnc }; },
+    test: (cs, d, p) => { const c = cs[d], L = c.lines.con[0]; return (L.login === 'local' && c.users.length > 0) || (L.login === 'login' && !!L.password && L.password.text !== p.weak && L.password.text.length >= 10); },
+    title: d => 'Short console password on ' + d + ' replaced with a passphrase of 10+ characters',
+    hint: d => d + ': the handover note lists a short console password; line console 0, then password <passphrase> and login',
+    fix: d => d + '(config)# line console 0\n' + d + '(config-line)# password <a new passphrase of 10+ characters>\n' + d + '(config-line)# login',
+    why: () => 'A short console password falls to the first few guesses of anyone who reaches the console port in a closet or a classroom.' },
+  vtytelnet: { cat: CAT.access, w: 5, devs: L4_BOTH,
+    pick: r => { const range = r.pick(['0 4', '5 15']); return { range: range, tr: range === '5 15' ? r.pick(['all', 'telnet']) : 'all' }; },
+    apply: (D, d, p) => l4Lines(D[d].running, p.range).forEach(L => { L.transport = p.tr; }),
+    test: (cs, d) => vtyEvery(cs[d], sshOnly),
+    title: d => 'SSH only on every ' + d + ' VTY line (transport input ssh)',
+    hint: d => d + ': show running-config | section line vty lists line vty 0 4 and line vty 5 15 apart; line vty 0 15, then transport input ssh',
+    fix: d => d + '(config)# line vty 0 15\n' + d + '(config-line)# transport input ssh',
+    why: () => 'Telnet sends every keystroke, passwords included, in clear text. One VTY range left open to Telnet is enough to expose the device.' },
+  vtylogin: { cat: CAT.access, w: 4, devs: L4_BOTH,
+    pick: () => ({ range: '5 15' }),
+    apply: (D, d, p) => { const c = D[d].running; l4Lines(c, p.range).forEach(L => { L.login = 'login'; L.password = { text: 'cisco', t7: c.pwEnc }; }); },
+    test: (cs, d) => vtyEvery(cs[d], L => L.login === 'local'),
+    title: d => 'login local on every ' + d + ' VTY line',
+    hint: d => d + ': show running-config | section line vty; one range uses a shared line password. line vty 0 15, then login local',
+    fix: d => d + '(config)# line vty 0 15\n' + d + '(config-line)# login local',
+    why: () => 'A shared line password cannot say who signed in, and you cannot take it back from one person. login local ties every session to a named account.' },
+  acl: { cat: CAT.access, w: 5, devs: L4_BOTH,
+    pick: (r, L, d) => {
+      const v = r.pick(['extra', 'extra', 'miss']);
+      if (v === 'miss') return { v: v, range: r.pick(['0 4', '5 15']) };
+      const x = r.pick([['10.2.10.0', '0.0.0.255', 'the Site B Students subnet'], ['10.1.10.0', '0.0.0.255', 'the Site A Students subnet'], ['10.2.30.0', '0.0.0.255', 'the Site B Principals subnet'], ['203.0.113.' + r.int(20, 250), null, 'an outside host'], [null, null, 'every address (any)']]);
+      const first = r.pick([true, false]), host = L.decoys.some(y => y.kind === 'aclhost' && y.dev === d);
+      return { v: v, src: x[0], wild: x[1], label: x[2], any: !x[0], first: first, seq: first ? 5 : host ? 40 : 30 };
+    },
+    apply: (D, d, p) => {
+      const c = D[d].running, a = c.acls['20'];
+      if (p.v === 'miss') { l4Lines(c, p.range).forEach(L => { L.accessClass = null; }); return; }
+      const e = p.any ? { any: true, action: 'permit', seq: p.seq } : p.wild ? { src: p.src, wild: p.wild, action: 'permit', seq: p.seq } : { src: p.src, action: 'permit', seq: p.seq };
+      if (p.first) a.entries.unshift(e); else a.entries.push(e);
+    },
+    test: (cs, d) => vtyEvery(cs[d], L => aclLineOnly(cs[d], L, TEACHERS, TEACHER_PCS)),
+    title: d => d + ' VTY lines filtered by access list 20: Teachers subnets only, access-class 20 in on every line',
+    hint: (d, p) => p.v === 'miss' ? d + ': show running-config | section line vty shows a range without access-class; line vty 0 15, then access-class 20 in' : d + ': show access-lists 20, then ip access-list standard 20 and no <sequence number> for the extra entry (no access-list 20 ... deletes the whole list)',
+    fix: (d, p) => p.v === 'miss' ? d + '(config)# line vty 0 15\n' + d + '(config-line)# access-class 20 in' : d + '(config)# ip access-list standard 20\n' + d + '(config-std-nacl)# no ' + p.seq,
+    why: (d, p) => p.v === 'miss' ? 'access-class filters each line on its own, and a session takes the first free line, so one unfiltered range opens the device to every subnet.' : 'A VTY access list decides who sees a login prompt at all. The extra entry lets ' + p.label + ' try passwords; Teachers alone manage the network.',
+    q: (d, p) => p.v === 'miss' ? null : ({ text: 'Access list 20 on ' + d + ' permits one source outside the Teachers subnets. Which one? Type the address as show access-lists prints it, or any.', answers: p.any ? ['any'] : p.wild ? [p.src, p.src + ' ' + p.wild, p.src + ', wildcard bits ' + p.wild, p.src + ' wildcard bits ' + p.wild, p.src + '/24'] : [p.src, 'host ' + p.src] }) },
+  exec: { cat: CAT.access, w: 3, devs: L4_BOTH,
+    pick: r => ({ on: r.pick(['con', 'vty']), v: r.pick([[0, 0], [30, 0], [15, 0]]) }),
+    apply: (D, d, p) => { const c = D[d].running; if (p.on === 'con') c.lines.con[0].exec = { m: p.v[0], s: p.v[1] }; else l4Lines(c, '0 4').forEach(L => { L.exec = { m: p.v[0], s: p.v[1] }; }); },
+    test: (cs, d) => execOk(cs[d].lines.con[0]) && vtyEvery(cs[d], execOk),
+    title: d => 'Exec timeout under 10 minutes on every ' + d + ' console and VTY line',
+    hint: d => d + ': show running-config | include line|exec-timeout; set exec-timeout 5 0 under line console 0 and line vty 0 15',
+    fix: d => d + '(config)# line console 0\n' + d + '(config-line)# exec-timeout 5 0\n' + d + '(config-line)# line vty 0 15\n' + d + '(config-line)# exec-timeout 5 0',
+    why: () => 'An idle, signed-in session is a free privileged shell for whoever walks up next. exec-timeout 0 0 never closes it, and anything over the 10-minute default is longer than policy allows.' },
+  block: { cat: CAT.access, w: 3, devs: L4_BOTH,
+    pick: () => ({}),
+    apply: (D, d) => { D[d].running.loginBlock = null; },
+    test: (cs, d) => !!cs[d].loginBlock,
+    title: d => 'Login attempts limited on ' + d + ' (login block-for)',
+    hint: d => d + ': show running-config | include login block; login block-for 120 attempts 3 within 60',
+    fix: d => d + '(config)# login block-for 120 attempts 3 within 60',
+    why: () => 'After three wrong passwords in a minute, the device refuses new logins for two minutes, which slows password guessing to a crawl.' },
+  ssh: { cat: CAT.access, w: 5, devs: L4_BOTH,
+    pick: r => ({ v: r.pick(['rsa1024', 'nov2']) }),
+    apply: (D, d, p) => { const c = D[d].running; if (p.v === 'rsa1024') c.rsa = { bits: 1024, name: c.rsa.name }; else c.sshVersion = null; },
+    test: (cs, d) => { const c = cs[d]; return !!(c.rsa && c.rsa.bits >= 2048) && c.sshVersion === 2; },
+    title: d => d + ' SSH uses a 2048-bit RSA key and version 2 only',
+    hint: d => d + ': show ip ssh (SSH 1.99 means version 1 still answers) and show crypto key mypubkey rsa (the key size)',
+    fix: (d, p) => p.v === 'rsa1024' ? d + '(config)# crypto key generate rsa general-keys modulus 2048 (answer yes to replace the key)\n' + d + '(config)# ip ssh version 2' : d + '(config)# ip ssh version 2',
+    why: (d, p) => p.v === 'rsa1024' ? 'Keys shorter than 2048 bits count as weak today; the key protects every SSH session to the device.' : 'Without ip ssh version 2 the device also answers SSH version 1, which has known weaknesses.' },
+  psec: { cat: CAT.access, w: 4, devs: L4_SW,
+    pick: r => ({ pc: r.pick(['Student-B', 'Teacher-B']), v: r.pick(['off', 'max', 'protect', 'nosticky']) }),
+    apply: (D, d, p, L) => { const f = D.SwB.running.ifaces[l4OfPc(L, p.pc)], ps = Object.assign({}, f.psec); if (p.v === 'off') { ps.on = false; ps.macs = []; } else if (p.v === 'max') ps.max = 8; else if (p.v === 'protect') ps.violation = 'protect'; else { ps.sticky = false; ps.macs = []; } f.psec = ps; },
+    test: (cs, d, p, St, L) => psecOk(cs.SwB.ifaces[l4OfPc(L, p.pc)]),
+    title: (d, p, L) => 'Port security on SwB ' + ifBrief(l4OfPc(L, p.pc)) + ' (' + p.pc + '): sticky, maximum 1 or 2, violation shutdown or restrict',
+    hint: (d, p, L) => 'SwB: show port-security interface ' + ifBrief(l4OfPc(L, p.pc)) + ', then change the setting that differs from the policy',
+    fix: (d, p, L) => 'SwB(config)# interface ' + ifBrief(l4OfPc(L, p.pc)) + '\nSwB(config-if)# ' + (p.v === 'off' ? 'switchport port-security' : p.v === 'max' ? 'switchport port-security maximum 2' : p.v === 'protect' ? 'switchport port-security violation restrict' : 'switchport port-security mac-address sticky'),
+    why: (d, p) => p.v === 'protect' ? 'Violation protect drops a stranger\'s frames without a log entry or a counter, so nobody hears about it; restrict and shutdown also report the violation.' : 'Port security pins the port to the PC that belongs there, so a laptop swapped in under the desk stays off the network.' },
+  http: { cat: CAT.config, w: 3, devs: L4_BOTH,
+    pick: () => ({}),
+    apply: (D, d) => { D[d].running.httpServer = true; },
+    test: (cs, d) => !cs[d].httpServer,
+    title: d => 'HTTP server off on ' + d,
+    hint: d => d + ': show running-config | include http; no ip http server',
+    fix: d => d + '(config)# no ip http server',
+    why: () => 'The web management page is one more way in, and it sends passwords without encryption. SSH already covers management.' },
+  dnslookup: { cat: CAT.config, w: 2, devs: L4_BOTH,
+    pick: () => ({}),
+    apply: (D, d) => { D[d].running.domainLookup = true; },
+    test: (cs, d) => !cs[d].domainLookup,
+    title: d => 'DNS lookups off on ' + d + ' (no ip domain-lookup)',
+    hint: d => d + ': show running-config | include domain-lookup prints nothing while lookups are on; no ip domain-lookup',
+    fix: d => d + '(config)# no ip domain-lookup',
+    why: () => 'With lookups on, a mistyped command turns into a long "Translating..." wait while the device asks for a server that never answers.' },
+  banner: { cat: CAT.config, w: 3, devs: L4_BOTH,
+    pick: r => ({ v: r.pick(['welcome', 'nomotd']) }),
+    apply: (D, d, p) => { D[d].running.bannerMotd = p.v === 'welcome' ? 'Welcome to Site B! Enjoy the network.' : null; },
+    test: (cs, d) => bannerOk(cs[d].bannerMotd),
+    title: d => 'MOTD banner on ' + d + ' (without "welcome")',
+    hint: d => d + ': show running-config | include banner; banner motd #...#, without the word welcome',
+    fix: d => d + '(config)# banner motd #Authorized school staff only. Activity is monitored.#',
+    why: () => 'The MOTD banner says that access is restricted and monitored before anyone signs in. "Welcome" reads as an invitation, and a missing banner says nothing at all.' },
+  unused: { cat: CAT.config, w: 4, devs: L4_SW,
+    pick: (r, L) => ({ port: r.pick(l4Unused(L).filter(n => n !== 'GigabitEthernet0/2')), v: r.pick(['live', 'vlan10', 'vlan1']) }),
+    apply: (D, d, p) => { const f = D.SwB.running.ifaces[p.port]; f.shutdown = false; if (p.v === 'vlan10') f.accessVlan = 10; else if (p.v === 'vlan1') { f.accessVlan = 1; f.mode = 'dynamic auto'; } },
+    test: (cs, d, p, St, L) => !!cs.SwB.vlans && !!cs.SwB.vlans[999] && l4Unused(L).every(n => { const f = cs.SwB.ifaces[n]; return f.mode === 'access' && f.accessVlan === 999 && f.shutdown; }),
+    title: () => 'Unused SwB ports parked in VLAN 999 and shut down',
+    hint: () => 'SwB: show interfaces status (an unused port reads notconnect instead of disabled) and show vlan brief',
+    fix: (d, p) => 'SwB(config)# interface ' + ifBrief(p.port) + '\nSwB(config-if)# switchport mode access\nSwB(config-if)# switchport access vlan 999\nSwB(config-if)# shutdown',
+    why: () => 'A live, empty port is an open door for any device plugged into the wall jack. Shut and parked in VLAN 999, it stays closed, and a mistaken no shutdown lands in a dead-end VLAN.',
+    q: (d, p) => ({ text: 'One unused SwB port was left enabled. Which one? Type it as show interfaces status prints it (for example Fa0/9).', answers: l4PortAnswers(p.port) }) },
+  edge: { cat: CAT.config, w: 4, devs: L4_SW,
+    pick: r => ({ pc: r.pick(['Student-B', 'Teacher-B']), v: r.pick(['nopf', 'nobpdu', 'trunkpf']) }),
+    apply: (D, d, p, L) => { const c = D.SwB.running; if (p.v === 'trunkpf') c.ifaces['GigabitEthernet0/1'].portfast = 'trunk'; else if (p.v === 'nopf') c.ifaces[l4OfPc(L, p.pc)].portfast = false; else c.ifaces[l4OfPc(L, p.pc)].bpduguard = null; },
+    test: (cs, d, p, St, L) => edgeOk(cs.SwB, [L.ports['Student-B'], L.ports['Teacher-B']], ['GigabitEthernet0/1']),
+    title: () => 'PortFast and BPDU guard on both SwB PC ports, with the G0/1 trunk free of PortFast',
+    hint: () => 'SwB: show running-config | section interface; spanning-tree portfast and spanning-tree bpduguard enable on each PC port, and no spanning-tree portfast trunk on G0/1',
+    fix: (d, p, L) => p.v === 'trunkpf' ? 'SwB(config)# interface g0/1\nSwB(config-if)# no spanning-tree portfast trunk' : 'SwB(config)# interface ' + ifBrief(l4OfPc(L, p.pc)) + '\nSwB(config-if)# ' + (p.v === 'nopf' ? 'spanning-tree portfast' : 'spanning-tree bpduguard enable'),
+    why: (d, p) => p.v === 'trunkpf' ? 'PortFast on a trunk skips the loop checks that protect the uplink between two switches or a switch and a router.' : 'PortFast lets a PC port forward at once, and BPDU guard shuts the port if a switch appears there, so a rogue switch stays out of the topology.' },
+  cdp: { cat: CAT.config, w: 2, devs: L4_SW,
+    pick: r => ({ pc: r.pick(['Student-B', 'Teacher-B']) }),
+    apply: (D, d, p, L) => { D.SwB.running.ifaces[l4OfPc(L, p.pc)].cdp = true; },
+    test: (cs, d, p, St, L) => !cs.SwB.cdpRun || (!cs.SwB.ifaces[L.ports['Student-B']].cdp && !cs.SwB.ifaces[L.ports['Teacher-B']].cdp),
+    title: () => 'CDP off on both SwB PC ports (no cdp enable)',
+    hint: () => 'SwB: show cdp interface lists the ports that still send CDP; no cdp enable on each PC port',
+    fix: (d, p, L) => 'SwB(config)# interface ' + ifBrief(l4OfPc(L, p.pc)) + '\nSwB(config-if)# no cdp enable',
+    why: () => 'CDP tells anyone on the port the switch model, the IOS version, and the VLAN: a free map for an intruder.' },
+  trunk: { cat: CAT.config, w: 5, devs: L4_SW,
+    pick: r => ({ v: r.pick(['neg', 'all', 'vlan1']) }),
+    apply: (D, d, p) => { const f = D.SwB.running.ifaces['GigabitEthernet0/1']; if (p.v === 'neg') f.nonegotiate = false; else f.allowed = p.v === 'all' ? null : [1, 10, 20, 30, 99]; },
+    test: (cs, d, p) => { const f = cs.SwB.ifaces['GigabitEthernet0/1']; return f.mode === 'trunk' && (p.v === 'neg' ? !!f.nonegotiate : JSON.stringify(f.allowed) === '[10,20,30,99]'); },
+    title: (d, p) => p.v === 'neg' ? 'SwB G0/1 trunk with DTP turned off (switchport nonegotiate)' : 'SwB G0/1 trunk allows VLANs 10,20,30,99 only',
+    hint: () => 'SwB: show interfaces trunk and show running-config interface g0/1',
+    fix: (d, p) => 'SwB(config)# interface g0/1\nSwB(config-if)# ' + (p.v === 'neg' ? 'switchport nonegotiate' : 'switchport trunk allowed vlan 10,20,30,99'),
+    why: (d, p) => p.v === 'neg' ? 'DTP lets the far end talk a port into trunking. A static trunk with nonegotiate gives an attacker nothing to negotiate with.' : 'A trunk that carries every VLAN, or VLAN 1, hands any extra VLAN to the router link. The allowed list names exactly what belongs.' },
+  native: { cat: CAT.config, w: 4, devs: L4_SW,
+    pick: () => ({}),
+    apply: (D) => { D.SwB.running.ifaces['GigabitEthernet0/1'].nativeVlan = 1; },
+    test: cs => { const f = cs.SwB.ifaces['GigabitEthernet0/1']; return f.mode === 'trunk' && f.nativeVlan === 99; },
+    title: () => 'SwB G0/1 native VLAN 99, matching RtrB G0/0.99',
+    hint: () => 'SwB: show interfaces trunk, or the %CDP-4-NATIVE_VLAN_MISMATCH messages on the console',
+    fix: () => 'SwB(config)# interface g0/1\nSwB(config-if)# switchport trunk native vlan 99',
+    why: () => 'Both trunk ends must agree on the native VLAN. Native VLAN 1 is the default an attacker expects, and VLAN 99 carries no hosts, which defeats double-tagging.' },
+  vlan1: { cat: CAT.config, w: 3, devs: L4_SW,
+    pick: () => ({}),
+    apply: (D) => { D.SwB.running.ifaces.Vlan1.shutdown = false; },
+    test: cs => { const v = cs.SwB.ifaces.Vlan1; return !!v.shutdown && !v.ip; },
+    title: () => 'SwB interface vlan 1 shut down',
+    hint: () => 'SwB: show ip interface brief lists Vlan1 without administratively down; interface vlan 1, then shutdown',
+    fix: () => 'SwB(config)# interface vlan 1\nSwB(config-if)# shutdown',
+    why: () => 'Management lives on VLAN 20 at Site B. An SVI left up on VLAN 1, the default for every unconfigured port, invites management traffic where it never belongs.' },
+  snmp: { cat: CAT.config, w: 4, devs: L4_BOTH,
+    pick: r => ({ name: r.pick(['public', 'private', 'phn-ro', 'siteb']), mode: r.pick(['RO', 'RW']) }),
+    apply: (D, d, p) => { D[d].running.snmp = { comm: [{ name: p.name, mode: p.mode, acl: null }], groups: [], users: [] }; },
+    test: (cs, d) => !(cs[d].snmp && cs[d].snmp.comm.length),
+    title: (d, p) => 'SNMP community "' + p.name + '" removed from ' + d,
+    hint: (d, p) => d + ': show running-config | include snmp; no snmp-server community ' + p.name,
+    fix: (d, p) => d + '(config)# no snmp-server community ' + p.name,
+    why: (d, p) => 'Site B runs without SNMP, and a community string is a password sent in clear text. ' + (p.mode === 'RW' ? 'RW lets whoever knows it change the configuration.' : 'Even RO hands out the whole configuration picture.'),
+    q: (d, p) => ({ text: 'Which SNMP community string does ' + d + ' carry? (Hint: show running-config | include snmp)', answers: [p.name] }) },
+  ts: { cat: CAT.log, w: 3, devs: L4_BOTH,
+    pick: () => ({}),
+    apply: (D, d) => { D[d].running.tsLog = false; },
+    test: (cs, d) => /datetime/.test(String(cs[d].tsLog || '')),
+    title: d => 'Log timestamps on ' + d + ' (service timestamps log datetime msec)',
+    hint: d => d + ': show logging prints messages without dates; service timestamps log datetime msec',
+    fix: d => d + '(config)# service timestamps log datetime msec',
+    why: () => 'A log line without a date and time cannot be matched to what happened on the other devices, so an investigation stalls.' },
+  /* Troubleshooting: each one breaks one or two of the required paths until it is fixed */
+  subshut: { cat: CAT.conn, w: 5, devs: ['RtrB'], conn: true,
+    pick: r => ({ sub: r.pick(['GigabitEthernet0/0.10', 'GigabitEthernet0/0.20']) }),
+    apply: (D, d, p) => { D.RtrB.running.ifaces[p.sub].shutdown = true; },
+    test: (cs, d, p) => !cs.RtrB.ifaces[p.sub].shutdown,
+    breaks: p => p.sub === 'GigabitEthernet0/0.10' ? ['r1', 'r3'] : ['r1', 'r2'],
+    title: (d, p) => 'RtrB ' + p.sub + ' enabled (no shutdown)',
+    hint: () => 'RtrB: show ip interface brief, then look for administratively down',
+    fix: (d, p) => 'RtrB(config)# interface ' + ifBrief(p.sub) + '\nRtrB(config-subif)# no shutdown',
+    why: (d, p) => 'VLAN ' + p.sub.split('.')[1] + ' has no gateway while its subinterface is down, so every PC in it is cut off from other subnets.',
+    q: (d, p) => ({ text: 'Which RtrB subinterface is administratively down? Type it as show ip interface brief prints it.', answers: [p.sub, ifBrief(p.sub), 'g0/0.' + p.sub.split('.')[1], 'gig0/0.' + p.sub.split('.')[1]] }) },
+  wrongvlan: { cat: CAT.conn, w: 5, devs: L4_SW, conn: true,
+    pick: r => { const pc = r.pick(['Student-B', 'Teacher-B']), right = pc === 'Student-B' ? 10 : 20; return { pc: pc, right: right, wrong: r.pick([10, 20, 30].filter(v => v !== right)) }; },
+    apply: (D, d, p, L) => { D.SwB.running.ifaces[l4OfPc(L, p.pc)].accessVlan = p.wrong; },
+    test: (cs, d, p, St, L) => { const f = cs.SwB.ifaces[l4OfPc(L, p.pc)]; return f.mode === 'access' && f.accessVlan === p.right; },
+    breaks: p => p.pc === 'Student-B' ? ['r1', 'r3'] : ['r1', 'r2'],
+    title: (d, p, L) => 'SwB ' + ifBrief(l4OfPc(L, p.pc)) + ' (' + p.pc + ') back in VLAN ' + p.right,
+    hint: () => 'SwB: show vlan brief, and compare each PC port with the addressing table',
+    fix: (d, p, L) => 'SwB(config)# interface ' + ifBrief(l4OfPc(L, p.pc)) + '\nSwB(config-if)# switchport access vlan ' + p.right + (p.pc === 'Student-B' ? '\nStudent-B> ipconfig /renew (if it lost its lease)' : ''),
+    why: (d, p) => p.pc + ' keeps a VLAN ' + p.right + ' address, so in VLAN ' + p.wrong + ' it is cut off from its gateway and everyone else.',
+    q: (d, p, L) => ({ text: 'Which VLAN is SwB ' + ifBrief(l4OfPc(L, p.pc)) + ' (' + p.pc + ') in when you arrive? (Hint: show vlan brief)', answers: [String(p.wrong), 'vlan ' + p.wrong] }) },
+  pcgw: { cat: CAT.conn, w: 4, devs: ['Teacher-B'], conn: true, pc: true,
+    pick: r => ({ gw: r.pick(['10.2.20.254', '10.2.20.100']) }),
+    apply: (D, d, p) => { D['Teacher-B'].gw = p.gw; },
+    test: (cs, d, p, St) => Dv(St, 'Teacher-B').gw === '10.2.20.1',
+    breaks: () => ['r1', 'r2'],
+    title: () => 'Teacher-B default gateway corrected to 10.2.20.1',
+    hint: () => 'Teacher-B: ipconfig, then the IP Configuration button (Default Gateway)',
+    fix: () => 'Teacher-B > IP Configuration > Default Gateway = 10.2.20.1',
+    why: () => 'A wrong gateway strands the PC on its own subnet: it still reaches SwB, and nothing beyond.',
+    q: (d, p) => ({ text: 'Which wrong default gateway does Teacher-B use when you arrive? (Hint: ipconfig on Teacher-B)', answers: [p.gw] }) },
+  allowed: { cat: CAT.conn, w: 5, devs: L4_SW, conn: true,
+    pick: r => ({ miss: r.pick([10, 20]) }),
+    apply: (D, d, p) => { D.SwB.running.ifaces['GigabitEthernet0/1'].allowed = [10, 20, 30, 99].filter(v => v !== p.miss); },
+    test: cs => JSON.stringify(cs.SwB.ifaces['GigabitEthernet0/1'].allowed) === '[10,20,30,99]',
+    breaks: p => p.miss === 10 ? ['r1', 'r3'] : ['r1', 'r2'],
+    title: (d, p) => 'SwB G0/1 trunk carries VLAN ' + p.miss + ' again (allowed 10,20,30,99)',
+    hint: () => 'SwB: show interfaces trunk, the "Vlans allowed on trunk" line',
+    fix: () => 'SwB(config)# interface g0/1\nSwB(config-if)# switchport trunk allowed vlan 10,20,30,99',
+    why: (d, p) => 'A trunk drops every VLAN missing from its allowed list, so VLAN ' + p.miss + ' never reaches its gateway on RtrB.' },
+  portshut: { cat: CAT.conn, w: 4, devs: L4_SW, conn: true,
+    pick: r => ({ pc: r.pick(['Student-B', 'Teacher-B']) }),
+    apply: (D, d, p, L) => { D.SwB.running.ifaces[l4OfPc(L, p.pc)].shutdown = true; },
+    test: (cs, d, p, St, L) => !cs.SwB.ifaces[l4OfPc(L, p.pc)].shutdown,
+    breaks: p => p.pc === 'Student-B' ? ['r1', 'r3'] : ['r1', 'r2'],
+    title: (d, p, L) => 'SwB ' + ifBrief(l4OfPc(L, p.pc)) + ' (' + p.pc + ') enabled (no shutdown)',
+    hint: () => 'SwB: show interfaces status, then look for a PC port that reads disabled',
+    fix: (d, p, L) => 'SwB(config)# interface ' + ifBrief(l4OfPc(L, p.pc)) + '\nSwB(config-if)# no shutdown',
+    why: (d, p) => 'A PC port that is administratively down cuts ' + p.pc + ' off completely; the link light stays dark.' },
+  wanshut: { cat: CAT.conn, w: 4, devs: ['RtrB'], conn: true,
+    pick: () => ({}),
+    apply: (D) => { D.RtrB.running.ifaces['GigabitEthernet0/2'].shutdown = true; },
+    test: cs => !cs.RtrB.ifaces['GigabitEthernet0/2'].shutdown,
+    breaks: () => ['r2'],
+    title: () => 'RtrB G0/2 inter-site link enabled (no shutdown)',
+    hint: () => 'RtrB: show ip interface brief and show ip ospf neighbor (RtrA shows up there only while G0/2 is up)',
+    fix: () => 'RtrB(config)# interface g0/2\nRtrB(config-if)# no shutdown',
+    why: () => 'The inter-site link carries OSPF and every packet between the sites; while it is down, Site B learns no route to Site A.' },
+};
+const L4_KIND_IDS = Object.keys(L4_KINDS);
+/* the {SwB, RtrB} configurations a fault test reads: running, or startup for the save check */
+function l4Cfgs(St, which) { return { SwB: Dv(St, 'SwB')[which], RtrB: Dv(St, 'RtrB')[which] }; }
+/* the layout: plain data drawn from the code in a fixed order, so the same code always gives the same machine */
+function l4Layout(code) {
+  const r = l4Rng(code);
+  const pass = () => { const a = r.pick(L4_WORDS); let b = r.pick(L4_WORDS); while (b === a) b = r.pick(L4_WORDS); return a + '-' + b + '-' + r.int(10, 99) + r.pick(['!', '#', '@', '%']); };
+  const L = { code: code, usedNames: ['netadmin', 'techlead'], pw: {}, staff: [], faults: [], decoys: [] };
+  const a = r.int(1, 12); let b = r.int(1, 12); while (b === a) b = r.int(1, 12);
+  L.ports = { 'Student-B': 'FastEthernet0/' + a, 'Teacher-B': 'FastEthernet0/' + b };
+  for (const d of ['SwB', 'RtrB']) L.pw[d] = { con: pass(), en: pass(), adm: pass() };
+  L.psec = { max: r.pick([1, 2]), violation: r.pick(['restrict', 'shutdown']) };
+  L.teacher = r.pick(L4_TEACHERS);
+  // decoys: authorized staff accounts, a single Teachers host in ACL 20, tuned SSH timers, a spare-port note
+  for (const [name, role] of r.shuffle(L4_STAFF).slice(0, r.pick([0, 1, 1, 2]))) { L.staff.push({ name: name, role: role, devs: r.pick([['SwB'], ['RtrB'], ['SwB', 'RtrB']]), pw: pass() }); L.usedNames.push(name); }
+  for (const k of r.shuffle(['aclhost', 'sshtune', 'spare']).slice(0, r.int(1, 2))) L.decoys.push({ kind: k, dev: r.pick(L4_BOTH), port: k === 'spare' ? r.pick(l4Unused(L).filter(n => n !== 'GigabitEthernet0/2')) : null });
+  // faults: two Account management and two Access control first, then any kind, then up to two Troubleshooting kinds
+  const nCfg = r.int(9, 11), nConn = r.pick([0, 1, 1, 2, 2]);
+  const cands = []; for (const k of L4_KIND_IDS) if (!L4_KINDS[k].conn) for (const d of L4_KINDS[k].devs) cands.push([k, d]);
+  const order = r.shuffle(cands), per = {}, taken = new Set();
+  const take = (k, d) => { const key = k + '-' + d; if (taken.has(key) || (per[k] || 0) >= (L4_KINDS[k].max || 1)) return false; taken.add(key); per[k] = (per[k] || 0) + 1; L.faults.push({ kind: k, dev: d }); return true; };
+  for (const cat of [CAT.acct, CAT.access]) { let n = 0; for (const [k, d] of order) { if (n >= 2) break; if (L4_KINDS[k].cat === cat && take(k, d)) n++; } }
+  for (const [k, d] of order) { if (L.faults.length >= nCfg) break; take(k, d); }
+  for (const k of r.shuffle(L4_KIND_IDS.filter(x => L4_KINDS[x].conn)).slice(0, nConn)) L.faults.push({ kind: k, dev: L4_KINDS[k].devs[0] });
+  for (const f of L.faults) { f.p = L4_KINDS[f.kind].pick(r, L, f.dev); f.id = f.kind + '-' + f.dev; }
+  // one setting, one fault: a missing VLAN on the trunk leaves the trunk check to DTP
+  const tr = L.faults.find(f => f.kind === 'trunk');
+  if (tr && L.faults.some(f => f.kind === 'allowed')) tr.p.v = 'neg';
+  L.breaks = [];
+  for (const f of L.faults) if (L4_KINDS[f.kind].breaks) for (const x of L4_KINDS[f.kind].breaks(f.p)) if (!L.breaks.includes(x)) L.breaks.push(x);
+  L.breaks.sort();
+  L.cred = {};
+  for (const d of ['SwB', 'RtrB']) {
+    const en = L.faults.find(f => f.kind === 'enable' && f.dev === d), con = L.faults.find(f => f.kind === 'conweak' && f.dev === d);
+    L.cred[d] = { con: con ? con.p.weak : L.pw[d].con, en: en && en.p.v === 'weak' ? en.p.weak : L.pw[d].en, adm: L.pw[d].adm };
+  }
+  delete L.usedNames;
+  return L;
+}
+/* Site B as the plan describes it, before the faults: the Level 4 build (layout CLASSIC) plus the hardening policy */
+function l4SiteB(L, base) {
+  const R = '255.255.255.0', P30 = '255.255.255.252';
+  const SwB = mkDevice('switch', 'SwB', 'SwB'), RtrB = mkDevice('router', 'RtrB', 'RtrB', R2911);
+  const macOf = pc => devMac({ id: L4_ID, devices: base.devices }, pc);
+  for (const d of [SwB, RtrB]) {
+    const c = d.running, pw = L.pw[d.name];
+    c.enableSecret = { text: pw.en, type: 5 }; c.pwEnc = true; c.minLength = 10; c.loginBlock = { block: 120, attempts: 3, within: 60 };
+    c.domainName = 'phn.k12.lan'; c.domainLookup = false; c.httpServer = false; c.tsLog = 'datetime msec';
+    c.rsa = { bits: 2048, name: c.hostname + '.phn.k12.lan' }; c.sshVersion = 2;
+    c.bannerMotd = 'Authorized school staff only. Activity is monitored.'; c.bannerLogin = 'Site B network equipment. Sign in with your own account.';
+    usr(c, 'netadmin', { privilege: 15, secret: { text: pw.adm, type: 5 } });
+    for (const s of L.staff) if (s.devs.includes(d.name)) usr(c, s.name, { privilege: 15, secret: { text: s.pw, type: 5 } });
+    const host = L.decoys.some(x => x.kind === 'aclhost' && x.dev === d.name);
+    c.acls['20'] = { name: '20', type: 'standard', named: false, entries: (host ? [{ src: '10.2.20.10', action: 'permit' }] : []).concat([{ src: '10.1.20.0', wild: '0.0.0.255', action: 'permit' }, { src: '10.2.20.0', wild: '0.0.0.255', action: 'permit' }]) };
+    c.acls['20'].entries.forEach((e, i) => { e.seq = (i + 1) * 10; });
+    if (L.decoys.some(x => x.kind === 'sshtune' && x.dev === d.name)) { c.sshTimeout = 60; c.sshRetries = 2; }
+    setLine(c.lines.con[0], { password: { text: pw.con, t7: true }, login: 'login', exec: { m: 5, s: 0 } });
+    vty16(c);
+    for (const ln of c.lines.vty) Object.assign(ln, { login: 'local', transport: 'ssh', exec: { m: 5, s: 0 }, accessClass: { acl: '20', dir: 'in' } });
+  }
+  const sc = SwB.running;
+  Object.assign(sc.vlans, { 10: { name: 'STUDENTS' }, 20: { name: 'TEACHERS' }, 30: { name: 'PRINCIPALS' }, 99: { name: 'NATIVE' }, 999: { name: 'PARKING' } });
+  for (const n of l4Unused(L)) ifc(sc, n, { mode: 'access', accessVlan: 999, shutdown: true });
+  const spare = L.decoys.find(x => x.kind === 'spare'); if (spare) sc.ifaces[spare.port].description = 'Spare - library cart';
+  for (const [pc, v, desc] of [['Student-B', 10, 'Students - Building B lab'], ['Teacher-B', 20, 'Teachers - ' + L.teacher[0] + '\'s classroom']]) {
+    ifc(sc, L.ports[pc], { mode: 'access', accessVlan: v, portfast: true, bpduguard: true, cdp: false, description: desc,
+      psec: { on: true, max: L.psec.max, violation: L.psec.violation, sticky: true, macs: [{ mac: macOf(pc), sticky: true }] } });
+  }
+  ifc(sc, 'GigabitEthernet0/1', { mode: 'trunk', nativeVlan: 99, allowed: [10, 20, 30, 99], nonegotiate: true, description: 'Trunk to RtrB' });
+  addIf(sc, 'switch', 'Vlan20', { ip: '10.2.20.2', mask: R, shutdown: false });
+  sc.defaultGateway = '10.2.20.1';
+  SwB.vtpRev = 10;
+  const rc = RtrB.running;
+  ifc(rc, 'GigabitEthernet0/0', { shutdown: false, description: 'Trunk to SwB' });
+  addIf(rc, 'router', 'GigabitEthernet0/0.10', { encap: { vlan: 10, native: false }, ip: '10.2.10.1', mask: R, shutdown: false, description: 'STUDENTS' });
+  addIf(rc, 'router', 'GigabitEthernet0/0.20', { encap: { vlan: 20, native: false }, ip: '10.2.20.1', mask: R, shutdown: false, description: 'TEACHERS' });
+  addIf(rc, 'router', 'GigabitEthernet0/0.30', { encap: { vlan: 30, native: false }, ip: '10.2.30.1', mask: R, shutdown: false, description: 'PRINCIPALS' });
+  addIf(rc, 'router', 'GigabitEthernet0/0.99', { encap: { vlan: 99, native: true }, shutdown: false, description: 'NATIVE' });
+  ifc(rc, 'GigabitEthernet0/1', { ip: '198.51.100.2', mask: P30, shutdown: false, description: 'ISP uplink', aclIn: 'EDGE-IN' });
+  ifc(rc, 'GigabitEthernet0/2', { ip: '10.0.0.2', mask: P30, shutdown: false, description: 'Inter-site link to RtrA' });
+  rc.routes.push({ prefix: '8.8.8.8', mask: '255.255.255.255', nextHop: '198.51.100.1' });
+  rc.acls['EDGE-IN'] = { name: 'EDGE-IN', type: 'extended', named: true, entries: [
+    { ext: true, proto: 'tcp', s: { any: true }, d: { any: true }, est: true, action: 'permit', seq: 10 },
+    { ext: true, proto: 'icmp', s: { any: true }, d: { any: true }, icmp: 'echo-reply', action: 'permit', seq: 20 },
+    { ext: true, proto: 'udp', s: { src: '8.8.8.8' }, sp: { op: 'eq', a: 53 }, d: { any: true }, action: 'permit', seq: 30 },
+    { ext: true, proto: 'ip', s: { any: true }, d: { any: true }, log: true, action: 'deny', seq: 40 }] };
+  rc.ospf = { pid: 1, rid: '2.2.2.2', nets: [{ net: '10.0.0.0', wild: '0.0.0.3', area: '0' }, { net: '10.2.0.0', wild: '0.0.255.255', area: '0' }], redist: 'subnets', passive: ['GigabitEthernet0/0.10', 'GigabitEthernet0/0.20', 'GigabitEthernet0/0.30'] };
+  rc.dhcp = { excl: [['10.2.10.1', '10.2.10.9']], pools: [{ name: 'STUDENTS-B', net: '10.2.10.0', mask: R, gw: ['10.2.10.1'], dns: ['8.8.8.8'] }] };
+  RtrB.dhcpBind = [{ ip: '10.2.10.10', mac: macOf('Student-B'), pool: 'STUDENTS-B' }];
+  return { SwB: SwB, RtrB: RtrB };
+}
+/* the delivered machine: Site A, the ISP, and the PCs from the Level 4 build, Site B from the plan, then the faults */
+function l4Build(L) {
+  const base = scenarioById(L4_ID).build();
+  const site = l4SiteB(L, base);
+  base.devices.SwB = site.SwB; base.devices.RtrB = site.RtrB;
+  Object.assign(base.devices['Student-B'], { ip: '10.2.10.10', mask: '255.255.255.0', gw: '10.2.10.1', dns: '8.8.8.8', dhcp: true, dhcpServer: '10.2.10.1', arp: [] });
+  for (const l of base.links) { if (l.b === 'Student-B' || l.b === 'Teacher-B') l.ai = L.ports[l.b]; }
+  const D = base.devices, faults = L.faults.filter(f => !L4_KINDS[f.kind].last).concat(L.faults.filter(f => L4_KINDS[f.kind].last));
+  for (const f of faults) L4_KINDS[f.kind].apply(D, f.dev, f.p, L);
+  return base;
+}
+function l4BriefPort(L, pc) { return ifBrief(L.ports[pc]); }
+function l4Brief(L) {
+  const sb = l4BriefPort(L, 'Student-B'), tb = l4BriefPort(L, 'Teacher-B');
+  const broken = L.breaks.map(x => L4_PATHS[x][3]);
+  const cred = d => d + ': console password ' + L.cred[d].con + ', enable ' + L.cred[d].en + ', and netadmin secret ' + L.cred[d].adm + '.';
+  return {
+    blurb: ['Pōhinahina High School (PHN) runs two sites joined by a private inter-site link, each with its own provider uplink. Site A (RtrA and SwA) is finished and belongs to the Site A team: read it as the worked example and leave it exactly as it is.',
+      'Site B (RtrB and SwB) was built last summer by a contractor who has since left, and handed over as layout ' + L.code + '. It mostly follows the plan below, and a review found that it drifted from policy in several places. Audit both devices against the policy, find every fault, and fix it while the school keeps working. Every fault comes from what Levels 1 to 3 practice: accounts and passwords, console and VTY lines, SSH, services, switch ports, trunks, and broken paths.',
+      broken.length ? 'Since the contractor left, ' + andList(broken) + '. Find out why and fix it.' : 'Every required path works today: keep it that way.',
+      'Student-B is a shared lab PC in Building B, and Teacher-B is ' + L.teacher[0] + '\'s classroom PC.'],
+    admins: ['netadmin (your account, privilege 15) on SwB and RtrB: keep it. Its secrets are in the credentials below.', 'techlead (Site A team, privilege 15 on SwA and RtrA): keep it as it is.']
+      .concat(L.staff.map(s => s.name + ' (' + s.role + ', privilege 15 on ' + andList(s.devs) + '): keep it.')),
+    users: ['Every other local account is unauthorized, including student accounts and leftover setup accounts.'],
+    required: ['SwA, RtrA, and the ISP router stay exactly as delivered: they belong to other teams.',
+      'Teachers at either site manage both sites, so Teacher-A keeps SSH access to SwB (10.2.20.2) and RtrB (10.2.20.1) as netadmin.',
+      'Student-B (SwB ' + sb + ') reaches Teacher-B (SwB ' + tb + ') and the resolver at 8.8.8.8, and Teacher-B reaches Teacher-A across the inter-site link.',
+      'Every account under Authorized Administrators keeps its place on its devices.'],
+    policy: ['Hostnames are SwB and RtrB, with domain phn.k12.lan. VLANs at Site B match Site A: 10 STUDENTS, 20 TEACHERS, 30 PRINCIPALS, 99 NATIVE, and 999 PARKING.',
+      'SwB ' + sb + ' is the Students access port (Student-B, VLAN 10) and ' + tb + ' the Teachers access port (Teacher-B, VLAN 20). Both run port security (sticky, maximum 1 or 2, violation shutdown or restrict), PortFast, and BPDU guard, with CDP turned off. PortFast belongs on edge ports only, so the G0/1 trunk stays free of it.',
+      'SwB G0/1 is a static 802.1Q trunk to RtrB G0/0: switchport mode trunk, switchport nonegotiate, native VLAN 99, and allowed VLANs 10,20,30,99.',
+      'Every other SwB port is an access port in VLAN 999 PARKING and stays shut down.',
+      'SwB is managed on VLAN 20: interface vlan 20 is 10.2.20.2/24 with default gateway 10.2.20.1, and interface vlan 1 stays shut down without an address.',
+      'RtrB routes between the VLANs on g0/0.10, .20, and .30 (the gateway addresses), with g0/0.99 as the native VLAN without an address. Its OSPF process, its host route to 8.8.8.8, the EDGE-IN list on G0/1, and the STUDENTS-B DHCP pool match the Level 4 build (layout CLASSIC) and already work.',
+      'Privileged access uses an enable secret in place of an enable password. Every password and secret is at least 10 characters, so replace any shorter one from the handover note. security passwords min-length 10 and service password-encryption are on.',
+      'The console uses a password with login. Every VTY line (show running-config lists line vty 0 4 and line vty 5 15) uses login local, transport input ssh, and access-class 20 in. Every console and VTY line sets exec-timeout under 10 minutes (exec-timeout 5 0), and login block-for 120 attempts 3 within 60 slows guessing.',
+      'SSH runs version 2 only, with a 2048-bit RSA key. Access list 20 permits the Teachers subnets 10.1.20.0 0.0.0.255 and 10.2.20.0 0.0.0.255 and nothing else (a single Teachers host is fine).',
+      'The HTTP server, DNS lookups, and SNMP stay off: Site B runs without an SNMP community.',
+      'Both devices show a MOTD banner without "welcome".',
+      'Log messages carry timestamps: service timestamps log datetime msec.',
+      'Save both configurations when you are done.'],
+    warning: 'Changing SwA, RtrA, or the ISP router, removing an authorized account, locking Site A Teachers out of SSH, or breaking a required path fails an availability check.',
+    creds: 'From the contractor\'s handover note. ' + cred('SwB') + ' ' + cred('RtrB') + L.faults.filter(f => f.kind === 'ssh' && f.p.v === 'rsa1024').map(f => ' The note adds that the ' + f.dev + ' RSA key was generated at 1024 bits to save time.').join('') + ' SwA and RtrA: console password C0nsole-A1 and enable secret En@ble-A1, to read them only. ISP: provider equipment, open to provider staff only.',
+  };
+}
+/* points: raw weights scaled to exactly 100, each check between 2 and 10 */
+function l4Points(ws) {
+  const R = ws.reduce((a, b) => a + b, 0), ideal = ws.map(w => w * 100 / R);
+  const pts = ideal.map(x => clamp(Math.floor(x), 2, 10));
+  let diff = 100 - pts.reduce((a, b) => a + b, 0), guard = 0;
+  while (diff !== 0 && guard++ < 500) {
+    const idx = ws.map((w, i) => i).filter(i => diff > 0 ? pts[i] < 10 : pts[i] > 2).sort((i, j) => diff > 0 ? (ideal[j] - pts[j]) - (ideal[i] - pts[i]) || i - j : (ideal[i] - pts[i]) - (ideal[j] - pts[j]) || i - j);
+    if (!idx.length) break;
+    pts[idx[0]] += diff > 0 ? 1 : -1; diff += diff > 0 ? -1 : 1;
+  }
+  return pts;
+}
+const L4_CACHE = {};
+/* the scenario object for a layout code; CLASSIC is the original Level 4 */
+function l4Scenario(code) {
+  const base = scenarioById(L4_ID);
+  if (!code || code === L4_CLASSIC) return base;
+  if (L4_CACHE[code]) return L4_CACHE[code];
+  const L = l4Layout(code), K = f => L4_KINDS[f.kind];
+  const checks = [], ws = [];
+  const add = (c, w) => { checks.push(c); ws.push(w); };
+  for (const f of L.faults) {
+    const k = K(f);
+    add({ id: f.id, title: k.title(f.dev, f.p, L), cat: k.cat, kind: f.kind, dev: f.dev,
+      test: St => !!k.test(k.pc ? null : l4Cfgs(St, 'running'), f.dev, f.p, St, L),
+      hint: k.hint(f.dev, f.p, L), fix: k.fix(f.dev, f.p, L), why: k.why(f.dev, f.p, L) }, k.w);
+  }
+  for (const x of L.breaks) {
+    const P = L4_PATHS[x];
+    add({ id: 'reach' + x.slice(1), title: P[2] + ' again', cat: CAT.conn, test: St => pingModel(St, P[0], P[1]).ok, hint: 'Fix every fault on the path, then test with ping ' + P[1] + ' from ' + P[0], fix: P[0] + '> ping ' + P[1], why: 'What the school needs: the people who rely on this path can work again.' }, 4);
+  }
+  const cfgFaults = L.faults.filter(f => !K(f).pc);
+  add({ id: 'save', title: 'Every fix saved on SwB and RtrB (copy running-config startup-config)', cat: CAT.config,
+    test: St => { const run = l4Cfgs(St, 'running'), st = l4Cfgs(St, 'startup'); if (!st.SwB || !st.RtrB) return false; const ok = (cs, f) => { try { return !!K(f).test(cs, f.dev, f.p, St, L); } catch (e) { return false; } }; return cfgFaults.some(f => ok(st, f)) && cfgFaults.every(f => !ok(run, f) || ok(st, f)); },
+    hint: 'copy running-config startup-config on SwB and on RtrB', fix: '# copy running-config startup-config', why: 'A reload boots the startup-config, so an unsaved fix comes undone and the fault returns.' }, 4);
+  // investigation: up to three questions about this layout's faults, then the MAC address of a PC
+  const qs = [];
+  for (const f of L.faults) { if (!K(f).q) continue; const q = K(f).q(f.dev, f.p, L); if (q) qs.push(q); }
+  const r = l4Rng(code + '/questions'), pickQ = r.shuffle(qs).slice(0, 3);
+  for (const pc of ['Teacher-B', 'Student-B']) if (pickQ.length < 3) pickQ.push({ text: 'What is the MAC address of ' + pc + '? (Hint: ipconfig /all on ' + pc + ', or show mac address-table on SwB)', answers: St => [devMac(St, pc)], mac: pc });
+  const questions = pickQ.map((q, i) => ({ id: 'q' + (i + 1), text: 'Investigation ' + (i + 1) + ': ' + q.text, answers: q.answers }));
+  for (const q of questions) add({ id: q.id, title: q.id.replace('q', 'Investigation ') + ' answered', cat: CAT.inv, test: St => answerIs(St, q.id, q.answers), hint: 'Read the question, then the hint in it', fix: typeof q.answers === 'function' ? 'Answer: the Physical Address that ipconfig /all prints' : 'Answer: ' + q.answers[0], why: 'Reading the devices before you change them is the first step of every audit.' }, 3);
+  const pts = l4Points(ws); checks.forEach((c, i) => { c.pts = pts[i]; });
+  const avail = [base.availability[0], base.availability[1]];
+  const accts = [['netadmin', ['SwB', 'RtrB'], 'your own account']].concat(L.staff.map(s => [s.name, s.devs, 'the ' + s.role.split(',')[0] + '\'s account']));
+  for (const [name, devs, whose] of accts) for (const d of devs) avail.push({ id: 'p-acct-' + name + '-' + d, title: 'Authorized account "' + name + '" removed from ' + d, need: 'Authorized account "' + name + '" keeps its place on ' + d,
+    restore: 'Add the account back on ' + d + ': configure terminal, then username ' + name + ' privilege 15 secret <a secret of 10+ characters>, and save with copy running-config startup-config. A console that uses login local needs the account to sign in, so add it before you log out.',
+    test: St => !hasUser(C(St, d), name), why: 'The Scenario Brief lists ' + name + ' as authorized on ' + d + ': deleting ' + whose + ' locks out a person the school relies on.' });
+  for (const x of ['r1', 'r2', 'r3']) {
+    const P = L4_PATHS[x];
+    const restore = { r1: 'Keep each piece of the path up: SwB ' + l4BriefPort(L, 'Student-B') + ' and ' + l4BriefPort(L, 'Teacher-B') + ' up as access ports in VLANs 10 and 20, the SwB G0/1 trunk allowing 10,20,30,99, and RtrB g0/0.10 and g0/0.20 up. After a VLAN change, run ipconfig /renew on Student-B. Test with ping 10.2.20.10 from Student-B.',
+      r2: 'Keep each piece of the path up: SwB ' + l4BriefPort(L, 'Teacher-B') + ' up in VLAN 20, Teacher-B\'s gateway 10.2.20.1, the SwB G0/1 trunk allowing VLAN 20, and RtrB g0/0.20 and G0/2 up with its OSPF process as delivered. Test with ping 10.1.20.10 from Teacher-B.',
+      r3: 'Keep each piece of the path up: SwB ' + l4BriefPort(L, 'Student-B') + ' up in VLAN 10, the SwB G0/1 trunk allowing VLAN 10, RtrB g0/0.10 and G0/1 up, the EDGE-IN list and the host route to 8.8.8.8 as delivered. After a VLAN change, run ipconfig /renew on Student-B. Test with ping 8.8.8.8 from Student-B.' }[x];
+    // a required path is protected once it works in this attempt (S.pathUp, cleared by Reset lab): a path a planted
+    // fault breaks starts unflagged, and breaking it again after the fix, in any way, is a must-fix flag
+    avail.push({ id: 'p-' + x, title: 'Required path broken: ' + P[3], need: P[2], restore: restore,
+      test: St => { if (pingModel(St, P[0], P[1]).ok) { if (!(St.pathUp && St.pathUp[x])) St.pathUp = Object.assign({}, St.pathUp, { [x]: 1 }); return false; } return !!(St.pathUp && St.pathUp[x]); },
+      notYet: St => !(St.pathUp && St.pathUp[x]) && !pingModel(St, P[0], P[1]).ok,
+      why: 'The Scenario Brief requires this path: ' + P[2] + '.' });
+  }
+  // Teacher-A's SSH to each Site B device, the brief's required service: protected once it works in this attempt, like
+  // the paths. p-teach already names the Teachers-subnet ACL case, p-acct-netadmin the deleted account, and p-r2 a cut
+  // inter-site path, so this one stays quiet for those and covers every other way to lose it (routing, the SVI and its
+  // gateway, the key, the VTY lines, and ACL 20)
+  const r2Flag = St => !!(St.pathUp && St.pathUp.r2) && !pingModel(St, L4_PATHS.r2[0], L4_PATHS.r2[1]).ok;
+  const SSH_RESTORE = { SwB: 'Put back each piece Teacher-A uses to reach SwB: interface vlan 20 up at 10.2.20.2 with ip default-gateway 10.2.20.1, the SwB G0/1 trunk allowing VLAN 20, and RtrB g0/0.20 and G0/2 up', RtrB: 'Put back each piece Teacher-A uses to reach RtrB: RtrB g0/0.20 (10.2.20.1) and G0/2 up with its OSPF process as delivered' };
+  for (const [d, ip] of [['SwB', '10.2.20.2'], ['RtrB', '10.2.20.1']]) {
+    const key = 'ssh' + d, up = St => sshReady(St, 'Teacher-A', ip, 'netadmin');
+    const teach = St => sshReady(St, 'Teacher-B', ip, 'netadmin') && pingModel(St, 'Teacher-A', ip).ok;
+    avail.push({ id: 'p-ssh-' + d, title: 'Required service broken: Teacher-A cannot SSH to ' + d + ' (' + ip + ') as netadmin', need: 'Teacher-A keeps SSH access to ' + d + ' (' + ip + ') as netadmin',
+      restore: SSH_RESTORE[d] + ', a 2048-bit RSA key with ip ssh version 2, every VTY line with transport input ssh, login local, and access-class 20 in, access list 20 permitting both Teachers subnets, and the netadmin account. Test with ssh -l netadmin ' + ip + ' from Teacher-A.',
+      test: St => { if (up(St)) { if (!(St.pathUp && St.pathUp[key])) St.pathUp = Object.assign({}, St.pathUp, { [key]: 1 }); return false; } return !!(St.pathUp && St.pathUp[key]) && hasUser(C(St, d), 'netadmin') && !teach(St) && !r2Flag(St); },
+      notYet: St => !(St.pathUp && St.pathUp[key]) && !up(St),
+      why: 'The Scenario Brief requires this service: Teachers at either site manage both sites, so Teacher-A keeps SSH access to ' + d + ' as netadmin.' });
+  }
+  const sc = { id: L4_ID, level: 4, levelName: base.levelName, extra: true, grade: base.grade, name: base.name, short: 'Find and fix a Site B built from a layout code', code: code, l4: L,
+    learn: L4_LEARN, layout: base.layout, frozen: base.frozen.slice(), factory: [], build: () => l4Build(L), brief: l4Brief(L),
+    addressing: base.addressing.map(row => row[0] === 'Student-B' || row[0] === 'Teacher-B' ? [row[0], 'SwB ' + l4BriefPort(L, row[0]) + ' (VLAN ' + (row[0] === 'Student-B' ? 10 : 20) + ')'].concat(row.slice(2)) : row.slice()),
+    questions: questions, checks: checks, availability: avail };
+  L4_CACHE[code] = sc;
+  return sc;
+}
+/* a save of the original Level 4 from before the school names: devices still exactly as delivered take the new domain
+   and ISP descriptions in their running and startup configurations and their delivered snapshot, so nothing flags */
+function l4RenameSave(st) {
+  if (!st || st.id !== L4_ID || st.code !== L4_CLASSIC) return;
+  const fix = c => { if (!c) return; if (c.domainName === 'school.lan') c.domainName = 'phn.k12.lan'; if (c.rsa && /\.school\.lan$/.test(c.rsa.name)) c.rsa = Object.assign({}, c.rsa, { name: c.rsa.name.replace(/\.school\.lan$/, '.phn.k12.lan') }); for (const n of Object.keys(c.ifaces || {})) { const f = c.ifaces[n]; if (f.description === 'School Site A') f.description = 'PHN Site A'; if (f.description === 'School Site B') f.description = 'PHN Site B'; } };
+  for (const n of ['SwA', 'RtrA', 'ISP']) {
+    const d = st.devices[n]; if (!d || !st.frozenCfg || JSON.stringify(d.running) !== st.frozenCfg[n]) continue;
+    const before = JSON.stringify(d.running), same = d.startup && JSON.stringify(d.startup) === before;
+    fix(d.running); if (same) fix(d.startup); else if (d.startup) fix(d.startup);
+    if (JSON.stringify(d.running) !== before) st.frozenCfg[n] = JSON.stringify(d.running);
+  }
+}
+/* where to invest next, by hardening area: Strong when every finding in the area is fixed, Revisit otherwise */
+function l4AreaRows(res) {
+  const cats = [];
+  for (const c of SC.checks) { let k = cats.find(x => x.cat === c.cat); if (!k) cats.push(k = { cat: c.cat, n: 0, ok: 0, miss: [] }); k.n++; if (res.earned.includes(c)) k.ok++; else k.miss.push(c.title); }
+  return cats.map(k => ({ cat: k.cat, strong: k.ok === k.n, text: k.cat + ': ' + k.ok + ' of ' + k.n + ' fixed' + (k.miss.length ? '. Next: ' + k.miss.join('; ') : '') }));
+}
+/* a stable fingerprint of a layout (machine, checks, availability, brief), for the tests and for a teacher comparing codes */
+function l4Hash(code) {
+  const sc = l4Scenario(code), st = freshState(sc);
+  return hash32(JSON.stringify({ d: st.devices, l: st.links, c: sc.checks.map(c => [c.id, c.pts, c.title, c.fix]), a: sc.availability.map(p => [p.id, p.title, p.restore]), b: sc.brief, q: sc.questions.map(q => [q.id, q.text]), x: sc.addressing })).toString(16);
+}
+/* ---- the layout controls (Activity panel) ---- */
+function levelText(sc) { return sc.extra ? 'Level ' + sc.level + ' · ' + sc.levelName + ' · extra credit' : 'Level ' + sc.level + ' (' + sc.levelName + ')'; }
+function l4Bar() {
+  const box = el('div', { class: 'l4bar', role: 'group', 'aria-label': 'Level 4 layout' });
+  box.appendChild(el('p', { class: 'l4note', text: 'Extra credit for learners who finished Levels 1 to 3, and open to everyone. Finishing Level 3 Captain first helps, because every fault here comes from those levels.' }));
+  box.appendChild(el('p', {}, ['Layout code: ', el('code', { id: 'l4-code', text: S.code }), S.code === L4_CLASSIC ? ' (the original build from factory defaults, which the solution walkthrough follows step by step)' : ' (this code builds this same Site B in any browser, so a whole class can share one)']));
+  if (RT.l4Typed && RT.l4Typed === S.code && S.code !== L4_CLASSIC) box.appendChild(el('p', { class: 'l4note', text: 'You typed this code: compare ' + S.code + ' with the code you were given, because one changed character builds a different Site B.' }));
+  box.appendChild(el('div', { class: 'l4btns' }, [el('button', { type: 'button', id: 'l4-new', text: 'New layout' }), el('button', { type: 'button', id: 'l4-enter', text: 'Enter a layout code' })]));
+  return box;
+}
+function l4AskNew() {
+  openModal('Build a new layout?', [el('p', { text: 'A new layout builds a different Site B with its own faults, accounts, and ports. It replaces this Level 4 attempt, and your best Level 4 score stays.' })],
+    [el('button', { type: 'button', dataset: { close: '1' }, text: 'Cancel' }), el('button', { type: 'button', class: 'primary', id: 'l4-new-go', text: 'Build a new layout' })]);
+}
+function l4AskCode() {
+  const inp = el('input', { type: 'text', id: 'l4-input', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false', maxlength: 12, 'aria-describedby': 'l4-msg', placeholder: 'for example K7RMHX' });
+  openModal('Enter a layout code', [el('p', { text: 'Type the six-character code your teacher or study group shared, or CLASSIC for the original build. The same code builds the same Site B in any browser. It replaces this Level 4 attempt, and your best Level 4 score stays.' }), el('p', { class: 'about', text: 'Check each character against the shared code before you build: a code with one character changed still builds, and it builds a different Site B.' }),
+    el('label', { for: 'l4-input', text: 'Layout code' }), inp, el('p', { id: 'l4-msg', class: 'about', role: 'status' })],
+    [el('button', { type: 'button', dataset: { close: '1' }, text: 'Cancel' }), el('button', { type: 'button', class: 'primary', id: 'l4-go', text: 'Build this layout' })]);
+  setTimeout(() => { try { inp.focus(); } catch (e) { } }, 30);
+}
+function l4Typed() {
+  const inp = $('#l4-input'); if (!inp) return;
+  const code = l4Norm(inp.value);
+  if (!code) { $('#l4-msg').textContent = 'A layout code has six characters from ' + L4_ABC.split('').join(' ') + ', or the word CLASSIC.'; return; }
+  RT.l4Typed = code; l4Start(code);
+}
+function l4Start(code) {
+  RT.lastFocus = null; closeModal();
+  saveStoreNow();
+  delete (STORE.scenarios[L4_ID] || {}).S;
+  selectScenario(L4_ID, { fresh: true, code: code });
+}
+
 /* ---- 90-ui.js ---- */
 /* ================= state, persistence ================= */
 let S = null, SC = null, STORE = null, LAST = null;
@@ -5477,9 +6105,17 @@ function selectScenario(id, opts) {
   opts = opts || {};
   for (const t of Object.keys(RT.tabs)) cancelBoot(t);
   RT.sessions = []; RT.tabs = {}; RT.dev = {};
-  SC = scenarioById(id);
-  const slot = STORE.scenarios[SC.id];
-  S = (!opts.fresh && slot && slot.S && slot.S.id === SC.id && slot.S.devices) ? slot.S : freshState(SC);
+  const base = scenarioById(id), slot = STORE.scenarios[base.id];
+  let saved = (!opts.fresh && slot && slot.S && slot.S.id === base.id && slot.S.devices) ? slot.S : null;
+  // Level 4: the layout code comes from the request, then the saved attempt (a save without a code is the original
+  // layout, CLASSIC), and otherwise a new random layout. A saved attempt whose code no longer reads as a layout code
+  // holds a machine no check set describes, so it is dropped and the last valid layout opens fresh (best score kept)
+  let reopen = null;
+  if (base.id === L4_ID && saved && saved.code != null && !l4Norm(saved.code)) { delete slot.S; saved = null; reopen = l4Norm(slot.lastCode); }
+  const code = base.id === L4_ID ? (l4Norm(opts.code) || (saved ? (l4Norm(saved.code) || L4_CLASSIC) : reopen || l4NewCode())) : null;
+  SC = code ? l4Scenario(code) : base;
+  S = saved || freshState(SC);
+  if (code) { S.code = code; l4RenameSave(S); (STORE.scenarios[L4_ID] || (STORE.scenarios[L4_ID] = {})).lastCode = code; }
   // repair older saves lacking fields
   for (const n of Object.keys(S.devices)) { const d = S.devices[n]; if (d.kind !== 'pc') { d.log = d.log || []; if (d.dirty === undefined) d.dirty = false; } else d.arp = d.arp || []; }
   if ((S.startRev || 1) < 2 && S.id === 's3') addStartSetting(S, 'R1', 'snmp'); // release 2: Level 3's R1 starts with the contractor's SNMP community
@@ -5500,7 +6136,10 @@ const scheduleEvaluate = debounce(evaluate, 150);
 /* points come from checks only. A failed availability check is a must-fix flag: it holds the points where they are,
    shows in red with its restore step, and holds Finish until it works again. S.availBroke remembers every one the
    learner broke this attempt, so the Debrief can name the ones broken and restored. */
-const OUTAGE_LINE = 'Finish waits until every business need works again, because an outage is an incident you fix before you are done.';
+/* 'school' for a school scenario (Level 4, at Pōhinahina High School), 'business' otherwise: the same words the Windows Range uses */
+function orgWord(sc) { sc = sc || SC; return sc && (sc.extra || /\bschool\b/i.test(sc.name || '')) ? 'school' : 'business'; }
+function outageLine() { return 'Finish waits until every ' + orgWord() + ' need works again, because an outage is an incident you fix before you are done.'; }
+const HELD_TAG = 'Held: fix the flagged outage';
 /* a break holds the score: a check whose result changes in the same step that breaks a business need keeps its
    earlier result until that need works again, so a break neither raises nor lowers the points (deleting an authorized
    user earns none of that user's checks and costs none). S.hold keeps the held results across a reload. */
@@ -5520,22 +6159,32 @@ function holdResults(checks, failed, live) {
 function availWhich(p) { let w = ''; try { w = p.which ? String(p.which(S) || '') : ''; } catch (e) { w = ''; } return w; }
 function brokeWhich(prev, p) { const w = availWhich(p); if (!w) return prev || 1; const names = typeof prev === 'string' ? prev.split(', ') : []; w.split(', ').forEach(n => { if (!names.includes(n)) names.push(n); }); return names.join(', '); }
 function brokeNames(p) { const v = S && S.availBroke && S.availBroke[p.id]; return typeof v === 'string' ? v : ''; }
-function fillName(text, w) { return w && w.indexOf(',') < 0 ? text.replace(/\bNAME\b/g, w) : text; }
+/* NAME in a restore step: one broken item fills it in; several are listed after the step */
+function andList(a) { return a.length < 3 ? a.join(' and ') : a.slice(0, -1).join(', ') + ', and ' + a[a.length - 1]; }
+function fillName(text, w) { if (!w || !/\bNAME\b/.test(text)) return text; const n = w.split(', '); return n.length === 1 ? text.replace(/\bNAME\b/g, w) : text + ' Use each name in place of NAME: ' + andList(n) + '.'; }
 /* the need in plain words (what keeps working), for the Debrief; the title names the failure, for the must-fix flag */
 function availNeed(p) { return p.need || p.title; }
 function availName(p) { const w = availWhich(p); return p.title + (w ? ' (' + w + ')' : ''); }
 function availBroke(p) { return !!(S && S.availBroke && S.availBroke[p.id]); }
+/* Level 4: a required path a planted fault still breaks (it has not worked yet in this attempt) */
+function availNotYet(p) { try { return !!(p.notYet && p.notYet(S)); } catch (e) { return false; } }
+const NOT_YET = 'still broken by a fault planted in this layout: the Troubleshooting checks above name what to fix.';
 function mustFixList(res) { const ul = el('ul', { class: 'mustfix' }); for (const p of res.failed) ul.appendChild(el('li', { class: 'avail' }, [el('span', { class: 'mark', text: '!' }), el('span', { class: 't' }, [el('b', { text: 'Availability check failed: ' + availName(p) }), el('span', { class: 'restore', text: 'Restore: ' + p.restore })]), el('span', { class: 'pts', text: 'must fix' })])); return ul; }
-function availSummary(res) { const n = SC.availability.filter(availBroke).length; return res.failed.length ? res.failed.length + ' availability check' + (res.failed.length === 1 ? '' : 's') + ' to fix' : n ? n + ' business ' + (n === 1 ? 'need' : 'needs') + ' broken and restored' : 'every business need kept working'; }
+function availSummary(res) {
+  const n = SC.availability.filter(availBroke).length, y = SC.availability.filter(p => !availBroke(p) && availNotYet(p)).length;
+  const later = y ? y + ' required path' + (y === 1 ? '' : 's') + ' still broken by the layout' : '';
+  if (res.failed.length) return res.failed.length + ' availability check' + (res.failed.length === 1 ? '' : 's') + ' to fix';
+  return n ? n + ' ' + orgWord() + ' ' + (n === 1 ? 'need' : 'needs') + ' broken and restored' + (later ? '; ' + later : '') : later || 'every ' + orgWord() + ' need kept working';
+}
 function finishWaits(res) {
-  openModal('Finish waits for a fix', [el('p', { class: 'mustfix-why', text: OUTAGE_LINE }), mustFixList(res), el('p', { class: 'about', text: 'Your points stay as they are. Reset lab also brings everything back, and keeps your best score.' })], [el('button', { type: 'button', dataset: { close: '1' }, text: 'Back to the range' })], 'finish-wait');
+  openModal('Finish waits for a fix', [el('p', { class: 'mustfix-why', text: outageLine() }), mustFixList(res), el('p', { class: 'about', text: 'Your points stay as they are. Reset lab also brings everything back, and keeps your best score.' })], [el('button', { type: 'button', dataset: { close: '1' }, text: 'Back to the range' })], 'finish-wait');
 }
 /* the Debrief's availability section, in the where-to-invest-next style: Strong when a need kept working all along, Revisit when you broke it and restored it */
 function availInvest() {
   const broke = SC.availability.filter(availBroke);
   const ul = el('ul');
-  for (const p of SC.availability.slice().sort((a, b) => availBroke(b) - availBroke(a))) { const b = availBroke(p), w = brokeNames(p); ul.appendChild(el('li', {}, [el('b', { class: b ? 'rate-revisit' : 'rate-strong', text: b ? 'Revisit' : 'Strong' }), ' ' + availNeed(p) + ': ' + (b ? 'broken' + (w ? ' (' + w + ')' : '') + ', then restored. ' + p.why + ' The way back: ' + p.restore : 'kept working the whole time.')])); }
-  return el('div', { class: 'dbr-avail' }, [el('h3', { text: 'Availability: where to invest next' }), el('p', { text: 'Availability is the A in confidentiality, integrity, and availability: hardening keeps the people and services the organization relies on working. ' + (broke.length ? 'You broke ' + broke.length + ' business need' + (broke.length === 1 ? '' : 's') + ' and restored ' + (broke.length === 1 ? 'it' : 'them') + '. Next time, read the Scenario Brief’s required list before each change that touches it.' : 'You kept every business need working the whole time.') }), ul]);
+  for (const p of SC.availability.slice().sort((a, b) => availBroke(b) - availBroke(a))) { const b = availBroke(p), w = brokeNames(p); const ny = !b && availNotYet(p); ul.appendChild(el('li', {}, [el('b', { class: b || ny ? 'rate-revisit' : 'rate-strong', text: b || ny ? 'Revisit' : 'Strong' }), ' ' + availNeed(p) + ': ' + (ny ? NOT_YET : b ? 'broken' + (w ? ' (' + w + ')' : '') + ', then restored. ' + p.why + ' The way back: ' + p.restore : 'kept working the whole time.')])); }
+  return el('div', { class: 'dbr-avail' }, [el('h3', { text: 'Availability: where to invest next' }), el('p', { text: 'Availability is the A in confidentiality, integrity, and availability: hardening keeps the people and services the organization relies on working. ' + (broke.length ? 'You broke ' + broke.length + ' ' + orgWord() + ' need' + (broke.length === 1 ? '' : 's') + ' and restored ' + (broke.length === 1 ? 'it' : 'them') + '. Next time, read the Scenario Brief’s required list before each change that touches it.' : 'You kept every ' + orgWord() + ' need working the whole time.') + (SC.availability.some(p => !availBroke(p) && availNotYet(p)) ? ' A required path this layout broke still waits for its Troubleshooting fix.' : '') }), ul]);
 }
 function evaluate() {
   if (!S || !SC) return;
@@ -5551,8 +6200,10 @@ function evaluate() {
   if (res.failed.length) { S.availBroke = S.availBroke || {}; for (const p of res.failed) S.availBroke[p.id] = brokeWhich(S.availBroke[p.id], p); }
   LAST = res;
   const slot = STORE.scenarios[SC.id] || (STORE.scenarios[SC.id] = {});
-  if (!res.failed.length && res.score > 0 && (typeof slot.best !== 'number' || res.score > slot.best)) { slot.best = res.score; slot.bestHints = hintCount(); slot.bestCoach = coachMode(SC.level); renderLevels(); }
-  const sc = $('.score'); sc.textContent = res.score + ' / ' + res.max + ' pts'; sc.classList.toggle('neg', res.failed.length > 0); sc.title = res.failed.length ? res.failed.length + ' availability check' + (res.failed.length === 1 ? '' : 's') + ' to fix before you finish' : '';
+  if (!res.failed.length && res.score > 0 && (typeof slot.best !== 'number' || res.score > slot.best)) { slot.best = res.score; slot.bestHints = hintCount(); slot.bestCoach = coachMode(SC.level); if (S.code) slot.bestCode = S.code; renderLevels(); }
+  // a must-fix flag holds the points: the number keeps its color and a short visible tag says why
+  const sc = $('.score'); sc.textContent = res.score + ' / ' + res.max + ' pts'; sc.classList.remove('neg'); sc.classList.toggle('held', res.failed.length > 0); sc.removeAttribute('title');
+  if (res.failed.length) sc.appendChild(el('span', { class: 'held-tag', text: HELD_TAG }));
   renderReport(res); markTasks(res); markAnswerStates(res);
 }
 /* Coach: how much the Progress Check tells you, chosen apart from the scenario level (the level sets the default) */
@@ -5575,7 +6226,7 @@ function renderReport(res) {
   const body = $('#rbody'); body.textContent = '';
   body.appendChild(coachControl(SC.level));
   const lvl = SC.level;
-  body.appendChild(el('p', { class: 'scen', text: SC.name + ' - Level ' + lvl + ' (' + SC.levelName + ') - ' + SC.grade + ' level' }));
+  body.appendChild(el('p', { class: 'scen', text: SC.name + ' - ' + levelText(SC) + (SC.extra ? '' : ' - ' + SC.grade + ' level') + (S.code ? ' - layout ' + S.code : '') }));
   body.appendChild(el('p', { class: 'total' + (res.score < 0 ? ' neg' : ''), text: 'Progress: ' + res.score + ' / ' + res.max + ' points' }));
   body.appendChild(el('p', { class: 'found', text: 'Checks passed: ' + res.earned.length + ' of ' + SC.checks.length }));
   const meter = el('div', { class: 'meter', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': res.max, 'aria-valuenow': Math.max(0, res.score) });
@@ -5587,7 +6238,7 @@ function renderReport(res) {
   if (res.failed.length) {
     body.appendChild(el('h3', { class: 'mustfix-h', text: 'Must fix: availability checks failed' }));
     body.appendChild(mustFixList(res));
-    body.appendChild(el('p', { class: 'mustfix-why', text: 'Your points stay as they are. ' + OUTAGE_LINE }));
+    body.appendChild(el('p', { class: 'mustfix-why', text: 'Your points stay as they are. ' + outageLine() }));
   }
   const mode = coachMode(lvl);
   if (mode === 'todo' && res.missing.length) {
@@ -5615,7 +6266,7 @@ function renderReport(res) {
     body.appendChild(ul);
   }
   const slot = STORE.scenarios[SC.id] || {};
-  const timer = el('p', { class: 'timer' }, ['Elapsed: ', el('span', { id: 'elapsed', text: fmtTime(S.elapsed) }), bestOf(SC.id) !== null ? '  ·  Best: ' + bestOf(SC.id) + ' pts' + (slot.bestHints ? ' with ' + slot.bestHints + ' hint' + (slot.bestHints === 1 ? '' : 's') : slot.bestHints === 0 ? ', no hints' : '') + (slot.bestCoach ? ' (' + coachLabel(slot.bestCoach) + ')' : '') : '', '  ·  Hints this attempt: ' + hintCount()]);
+  const timer = el('p', { class: 'timer' }, ['Elapsed: ', el('span', { id: 'elapsed', text: fmtTime(S.elapsed) }), bestOf(SC.id) !== null ? '  ·  Best: ' + bestOf(SC.id) + ' pts' + (slot.bestCode ? ' on layout ' + slot.bestCode : '') + (slot.bestHints ? ' with ' + slot.bestHints + ' hint' + (slot.bestHints === 1 ? '' : 's') : slot.bestHints === 0 ? ', no hints' : '') + (slot.bestCoach ? ' (' + coachLabel(slot.bestCoach) + ')' : '') : '', '  ·  Hints this attempt: ' + hintCount()]);
   body.appendChild(timer);
   const act = el('div', { class: 'actions' });
   act.appendChild(el('button', { type: 'button', id: 'debrief2', text: 'Finish / Debrief' }));
@@ -5632,8 +6283,8 @@ const TASK_MAP = { s1: [['host'], ['ensec', 'enpw'], ['guest', 'admin'], ['con',
 function renderLevels() {
   const box = $('.levels'); box.textContent = '';
   for (const sc of SCENARIOS) {
-    const b = el('button', { type: 'button', role: 'tab', 'aria-selected': SC && sc.id === SC.id ? 'true' : 'false', dataset: { level: sc.id }, title: sc.name + ' - ' + sc.short + ' (' + sc.grade + ')' });
-    b.appendChild(el('span', { class: 'lv', text: sc.level + ' · ' })); b.appendChild(el('span', { text: sc.levelName })); b.appendChild(document.createTextNode(' ')); b.appendChild(el('span', { class: 'gr', text: sc.grade }));
+    const b = el('button', { type: 'button', role: 'tab', 'aria-selected': SC && sc.id === SC.id ? 'true' : 'false', dataset: { level: sc.id }, title: sc.extra ? sc.name + ' - extra credit after Levels 1 to 3: every layout code builds a different Site B to audit, open to everyone' : sc.name + ' - ' + sc.short + ' (' + sc.grade + ')' });
+    b.appendChild(el('span', { class: 'lv', text: sc.level + ' · ' })); b.appendChild(el('span', { text: sc.levelName })); b.appendChild(document.createTextNode(sc.extra ? ' · ' : ' ')); b.appendChild(el('span', { class: 'gr', text: sc.extra ? 'extra credit' : sc.grade }));
     const best = bestOf(sc.id); if (best !== null) { const sl = STORE.scenarios[sc.id] || {}; b.appendChild(el('span', { class: 'best', text: 'best ' + best + (sl.bestHints ? ' · ' + sl.bestHints + ' hint' + (sl.bestHints === 1 ? '' : 's') : '') })); }
     box.appendChild(b);
   }
@@ -5912,7 +6563,8 @@ function pcConfApply() {
 /* ================= activity panel ================= */
 function renderActivity() {
   const host = $('#activity'); host.textContent = '';
-  $('#act-sub').textContent = SC.name + ' — Level ' + SC.level + ' ' + SC.levelName;
+  $('#act-sub').textContent = SC.name + ' — ' + (SC.extra ? levelText(SC) + ' · layout ' + S.code : 'Level ' + SC.level + ' ' + SC.levelName);
+  if (SC.extra) host.appendChild(l4Bar());
   const r = SC.brief;
   const sec = (title, open, children) => { const d = el('details', { open: open ? true : null }); d.appendChild(el('summary', { text: title })); for (const c of children) d.appendChild(c); return d; };
   const list = items => { const ul = el('ul'); for (const i of items) ul.appendChild(el('li', { text: i })); return ul; };
@@ -5940,7 +6592,14 @@ function renderActivity() {
   }
   host.appendChild(sec('Investigation questions', true, qs));
   if (SC.level === 3) host.appendChild(sec('Captain notes', false, [el('p', { text: 'This level works from the policy alone, without a task list or categories. Read the policy in the Scenario Brief. Inventory every device: show running-config, show ip interface brief, show vlan brief, show interfaces trunk, and show access-lists. Then work through the policy, and test with ping and ssh from the PCs.' })]));
-  if (SC.level === 4) host.appendChild(sec('Build order', false, [el('ol', {}, [
+  if (SC.extra && S.code !== L4_CLASSIC) host.appendChild(sec('Audit order', false, [el('ol', {}, [
+    'Read the Scenario Brief and the addressing table, then Site A as the worked example: show running-config on SwA and RtrA.',
+    'Inventory Site B before you change anything: show running-config, show ip interface brief, show vlan brief, show interfaces status, show interfaces trunk, show port-security, show access-lists, and show ip ssh on SwB and RtrB.',
+    'Compare every account with the Scenario Brief and every setting with the policy. Test each required path with ping from Student-B and Teacher-B, and SSH from Teacher-A.',
+    'Fix one finding at a time and watch the Progress Check. Answer the investigation questions as you go.',
+    'Save both devices with copy running-config startup-config, then Finish for the Debrief.',
+  ].map(t => el('li', { text: t })))]));
+  if (SC.level === 4 && (!SC.extra || S.code === L4_CLASSIC)) host.appendChild(sec('Build order', false, [el('ol', {}, [
     'Read Site A: show running-config on SwA and RtrA, then show ip route on RtrA. show ip ospf neighbor on RtrA lists RtrB once RtrB runs OSPF.',
     'SwB: hostname, VLANs, access ports with PortFast and BPDU guard, parked ports, the G0/1 trunk, and the Vlan20 SVI with its default gateway.',
     'RtrB: hostname, G0/0 up, subinterfaces .10, .20, .30, and .99 native, then G0/1 and G0/2 with their /30 addresses.',
@@ -5953,8 +6612,9 @@ function renderActivity() {
 
 /* ================= modals ================= */
 function openModal(title, bodyNodes, buttons, cls) {
-  closeModal();
-  const host = $('#modal-host');
+  // the control that opened this dialog (a dialog replacing another one keeps the first opener)
+  const host = $('#modal-host'); const opener = host.firstChild ? RT.lastFocus : RT.opener || document.activeElement; RT.opener = null;
+  host.textContent = '';
   const wrap = el('div', { class: 'modal ' + (cls || ''), role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'modal-title' });
   const box = el('div', { class: 'box' });
   const h = el('h2', { id: 'modal-title' }, [title, el('button', { type: 'button', class: 'x small', 'aria-label': 'Close', dataset: { close: '1' }, text: 'Close' })]);
@@ -5962,10 +6622,23 @@ function openModal(title, bodyNodes, buttons, cls) {
   const body = el('div', { class: 'mbody' }); for (const n of bodyNodes) body.appendChild(n);
   if (buttons && buttons.length) { const bt = el('div', { class: 'btns' }); for (const b of buttons) bt.appendChild(b); body.appendChild(bt); }
   box.appendChild(body); wrap.appendChild(box); host.appendChild(wrap);
-  RT.lastFocus = document.activeElement;
+  RT.lastFocus = opener;
   const first = $('.x', box); setTimeout(() => { try { box.scrollTop = 0; first.focus({ preventScroll: true }); } catch (e) { } }, 0);
 }
-function closeModal() { const host = $('#modal-host'); host.textContent = ''; if (RT.lastFocus && RT.lastFocus.focus) { try { RT.lastFocus.focus(); } catch (e) { } } }
+/* Tab and Shift+Tab stay inside an open dialog (aria-modal), so a keyboard user never lands on the page behind it */
+function modalTrap(e) {
+  const box = e.key === 'Tab' && $('#modal-host .box'); if (!box) return;
+  const f = Array.from(box.querySelectorAll('a[href], button, input, textarea, select, [tabindex]:not([tabindex="-1"])')).filter(x => !x.disabled && !x.hidden && x.offsetParent !== null);
+  if (!f.length) { e.preventDefault(); return; }
+  const i = f.indexOf(document.activeElement);
+  if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); } else if (!e.shiftKey && (i < 0 || i === f.length - 1)) { e.preventDefault(); f[0].focus(); }
+}
+function closeModal() {
+  const host = $('#modal-host'); const was = !!host.firstChild; host.textContent = '';
+  let t = RT.lastFocus; if (!was || !t) return;
+  if (!t.isConnected) t = t.id ? document.getElementById(t.id) : null; // the page rebuilt the control: focus its replacement
+  if (t && t.focus && t !== document.body) { try { t.focus({ preventScroll: true }); } catch (e) { } }
+}
 /* one Defense Ladder unit per check: the scenario's Learn list, chosen by the check's area and title */
 function learnFor(c) {
   if (c.learn) return c.learn;
@@ -5976,23 +6649,24 @@ function learnFor(c) {
   return find('sophomore/') || L[0];
 }
 function debriefText(res) {
-  const lines = ['Lockdown Range: Cisco IOS - ' + SC.name + ' (Level ' + SC.level + ', ' + SC.levelName + ', ' + SC.grade + ')', 'Progress ' + res.score + ' / ' + res.max + ' - checks passed ' + res.earned.length + ' of ' + SC.checks.length + ' - availability: ' + availSummary(res) + ' - time ' + fmtTime(S.elapsed) + ' - hints ' + hintCount() + ' (' + hintCommands() + ' with the command) - coach: ' + coachLabel(coachMode(SC.level)), ''];
+  const lines = ['Lockdown Range: Cisco IOS - ' + SC.name + ' (Level ' + SC.level + ', ' + SC.levelName + (SC.extra ? ', extra credit' : ', ' + SC.grade) + ')' + (S.code ? ' - layout ' + S.code : ''), 'Progress ' + res.score + ' / ' + res.max + ' - checks passed ' + res.earned.length + ' of ' + SC.checks.length + ' - availability: ' + availSummary(res) + ' - time ' + fmtTime(S.elapsed) + ' - hints ' + hintCount() + ' (' + hintCommands() + ' with the command) - coach: ' + coachLabel(coachMode(SC.level)), ''];
   for (const c of SC.checks) { const st = hintStep(c.id); lines.push((res.earned.includes(c) ? '[x] ' : '[ ] ') + c.title + ' (' + c.pts + ' pts)' + (st ? '  [hint: ' + (st >= 2 ? 'command shown' : 'principle') + ']' : '')); }
-  for (const p of SC.availability) lines.push((res.failed.includes(p) ? '[!] ' : availBroke(p) ? '[restored] ' : '[ok] ') + 'Availability: ' + (res.failed.includes(p) ? availName(p) + ' (must fix)' : availNeed(p) + (availBroke(p) ? ' (Revisit: ' + (brokeNames(p) ? brokeNames(p) + ' ' : '') + 'broken, then restored)' : ' (Strong: kept working)')));
+  for (const p of SC.availability) lines.push((res.failed.includes(p) ? '[!] ' : availBroke(p) ? '[restored] ' : availNotYet(p) ? '[not yet] ' : '[ok] ') + 'Availability: ' + (res.failed.includes(p) ? availName(p) + ' (must fix)' : availNeed(p) + (availNotYet(p) && !availBroke(p) ? ' (' + NOT_YET + ')' : availBroke(p) ? ' (Revisit: ' + (brokeNames(p) ? brokeNames(p) + ' ' : '') + 'broken, then restored)' : ' (Strong: kept working)')));
+  if (SC.extra) { lines.push('', 'Where to invest next, by hardening area:'); for (const a of l4AreaRows(res)) lines.push((a.strong ? '[Strong] ' : '[Revisit] ') + a.text); }
   const slot = STORE.scenarios[SC.id] || {}; if (slot.reflect) lines.push('', 'What broke, and what I will do first next time:', slot.reflect);
   return lines.join('\n') + '\n';
 }
 function openDebrief() {
-  evaluate();
+  RT.opener = document.activeElement; evaluate();
   const res = LAST || { earned: [], missing: [], failed: [], score: 0, max: 100 };
   if (res.failed.length) { finishWaits(res); return; }
-  const sum = el('div', { class: 'sum' }, [el('span', { text: 'Progress: ' + res.score + ' / ' + res.max }), el('span', { text: 'Checks passed: ' + res.earned.length + ' of ' + SC.checks.length }), el('span', { text: 'Availability: ' + availSummary(res) }), el('span', { text: 'Time: ' + fmtTime(S.elapsed) })]);
+  const sum = el('div', { class: 'sum' }, [S.code ? el('span', { text: 'Layout: ' + S.code }) : null, el('span', { text: 'Progress: ' + res.score + ' / ' + res.max }), el('span', { text: 'Checks passed: ' + res.earned.length + ' of ' + SC.checks.length }), el('span', { text: 'Availability: ' + availSummary(res) }), el('span', { text: 'Time: ' + fmtTime(S.elapsed) })]);
   const tbl = el('table'); const tr = el('tr'); for (const h of ['', 'Check', 'Pts', 'Fix', 'Why it matters']) tr.appendChild(el('th', { text: h })); tbl.appendChild(el('thead', {}, [tr]));
   const tb = el('tbody');
-  for (const c of SC.checks) { const ok = res.earned.includes(c); const row = el('tr', { class: ok ? 'ok' : 'no' }); row.appendChild(el('td', { text: ok ? '✓' : '✗' })); row.appendChild(el('td', { text: c.title })); row.appendChild(el('td', { text: String(c.pts) })); row.appendChild(el('td', { class: 'fix', text: c.fix })); { const why = el('td', { class: 'why', text: c.why }); const l = learnFor(c); if (l) { why.appendChild(document.createTextNode(' ')); why.appendChild(el('a', { class: 'learn', href: DL_URL + l[0], target: '_blank', rel: 'noopener', text: 'Learn it: ' + l[2] })); } const st = hintStep(c.id); if (st) why.appendChild(el('span', { class: 'hintmark', text: st >= 2 ? '(command shown)' : '(hint: principle)' })); row.appendChild(why); } tb.appendChild(row); }
-  for (const p of SC.availability) { const hit = res.failed.includes(p); const row = el('tr', { class: hit ? 'no' : 'ok' }); row.appendChild(el('td', { text: hit ? '!' : '✓' })); row.appendChild(el('td', { text: 'Availability check: ' + (hit ? availName(p) : availNeed(p)) })); row.appendChild(el('td', { text: hit ? 'must fix' : '—' })); row.appendChild(el('td', { class: 'fix', text: hit ? 'Restore: ' + p.restore : availBroke(p) ? 'Broken' + (brokeNames(p) ? ' (' + brokeNames(p) + ')' : '') + ', then restored. ' + p.restore : 'Kept working the whole time.' })); row.appendChild(el('td', { class: 'why', text: p.why })); tb.appendChild(row); }
+  for (const c of SC.checks) { const ok = res.earned.includes(c); const row = el('tr', { class: ok ? 'ok' : 'no' }); row.appendChild(el('td', { text: ok ? '✓' : '✗' })); row.appendChild(el('td', { text: c.title })); row.appendChild(el('td', { class: 'pts', text: String(c.pts) })); row.appendChild(el('td', { class: 'fix', text: c.fix })); { const why = el('td', { class: 'why', text: c.why }); const l = learnFor(c); if (l) { why.appendChild(document.createTextNode(' ')); why.appendChild(el('a', { class: 'learn', href: DL_URL + l[0], target: '_blank', rel: 'noopener', text: 'Learn it: ' + l[2] })); } const st = hintStep(c.id); if (st) why.appendChild(el('span', { class: 'hintmark', text: st >= 2 ? '(command shown)' : '(hint: principle)' })); row.appendChild(why); } tb.appendChild(row); }
+  for (const p of SC.availability) { const hit = res.failed.includes(p); const row = el('tr', { class: hit ? 'no' : 'ok' }); row.appendChild(el('td', { text: hit ? '!' : '✓' })); row.appendChild(el('td', { text: 'Availability check: ' + (hit ? availName(p) : availNeed(p)) })); row.appendChild(el('td', { text: hit ? 'must fix' : '—' })); row.appendChild(el('td', { class: 'fix', text: hit ? 'Restore: ' + p.restore : availNotYet(p) && !availBroke(p) ? 'Not working yet: ' + NOT_YET : availBroke(p) ? 'Broken' + (brokeNames(p) ? ' (' + brokeNames(p) + ')' : '') + ', then restored. ' + p.restore : 'Kept working the whole time.' })); row.appendChild(el('td', { class: 'why', text: p.why })); tb.appendChild(row); }
   tbl.appendChild(tb);
-  const learn = el('p', { class: 'learn' }, [el('strong', { text: SC.grade + ' level. Learn it: ' })]);
+  const learn = el('p', { class: 'learn' }, [el('strong', { text: (SC.extra ? '' : SC.grade + ' level. ') + 'Learn it: ' })]);
   SC.learn.forEach(([hash, grade, title, topic], i) => { if (i) learn.appendChild(document.createTextNode('; ')); learn.appendChild(el('a', { href: DL_URL + hash, target: '_blank', rel: 'noopener', text: 'Defense Ladder › ' + grade + ' › ' + title })); if (topic) learn.appendChild(document.createTextNode(' (' + topic + ')')); });
   learn.appendChild(document.createTextNode('.'));
   const hints = el('p', { class: 'dbr-hints', text: 'Hints this attempt: ' + hintCount() + ' of ' + SC.checks.length + ' checks (' + hintCommands() + ' with the command shown). Coach: ' + coachLabel(coachMode(SC.level)) + '. A pass with no hints on a fresh attempt is the one that counts.' });
@@ -6002,16 +6676,18 @@ function openDebrief() {
   const copyRow = el('div', { class: 'dbr-copy' }); const cp = el('button', { type: 'button', id: 'dbr-copy', text: 'Copy debrief as text' }); const st = el('span', { role: 'status' }); const out = el('textarea', { hidden: true, 'aria-label': 'Debrief as text' }); out.readOnly = true;
   cp.addEventListener('click', () => { const txt = debriefText(res); const show = () => { out.hidden = false; out.value = txt; st.textContent = 'Select the text below and copy it.'; }; if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(() => { st.textContent = 'Copied.'; }, show); else show(); });
   copyRow.appendChild(cp); copyRow.appendChild(st); copyRow.appendChild(out);
-  openModal('Debrief — ' + SC.name, [sum, hints, learn, availInvest(), el('div', { class: 'tblwrap' }, [tbl]), refl, copyRow], [el('button', { type: 'button', dataset: { close: '1' }, text: 'Back to the range' })], 'debrief');
+  const areas = SC.extra ? el('div', { class: 'dbr-avail' }, [el('h3', { text: 'Hardening areas: where to invest next' }), el('p', { text: 'Each hardening area of layout ' + S.code + ' reads Strong once you fix every finding in it. Try a new layout to practice the Revisit areas on a different machine.' }), el('ul', {}, l4AreaRows(res).map(a => el('li', {}, [el('b', { class: a.strong ? 'rate-strong' : 'rate-revisit', text: a.strong ? 'Strong' : 'Revisit' }), ' ' + a.text])))]) : null;
+  openModal('Debrief — ' + SC.name + (S.code ? ' (layout ' + S.code + ')' : ''), [sum, hints, learn, areas, availInvest(), el('div', { class: 'tblwrap' }, [tbl]), refl, copyRow].filter(Boolean), [el('button', { type: 'button', dataset: { close: '1' }, text: 'Back to the range' })], 'debrief');
 }
 function openReset() {
-  openModal('Reset lab?', [el('p', { text: 'This reverts "' + SC.name + '" to its snapshot: every device goes back to the way it was handed to you, answers are cleared, and the timer restarts. Your best score for this scenario is kept.' })],
+  openModal('Reset lab?', [el('p', { text: 'This reverts "' + SC.name + '"' + (S.code ? ' (layout ' + S.code + ')' : '') + ' to its snapshot: every device goes back to the way it was handed to you, answers are cleared, and the timer restarts. Your best score for this scenario is kept.' })],
     [el('button', { type: 'button', dataset: { close: '1' }, text: 'Cancel' }), el('button', { type: 'button', class: 'danger', id: 'reset-confirm', text: 'Reset lab' })]);
 }
 function doReset() {
+  const code = S.code;
   delete (STORE.scenarios[SC.id] || {}).S;
   closeModal();
-  selectScenario(SC.id, { fresh: true });
+  selectScenario(SC.id, { fresh: true, code: code });
 }
 function openHelp() {
   const dl = el('dl');
@@ -6059,8 +6735,11 @@ function wireUI() {
   $('#rtoggle').addEventListener('click', () => { const r = $('#report'); const col = r.classList.toggle('collapsed'); $('#rtoggle').textContent = col ? 'Show' : 'Hide'; $('#rtoggle').setAttribute('aria-expanded', col ? 'false' : 'true'); });
   $('#debrief').addEventListener('click', openDebrief);
   $('#reset').addEventListener('click', openReset);
-  $('#modal-host').addEventListener('click', e => { if (e.target.closest('[data-close]') || e.target.classList.contains('modal')) { closeModal(); return; } if (e.target.closest('#reset-confirm')) doReset(); });
+  $('#modal-host').addEventListener('click', e => { if (e.target.closest('[data-close]') || e.target.classList.contains('modal')) { closeModal(); return; } if (e.target.closest('#reset-confirm')) doReset(); if (e.target.closest('#l4-new-go')) l4Start(l4NewCode()); if (e.target.closest('#l4-go')) l4Typed(); });
+  $('#modal-host').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'l4-input') { e.preventDefault(); l4Typed(); } });
+  $('#activity').addEventListener('click', e => { if (e.target.closest('#l4-new')) l4AskNew(); if (e.target.closest('#l4-enter')) l4AskCode(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#modal-host').firstChild) closeModal(); });
+  document.addEventListener('keydown', modalTrap);
   window.addEventListener('beforeunload', saveStoreNow);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveStoreNow(); });
   setInterval(() => { if (!S || document.visibilityState !== 'visible') return; S.elapsed++; const e = $('#elapsed'); if (e) e.textContent = fmtTime(S.elapsed); if (S.elapsed % 15 === 0) saveStoreNow(); }, 1000);

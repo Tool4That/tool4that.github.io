@@ -64,7 +64,7 @@
       "title": "Lockdown Range",
       "category": "cyber",
       "section": "practice",
-      "description": "Full hardening labs in your browser, no virtual machine needed: Windows 11 and Windows Server, Ubuntu and Linux Mint, and a Packet Tracer-style Cisco topology. Sign in, read the scenario brief, answer the investigation questions, fix the machine, and watch a live Progress Check.",
+      "description": "Full hardening labs that run in your browser without a virtual machine: Windows 11 and Windows Server, Ubuntu and Linux Mint, and a Packet Tracer-style Cisco topology. Each Range has three levels (Recruit, Operator, and Captain) plus Level 4 \u00b7 Advanced \u00b7 extra credit, which builds a different machine on every attempt and gives a layout code a class can share. Sign in, read the scenario brief, answer the investigation questions, fix the machine, and watch a live Progress Check.",
       "note": "Unofficial training, independent of and unendorsed by the makers of the systems it names. Simulated machines only: nothing touches your computer, and progress stays in your browser."
     }
   ],
@@ -131,8 +131,8 @@
       "icon": "path",
       "category": "cyber",
       "section": "learning",
-      "sha256": "96e500362713052dc912f87a26114ad0230dcefe9fde3397d5befda3fbdf22d3",
-      "updated": "2026-11-22",
+      "sha256": "f0ed96cd4f0141a611aa46f78fb13adda4e72397c2f6fb2bd0363a2b094a70da",
+      "updated": "2026-11-23",
       "download_menu": true,
       "download_label": "Everything (all four grades)",
       "extras": [
@@ -140,29 +140,29 @@
           "label": "Freshman only",
           "file": "defense-ladder/freshman.html",
           "download_as": "defense-ladder-freshman.html",
-          "sha256": "cd98cb8d7252abc1a5e7494674fbe37310cafeaccd9e9e828dc77ebc424298ca",
-          "updated": "2026-11-22"
+          "sha256": "a397dd98b795bc59e290521d955a42483256b0967071170fe6d26823dcde3055",
+          "updated": "2026-11-23"
         },
         {
           "label": "Sophomore only",
           "file": "defense-ladder/sophomore.html",
           "download_as": "defense-ladder-sophomore.html",
-          "sha256": "0afcc6a48fecb49519394eb282a838908593449ecb9d1df0e9b470a582770352",
-          "updated": "2026-11-22"
+          "sha256": "94c159a2bff4010a26cfce89de69ea69f6c9c4f7b65dbf418e1aa556f3d7a42f",
+          "updated": "2026-11-23"
         },
         {
           "label": "Junior only",
           "file": "defense-ladder/junior.html",
           "download_as": "defense-ladder-junior.html",
-          "sha256": "710ac858a6f86baa49226f690a257464a3e35b7e2c29ad20f5a9ce6a65331100",
-          "updated": "2026-11-22"
+          "sha256": "b9890e6d20f99ce8e9f3c7bd494b92059b58718255f2c9a38081cfeffc6ef36b",
+          "updated": "2026-11-23"
         },
         {
           "label": "Senior only",
           "file": "defense-ladder/senior.html",
           "download_as": "defense-ladder-senior.html",
-          "sha256": "5f2fc46489ed4ed99bc8bad3d52c64d71c8fd8df8b7b0419d0751a2eca76c221",
-          "updated": "2026-11-22"
+          "sha256": "80f60abce04ae28c28dc5e90ee037b92a012a16ed6ba2f3ee8f05ca7132ecb57",
+          "updated": "2026-11-23"
         }
       ],
       "download_note": "Each grade also comes as its own smaller download for offline use; links to other grades open the online course."
@@ -182,8 +182,8 @@
       "download_as": "subnet-sprint.html",
       "icon": "subnet",
       "category": "cyber",
-      "sha256": "9203ebb2101c99c0107087044f60ff7ac8fe123ed5c44f204f005f6b48c45464",
-      "updated": "2026-11-22",
+      "sha256": "15c320cea4c0e6dd4b6c31b7ab69f082f1827b1cf855bf444396f700065e58ef",
+      "updated": "2026-11-23",
       "series": "net-drills"
     },
     {
@@ -201,8 +201,8 @@
       "download_as": "ios-cli-lab.html",
       "icon": "terminal",
       "category": "cyber",
-      "sha256": "600e38053a8f93ebcfa00ef78934c3d49a40648ad17c431930bbe008112c5071",
-      "updated": "2026-11-22",
+      "sha256": "a165ca35d77c4aa20c61f901e08e70c04a06713b465cbb700f77f6062ea077b4",
+      "updated": "2026-11-23",
       "series": "net-drills"
     },
     {
@@ -220,8 +220,8 @@
       "download_as": "config-audit.html",
       "icon": "search",
       "category": "cyber",
-      "sha256": "135f45130f2ba491824a4c979749a8583823b51eb2fad3fa76aa1bcd80a38f9f",
-      "updated": "2026-11-22",
+      "sha256": "92512d0f21d375010951a32a6bff8c3ec91d6b43ffee3c1cd7a77583a01493e5",
+      "updated": "2026-11-23",
       "series": "net-drills"
     },
     {
@@ -239,8 +239,8 @@
       "download_as": "trouble-tickets.html",
       "icon": "wrench",
       "category": "cyber",
-      "sha256": "d769c47e6fbec4a9833dbc73f4be216c0880ff89a2228af2f34896755806f0cd",
-      "updated": "2026-11-22",
+      "sha256": "1fa719f1479324bc23411f5937b11debbc1eb971d8583b83b55225466bc1b6ac",
+      "updated": "2026-11-23",
       "series": "net-drills"
     },
     {
@@ -266,8 +266,8 @@
           "download_as": "windows-11-lockdown-reference.txt"
         }
       ],
-      "sha256": "9c32042e0b0b83dc21c7f41402459944f94fbc34dad34e388fa6055a2b0cbdb8",
-      "updated": "2026-11-22"
+      "sha256": "9d21bd0f7f2e96926c1ea3410b19a85fcca62857b68385c73d694e6cbce782bd",
+      "updated": "2026-11-23"
     },
     {
       "slug": "lockdown-drills/windows-server",
@@ -292,8 +292,8 @@
           "download_as": "windows-server-lockdown-reference.txt"
         }
       ],
-      "sha256": "3cf2cb8e11ac080c8e388a49bc0ef33824f8cdebb622b35ee61419179eb3ffdf",
-      "updated": "2026-11-22"
+      "sha256": "b8615fc05d17e9fb3a972c3dc9de07698dc3c57d6865aab14b388973d08c9610",
+      "updated": "2026-11-23"
     },
     {
       "slug": "lockdown-drills/linux-mint",
@@ -318,8 +318,8 @@
           "download_as": "linux-mint-lockdown-reference.txt"
         }
       ],
-      "sha256": "7f1ed2a2a3a62f277431dcffb0926107a0f89e771c337b4024f56dad46acccee",
-      "updated": "2026-11-22"
+      "sha256": "757eda5f5114f5e9299cebe19e9114daa9e924af9d2cfe0e36b14bce5fca60ef",
+      "updated": "2026-11-23"
     },
     {
       "slug": "lockdown-drills/ubuntu",
@@ -344,8 +344,8 @@
           "download_as": "ubuntu-lockdown-reference.txt"
         }
       ],
-      "sha256": "0b67e5b64b497edf2a0fe3bd5e00129feaba7c63c306e4296164f68ab3820956",
-      "updated": "2026-11-22"
+      "sha256": "de82486df577d3ac62b6f666c169d0dd4eac7585cca2ec42d40f896310add055",
+      "updated": "2026-11-23"
     },
     {
       "slug": "lockdown-drills/freebsd",
@@ -370,8 +370,8 @@
           "download_as": "freebsd-lockdown-reference.txt"
         }
       ],
-      "sha256": "60e36a80ac9f17ba75ce085199687761a764dd182a827ba124adac24a1ed59dc",
-      "updated": "2026-11-22"
+      "sha256": "fba0365f4766539080fef26a47ababa36e09f32575adfbfa5de3c2f1ed883864",
+      "updated": "2026-11-23"
     },
     {
       "slug": "lockdown-drills/cisco-ios",
@@ -389,8 +389,8 @@
       "icon": "lock",
       "category": "cyber",
       "series": "lockdown-drills",
-      "sha256": "ba671f2b72ca855f867a8d5178912b9f31759e3f5b75d9ba2dce79ab4af1b16b",
-      "updated": "2026-11-22",
+      "sha256": "efbcaa34a766732bc6c61c2939aab464421e42a19bf4b75a15eee06bb8ca4f1e",
+      "updated": "2026-11-23",
       "extras": [
         {
           "label": "Reference .txt",
@@ -403,7 +403,7 @@
       "slug": "lockdown-range/windows",
       "name": "Windows Range",
       "tagline": "Harden the workstation. Then the server.",
-      "description": "Windows 11 and Windows Server 2025 hardening scenarios in your browser. Sign in, read the scenario brief, answer the investigation questions, then fix each one with the real panels or the command line while a live Progress Check keeps count.",
+      "description": "Windows 11 and Windows Server 2025 hardening scenarios in your browser, in three levels (Recruit, Operator, and Captain) plus Level 4 \u00b7 Advanced \u00b7 extra credit, which builds a different machine on every attempt and gives a layout code a class can share. Sign in, read the scenario brief, answer the investigation questions, then fix each one with the real panels or the command line while a live Progress Check keeps count.",
       "badges": [
         "Windows",
         "Hardening",
@@ -422,14 +422,14 @@
           "download_as": "windows-range-walkthrough.txt"
         }
       ],
-      "sha256": "6943808d6865cf6c4c30ea4fb3fb3ac58d29160afc32ac2c922e83ea8e9f89a5",
-      "updated": "2026-11-22"
+      "sha256": "d4bb1ccaa8a949ab27ed055f9acfaaa123e8949c118925eb0ab43a4c1d6fdd18",
+      "updated": "2026-11-23"
     },
     {
       "slug": "lockdown-range/linux",
       "name": "Linux Range",
       "tagline": "Harden the box from the shell.",
-      "description": "Ubuntu, Linux Mint, and Ubuntu Server, three scenarios in your browser. A real-feeling bash terminal with sudo, apt, systemctl, ufw, PAM, cron, and nano. A live Progress Check also runs availability checks that flag any authorized user, administrator, or critical service you break.",
+      "description": "Ubuntu, Linux Mint, and Ubuntu Server in your browser, in three levels (Recruit, Operator, and Captain) plus Level 4 \u00b7 Advanced \u00b7 extra credit, which builds a different machine on every attempt and gives a layout code a class can share. A real-feeling bash terminal with sudo, apt, systemctl, ufw, PAM, cron, and nano. A live Progress Check also runs availability checks that flag any authorized user, administrator, or critical service you break.",
       "badges": [
         "Linux",
         "Hardening",
@@ -448,14 +448,14 @@
           "download_as": "linux-range-walkthrough.txt"
         }
       ],
-      "sha256": "4a2e9344922726903489b4a97fc595c1f05bcde82083495bd6797fdbcc1f0a79",
-      "updated": "2026-11-22"
+      "sha256": "cdfb5a324d3dd403cffd60e6385a17d083b481103508147d58410a7cce16e1c8",
+      "updated": "2026-11-23"
     },
     {
       "slug": "lockdown-range/cisco-ios",
       "name": "Cisco Range",
       "tagline": "Secure the topology. Prove it with ping.",
-      "description": "A Packet Tracer-style topology in your browser: IOS consoles with ? help, abbreviations, and the exact error messages, plus PC command prompts. Four scenarios, from one router to a two-site network with VLAN trunks, router-on-a-stick, and OSPF, with a live Progress Check.",
+      "description": "A Packet Tracer-style topology in your browser: IOS consoles with ? help, abbreviations, and the exact error messages, plus PC command prompts. Three levels (Recruit, Operator, and Captain) run from one router to two switches joined by a trunk. Level 4 \u00b7 Advanced \u00b7 extra credit is a two-site school network with VLAN trunks, router-on-a-stick, and OSPF that builds a different Site B on every attempt and gives a layout code a class can share. A live Progress Check keeps count.",
       "badges": [
         "Cisco IOS",
         "Hardening",
@@ -474,8 +474,8 @@
           "download_as": "cisco-range-walkthrough.txt"
         }
       ],
-      "sha256": "94ae91f46340b0e605ff22c99a0c39b17abcda742fe071d24ffd75261a010088",
-      "updated": "2026-11-22"
+      "sha256": "0c5c59d279f4937cd3480f7a1fc7b3f0829c30922a3fb3977e9a9f98276a224d",
+      "updated": "2026-11-23"
     },
     {
       "slug": "study-map",
@@ -493,8 +493,8 @@
       "icon": "map",
       "category": "cyber",
       "section": "learning",
-      "sha256": "86c2b1c304960c56ff8ffa42289f4ca99c1201384e8d01963f92cac541c39410",
-      "updated": "2026-11-22"
+      "sha256": "b16c0a7fb9e9e882015f66947a78aa16480a49258d609b98e4d0a7ba50ca82e0",
+      "updated": "2026-11-23"
     },
     {
       "slug": "command-atlas",
@@ -512,8 +512,8 @@
       "icon": "terminal",
       "category": "cyber",
       "section": "learning",
-      "sha256": "39c89088855554330f5e3140882a73472a5dfdee296a834707f70b1165fd25b7",
-      "updated": "2026-11-22"
+      "sha256": "c286af52b13e68a3d930ffc987619432c9bf7343e7dbfd1752deca01fba61c53",
+      "updated": "2026-11-23"
     },
     {
       "slug": "cyber-pug",
@@ -531,16 +531,16 @@
       "icon": "terminal",
       "category": "cyber",
       "section": "learning",
-      "sha256": "9fd054feded36aec5690d3c53d65d0c443ba98a328b3f3d2af4882bee37770e9",
-      "updated": "2026-11-22",
+      "sha256": "4db5dc69a59f2de46cebabf4fe86ce0b731302ffc08a97187fe853201c32a94c",
+      "updated": "2026-11-23",
       "download_note": "Open with photo reading (about 12 MB) also turns a photo or a screenshot of a terminal into text, right on your device. Both editions keep the same save on this site. Each download is the full page.",
       "extras": [
         {
           "label": "Download with photo reading",
           "file": "cyber-pug/cyber-pug-photo.html",
           "download_as": "cyber-pug-photo.html",
-          "sha256": "7de85e02cfe8a279c6ceec809e041cf5d6849566936409dc774d71d66ea0b565",
-          "updated": "2026-11-22",
+          "sha256": "cc5eedc26e551635c968350176cd105a0cfafddf5247f131f2b49094fd19b05c",
+          "updated": "2026-11-23",
           "open_label": "Open with photo reading"
         }
       ]

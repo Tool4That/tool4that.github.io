@@ -2,14 +2,14 @@
 <html lang="en">
 <head><meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-juNp/GGHrtf2vnn+UpVxo0OP+1uvl8dY79V/63XpMuM='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-FA0K7MmmBJ+gLvTM24S7yL5Ia7Y8QxTD9uuBnO37Hi0='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/lockdown-range/linux/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%96%A5%3C%2Ftext%3E%3C%2Fsvg%3E">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Tool4That">
 <meta property="og:title" content="Linux Range">
-<meta property="og:description" content="Ubuntu, Linux Mint, and Ubuntu Server, three scenarios in your browser. A real-feeling bash terminal with sudo, apt, systemctl, ufw, PAM, cron, and nano. A live Progress Check also runs availability checks that flag any authorized user, administrator, or critical service you break.">
+<meta property="og:description" content="Ubuntu, Linux Mint, and Ubuntu Server in your browser, in three levels (Recruit, Operator, and Captain) plus Level 4 · Advanced · extra credit, which builds a different machine on every attempt and gives a layout code a class can share. A real-feeling bash terminal with sudo, apt, systemctl, ufw, PAM, cron, and nano. A live Progress Check also runs availability checks that flag any authorized user, administrator, or critical service you break.">
 <meta property="og:url" content="https://freeapp4that.store/lockdown-range/linux/">
 <meta property="og:image" content="https://freeapp4that.store/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -21,7 +21,7 @@
 
 :root{
   --bg:#EDF0F4; --panel:#FFFFFF; --ink:#16212D; --muted:#5F6E7E; --line:#CFD7E0; --soft:#F4F6F9;
-  --term:#0E1A2B; --termink:#D9E4F1; --prompt:#7FA6D6; --accent:#B8690E; --accent-ink:#FFFFFF;
+  --term:#0E1A2B; --termink:#D9E4F1; --prompt:#7FA6D6; --accent:#B8690E; --accent-ink:#FFFFFF; --pill-on:#965509;
   --ok:#1C8A57; --okbg:#E3F5EB; --bad:#C03A3A; --badbg:#FBE7E7; --warn:#A8690F; --warnbg:#FBF0DA; --focus:#FFB300;
   --sans:"Segoe UI Variable Text","Segoe UI","Avenir Next",Avenir,Roboto,"Helvetica Neue",Arial,sans-serif;
   --mono:"Cascadia Mono","JetBrains Mono","Fira Code","SF Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
@@ -46,8 +46,16 @@ header.top{position:sticky;top:0;z-index:60;background:var(--panel);border-botto
 .levels button,.theme,.ghost,.ubtn,.dlg button,.win-body .tool button,.mtool button,.report .fin{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:.2rem .8rem;min-height:32px;color:var(--ink)}
 .levels button{border-radius:999px;background:var(--soft)}
 .levels button[aria-selected="true"],.ubtn.primary,.dlg button.primary,.win-body .tool button.primary,.report .fin{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.levels .adv-pill{border-style:dashed}
+/* the selected level pill: a deeper orange, so its white text reads at 4.5:1 or better in both themes */
+.levels button[aria-selected="true"]{background:var(--pill-on);border-color:var(--pill-on)}
+.report .adv-note{font-size:.85rem;color:var(--muted);margin:.15rem 0 .5rem;line-height:1.4}
+.mtool .adv-chip{font-weight:700;letter-spacing:.04em}
 .score{font-variant-numeric:tabular-nums;font-weight:700;padding:0 .75rem;border-radius:8px;background:var(--soft);min-height:32px;display:flex;align-items:center;white-space:nowrap}
 .score.neg{color:var(--bad)}
+/* a must-fix flag holds the points: the number keeps its color, and a short tag says why */
+.score.held{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;white-space:normal;border-color:var(--warn)}
+.score .held-tag{font-size:.78rem;font-weight:600;line-height:1.3;color:var(--ink);background:var(--warnbg);border:1px solid var(--warn);border-radius:6px;padding:1px 6px}
 nav.series{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;padding:.3rem 1rem .4rem;border-top:1px solid var(--line);font-size:.82rem;color:var(--muted)}
 nav.series .jack{border:1px solid var(--line);border-radius:999px;padding:1px 10px;background:var(--soft);color:var(--ink);text-decoration:none}
 nav.series .jack.on,nav.series .jack.here{border-color:var(--accent);color:var(--accent);font-weight:600}
@@ -221,6 +229,8 @@ ul.mustfix li .pts{float:right;color:var(--bad);font-weight:700;text-transform:u
 ul.mustfix li .restore{display:block;color:var(--ink);font-size:.86rem;margin-top:.2rem}
 .report h3.mustfix-h{color:var(--bad)}
 .mustfix-why{color:var(--bad);font-size:.86rem;margin:.2rem 0 .4rem}
+/* checks held for the rest of the attempt after an account was deleted */
+.gone-note{background:var(--warnbg);border-left:4px solid var(--warn);color:var(--ink);padding:6px 8px;border-radius:6px;font-size:.86rem;overflow-wrap:anywhere}
 .dbr-avail{margin:.6rem 0}
 .dbr-avail h3{font-size:.98rem;margin:0 0 .25rem}
 .dbr-avail p{margin:.25rem 0}
@@ -264,6 +274,14 @@ table.debrief .why{color:var(--muted);font-size:.85rem}
   .dicon{width:78px;font-size:11px}
   .files .side{width:110px;flex-basis:110px}
   .brand span{display:none}
+}
+/* phones: each Debrief row becomes a small card (mark, check, points on one line; the fix and the reason below) */
+@media (max-width:600px){
+  table.debrief thead{display:none}
+  table.debrief,table.debrief tbody{display:block;width:100%}
+  table.debrief tr{display:grid;grid-template-columns:1.4rem minmax(0,1fr) auto;gap:.15rem .4rem;border-bottom:1px solid var(--line);padding:.45rem 0}
+  table.debrief th,table.debrief td{border-bottom:0;padding:0;min-width:0;overflow-wrap:anywhere}
+  table.debrief td:nth-child(4),table.debrief td:nth-child(5){grid-column:2 / -1}
 }
 @media (max-width:480px){
   .bar{gap:.4rem .6rem;padding:.45rem .75rem}
@@ -980,15 +998,33 @@ const BUILTINS = ['cd', 'pwd', 'echo', 'exit', 'logout', 'export', 'unset', 'his
 class ShellAbort extends Error { constructor() { super('abort'); this.abort = true; } }
 
 /* ---- tokenizer: words are lists of segments {s, q:'n'|'s'|'d'} so quoting survives until expansion ---- */
+/* the end of a command substitution that starts at line[i] ($( or a backtick): the index just past its closing ) or `,
+   or -1 when the line ends first; quotes and nested parentheses inside $( ... ) are skipped over */
+function subEnd(line, i) {
+  if (line[i] === '`') { for (let j = i + 1; j < line.length; j++) { if (line[j] === '\\') { j++; continue; } if (line[j] === '`') return j + 1; } return -1; }
+  let depth = 1;
+  for (let j = i + 2; j < line.length; j++) {
+    const ch = line[j];
+    if (ch === '\\') { j++; continue; }
+    if (ch === "'") { const e = line.indexOf("'", j + 1); if (e < 0) return -1; j = e; continue; }
+    if (ch === '"') { j++; while (j < line.length && line[j] !== '"') { if (line[j] === '\\') j++; j++; } if (j >= line.length) return -1; continue; }
+    if (ch === '(') depth++; else if (ch === ')' && --depth === 0) return j + 1;
+  }
+  return -1;
+}
 function tokenize(line) {
   const toks = []; let i = 0; let segs = []; let cur = '', curQ = 'n', open = false;
+  // $( ... ) and ` ... `: a segment the shell runs before the command (q 'c' outside quotes, 'cd' inside double quotes)
+  const subAt = j => (line[j] === '$' && line[j + 1] === '(' && line[j + 2] !== '(') || line[j] === '`';
+  const subSeg = (j, q) => { const e = subEnd(line, j); if (e < 0) return null; const inner = line[j] === '`' ? line.slice(j + 1, e - 1).replace(/\\([`$\\])/g, '$1') : line.slice(j + 2, e - 1); segs.push({ s: inner, q }); return e; };
   const flushSeg = () => { if (cur || open) { segs.push({ s: cur, q: curQ }); cur = ''; } open = false; };
   const flushWord = () => { flushSeg(); if (segs.length) toks.push({ type: 'word', segs }); segs = []; };
   while (i < line.length) {
     const c = line[i];
     if (c === "'") { flushSeg(); curQ = 's'; i++; open = true; while (i < line.length && line[i] !== "'") cur += line[i++]; if (i >= line.length) return { err: "unexpected EOF while looking for matching `''" }; i++; flushSeg(); curQ = 'n'; continue; }
-    if (c === '"') { flushSeg(); curQ = 'd'; i++; open = true; while (i < line.length && line[i] !== '"') { if (line[i] === '\\' && i + 1 < line.length && '"\\$`'.includes(line[i + 1])) { cur += line[i + 1]; i += 2; } else cur += line[i++]; } if (i >= line.length) return { err: 'unexpected EOF while looking for matching `"\'' }; i++; flushSeg(); curQ = 'n'; continue; }
+    if (c === '"') { flushSeg(); curQ = 'd'; i++; open = true; while (i < line.length && line[i] !== '"') { if (line[i] === '\\' && i + 1 < line.length && '"\\$`'.includes(line[i + 1])) { cur += line[i + 1]; i += 2; } else if (subAt(i)) { if (cur) { segs.push({ s: cur, q: 'd' }); cur = ''; } const e = subSeg(i, 'cd'); if (e == null) return { err: line[i] === '`' ? 'unexpected EOF while looking for matching ``\'' : "unexpected EOF while looking for matching `)'" }; i = e; } else cur += line[i++]; } if (i >= line.length) return { err: 'unexpected EOF while looking for matching `"\'' }; i++; flushSeg(); curQ = 'n'; continue; }
     if (c === '\\' && i + 1 < line.length) { flushSeg(); segs.push({ s: line[i + 1], q: 's' }); i += 2; continue; }
+    if (subAt(i)) { flushSeg(); const e = subSeg(i, 'c'); if (e == null) return { err: c === '`' ? 'unexpected EOF while looking for matching ``\'' : "unexpected EOF while looking for matching `)'" }; i = e; continue; }
     if (c === ' ' || c === '\t') { flushWord(); i++; continue; }
     // a newline (the lines of a for loop typed at the "> " prompt) separates commands as ; does
     if (c === '\n') { flushWord(); toks.push({ type: 'op', v: ';', nl: true }); i++; continue; }
@@ -1098,11 +1134,11 @@ function expandVars(s, sh) {
 function homeOf(name) { const u = U.user(name); return u ? u.home : null; }
 function expandWord(segs, sh, noGlob) {
   // returns array of strings (globs may yield several)
-  let lit = '', pat = '', hasG = false; const split = !noGlob && segs.every(sg => sg.q === 'n') && segs.some(sg => sg.s.includes('$'));
+  let lit = '', pat = '', hasG = false; const split = !noGlob && segs.every(sg => sg.q === 'n') && segs.some(sg => sg.raw || sg.s.includes('$'));
   segs.forEach((sg, idx) => {
     let s = sg.s;
-    if (sg.q !== 's') s = expandVars(s, sh);
-    if (sg.q === 'n' && idx === 0 && s[0] === '~') {
+    if (sg.q !== 's' && !sg.raw) s = expandVars(s, sh);
+    if (sg.q === 'n' && !sg.raw && idx === 0 && s[0] === '~') {
       const m = /^~([a-z_][\w-]*)?(?=\/|$)/.exec(s);
       if (m) { const h = m[1] ? homeOf(m[1]) : sh.home; if (h) s = h + s.slice(m[0].length); }
     }
@@ -1230,8 +1266,33 @@ function forBlock(list, i) {
   if (dn.pipe.length > 1 || dn.pipe[0].words.length > 1 || dn.pipe[0].redirs.length) return { note: '[Range] Here a for loop prints to the screen. To save or filter its output, put the redirect or pipe on the commands inside the loop.\n', end };
   return { name, words: hw.length > 1 ? hw.slice(2) : [], body, end };
 }
+/* command substitution: each $( ... ) or ` ... ` segment runs as its own command line, and its output (trailing newlines
+   removed) takes its place; outside double quotes the output splits into words, inside them it stays one word */
+async function runSubs(term, sh, words, depth) {
+  if (!words.some(w => w && w.some(sg => sg.q === 'c' || sg.q === 'cd'))) return words;
+  const out = [];
+  for (const w of words) {
+    if (!w || !w.some(sg => sg.q === 'c' || sg.q === 'cd')) { out.push(w); continue; }
+    const nw = [];
+    for (const sg of w) {
+      if (sg.q !== 'c' && sg.q !== 'cd') { nw.push(sg); continue; }
+      let text = '';
+      if ((depth || 0) > 6) term.write('bash: command substitution nested too deeply\n');
+      else {
+        const cap = new Proxy(term, { get(t, k) { if (k === 'writeSegs') return segs => { for (const x of segs) text += x.text; }; const v = t[k]; return typeof v === 'function' ? v.bind(t) : v; }, set(t, k, v) { t[k] = v; return true; } });
+        const parsed = parseLine(sg.s);
+        if (parsed.err) { term.write('bash: command substitution: ' + parsed.err + '\n'); sh.last = 2; }
+        else { const keep = sh.subDepth; sh.subDepth = (depth || 0) + 1; try { sh.last = await runList(cap, sh, parsed.list); } catch (e) { if (e && e.unbound) { term.write('bash: ' + e.unbound + ': ' + (e.msg || 'unbound variable') + '\n'); sh.last = 1; } else { sh.subDepth = keep; throw e; } } sh.subDepth = keep; }
+      }
+      nw.push({ s: text.replace(/\n+$/, ''), q: sg.q === 'cd' ? 'd' : 'n', raw: true });
+    }
+    out.push(nw);
+  }
+  return out;
+}
 async function runFor(term, sh, b) {
-  const v = shView(sh), vals = []; for (const w of b.words) vals.push(...expandWord(w, v));
+  const words = await runSubs(term, sh, b.words, sh.subDepth);
+  const v = shView(sh), vals = []; for (const w of words) vals.push(...expandWord(w, v));
   let code = 0;
   for (const val of vals) {
     if (shOn(shOpts(sh), 'x')) term.write('+ for ' + b.name + ' in ' + vals.map(xq).join(' ') + '\n');
@@ -1245,7 +1306,10 @@ const isAssignWord = w => w.length > 0 && w[0].q === 'n' && /^[A-Za-z_]\w*=/.tes
 async function runPipeline(term, sh, pipe) {
   let stdin = null, code = 0, fail = 0;
   for (let i = 0; i < pipe.length; i++) {
-    const cmd = pipe[i], last = i === pipe.length - 1;
+    const cmd0 = pipe[i], last = i === pipe.length - 1;
+    // command substitutions in the words and redirections run first, in order
+    const subWords = await runSubs(term, sh, cmd0.words.concat(cmd0.redirs.map(r => r.word || null)), sh.subDepth);
+    const cmd = subWords === cmd0.words || subWords.length === cmd0.words.length && cmd0.redirs.length === 0 && subWords.every((w, j) => w === cmd0.words[j]) ? cmd0 : { words: subWords.slice(0, cmd0.words.length), redirs: cmd0.redirs.map((r, j) => r.word ? Object.assign({}, r, { word: subWords[cmd0.words.length + j] }) : r) };
     const v = shView(sh);
     // NAME=value words before the command: alone they set shell variables; before a command, they go to its environment
     const assigns = []; let wi = 0;
@@ -1843,45 +1907,161 @@ def('xargs', async c => {
   else await run(a.concat(items));
   return code;
 });
-def(['awk', 'gawk', 'mawk'], async c => {
-  const o = opts(c, '', 'Fv'); if (o.err) { c.err(o.err); return 2; }
-  const prog = o._[0]; if (prog == null) { c.err('usage: awk [-F fs][-v var=value][prog | -f progfile][file ...]\n'); return 2; }
-  const FSsep = o.F != null ? (o.F === 't' ? '\t' : o.F) : null;
-  // support: [pattern] {print ...}  where pattern is /re/ or $N op value / NR op value; also BEGIN/END ignored
-  const rules = [];
-  const re = /(BEGIN|END|\/((?:[^\/\\]|\\.)*)\/|\(?\s*\$?(\w+)\s*(==|!=|>=|<=|>|<|~|!~)\s*("[^"]*"|\/[^\/]*\/|\S+?)\s*\)?)?\s*(\{([^}]*)\})?\s*(;|$)/g;
-  let m; let any = false;
-  while ((m = re.exec(prog)) && m[0].trim()) { any = true; rules.push({ kind: m[1], reg: m[2], field: m[3], op: m[4], val: m[5], action: m[7] }); if (re.lastIndex >= prog.length) break; }
-  if (!any) { c.err("awk: cmd. line:1: " + prog + "\nawk: cmd. line:1: ^ syntax error\n"); return 2; }
-  let NR = 0;
-  const getField = (fields, line, name) => { if (name === 'NR') return NR; if (name === 'NF') return fields.length; if (name === '0') return line; if (/^\d+$/.test(name)) return fields[+name - 1] != null ? fields[+name - 1] : ''; return ''; };
-  const code = await inputLines(c, o._.slice(1), t => {
-    for (const line of splitLines(t)) {
-      NR++;
-      const fields = FSsep ? line.split(FSsep) : line.trim().split(/\s+/).filter(Boolean);
-      for (const r of rules) {
-        if (r.kind === 'BEGIN' || r.kind === 'END') continue;
-        let ok = true;
-        if (r.reg != null) { const rx = posixRe(r.reg, true); ok = rx ? rx.test(line) : false; }
-        else if (r.field) {
-          let l = getField(fields, line, r.field); let v = r.val;
-          if (/^".*"$/.test(v)) v = v.slice(1, -1);
-          if (r.op === '~' || r.op === '!~') { const rx = posixRe(v.replace(/^\/|\/$/g, ''), true); ok = rx ? rx.test(String(l)) : false; if (r.op === '!~') ok = !ok; }
-          else { const num = !isNaN(parseFloat(l)) && !isNaN(parseFloat(v)); const a = num ? parseFloat(l) : String(l), b = num ? parseFloat(v) : v; ok = r.op === '==' ? a === b : r.op === '!=' ? a !== b : r.op === '>' ? a > b : r.op === '<' ? a < b : r.op === '>=' ? a >= b : a <= b; }
-        }
-        if (!ok) continue;
-        const act = (r.action || 'print').trim();
-        const pm = /^print\s*(.*)$/.exec(act) || (act === 'print' ? ['', ''] : null);
-        if (!pm) { c.err('awk: [Range] only print actions are simulated\n'); return; }
-        let expr = pm[1].trim().replace(/^\(|\)$/g, '');
-        if (!expr) { c.out(line + '\n'); continue; }
-        const parts = []; const rx2 = /"([^"]*)"|\$(\w+)|(NR|NF)/g; let mm; let sep = ' ';
-        const tokens = expr.split(/,/).map(x => x.trim());
-        const vals = tokens.map(tk => { let out = ''; rx2.lastIndex = 0; let any2 = false; while ((mm = rx2.exec(tk))) { any2 = true; out += mm[1] != null ? mm[1] : getField(fields, line, mm[2] || mm[3]); } return any2 ? out : tk; });
-        c.out(vals.join(sep) + '\n');
-      }
+/* ---- awk: a small interpreter for the one-liners hardening work uses. Patterns combine comparisons, regular expressions,
+   ~ and !~, &&, ||, !, and parentheses; BEGIN and END run once; actions print fields, NR, NF, strings, sums, and variables
+   (-v NAME=VALUE, NAME = EXPR, NAME++, NAME += EXPR, next); FS and OFS can be set in BEGIN; length, tolower, toupper, and
+   substr work. A program that needs more (printf, if, loops, arrays, redirection) gets a [Range] note instead of a wrong
+   answer. ---- */
+const AWK_UNSUP = /\b(printf|if|else|while|for|do|getline|function|split|sub|gsub|match|sprintf|exit|delete|in)\b|[\[\]?^|]|>>|\bprint\b[^;}]*[^=!<>]>[^=]/;
+const AWK_KW = ['printf', 'if', 'else', 'while', 'for', 'do', 'getline', 'function', 'func', 'exit', 'delete', 'return', 'break', 'continue', 'in', 'nextfile'];
+const AWK_FUNCS = ['system', 'close', 'fflush', 'srand', 'rand', 'sin', 'cos', 'atan2', 'exp', 'log', 'sqrt', 'sprintf', 'split', 'sub', 'gsub', 'gensub', 'match', 'strftime', 'systime', 'asort', 'asorti'];
+function awkLex(src) {
+  const t = []; let i = 0;
+  const operand = () => { const p = t[t.length - 1]; return p && (p.k === 'num' || p.k === 'str' || p.k === 'name' || p.k === 'ere' || p.v === ')' || p.v === '++' || p.v === '--'); };
+  while (i < src.length) {
+    const ch = src[i];
+    if (ch === ' ' || ch === '\t' || ch === '\r') { i++; continue; }
+    if (ch === '\\' && src[i + 1] === '\n') { i += 2; continue; }
+    if (ch === '\n' || ch === ';') { t.push({ k: 'end', v: ch }); i++; continue; }
+    if (ch === '#') { while (i < src.length && src[i] !== '\n') i++; continue; }
+    if (ch === '"') { let s = '', j = i + 1; while (j < src.length && src[j] !== '"') { if (src[j] === '\\' && j + 1 < src.length) { const e = src[j + 1]; s += e === 'n' ? '\n' : e === 't' ? '\t' : e === '"' ? '"' : e === '\\' ? '\\' : e === '/' ? '/' : '\\' + e; j += 2; } else s += src[j++]; } if (j >= src.length) return { err: 'unterminated string' }; t.push({ k: 'str', v: s }); i = j + 1; continue; }
+    if (ch === '/' && !operand()) { let s = '', j = i + 1; while (j < src.length && src[j] !== '/') { if (src[j] === '\\' && j + 1 < src.length) { s += src[j] + src[j + 1]; j += 2; } else if (src[j] === '\n') return { err: 'unterminated regexp' }; else s += src[j++]; } if (j >= src.length) return { err: 'unterminated regexp' }; t.push({ k: 'ere', v: s.replace(/\\\//g, '/') }); i = j + 1; continue; }
+    const num = /^(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?/.exec(src.slice(i)); if (num) { t.push({ k: 'num', v: parseFloat(num[0]) }); i += num[0].length; continue; }
+    const nm = /^[A-Za-z_]\w*/.exec(src.slice(i)); if (nm) { t.push({ k: 'name', v: nm[0] }); i += nm[0].length; continue; }
+    const op = /^(&&|\|\||==|!=|>=|<=|!~|\+\+|--|\+=|-=|\*=|\/=|[-+*\/%<>!~=(){},$])/.exec(src.slice(i));
+    if (op) { t.push({ k: 'op', v: op[0] }); i += op[0].length; continue; }
+    return { err: 'unexpected character ' + ch };
+  }
+  t.push({ k: 'eof', v: '' });
+  return { toks: t };
+}
+function awkParse(src) {
+  const lx = awkLex(src); if (lx.err) return { err: lx.err };
+  const T = lx.toks; let p = 0;
+  const peek = () => T[p], is = v => T[p].v === v && T[p].k !== 'str', eat = v => { if (is(v)) { p++; return true; } return false; };
+  const need = v => { if (!eat(v)) throw { syntax: true }; };
+  const skipEnds = () => { while (T[p].k === 'end') p++; };
+  const startsPrimary = () => { const k = T[p]; return k.k === 'num' || k.k === 'str' || k.k === 'ere' || (k.k === 'name' && !['BEGIN', 'END', 'print', 'next'].includes(k.v)) || (k.k === 'op' && (k.v === '$' || k.v === '(' || k.v === '!' || k.v === '-' || k.v === '+')); };
+  function primary() {
+    const k = T[p];
+    if (k.k === 'num') { p++; return { t: 'num', v: k.v }; }
+    if (k.k === 'str') { p++; return { t: 'str', v: k.v }; }
+    if (k.k === 'ere') { p++; return { t: 're', v: k.v }; }
+    if (is('$')) { p++; let e; if (T[p].k === 'num') { e = { t: 'num', v: T[p].v }; p++; } else if (T[p].k === 'name') { e = { t: 'var', v: T[p].v }; p++; } else if (eat('(')) { e = expr(); need(')'); } else if (is('-')) throw { syntax: true }; else throw { syntax: true }; return { t: 'field', e }; }
+    if (eat('(')) { const e = expr(); need(')'); return { t: 'grp', e }; }
+    if (k.k === 'name') {
+      if (AWK_KW.includes(k.v)) throw { unsup: 'the ' + k.v + ' statement' };
+      if (T[p + 1].v === '(' && AWK_FUNCS.includes(k.v)) throw { unsup: 'the ' + k.v + '() function' };
+      p++;
+      if (is('(') && ['length', 'tolower', 'toupper', 'substr', 'int', 'index'].includes(k.v)) { p++; const args = []; if (!is(')')) { args.push(expr()); while (eat(',')) args.push(expr()); } need(')'); return { t: 'call', f: k.v, args }; }
+      if (k.v === 'length') return { t: 'call', f: 'length', args: [] };
+      if (is('++') || is('--')) { const o = T[p++].v; return { t: 'incr', v: k.v, d: o === '++' ? 1 : -1, post: true }; }
+      return { t: 'var', v: k.v };
     }
-  });
+    if (is('++') || is('--')) { const o = T[p++].v; if (T[p].k !== 'name') throw { syntax: true }; return { t: 'incr', v: T[p++].v, d: o === '++' ? 1 : -1, post: false }; }
+    throw { syntax: true };
+  }
+  function unary() { if (eat('!')) return { t: 'not', e: unary() }; if (eat('-')) return { t: 'neg', e: unary() }; if (eat('+')) return { t: 'pos', e: unary() }; return primary(); }
+  function mult() { let a = unary(); while (is('*') || is('/') || is('%')) { const o = T[p++].v; a = { t: 'bin', o, a, b: unary() }; } return a; }
+  function add() { let a = mult(); while (is('+') || is('-')) { const o = T[p++].v; a = { t: 'bin', o, a, b: mult() }; } return a; }
+  function concat(noGt) { let a = add(); while (startsPrimary() && !is('-') && !is('+') && !is('!')) a = { t: 'cat', a, b: add() }; return a; }
+  function rel(noGt) { let a = concat(); for (const o of ['==', '!=', '>=', '<=', '<', '>']) if (is(o)) { if (o === '>' && noGt) return a; p++; return { t: 'cmp', o, a, b: concat() }; } return a; }
+  function match(noGt) { let a = rel(noGt); while (is('~') || is('!~')) { const o = T[p++].v; a = { t: 'match', neg: o === '!~', a, b: rel(noGt) }; } return a; }
+  function and(noGt) { let a = match(noGt); while (eat('&&')) { skipEnds(); a = { t: 'and', a, b: match(noGt) }; } return a; }
+  function or(noGt) { let a = and(noGt); while (eat('||')) { skipEnds(); a = { t: 'or', a, b: and(noGt) }; } return a; }
+  function expr(noGt) {
+    if (T[p].k === 'name' && ['=', '+=', '-=', '*=', '/='].includes(T[p + 1].v) && T[p + 1].k === 'op') { const v = T[p].v; p++; const o = T[p++].v; return { t: 'assign', v, o, e: expr(noGt) }; }
+    return or(noGt);
+  }
+  function stmt() {
+    if (T[p].k === 'name' && T[p].v === 'print') {
+      p++; let args = [];
+      const save = p;
+      if (is('(')) { try { p++; const list = [expr()]; while (eat(',')) list.push(expr()); need(')'); if (T[p].k === 'end' || is('}')) args = list; else { p = save; args = null; } } catch (e) { if (!e.syntax) throw e; p = save; args = null; } }
+      if (!args || !args.length) { args = []; if (!(T[p].k === 'end' || is('}') || T[p].k === 'eof')) { args.push(expr(true)); while (eat(',')) args.push(expr(true)); } }
+      if (is('>')) throw { unsup: 'print with > (redirection)' };
+      return { t: 'print', args };
+    }
+    if (T[p].k === 'name' && T[p].v === 'next') { p++; return { t: 'next' }; }
+    return { t: 'expr', e: expr() };
+  }
+  function block() { need('{'); const out = []; skipEnds(); while (!is('}')) { if (T[p].k === 'eof') throw { syntax: true }; out.push(stmt()); if (!is('}')) { if (T[p].k !== 'end') throw { syntax: true }; skipEnds(); } } need('}'); return out; }
+  const rules = [];
+  try {
+    skipEnds();
+    while (T[p].k !== 'eof') {
+      let kind = 'main', pat = null, act = null;
+      if (T[p].k === 'name' && (T[p].v === 'BEGIN' || T[p].v === 'END')) { kind = T[p].v; p++; act = block(); }
+      else { if (!is('{')) { pat = expr(); if (eat(',')) throw { unsup: 'range patterns (pattern1, pattern2)' }; } if (is('{')) act = block(); }
+      rules.push({ kind, pat, act });
+      if (T[p].k !== 'eof' && T[p].k !== 'end' && T[p - 1].v !== '}') throw { syntax: true };
+      skipEnds();
+    }
+  } catch (e) { if (e && (e.syntax || e.unsup)) return e.unsup ? { unsup: e.unsup } : { err: 'syntax error' }; throw e; }
+  return { rules };
+}
+def(['awk', 'gawk', 'mawk'], async c => {
+  const o = opts(c, '', 'Fvf'); if (o.err) { c.err(o.err); return 2; }
+  if (o.f) { c.err('awk: [Range] awk -f PROGFILE is not simulated; put the program in quotes on the command line.\n'); return 2; }
+  const prog = o._[0]; if (prog == null) { c.err('usage: awk [-F fs][-v var=value][prog | -f progfile][file ...]\n'); return 2; }
+  const vars = Object.create(null);
+  for (let i = 0; i < c.args.length; i++) { const s = c.args[i]; const a = s === '-v' ? c.args[++i] : /^-v./.test(s) ? s.slice(2) : null; if (a == null) continue; const m = /^([A-Za-z_]\w*)=([\s\S]*)$/.exec(a); if (!m) { c.err("awk: fatal: `" + a + "' is not a legal variable name\n"); return 2; } vars[m[1]] = { sn: m[2] }; }
+  vars.FS = { sn: o.F != null ? (o.F === 't' || o.F === '\\t' ? '\t' : o.F) : ' ' }; vars.OFS = ' '; vars.ORS = '\n'; vars.SUBSEP = '\x1c';
+  const P = awkParse(prog);
+  const note = what => { c.err('awk: [Range] ' + what + ' is beyond what the Range simulates. It runs patterns (comparisons, regular expressions, ~, &&, ||, !, and parentheses), BEGIN and END, print, and simple variables.\n'); return 2; };
+  if (P.unsup) return note(P.unsup);
+  if (P.err) { const m = AWK_UNSUP.exec(prog); if (m) return note(/^\w/.test(m[0]) ? m[0] : m[0] === '|' || m[0] === '>>' || m[0][0] === 'p' ? 'redirection or a pipe inside awk' : m[0] === '[' || m[0] === ']' ? 'arrays' : 'the ' + m[0] + ' operator'); c.err('awk: cmd. line:1: ' + prog + '\nawk: cmd. line:1: ^ syntax error\n'); return 2; }
+  let NR = 0, FNR = 0, line = '', fields = [], FILENAME = '';
+  const NUMRE = /^\s*[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?\s*$/;
+  const isNum = v => typeof v === 'number' || (v && v.u) || (v && v.sn != null && NUMRE.test(v.sn));
+  const num = v => typeof v === 'number' ? v : typeof v === 'string' ? (parseFloat(v) || 0) : v && v.u ? 0 : (parseFloat(v.sn) || 0);
+  const fmtNum = n => Number.isInteger(n) ? String(n) : String(Number(n.toPrecision(6)));
+  const str = v => typeof v === 'number' ? fmtNum(v) : typeof v === 'string' ? v : v && v.u ? '' : v.sn;
+  const truth = v => typeof v === 'number' ? v !== 0 : typeof v === 'string' ? v !== '' : v.u ? false : NUMRE.test(v.sn) ? parseFloat(v.sn) !== 0 : v.sn !== '';
+  const split = () => { const fs = str(vars.FS); fields = fs === ' ' ? line.trim().split(/\s+/).filter(Boolean) : fs.length === 1 && fs !== '\\' ? line.split(fs) : (() => { const rx = posixRe(fs, true); return rx ? line.split(new RegExp(rx.source, rx.flags.replace('g', '') + 'g')) : line.split(fs); })(); };
+  const getVar = n => n === 'NR' ? NR : n === 'FNR' ? FNR : n === 'NF' ? fields.length : n === 'FILENAME' ? FILENAME : n in vars ? vars[n] : { u: 1 };
+  const setVar = (n, v) => { if (n === 'NR') NR = num(v); else if (n === 'NF') fields = fields.slice(0, num(v)); else vars[n] = v; };
+  const field = i => { i = Math.floor(num(i)); if (i < 0) throw { fatal: 'attempt to access field ' + i }; return i === 0 ? { sn: line } : { sn: fields[i - 1] != null ? fields[i - 1] : '' }; };
+  const reOf = v => { const rx = posixRe(typeof v === 'object' && v.re != null ? v.re : str(v), true); if (!rx) throw { fatal: 'invalid regular expression' }; return rx; };
+  function ev(e) {
+    switch (e.t) {
+      case 'num': return e.v; case 'str': return e.v;
+      case 're': return reOf({ re: e.v }).test(line) ? 1 : 0;
+      case 'field': return field(ev(e.e));
+      case 'grp': return ev(e.e);
+      case 'var': return getVar(e.v);
+      case 'not': return truth(ev(e.e)) ? 0 : 1;
+      case 'neg': return -num(ev(e.e)); case 'pos': return num(ev(e.e));
+      case 'bin': { const a = num(ev(e.a)), b = num(ev(e.b)); if ((e.o === '/' || e.o === '%') && b === 0) throw { fatal: 'division by zero' + (e.o === '%' ? ' attempted in `%\'' : ' attempted') }; return e.o === '+' ? a + b : e.o === '-' ? a - b : e.o === '*' ? a * b : e.o === '/' ? a / b : a % b; }
+      case 'cat': return str(ev(e.a)) + str(ev(e.b));
+      case 'cmp': { const a = ev(e.a), b = ev(e.b); let x, y; if (isNum(a) && isNum(b)) { x = num(a); y = num(b); } else { x = str(a); y = str(b); } const o = e.o; return (o === '==' ? x === y : o === '!=' ? x !== y : o === '<' ? x < y : o === '<=' ? x <= y : o === '>' ? x > y : x >= y) ? 1 : 0; }
+      case 'match': { const s = str(ev(e.a)); const rx = e.b.t === 're' ? reOf({ re: e.b.v }) : reOf(ev(e.b)); const hit = rx.test(s); return (e.neg ? !hit : hit) ? 1 : 0; }
+      case 'and': return truth(ev(e.a)) && truth(ev(e.b)) ? 1 : 0;
+      case 'or': return truth(ev(e.a)) || truth(ev(e.b)) ? 1 : 0;
+      case 'assign': { let v = ev(e.e); if (e.o !== '=') { const a = num(getVar(e.v)), b = num(v); if (e.o === '/=' && b === 0) throw { fatal: 'division by zero in /=' }; v = e.o === '+=' ? a + b : e.o === '-=' ? a - b : e.o === '*=' ? a * b : a / b; } else if (typeof v === 'object' && !v.u) v = { sn: v.sn }; setVar(e.v, v); return v; }
+      case 'incr': { const old = num(getVar(e.v)); setVar(e.v, old + e.d); return e.post ? old : old + e.d; }
+      case 'call': { const a = e.args.map(ev); if (e.f === 'length') return (a.length ? str(a[0]) : line).length; if (e.f === 'tolower') return str(a[0] == null ? '' : a[0]).toLowerCase(); if (e.f === 'toupper') return str(a[0] == null ? '' : a[0]).toUpperCase(); if (e.f === 'int') return Math.trunc(num(a[0] == null ? 0 : a[0])); if (e.f === 'index') return str(a[0]).indexOf(str(a[1])) + 1; if (e.f === 'substr') { const s = str(a[0]); const st = Math.round(num(a[1])); const ln = a.length > 2 ? Math.round(num(a[2])) : Infinity; const from = Math.max(st, 1), to = Math.min(st + ln, s.length + 1); return to > from ? s.slice(from - 1, to - 1) : ''; } return ''; }
+    }
+    throw { fatal: 'unsupported expression' };
+  }
+  let out = '';
+  const run = acts => { for (const s of acts) { if (s.t === 'next') return 'next'; if (s.t === 'print') out += (s.args.length ? s.args.map(a => str(ev(a))).join(str(vars.OFS)) : line) + str(vars.ORS); else ev(s.e); } return null; };
+  const begins = P.rules.filter(r => r.kind === 'BEGIN'), ends = P.rules.filter(r => r.kind === 'END'), mains = P.rules.filter(r => r.kind === 'main');
+  let code = 0;
+  try {
+    for (const r of begins) run(r.act);
+    if (mains.length || ends.length) {
+      code = await inputLines(c, o._.slice(1), (t, name) => {
+        FNR = 0; FILENAME = name === '-' ? '' : name;
+        for (const l of splitLines(t)) {
+          NR++; FNR++; line = l; split();
+          for (const r of mains) { if (r.pat && !truth(ev(r.pat))) continue; if (!r.act) { out += line + str(vars.ORS); continue; } if (run(r.act) === 'next') break; }
+        }
+      });
+      for (const r of ends) run(r.act);
+    }
+  } catch (e) { if (e && e.fatal) { c.out(out); c.err('awk: cmd. line:1: fatal: ' + e.fatal + '\n'); return 2; } throw e; }
+  c.out(out);
   return code;
 });
 /* ---- grep ---- */
@@ -1947,37 +2127,100 @@ def('sed', async c => {
   }
   let rest = o._.slice(); if (!scripts.length) { if (!rest.length) { c.err('Usage: sed [OPTION]... {script-only-if-no-other-script} [input-file]...\n'); return 1; } scripts.push(rest.shift()); }
   const ere = o.r || o.E;
-  const ops = [];
-  for (const sc of scripts.join('\n').split(/;(?![^\/]*\/[^\/]*\/?)|\n/).map(s => s.trim()).filter(Boolean)) {
-    let addr = null, body = sc;
-    const am = /^(\$|\d+|\/((?:[^\/\\]|\\.)*)\/)\s*/.exec(body);
-    if (am && body.length > am[0].length) { addr = am[1] === '$' ? { last: true } : am[2] != null ? { re: posixRe(am[2], ere) } : { n: parseInt(am[1], 10) }; body = body.slice(am[0].length); }
-    if (body[0] === 's' && body.length > 1) {
-      const d = body[1]; const parts = []; let cur = ''; let k = 2;
-      while (k < body.length) { const ch = body[k]; if (ch === '\\' && k + 1 < body.length) { cur += ch + body[k + 1]; k += 2; continue; } if (ch === d) { parts.push(cur); cur = ''; k++; continue; } cur += ch; k++; }
-      parts.push(cur);
-      if (parts.length < 2) { c.err('sed: -e expression #1, char ' + body.length + ': unterminated `s\' command\n'); return 1; }
-      const flags = parts[2] || ''; const rx = posixRe(parts[0], ere, (flags.includes('g') ? 'g' : '') + (flags.includes('i') || flags.includes('I') ? 'i' : ''));
-      if (!rx) { c.err('sed: -e expression #1, char 0: Invalid preceding regular expression\n'); return 1; }
-      const repl = parts[1].replace(/\$/g, '$$$$').replace(/\\(\d)/g, '$$$1').replace(/(^|[^\\])&/g, '$1$$&').replace(/\\&/g, '&').replace(/\\n/g, '\n').replace(/\\\//g, '/');
-      ops.push({ addr, kind: 's', rx, repl, p: flags.includes('p') });
-    } else if (body === 'd') ops.push({ addr, kind: 'd' });
-    else if (body === 'p') ops.push({ addr, kind: 'p' });
-    else { c.err("sed: -e expression #1, char " + Math.max(1, body.length) + ": unknown command: `" + body[0] + "'\n"); return 1; }
+  /* the script, read the way GNU sed reads it: commands separated by ; or newlines, each with an optional address or
+     range (N, $, /re/, ADDR1,ADDR2) and an optional ! */
+  const src = scripts.join('\n'); let k = 0; const ops = [];
+  const fail = (msg, at) => { c.err('sed: -e expression #1, char ' + Math.max(1, at == null ? k : at) + ': ' + msg + '\n'); return 1; };
+  const range = what => { c.err('sed: [Range] ' + what + ' is beyond what the Range simulates (s, d, p, i, a, c, y, q, and = work, with line, $, /regex/, and range addresses).\n'); return 1; };
+  const ws = () => { while (k < src.length && (src[k] === ' ' || src[k] === '\t')) k++; };
+  const readAddr = () => {
+    if (/\d/.test(src[k] || '')) { let j = k; while (/\d/.test(src[j] || '')) j++; const n = parseInt(src.slice(k, j), 10); k = j; return { n }; }
+    if (src[k] === '$') { k++; return { last: true }; }
+    if (src[k] === '/' || (src[k] === '\\' && k + 1 < src.length)) {
+      const d = src[k] === '/' ? '/' : src[k + 1]; k += d === '/' ? 1 : 2; let pat = '';
+      while (k < src.length && src[k] !== d) { if (src[k] === '\\' && k + 1 < src.length) { pat += src[k + 1] === d && d !== '/' && !'.*[]^$\\+?(){}|'.includes(d) ? d : src[k] + src[k + 1]; k += 2; } else if (src[k] === '\n') return { err: 'unterminated address regex' }; else pat += src[k++]; }
+      if (k >= src.length) return { err: 'unterminated address regex' }; k++;
+      let fl = ''; while (src[k] === 'I' || src[k] === 'M') fl += src[k++]; if (fl.includes('M')) return { unsup: 'the M address flag' };
+      const rx = posixRe(pat.replace(/\\\//g, '/'), ere, fl.includes('I') ? 'i' : ''); if (!rx) return { err: 'Invalid preceding regular expression' }; return { re: rx };
+    }
+    return null;
+  };
+  const readText = () => { // the text of i, a, and c: the rest of the line (GNU one-liner form), or the lines after a backslash
+    ws(); if (src[k] === '\\') { k++; if (src[k] === '\n') k++; else ws(); }
+    let t = '';
+    while (k < src.length && src[k] !== '\n') { if (src[k] === '\\' && k + 1 < src.length) { const e = src[k + 1]; t += e === '\n' ? '\n' : e === 't' ? '\t' : e === 'n' ? '\n' : e; k += 2; } else t += src[k++]; }
+    return t;
+  };
+  for (;;) {
+    while (k < src.length && /[\s;]/.test(src[k])) k++;
+    if (k >= src.length) break;
+    if (src[k] === '#') { while (k < src.length && src[k] !== '\n') k++; continue; }
+    const op = {}; const a1 = readAddr(); if (a1 && a1.err) return fail(a1.err); if (a1 && a1.unsup) return range(a1.unsup);
+    if (a1) { op.a1 = a1; ws(); if (src[k] === ',') { k++; ws(); if (src[k] === '+' || src[k] === '~') return range('the ADDR,+N and ADDR,~N forms'); const a2 = readAddr(); if (!a2) return fail('unexpected `,\''); if (a2.err) return fail(a2.err); if (a2.unsup) return range(a2.unsup); op.a2 = a2; } }
+    ws(); if (src[k] === '!') { op.neg = true; k++; ws(); }
+    const cmd = src[k]; if (cmd == null) return fail('missing command');
+    k++;
+    if (cmd === 's') {
+      const d = src[k]; if (d == null || d === '\n' || d === '\\') return fail("unterminated `s' command"); k++;
+      const part = () => { let s = ''; while (k < src.length && src[k] !== d) { if (src[k] === '\\' && k + 1 < src.length) { s += src[k] + src[k + 1]; k += 2; } else if (src[k] === '\n') return null; else s += src[k++]; } if (k >= src.length) return null; k++; return s; };
+      const pat = part(); if (pat == null) return fail("unterminated `s' command"); const rep = part(); if (rep == null) return fail("unterminated `s' command");
+      let g = false, pr = false, ic = false, nth = 1, sawN = false;
+      while (k < src.length && !/[\s;}#]/.test(src[k])) { const f = src[k]; if (f === 'g') g = true; else if (f === 'p') pr = true; else if (f === 'i' || f === 'I') ic = true; else if (/\d/.test(f)) { let j = k; while (/\d/.test(src[j] || '')) j++; nth = parseInt(src.slice(k, j), 10); sawN = true; k = j; continue; } else if (f === 'w' || f === 'e' || f === 'm' || f === 'M') return range('the s///' + f + ' flag'); else return fail("unknown option to `s'"); k++; }
+      if (sawN && nth < 1) return fail("number option to `s' command may not be zero");
+      const p2 = d !== '/' && !'.*[]^$\\+?(){}|'.includes(d) ? pat.split('\\' + d).join(d) : pat.replace(/\\\//g, '/');
+      const rx = posixRe(p2, ere, ic ? 'i' : ''); if (!rx) return fail('Invalid preceding regular expression', 0);
+      // the replacement: & and \1-\9 insert the match, \n and \t insert a newline and a tab, \& \\ and \DELIM are literal
+      const parts = []; let lit = '';
+      for (let j = 0; j < rep.length; j++) {
+        const ch = rep[j];
+        if (ch === '&') { parts.push(lit, 0); lit = ''; continue; }
+        if (ch === '\\' && j + 1 < rep.length) { const e = rep[++j]; if (/\d/.test(e)) { parts.push(lit, +e); lit = ''; } else if (e === 'n') lit += '\n'; else if (e === 't') lit += '\t'; else if (e === 'r') lit += '\r'; else if ('ULulE'.includes(e)) return range('case conversion (\\' + e + ') in a replacement'); else lit += e; continue; }
+        lit += ch;
+      }
+      parts.push(lit);
+      ops.push(Object.assign(op, { kind: 's', rx: new RegExp(rx.source, rx.flags.replace('g', '') + 'g'), parts, g, pr, nth }));
+    } else if (cmd === 'y') {
+      const d = src[k]; if (d == null || d === '\n' || d === '\\') return fail("unterminated `y' command"); k++;
+      const part = () => { let s = ''; while (k < src.length && src[k] !== d) { if (src[k] === '\\' && k + 1 < src.length) { const e = src[k + 1]; s += e === 'n' ? '\n' : e === 't' ? '\t' : e; k += 2; } else s += src[k++]; } if (k >= src.length) return null; k++; return s; };
+      const from = part(), to = from == null ? null : part(); if (from == null || to == null) return fail("unterminated `y' command");
+      if ([...from].length !== [...to].length) return fail("strings for `y' command are different lengths");
+      ops.push(Object.assign(op, { kind: 'y', from: [...from], to: [...to] }));
+    } else if ('dpqQ='.includes(cmd)) ops.push(Object.assign(op, { kind: cmd }));
+    else if (cmd === 'i' || cmd === 'a' || cmd === 'c') ops.push(Object.assign(op, { kind: cmd, text: readText() }));
+    else if ('{}nNPDhHgGxbtTrRwWeFzlv'.includes(cmd)) return range("the `" + cmd + "' command");
+    else return fail("unknown command: `" + cmd + "'", k);
+    ws(); if (k < src.length && !/[;\n}#]/.test(src[k]) && !'iac'.includes(ops[ops.length - 1].kind)) return fail('extra characters after command');
   }
   const process = text => {
-    const lines = splitLines(text); const out = [];
-    lines.forEach((l, i) => {
-      let del = false, printed = false;
+    const lines = splitLines(text); const out = []; let quit = false;
+    const at = (a, l, i) => a.last ? i === lines.length - 1 : a.n != null ? a.n === i + 1 : a.re.test(l);
+    lines.forEach((l0, i) => {
+      if (quit) return;
+      let l = l0, del = false; const after = [];
       for (const op of ops) {
-        const hit = !op.addr || (op.addr.last && i === lines.length - 1) || (op.addr.n != null && op.addr.n === i + 1) || (op.addr.re && op.addr.re.test(l));
+        let hit;
+        if (!op.a1) hit = true;
+        else if (!op.a2) hit = at(op.a1, l, i);
+        else if (op.on) { hit = true; if (op.a2.n != null ? i + 1 >= op.a2.n : at(op.a2, l, i)) op.on = false; op.end = !op.on; }
+        else if (at(op.a1, l, i)) { hit = true; op.on = !(op.a2.n != null && op.a2.n <= i + 1) && !(op.a2.last && i === lines.length - 1); op.end = !op.on; }
+        else hit = false;
+        if (op.neg) hit = !hit;
         if (!hit) continue;
-        if (op.kind === 's') { const nl = l.replace(op.rx, op.repl); if (nl !== l && op.p) printed = true; l = nl; }
+        if (op.kind === 's') { let n = 0, done = false; const nl = l.replace(op.rx, (...m) => { n++; if (op.g ? n < op.nth : n !== op.nth) return m[0]; done = true; let s = ''; for (let j = 0; j < op.parts.length; j++) s += typeof op.parts[j] === 'number' ? (m[op.parts[j]] == null || typeof m[op.parts[j]] !== 'string' ? '' : m[op.parts[j]]) : op.parts[j]; return s; }); if (done) { l = nl; if (op.pr) out.push(l); } }
+        else if (op.kind === 'y') { l = [...l].map(ch => { const j = op.from.indexOf(ch); return j >= 0 ? op.to[j] : ch; }).join(''); }
         else if (op.kind === 'd') { del = true; break; }
         else if (op.kind === 'p') out.push(l);
+        else if (op.kind === '=') out.push(String(i + 1));
+        else if (op.kind === 'i') out.push(op.text);
+        else if (op.kind === 'a') after.push(op.text);
+        else if (op.kind === 'c') { if (!op.a2 || op.neg || op.end) out.push(op.text); del = true; break; }
+        else if (op.kind === 'q') { quit = true; break; }
+        else if (op.kind === 'Q') { quit = true; del = true; break; }
       }
-      if (!del && (!o.n || printed)) out.push(l);
+      if (!del && !o.n) out.push(l);
+      out.push(...after);
     });
+    ops.forEach(op => { op.on = false; });
     return out.length ? out.join('\n') + '\n' : '';
   };
   if (!rest.length) { c.out(process(c.stdin || '')); return 0; }
@@ -3420,12 +3663,15 @@ function sshdCheck() {
 function pkgBinPaths(name) { const d = PKG[name]; if (!d) return []; return (d.bins || []).map(b => '/usr/bin/' + b).concat((d.sbins || []).map(b => '/usr/sbin/' + b), (d.libs || []).map(b => '/usr/lib/x86_64-linux-gnu/' + b)); }
 /* the size a package's program has as shipped: debsums, dpkg --verify, and rkhunter compare against it, and a reinstall restores it */
 function pkgFileSize(p) { return 20000 + hash32(p) % 900000; }
-function pkgRestoreFiles(name) { for (const p of pkgBinPaths(name)) { const n = S.fs[p]; if (n) Object.assign(n, { t: 'f', bin: 1, sz: pkgFileSize(p), mt: nowSec() }); else FS.mk(p, { t: 'f', m: 0o755, u: 0, g: 0, bin: 1, sz: pkgFileSize(p), mt: nowSec() }); delete S.fs[p].c; } }
+/* the programs Ubuntu 24.04 and Mint 22 ship setuid root (find / -perm -4000 lists them; dpkg -S names their packages) */
+const SUID_STOCK = new Set(['/usr/bin/sudo', '/usr/bin/su', '/usr/bin/passwd', '/usr/bin/chsh', '/usr/bin/chfn', '/usr/bin/gpasswd', '/usr/bin/newgrp', '/usr/bin/mount', '/usr/bin/umount', '/usr/bin/pkexec', '/usr/bin/fusermount3']);
+function pkgFileMode(p) { return SUID_STOCK.has(p) ? 0o4755 : 0o755; }
+function pkgRestoreFiles(name) { for (const p of pkgBinPaths(name)) { const n = S.fs[p]; if (n) Object.assign(n, { t: 'f', bin: 1, sz: pkgFileSize(p), mt: nowSec() }, SUID_STOCK.has(p) ? { m: 0o4755, u: 0, g: 0 } : {}); else FS.mk(p, { t: 'f', m: pkgFileMode(p), u: 0, g: 0, bin: 1, sz: pkgFileSize(p), mt: nowSec() }); delete S.fs[p].c; } }
 function pkgInstall(name, opts) {
   opts = opts || {}; const d = PKG[name]; if (!d) return;
   S.pkgs[name] = { v: d.v, auto: !!opts.auto };
   for (const dep of (d.deps || [])) if (!S.pkgs[dep]) pkgInstall(dep, Object.assign({}, opts, { auto: true }));
-  for (const p of pkgBinPaths(name)) { if (!S.fs[p]) FS.mk(p, { t: 'f', m: 0o755, u: 0, g: 0, bin: 1, sz: pkgFileSize(p), mt: opts.mt || nowSec() }); if (d.mal) S.fs[p].mal = d.mal; }
+  for (const p of pkgBinPaths(name)) { if (!S.fs[p]) FS.mk(p, { t: 'f', m: pkgFileMode(p), u: 0, g: 0, bin: 1, sz: pkgFileSize(p), mt: opts.mt || nowSec() }); if (d.mal) S.fs[p].mal = d.mal; }
   if (d.hook && COV_HOOKS[d.hook]) COV_HOOKS[d.hook](opts);
   if (!S.fs['/usr/share/doc/' + name]) { FS.mk('/usr/share/doc/' + name, { t: 'd', m: 0o755, u: 0, g: 0, mt: opts.mt || nowSec() }); FS.mk('/usr/share/doc/' + name + '/copyright', { t: 'f', m: 0o644, u: 0, g: 0, c: 'This package was debianized by the ' + (d.d.includes('Mint') ? 'Linux Mint' : 'Debian') + ' maintainers.\n', mt: opts.mt || nowSec() }); }
   if (d.svc && !S.svc[d.svc]) svcAdd(d.svc, { enabled: opts.enabled !== false, active: opts.active !== false });
@@ -4013,10 +4259,9 @@ def('loginctl', c => {
 });
 /* ---- Apache (apache2 2.4.58, Debian layout): configtest reads the enabled conf files; a2enconf/a2disconf manage conf-enabled links ---- */
 function apacheConfErrors() {
-  for (const f of FS.list('/etc/apache2/conf-enabled').filter(f => f.endsWith('.conf'))) {
-    const p = '/etc/apache2/conf-enabled/' + f; const lines = FS.text(FS.real(p) || p).split('\n');
-    for (let i = 0; i < lines.length; i++) {
-      const m = /^\s*(ServerTokens|ServerSignature)\s+(\S+)\s*$/i.exec(lines[i]); if (!m) continue;
+  for (const L of apacheConfLines()) {
+    { const p = L.file, i = L.line - 1;
+      const m = /^\s*(ServerTokens|ServerSignature)\s+(\S+)\s*$/i.exec(L.text); if (!m) continue;
       if (/^servertokens$/i.test(m[1]) && !/^(full|os|min|minimal|minor|major|prod|productonly)$/i.test(m[2])) return { file: p, line: i + 1, msg: "ServerTokens takes 1 argument: 'Prod(uctOnly)', 'Major', 'Minor', 'Min(imal)', 'OS', or 'Full'" };
       if (/^serversignature$/i.test(m[1]) && !/^(on|off|email)$/i.test(m[2])) return { file: p, line: i + 1, msg: 'ServerSignature: use one of: off | on | email' };
     }
@@ -4097,6 +4342,8 @@ function ufwParseRule(words) {
   if (!r.port && !r.proto && !r.app && r.from === 'Anywhere') return { err: 'ERROR: Need at least a protocol or port' };
   return r;
 }
+/* the same rule apart from its action: ufw updates it in place ("Rule updated") instead of adding a second one */
+function ufwRuleSame(a, b) { return a.dir === b.dir && (a.port || '') === (b.port || '') && (a.proto || '') === (b.proto || '') && (a.app || '') === (b.app || '') && a.from === b.from && (a.to || 'Anywhere') === (b.to || 'Anywhere') && (a.sport || '') === (b.sport || ''); }
 function ufwRuleEq(a, b) { return a.action === b.action && a.dir === b.dir && (a.port || '') === (b.port || '') && (a.proto || '') === (b.proto || '') && (a.app || '') === (b.app || '') && a.from === b.from && (a.to || 'Anywhere') === (b.to || 'Anywhere'); }
 function ufwStatusTable(numbered, verbose) {
   const rules = S.ufw.rules; const rows = [];
@@ -4148,9 +4395,26 @@ def('ufw', async c => {
   if (['allow', 'deny', 'reject', 'limit'].includes(v)) {
     const spec = ufwParseRule(a); if (spec.syntax) return ufwSyntax(c); if (spec.err) { c.err(spec.err + '\n'); return 1; }
     if (F.rules.some(r => ufwRuleEq(r, spec))) { c.out('Skipping adding existing rule\nSkipping adding existing rule (v6)\n'); return 0; }
-    F.rules.push(spec);
     const v6 = !/^\d+\.\d+/.test(spec.from) && !/^\d+\.\d+/.test(spec.to || '');
+    // the same port, protocol, direction, and addresses with another action: the rule keeps its place and takes the new action
+    const same = F.rules.find(r => !r.v4off && !r.v6off && ufwRuleSame(r, spec));
+    if (same) { same.action = spec.action; if (spec.comment !== undefined) same.comment = spec.comment; c.out((F.on ? 'Rule updated' : 'Rules updated') + '\n' + (v6 ? (F.on ? 'Rule updated (v6)' : 'Rules updated (v6)') + '\n' : '')); return 0; }
+    F.rules.push(spec);
     c.out((F.on ? 'Rule added' : 'Rules updated') + '\n' + (v6 ? (F.on ? 'Rule added (v6)' : 'Rules updated (v6)') + '\n' : '')); return 0;
+  }
+  // ufw insert NUM RULE and ufw prepend RULE: the rule takes that place in the list, so it is matched before the rules after it
+  if (v === 'insert' || v === 'prepend') {
+    const ins = v === 'prepend' ? 1 : parseInt(a[1], 10), words = a.slice(v === 'prepend' ? 1 : 2);
+    if (v === 'insert' && !/^\d+$/.test(a[1] || '')) return ufwSyntax(c);
+    if (!['allow', 'deny', 'reject', 'limit'].includes(words[0])) return ufwSyntax(c);
+    const spec = ufwParseRule(words); if (spec.syntax) return ufwSyntax(c); if (spec.err) { c.err(spec.err + '\n'); return 1; }
+    if (v === 'insert' && (ins < 1 || ins > F.rules.length)) { c.err("ERROR: Invalid position '" + a[1] + "'\n"); return 1; }
+    if (F.rules.some(r => ufwRuleEq(r, spec))) { c.out('Skipping inserting existing rule\nSkipping inserting existing rule (v6)\n'); return 0; }
+    const v6 = !/^\d+\.\d+/.test(spec.from) && !/^\d+\.\d+/.test(spec.to || '');
+    const same = F.rules.find(r => !r.v4off && !r.v6off && ufwRuleSame(r, spec));
+    if (same) { same.action = spec.action; if (spec.comment !== undefined) same.comment = spec.comment; c.out('Rule updated\n' + (v6 ? 'Rule updated (v6)\n' : '')); return 0; }
+    F.rules.splice(Math.max(0, ins - 1), 0, spec);
+    c.out('Rule inserted\n' + (v6 ? 'Rule inserted (v6)\n' : '')); return 0;
   }
   if (v === 'show') return ufwShow(c, a[1]);
   return ufwSyntax(c);
@@ -4186,11 +4450,13 @@ def('crontab', async c => {
   const header = '# Edit this file to introduce tasks to be run by cron.\n# \n# Each task to run has to be defined through a single line\n# indicating with different fields when the task will be run\n# and what command to run for the task\n# \n# For example, you can run a backup of all your user accounts\n# at 5 a.m every week with:\n# 0 5 * * 1 tar -zcf /var/backups/home.tgz /home/\n# \n# For more information see the manual pages of crontab(5) and cron(8)\n# \n# m h  dom mon dow   command\n';
   let text = S.fs[spool] ? FS.text(spool) : header;
   for (;;) {
-    const res = await runEditor(c.term, editor, { path: '/tmp/crontab.' + hash32(user).toString(36).slice(0, 6) + '/crontab', display: '/tmp/crontab.' + hash32(user).toString(36).slice(0, 6) + '/crontab', text, ro: false });
-    if (!res.saved || res.text === text) { c.out('No modification made\n'); return 0; }
-    const bad = cronCheck(res.text);
-    if (bad) { c.term.write('"/tmp/crontab.' + hash32(user).toString(36).slice(0, 6) + '/crontab":' + bad.line + ': ' + bad.err + '\nerrors in crontab file, can\'t install.\n'); const r = await c.prompt('Do you want to retry the same edit? (y/n) '); if (/^y/i.test(r || '')) { text = res.text; continue; } return 1; }
-    FS.mk(spool, { t: 'f', m: 0o600, u: U.user(user).uid, g: (U.group('crontab') || { gid: 0 }).gid, c: res.text, mt: nowSec() });
+    // crontab edits a private temporary copy: the editor keeps the buffer (virtual), and crontab installs it on exit
+    const tmp = '/tmp/crontab.' + hash32(user).toString(36).slice(0, 6) + '/crontab', eo = { path: tmp, display: tmp, text, ro: false, virtual: true };
+    const res = await runEditor(c.term, editor, eo), out = res.saved ? res.text : eo.savedText; // ^O writes the buffer even when ^X then answers N
+    if (out == null || out === text) { c.out('No modification made\n'); return 0; }
+    const bad = cronCheck(out);
+    if (bad) { c.term.write('"' + tmp + '":' + bad.line + ': ' + bad.err + '\nerrors in crontab file, can\'t install.\n'); const r = await c.prompt('Do you want to retry the same edit? (y/n) '); if (/^y/i.test(r || '')) { text = out; continue; } return 1; }
+    FS.mk(spool, { t: 'f', m: 0o600, u: U.user(user).uid, g: (U.group('crontab') || { gid: 0 }).gid, c: out, mt: nowSec() });
     c.out('crontab: installing new crontab\n'); return 0;
   }
 });
@@ -4289,7 +4555,21 @@ function labConns() {
   return out;
 }
 /* ---- curl 8.5.0 against the machine's own web server ---- */
-function apacheDirective(name) { let v = null; const files = ['/etc/apache2/apache2.conf'].concat(FS.list('/etc/apache2/conf-enabled').filter(f => f.endsWith('.conf')).map(f => '/etc/apache2/conf-enabled/' + f)); for (const f of files) for (const l of activeLines(FS.text(FS.real(f) || f))) { const m = new RegExp('^' + name + '\\s+(\\S+)', 'i').exec(l); if (m) v = m[1]; } return v; }
+/* Apache's configuration in the order Apache reads it: apache2.conf line by line, each Include or IncludeOptional expanded
+   where it stands (relative to /etc/apache2, names sorted), so the last value read wins, as in Apache */
+function apacheConfLines() {
+  const out = [], seen = new Set();
+  const walk = (f, depth) => { if (depth > 8 || seen.has(f)) return; seen.add(f); const lines = (FS.text(FS.real(f) || f) || '').split('\n');
+    lines.forEach((raw, i) => { const l = raw.trim(); if (!l || l[0] === '#') return; const inc = /^Include(Optional)?\s+(\S+)/i.exec(l);
+      if (!inc) { out.push({ file: f, line: i + 1, text: l }); return; }
+      const pat = inc[2][0] === '/' ? inc[2] : '/etc/apache2/' + inc[2], dir = FS.parent(pat), base = FS.base(pat);
+      if (!/[*?[]/.test(base)) { if (S.fs[FS.real(pat) || pat]) walk(pat, depth + 1); return; }
+      const re = globRe(base); for (const n of FS.list(FS.real(dir) || dir).filter(n => re.test(n)).sort(cmpStr)) walk(dir + '/' + n, depth + 1); }); };
+  if (S.fs['/etc/apache2/apache2.conf']) walk('/etc/apache2/apache2.conf', 0);
+  else for (const f of FS.list('/etc/apache2/conf-enabled').filter(f => f.endsWith('.conf')).sort(cmpStr)) walk('/etc/apache2/conf-enabled/' + f, 1);
+  return out;
+}
+function apacheDirective(name) { let v = null; const rx = new RegExp('^' + name + '\\s+(\\S+)', 'i'); for (const l of apacheConfLines()) { const m = rx.exec(l.text); if (m) v = m[1]; } return v; }
 function webServer() {
   if (S.svc.apache2 && S.svc.apache2.active) { const tok = (apacheDirective('ServerTokens') || 'Full').toLowerCase(); const ver = '2.4.58'; const srv = /^prod/.test(tok) ? 'Apache' : tok === 'major' ? 'Apache/2' : tok === 'minor' ? 'Apache/2.4' : /^min/.test(tok) ? 'Apache/' + ver : 'Apache/' + ver + ' (Ubuntu)'; return { kind: 'apache', srv, sig: (apacheDirective('ServerSignature') || 'Off').toLowerCase() !== 'off', trace: (apacheDirective('TraceEnable') || 'On').toLowerCase() !== 'off' }; }
   if (S.svc.nginx && S.svc.nginx.active) { const off = activeLines(FS.text('/etc/nginx/nginx.conf')).some(l => /^server_tokens\s+off\s*;/.test(l)); return { kind: 'nginx', srv: off ? 'nginx' : 'nginx/1.24.0 (Ubuntu)', sig: !off, trace: false }; }
@@ -7273,21 +7553,26 @@ function writePeriodic(dl) { FS.setText('/etc/apt/apt.conf.d/10periodic', 'APT::
 /* ---- server flavor: scenario brief / investigation viewers reachable from the toolbar ---- */
 function openDocModal(p, editable) {
   const r = FS.readText(p, U.ctxFor(S.login.user || 'root'));
-  const modal = $('#modal'); modal.hidden = false; modal.textContent = '';
+  const modal = $('#modal'); modalOpen(modal);
   const card = el('div', { class: 'modal-card', role: 'dialog', 'aria-label': FS.base(p) });
-  const close = el('button', { class: 'close', text: 'Close' }); close.addEventListener('click', () => { modal.hidden = true; modal.textContent = ''; });
+  const close = el('button', { class: 'close', text: 'Close' }); close.addEventListener('click', closeModal);
   card.append(close, el('h2', { text: FS.base(p) }));
   if (!r.ok) card.append(el('p', { text: 'Cannot read ' + p + ': ' + r.err + (S.power === 'on' ? '' : ' (log in first)') }));
   else if (!editable) { const doc = el('div', { class: 'doc' }); doc.innerHTML = /\.html?$/.test(p) ? safeHtml(r.text) : '<pre style="white-space:pre-wrap">' + esc(r.text) + '</pre>'; card.append(doc); }
   else { const ta = el('textarea', { class: 'ta', style: 'min-height:260px;border:1px solid var(--line);border-radius:8px', 'aria-label': 'File text' }); ta.value = r.text; const save = el('button', { class: 'ubtn primary', text: 'Save (Ctrl+S)', style: 'margin-top:8px' }); const doSave = () => { const w = FS.writeText(p, ta.value, U.ctxFor(S.login.user || 'root')); if (!w.ok) { err.textContent = 'Could not save: ' + w.err; return; } afterCommand(); modal.hidden = true; modal.textContent = ''; }; const err = el('p', { style: 'color:var(--bad)' }); save.addEventListener('click', doSave); ta.addEventListener('keydown', e => { if (e.ctrlKey && e.key.toLowerCase() === 's') { e.preventDefault(); doSave(); } }); card.append(ta, save, err); }
   modal.append(card);
-  modal.addEventListener('click', e => { if (e.target === modal) { modal.hidden = true; modal.textContent = ''; } }, { once: true });
+  modal.addEventListener('click', e => { if (e.target === modal) closeModal(); }, { once: true });
 }
 function updateToolbar() {
   const t = $('#mtool'); if (!t) return;
   t.textContent = '';
   const sc = scenario();
   t.append(el('span', { text: sc.title }), el('span', { class: 'chip', text: S.hostname }), el('span', { class: 'chip', text: FLAVORS[S.flavor].chip }), el('span', { class: 'chip', text: S.power === 'on' ? 'logged in: ' + (S.login.user || '?') : S.power }));
+  if (sc.advanced) {
+    const nl = el('button', { id: 'advNew', text: 'New layout' }), ec = el('button', { id: 'advEnter', text: 'Enter a layout code' });
+    nl.addEventListener('click', advNewLayout); ec.addEventListener('click', advEnterCode);
+    t.append(el('span', { class: 'chip adv-chip', id: 'advChip', text: 'layout ' + sc.code }), nl, ec);
+  }
   t.append(el('span', { class: 'sp' }));
   if (!S.gui) {
     const home = sc.studentHome;
@@ -7330,7 +7615,7 @@ function buildBase(sc) {
   B.dirs(['/etc', '/usr', '/usr/bin', '/usr/sbin', '/usr/lib', '/usr/lib/x86_64-linux-gnu', '/usr/lib/systemd', '/usr/lib/systemd/system', '/usr/local', '/usr/local/bin', '/usr/local/sbin', '/usr/local/lib', '/usr/local/share', '/usr/share', '/usr/share/doc', '/usr/share/man', '/usr/share/man/man1', '/usr/games', '/usr/include', '/usr/src', '/usr/libexec', '/var', '/var/log', '/var/log/apt', '/var/spool', '/var/spool/cron', '/var/mail', '/var/backups', '/var/cache', '/var/cache/apt', '/var/lib', '/var/lib/dpkg', '/var/lib/apt', '/var/lib/apt/lists', '/var/lib/systemd', '/var/run', '/var/opt', '/var/local', '/opt', '/srv', '/mnt', '/media', '/home', '/boot', '/boot/grub', '/dev', '/proc', '/sys', '/run', '/run/systemd', '/run/user', '/etc/default', '/etc/skel', '/etc/pam.d', '/etc/security', '/etc/ssh', '/etc/ssh/sshd_config.d', '/etc/apt', '/etc/apt/apt.conf.d', '/etc/apt/sources.list.d', '/etc/apt/preferences.d', '/etc/apt/trusted.gpg.d', '/etc/cron.d', '/etc/cron.daily', '/etc/cron.hourly', '/etc/cron.weekly', '/etc/cron.monthly', '/etc/systemd', '/etc/systemd/system', '/etc/systemd/system/multi-user.target.wants', '/etc/sysctl.d', '/etc/sudoers.d', '/etc/init.d', '/etc/profile.d', '/etc/update-motd.d', '/etc/logrotate.d', '/etc/rsyslog.d', '/etc/network', '/etc/alternatives', '/etc/ld.so.conf.d', '/etc/vim', '/etc/X11', '/etc/dpkg', '/etc/dconf', '/etc/polkit-1', '/etc/ufw', '/etc/ufw/applications.d', '/etc/fonts', '/etc/ssl', '/etc/ssl/certs', '/etc/ssl/private', '/etc/udev', '/etc/kernel', '/etc/modprobe.d', '/etc/netplan', '/etc/dbus-1', '/etc/xdg', '/var/lib/ufw', '/var/log/journal', '/var/www']);
   B.d('/tmp', 0o1777); B.d('/var/tmp', 0o1777); B.d('/var/spool/cron/crontabs', 0o1730, 0, 104); B.d('/var/mail', 0o2775, 0, 8);
   for (const x of ['X11', 'ICE', 'XIM', 'font']) B.d('/tmp/.' + x + '-unix', 0o1777); // systemd's tmpfiles.d/x11.conf
-  B.d('/root', 0o700); B.d('/lost+found', 0o700); B.d('/etc/ssl/private', 0o710, 0, 114); B.d('/var/log/journal', 0o2755, 0, 101); B.d('/etc/sudoers.d', 0o750); B.d('/etc/polkit-1', 0o755);
+  B.d('/root', 0o700); B.d('/lost+found', 0o700); B.d('/etc/ssl/private', 0o710, 0, 114); B.d('/var/log/journal', 0o2755, 0, 101); B.d('/etc/sudoers.d', 0o755); B.d('/etc/polkit-1', 0o755);
   B.l('/bin', 'usr/bin'); B.l('/sbin', 'usr/sbin'); B.l('/lib', 'usr/lib'); B.l('/lib64', 'usr/lib64'); B.l('/usr/lib64/ld-linux-x86-64.so.2', '../lib/x86_64-linux-gnu/ld-linux-x86-64.so.2'); B.l('/lib32', 'usr/lib32'); B.l('/libx32', 'usr/libx32'); B.d('/usr/lib64'); B.d('/usr/lib32'); B.d('/usr/libx32'); B.l('/etc/os-release', '../usr/lib/os-release'); B.l('/etc/resolv.conf', '../run/systemd/resolve/stub-resolv.conf'); B.l('/etc/localtime', '/usr/share/zoneinfo/' + tz); B.l('/etc/mtab', '../proc/self/mounts'); B.l('/etc/sysctl.d/99-sysctl.conf', '../sysctl.conf');
   B.d('/run/systemd/resolve'); B.f('/run/systemd/resolve/stub-resolv.conf', '# This is /run/systemd/resolve/stub-resolv.conf managed by man:systemd-resolved(8).\n# Do not edit.\n#\n# This file might be symlinked as /etc/resolv.conf. If you\'re looking at\n# /etc/resolv.conf and seeing this text, you have followed the symlink.\n\nnameserver 127.0.0.53\noptions edns0 trust-ad\nsearch lan\n');
   B.d('/usr/share/zoneinfo'); B.d('/usr/share/zoneinfo/Etc'); B.bin('/usr/share/zoneinfo/Etc/UTC', 114, 0o644);
@@ -7564,17 +7849,18 @@ function mediaFiles() {
   FS.walk('/root', (k, n) => { if (n.t === 'f' && MEDIA_RE.test(k)) out.push(k); });
   return out;
 }
+/* ufw reads its rules from the top and the first one that matches decides, as on a real system. An allow from
+   anywhere or from any 10.x source lets the lab's clients in; a deny or reject blocks them when it covers the whole
+   network (anywhere, 0.0.0.0/0, 10.0.0.0/8, or the 10.20.4.0/24 LAN), so blocking one outside host leaves the service up.
+   With no matching rule, the default incoming policy decides. */
 function ufwAllows(port) {
   if (!S.ufw.on) return true;
-  if (S.ufw.def_in === 'allow') return true;
-  return S.ufw.rules.some(r => {
-    if (r.action !== 'ALLOW' && r.action !== 'LIMIT') return false; if (r.dir !== 'IN' || r.v4off) return false;
-    if (r.from !== 'Anywhere' && !/^10\.20\.4\./.test(r.from) && !/^10\.20\.4\.0\/24$|^10\.0\.0\.0\/8$|^0\.0\.0\.0\/0$/.test(r.from) && !/^10\./.test(r.from)) return false;
-    if (r.app) return (UFW_APPS[r.app] || []).some(p => p.split('/')[0].split(',').some(x => x.includes(':') ? (port >= +x.split(':')[0] && port <= +x.split(':')[1]) : +x === port));
-    if (!r.port) return r.proto === 'tcp' || !r.proto;
-    if (r.proto === 'udp') return false;
-    return r.port.split(',').some(x => x.includes(':') ? (port >= +x.split(':')[0] && port <= +x.split(':')[1]) : +x === port);
-  });
+  const hit = x => x.includes(':') ? (port >= +x.split(':')[0] && port <= +x.split(':')[1]) : +x === port;
+  const covers = r => { if (r.app) return (UFW_APPS[r.app] || []).some(p => p.split('/')[0].split(',').some(hit)); if (!r.port) return r.proto === 'tcp' || !r.proto; if (r.proto === 'udp') return false; return r.port.split(',').some(hit); };
+  const open = r => r.action === 'ALLOW' || r.action === 'LIMIT';
+  const from = r => r.from === 'Anywhere' || (open(r) ? /^10\.|^0\.0\.0\.0\/0$/.test(r.from) : /^(0\.0\.0\.0\/0|10\.0\.0\.0\/8|10\.20\.4\.0\/24)$/.test(r.from));
+  const first = S.ufw.rules.find(r => r.dir === 'IN' && !r.v4off && from(r) && covers(r));
+  return first ? open(first) : S.ufw.def_in === 'allow';
 }
 function normAnswer(t) { return (t || '').toLowerCase().replace(/[“”"']/g, '').replace(/\s+/g, ' ').trim(); }
 function answerOk(file, answers) {
@@ -7591,23 +7877,25 @@ function answerOk(file, answers) {
 }
 const BRIEF_HTML = 'Scenario Brief.html', BRIEF_TXT = 'Scenario Brief.txt';
 function questionFile(n) { return 'Investigation ' + n + '.txt'; }
+/* 'school' for a school scenario (every Level 4 layout), 'business' otherwise: the same words the Windows Range uses */
+function orgWord(sc) { sc = sc || scenario(); return sc && (sc.advanced || /\bschool\b/i.test((sc.brief && sc.brief.company) || '')) ? 'school' : 'business'; }
 function briefHtml(sc) {
   const r = sc.brief;
-  const li = a => a.map(x => '<li>' + esc(x) + '</li>').join('');
+  const li = a => a.map(x => '<li>' + esc(x) + (sc.who && sc.who[x] ? ' — ' + esc(sc.who[x]) : '') + '</li>').join('');
   return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Scenario Brief</title></head><body>' +
     '<h1>Scenario Brief: ' + esc(sc.flavorLabel) + '</h1>' +
-    '<p><b>Organization:</b> ' + esc(r.company) + '</p><p>' + esc(r.blurb) + '</p>' +
-    '<h2>Authorized Administrators and Users</h2><p>Authorized Administrators:</p><ul>' + sc.admins.map(a => '<li><b>' + esc(a) + '</b>' + (a === sc.student.user ? ' (you)<br>password: <code>' + esc(sc.student.pw) + '</code>' : '') + '</li>').join('') + '</ul>' +
+    '<p><b>Organization:</b> ' + esc(r.company) + '</p><p>' + esc(r.blurb) + '</p>' + (sc.layoutNote ? '<p><b>' + esc(sc.layoutNote) + '</b></p>' : '') +
+    '<h2>Authorized Administrators and Users</h2><p>Authorized Administrators:</p><ul>' + sc.admins.map(a => '<li><b>' + esc(a) + '</b>' + (a === sc.student.user ? ' (you)<br>password: <code>' + esc(sc.student.pw) + '</code>' : sc.who && sc.who[a] ? ' — ' + esc(sc.who[a]) : '') + '</li>').join('') + '</ul>' +
     '<p>Authorized Users:</p><ul>' + li(sc.authorizedUsers) + '</ul>' +
     '<h2>Critical Services</h2><ul>' + li(r.services) + '</ul>' +
     '<h2>Security Policy</h2><ul>' + li(r.policy) + '</ul>' +
-    '<div class="warn"><b>Keep the business running.</b> Keep every authorized user, administrator, and critical service working. The Progress Check runs availability checks and flags anything the organization relies on that you break, and Finish waits until it works again.</div>' +
+    '<div class="warn"><b>Keep the ' + orgWord(sc) + ' running.</b> Keep every authorized user, administrator, and critical service working. The Progress Check runs availability checks and flags anything the organization relies on that you break, and Finish waits until it works again.</div>' +
     '<p>Read the machine before you change it. Answer the ' + COUNT_WORDS[sc.questions.length] + ' investigation questions on the Desktop first: open <code>' + questionFile(1) + '</code>, type the answer after <code>ANSWER:</code>, and save. Then find and fix the security problems. The Progress Check updates live.</p>' +
     '</body></html>';
 }
 function briefText(sc) {
   const r = sc.brief; const wrap = s => s.replace(/(.{1,74})(\s+|$)/g, '$1\n');
-  return 'SCENARIO BRIEF - ' + sc.flavorLabel.toUpperCase() + '\n' + '='.repeat(60) + '\n\nOrganization: ' + r.company + '\n\n' + wrap(r.blurb) + '\nAUTHORIZED ADMINISTRATORS\n' + sc.admins.map(a => '  ' + a + (a === sc.student.user ? ' (you)   password: ' + sc.student.pw : '')).join('\n') + '\n\nAUTHORIZED USERS\n' + sc.authorizedUsers.map(u => '  ' + u).join('\n') + '\n\nCRITICAL SERVICES\n' + r.services.map(s => '  - ' + s).join('\n') + '\n\nSECURITY POLICY\n' + r.policy.map(s => '  - ' + s).join('\n') + '\n\nKeep the business running: keep every authorized user, administrator,\nand critical service working. The Progress Check runs availability\nchecks and flags anything the organization relies on that you break,\nand Finish waits until it works again.\n\nRead the machine before you change it. Answer the ' + COUNT_WORDS[sc.questions.length] + ' investigation\nquestions in ~/Desktop first: open the file in nano, type the answer\nafter ANSWER:, and save. Then find and fix the security problems. The\nProgress Check updates live.\n';
+  return 'SCENARIO BRIEF - ' + sc.flavorLabel.toUpperCase() + '\n' + '='.repeat(60) + '\n\nOrganization: ' + r.company + '\n\n' + wrap(r.blurb) + (sc.layoutNote ? '\n' + wrap(sc.layoutNote) : '') + '\nAUTHORIZED ADMINISTRATORS\n' + sc.admins.map(a => '  ' + a + (a === sc.student.user ? ' (you)   password: ' + sc.student.pw : sc.who && sc.who[a] ? ' - ' + sc.who[a] : '')).join('\n') + '\n\nAUTHORIZED USERS\n' + sc.authorizedUsers.map(u => '  ' + u + (sc.who && sc.who[u] ? ' - ' + sc.who[u] : '')).join('\n') + '\n\nCRITICAL SERVICES\n' + r.services.map(s => '  - ' + s).join('\n') + '\n\nSECURITY POLICY\n' + r.policy.map(s => '  - ' + s).join('\n') + '\n\nKeep the ' + orgWord(sc) + ' running: keep every authorized user, administrator,\nand critical service working. The Progress Check runs availability\nchecks and flags anything the organization relies on that you break,\nand Finish waits until it works again.\n\nRead the machine before you change it. Answer the ' + COUNT_WORDS[sc.questions.length] + ' investigation\nquestions in ~/Desktop first: open the file in nano, type the answer\nafter ANSWER:, and save. Then find and fix the security problems. The\nProgress Check updates live.\n';
 }
 function questionText(n, q) { return 'Investigation ' + n + '\n\n' + q.text.replace(/(.{1,72})(\s+|$)/g, '$1\n') + '\n' + (q.hint ? ('(' + q.hint + ')').replace(/(.{1,72})(\s+|$)/g, '$1\n') + '\n' : '\n') + 'ANSWER: \n'; }
 /* hardening areas (the Progress Check groups every check under one of these) */
@@ -7651,8 +7939,8 @@ function learnUnits(c) {
 /* ---- common check factories ---- */
 const CK = {
   userGone: (name, pts) => ({ id: 'user-' + name, title: 'Unauthorized user ' + name + ' removed', pts, cat: AREA.acct, test: () => !U.user(name), hint: 'Compare /etc/passwd (UID 1000+) with the scenario brief; sudo userdel -r ' + name, fix: 'sudo userdel -r ' + name, why: 'An account nobody authorized is a door into the machine.' }),
-  demote: (name, pts) => ({ id: 'admin-' + name, title: name + ' removed from the sudo group (not an authorized administrator)', pts, cat: AREA.access, test: () => !U.user(name) || !U.isSudoer(name), hint: 'getent group sudo shows members; sudo gpasswd -d ' + name + ' sudo removes one.', fix: 'sudo gpasswd -d ' + name + ' sudo   (or: sudo deluser ' + name + ' sudo)', why: 'sudo group members are root in all but name; only the administrators named in the scenario brief belong there.' }),
-  blankPw: (name, pts) => ({ id: 'pw-' + name, title: 'Blank password on account ' + name + ' fixed', pts, cat: AREA.acct, test: () => { const s = U.shadowOf(name); return !U.user(name) || (s && s.hash !== ''); }, hint: 'sudo cat /etc/shadow: an empty second field means no password. sudo passwd ' + name, fix: 'sudo passwd ' + name + '   (answer both prompts with the same strong password)', why: 'An empty password field lets anyone log in as that user.' }),
+  demote: (name, pts) => ({ id: 'admin-' + name, acct: name, title: name + ' removed from the sudo group (not an authorized administrator)', pts, cat: AREA.access, test: () => !U.user(name) || !U.isSudoer(name), hint: 'getent group sudo shows members; sudo gpasswd -d ' + name + ' sudo removes one.', fix: 'sudo gpasswd -d ' + name + ' sudo   (or: sudo deluser ' + name + ' sudo)', why: 'sudo group members are root in all but name; only the administrators named in the scenario brief belong there.' }),
+  blankPw: (name, pts) => ({ id: 'pw-' + name, acct: name, title: 'Blank password on account ' + name + ' fixed', pts, cat: AREA.acct, test: () => { const s = U.shadowOf(name); return !U.user(name) || (s && s.hash !== ''); }, hint: 'sudo cat /etc/shadow: an empty second field means no password. sudo passwd ' + name, fix: 'sudo passwd ' + name + '   (answer both prompts with the same strong password)', why: 'An empty password field lets anyone log in as that user.' }),
   uid0: (name, pts) => ({ id: 'uid0', title: 'Hidden root account ' + name + ' removed (only root has UID 0)', pts, cat: AREA.acct, test: () => { const zeros = U.passwd().filter(u => u.uid === 0); return zeros.length === 1 && zeros[0].name === 'root'; }, hint: "awk -F: '$3 == 0 {print $1}' /etc/passwd lists UID 0 accounts. Read its home first (getent passwd " + name + ", field 6), then run sudo userdel -f " + name + ". Add -r only when that home belongs to " + name + " alone.", fix: 'sudo userdel -r -f ' + name + '   (if field 6 of getent passwd ' + name + ' shows /root or /, run sudo userdel -f ' + name + ' instead; or: sudo vipw, change its UID from 0 to an unused number, then sudo userdel ' + name + ' and remove /home/' + name + ' with sudo rm -r once you have read it)\nA plain userdel refuses ("currently used by process 1") because every root process runs as UID 0; -f with -r also removes a home that root shares.', why: 'Any account with UID 0 IS root, whatever it is called.' }),
   sshRoot: pts => ({ id: 'ssh-root', title: 'SSH root login disabled (PermitRootLogin no)', pts, cat: AREA.access, test: () => S.pkgs['openssh-server'] && /^no$/i.test(sshdValue('PermitRootLogin') || ''), hint: 'sudo nano /etc/ssh/sshd_config: PermitRootLogin no, then sudo systemctl restart ssh.', fix: "sudo sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config && sudo systemctl restart ssh", why: 'Root over SSH means one guessed password gives total control.' }),
   sshEmpty: pts => ({ id: 'ssh-empty', title: 'SSH empty passwords disabled (PermitEmptyPasswords no)', pts, cat: AREA.access, test: () => S.pkgs['openssh-server'] && /^no$/i.test(sshdValue('PermitEmptyPasswords') || ''), hint: 'grep -n Empty /etc/ssh/sshd_config, set it to no, restart ssh.', fix: "sudo sed -i 's/^#\\?PermitEmptyPasswords.*/PermitEmptyPasswords no/' /etc/ssh/sshd_config && sudo systemctl restart ssh", why: 'With a blank-password account this is a remote login with no credentials at all.' }),
@@ -7669,19 +7957,19 @@ const CK = {
   pkgGone: (name, pts, label, cat) => ({ id: 'pkg-' + name, title: 'Unauthorized software ' + name + ' removed' + (label ? ' (' + label + ')' : ''), pts, cat: cat || AREA.config, test: () => !S.pkgs[name], hint: 'dpkg -l | grep -i ' + name.split('-')[0] + '  then  sudo apt purge ' + name, fix: 'sudo apt purge -y ' + name, why: label ? label + ' has no business on this machine.' : 'Software nobody authorized is attack surface.' }),
   svcOff: (unit, pkg, pts, label) => ({ id: 'svc-' + unit, title: label + ' removed or disabled (' + unit + ')', pts, cat: AREA.config, test: () => !S.pkgs[pkg] || (S.svc[unit] ? (!S.svc[unit].active && !S.svc[unit].enabled) || S.svc[unit].masked : true), hint: 'systemctl status ' + unit + '; sudo systemctl disable --now ' + unit + ' or sudo apt purge ' + pkg + '.', fix: 'sudo apt purge -y ' + pkg + '   (or: sudo systemctl disable --now ' + unit + ')', why: 'Unauthorized listening services are ways in.' }),
   auditd: pts => ({ id: 'auditd', title: 'Audit daemon running with a rule that watches /etc/sudoers (auditd)', pts, cat: AREA.audit, test: () => { const st = S.svc.auditd; if (!S.pkgs.auditd || !st || !st.active || !st.enabled) return false; const files = FS.list('/etc/audit/rules.d').filter(f => f.endsWith('.rules')); return files.some(f => activeLines(FS.text('/etc/audit/rules.d/' + f) || '').some(l => /^-w\s+\/etc\/sudoers\b.*-p\s+\S*[wa]/.test(l.trim()))); }, hint: 'sudo apt install -y auditd. Put -w /etc/sudoers -p wa -k sudoers in a file under /etc/audit/rules.d/ and load it with sudo augenrules --load. systemctl status auditd should say active (running) and enabled.', fix: 'sudo apt install -y auditd\nprintf "%s\\n" "-w /etc/sudoers -p wa -k sudoers" | sudo tee /etc/audit/rules.d/50-sudoers.rules\nsudo augenrules --load\nsudo systemctl enable --now auditd', why: 'Logs are how you prove what changed. A watch on /etc/sudoers records every edit to who can become root, with the account that made it.' }),
-  journalPersist: pts => ({ id: 'journal-persist', title: 'System journal kept across reboots (journald Storage=persistent)', pts, cat: AREA.audit, test: () => { const v = (activeLines(FS.text('/etc/systemd/journald.conf') || '').map(l => l.trim()).filter(l => /^Storage\s*=/.test(l)).pop() || '').split('=')[1]; return /^(persistent|auto)$/i.test((v || '').trim()); }, hint: 'journalctl --list-boots lists only the boot that is running now. cat /etc/systemd/journald.conf: Storage=volatile keeps the journal in memory, so a reboot erases it. Set Storage=persistent, then sudo systemctl restart systemd-journald.', fix: "sudo sed -i 's/^Storage=.*/Storage=persistent/' /etc/systemd/journald.conf\nsudo systemctl restart systemd-journald", why: 'A journal that lives in RAM vanishes at the first reboot, and the evidence of the break-in goes with it. Persistent storage keeps the trail an investigation needs.' }),
+  journalPersist: pts => ({ id: 'journal-persist', title: 'System journal kept across reboots (journald Storage=persistent)', pts, cat: AREA.audit, test: () => { const v = (activeLines(FS.text('/etc/systemd/journald.conf') || '').map(l => l.trim()).filter(l => /^Storage\s*=/.test(l)).pop() || '').split('=')[1]; return /^(persistent|auto)$/i.test((v || '').trim()) || journalPersistent(); /* a commented-out Storage= line means auto, and auto with /var/log/journal keeps the journal on disk */ }, hint: 'journalctl --list-boots lists only the boot that is running now. cat /etc/systemd/journald.conf: Storage=volatile keeps the journal in memory, so a reboot erases it. Set Storage=persistent, then sudo systemctl restart systemd-journald.', fix: "sudo sed -i 's/^Storage=.*/Storage=persistent/' /etc/systemd/journald.conf\nsudo systemctl restart systemd-journald", why: 'A journal that lives in RAM vanishes at the first reboot, and the evidence of the break-in goes with it. Persistent storage keeps the trail an investigation needs.' }),
   question: (n, file, answers, pts, learn) => ({ id: 'investigation-' + n, title: 'Investigation ' + n + ' answered', pts, cat: AREA.inv, investigation: true, learn, test: () => answerOk(file, answers), hint: 'Open "' + questionFile(n) + '" on the Desktop, put the answer after ANSWER: and save.', fix: 'Answer: ' + answers[0], why: 'Investigating first makes you read the machine before you change it.' }),
 };
 /* availability checks: breaking something the scenario brief says the business needs. A failed one is a must-fix
    flag: the points stay, the Progress Check names it in red with its restore step, and Finish waits until it works
    again. which() names the broken items; restore is the way back. */
 const AVAIL = {
-  authUser: names => ({ id: 'avail-user', title: 'Authorized user removed', need: 'Authorized users keep their accounts', which: () => names.filter(n => !U.user(n)).join(', '), test: () => names.some(n => !U.user(n)), why: 'The scenario brief lists these people as authorized; deleting them stops them from working.', restore: 'Create the account again: sudo useradd -m -s /bin/bash NAME, then sudo passwd NAME (a password that meets the policy). Add it back to any group it was in (sudo usermod -aG GROUP NAME).' }),
-  authAdmin: names => ({ id: 'avail-admin', title: 'Authorized administrator removed from sudo', need: 'Authorized administrators keep sudo', which: () => names.filter(n => !U.user(n) || !U.isSudoer(n)).join(', '), test: () => names.some(n => !U.user(n) || !U.isSudoer(n)), why: 'The administrators named in the brief need their rights to keep the machine running.', restore: 'Put the administrator back in the sudo group: sudo usermod -aG sudo NAME (or sudo gpasswd -a NAME sudo). Bring back a deleted account first.' }),
-  self: name => ({ id: 'avail-self', title: 'Your own account (' + name + ') deleted or locked', need: 'Your own account (' + name + ') can log in', test: () => { const u = U.user(name); const s = U.shadowOf(name); return !u || !s || s.hash[0] === '!' || s.hash[0] === '*' || !U.hasShell(u); }, why: 'Lock yourself out and nobody can administer the machine: the next login fails.', restore: 'While you are still logged in: sudo passwd -u ' + name + ' unlocks the password, and sudo usermod -s /bin/bash ' + name + ' gives the login shell back. Once the login fails, Reset lab is the way back.' }),
+  authUser: names => ({ id: 'avail-user', accts: names, title: 'Authorized user removed', need: 'Authorized users keep their accounts', which: () => names.filter(n => !U.user(n)).join(', '), test: () => names.some(n => !U.user(n)), why: 'The scenario brief lists these people as authorized; deleting them stops them from working.', restore: 'Create the account again: sudo useradd -m -s /bin/bash NAME, then sudo passwd NAME (a password that meets the policy). Add it back to any group it was in (sudo usermod -aG GROUP NAME).' }),
+  authAdmin: names => ({ id: 'avail-admin', accts: names, title: 'Authorized administrator removed from sudo', need: 'Authorized administrators keep sudo', which: () => names.filter(n => !U.user(n) || !U.isSudoer(n)).join(', '), test: () => names.some(n => !U.user(n) || !U.isSudoer(n)), why: 'The administrators named in the brief need their rights to keep the machine running.', restore: 'Put the administrator back in the sudo group: sudo usermod -aG sudo NAME (or sudo gpasswd -a NAME sudo). Bring back a deleted account first.' }),
+  self: name => ({ id: 'avail-self', accts: [name], title: 'Your own account (' + name + ') deleted or locked', need: 'Your own account (' + name + ') can log in', test: () => { const u = U.user(name); const s = U.shadowOf(name); return !u || !s || s.hash[0] === '!' || s.hash[0] === '*' || !U.hasShell(u); }, why: 'Lock yourself out and nobody can administer the machine: the next login fails.', restore: 'While you are still logged in: sudo passwd -u ' + name + ' unlocks the password, and sudo usermod -s /bin/bash ' + name + ' gives the login shell back. Once the login fails, Reset lab is the way back.' }),
   ssh: why => ({ id: 'avail-svc-ssh', title: 'Required service SSH stopped, disabled, or removed', need: 'SSH stays on and reachable', test: () => !sshReachable(), why: why || 'The scenario brief calls SSH critical; stopping it is an outage for the business.', restore: 'Turn SSH back on and keep it on at boot: sudo systemctl enable --now ssh (on Ubuntu Server 24.04 the socket holds port 22: sudo systemctl enable --now ssh.socket). If the package is gone, sudo apt install openssh-server first; if sshd_config is broken, sudo sshd -t names the bad line.' }),
   svc: (unit, pkg, label) => ({ id: 'avail-svc-' + unit, title: 'Required service ' + label + ' stopped, disabled, or removed', need: 'Required service ' + label + ' stays on', test: () => !S.pkgs[pkg] || !S.svc[unit] || !S.svc[unit].active || !S.svc[unit].enabled, why: 'The scenario brief calls this service critical; stopping it is an outage for the business.', restore: 'Start it and keep it on at boot: sudo systemctl enable --now ' + unit + '. If the package is gone, sudo apt install ' + pkg + ' first.' }),
-  ufwBlocks: (port, label) => ({ id: 'avail-ufw-' + port, title: 'Firewall blocks the required ' + label + ' service (port ' + port + ')', need: 'The firewall lets the required ' + label + ' service through (port ' + port + ')', test: () => S.ufw.on && !ufwAllows(port) && Object.values(S.svc).some(s => s.active) && listeners().some(l => l.port === port), why: 'ufw with default deny and no allow rule cuts off a service the business needs.', restore: 'Allow the port again: sudo ufw allow ' + port + '/tcp' + (port === 22 ? ' (or sudo ufw allow ssh)' : '') + ', then check with sudo ufw status.' }),
+  ufwBlocks: (port, label) => ({ id: 'avail-ufw-' + port, title: 'Firewall blocks the required ' + label + ' service (port ' + port + ')', need: 'The firewall lets the required ' + label + ' service through (port ' + port + ')', test: () => S.ufw.on && !ufwAllows(port) && Object.values(S.svc).some(s => s.active) && listeners().some(l => l.port === port), why: 'ufw with default deny and no allow rule cuts off a service the business needs.', restore: 'Allow the port again: sudo ufw allow ' + port + '/tcp' + (port === 22 ? ' (or sudo ufw allow ssh)' : '') + ', then check with sudo ufw status. ufw uses the first rule that matches, so a DENY rule for port ' + port + ' listed above the ALLOW rule still blocks it: remove that one too (for example, sudo ufw delete deny ' + port + ').' }),
 };
 const SCENARIOS = [
   {
@@ -7830,10 +8118,11 @@ const SCENARIOS = [
 ];
 /* bump when a scenario's planted state changes: a saved lab from an older revision is rebuilt on load (its best score is kept) */
 const SCENARIO_REV = 5;
-function scenario() { return SCENARIOS.find(s => s.id === S.id) || SCENARIOS[0]; }
-function initialState(id) {
-  const sc = SCENARIOS.find(s => s.id === id) || SCENARIOS[0];
+function scenario() { return S && S.id === ADV_ID ? advScenario(S.layout) : SCENARIOS.find(s => s.id === S.id) || SCENARIOS[0]; }
+function initialState(id, code) {
+  const sc = id === ADV_ID ? advScenario(code) : SCENARIOS.find(s => s.id === id) || SCENARIOS[0];
   S = { id: sc.id, rev: SCENARIO_REV, flavor: sc.flavor, gui: sc.gui !== false, sockMode: !!sc.sshSocket, sshSock: null, hostname: sc.hostname, fs: {}, pkgs: {}, svc: {}, ufw: {}, sysctl: {}, procs: [], nextPid: 300, journal: [], updates: {}, power: 'off', login: { user: null }, sh: null, hist: {}, elapsed: 0, started: nowSec() };
+  if (sc.advanced) { S.layout = sc.code; S.l4 = ADV_REV; }
   buildBase(sc);
   // desktop files for the person working the lab
   const home = sc.studentHome; const u = U.user(sc.student.user);
@@ -7861,6 +8150,428 @@ function initialState(id) {
   return S;
 }
 
+/* ---------------- Level 4 · Advanced · extra credit: a new machine from a layout code ----------------
+   Six characters from an unambiguous alphabet seed a small PRNG (mulberry32 over FNV-1a), which picks the machine kind,
+   its flavor, the people, the addresses, the decoys, and a set of faults drawn from the families Levels 1-3 teach. The
+   same code builds the same machine in any browser, so a teacher can give a whole class one machine. The Scenario Brief
+   comes from the same choices: every requirement it states is what a check or an availability check tests (policyMap
+   and serviceMap name them). Levels 1-3 keep their own data, saves, and ids. */
+const ADV_ID = 'advanced', ADV_REV = 1, ADV_PW = 'Advanced!2026', ADV_ALPHA = 'ACDEFHJKMNPRTVWXY34679', ADV_LEN = 6;
+const ADV_LABEL = '4 · Advanced · extra credit';
+const ADV_LOG_SPAN = 3600 * 26; // buildBase starts auth.log 26 hours ago; an entry at dt seconds after that is ADV_LOG_SPAN - dt seconds ago
+function advNorm(t) { return String(t == null ? '' : t).toUpperCase().replace(/[\s-]+/g, ''); }
+function advValid(code) { return typeof code === 'string' && code.length === ADV_LEN && [...code].every(ch => ADV_ALPHA.includes(ch)); }
+/* a fresh code for "New layout": the browser's random source picks the code; the machine itself comes only from the code */
+function advNewCode() {
+  let buf = null; try { buf = new Uint32Array(ADV_LEN); crypto.getRandomValues(buf); } catch (e) { buf = null; }
+  let h = hash32(String(Date.now()) + ':' + (typeof performance !== 'undefined' ? performance.now() : 0)), out = '';
+  for (let i = 0; i < ADV_LEN; i++) { let v; if (buf) v = buf[i]; else { h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d) >>> 0; v = h; } out += ADV_ALPHA[v % ADV_ALPHA.length]; }
+  return out;
+}
+function advRng(code) {
+  let a = hash32('pohinahina-l4:' + code) || 1;
+  const next = () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const R = { next, int: (lo, hi) => lo + Math.floor(next() * (hi - lo + 1)), pick: arr => arr[Math.floor(next() * arr.length)], chance: p => next() < p,
+    shuffle: arr => { const b = arr.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(next() * (i + 1)); const x = b[i]; b[i] = b[j]; b[j] = x; } return b; } };
+  R.take = (arr, n) => R.shuffle(arr).slice(0, n);
+  return R;
+}
+/* people at Pōhinahina High School (usernames ASCII; display names keep the ʻokina and kahakō) */
+const ADV_STAFF = { keoni: ['Keoni', 'school sysadmin'], kanoa: ['Kanoa', 'complex-area sysadmin'], hoku: ['Hoku', 'help-desk tech'], mahina: ['Mahina', 'registrar'], iolana: ['Iolana', 'counselor'], makana: ['Makana', 'principal'], kalea: ['Kalea', 'vice principal'] };
+const ADV_TEACHERS = [['nohea', 'Nohea'], ['keola', 'Keola'], ['kekoa', 'Kekoa'], ['leilani', 'Leilani'], ['kehau', 'Kēhau'], ['noeau', 'Noʻeau'], ['lokelani', 'Lokelani'], ['kawena', 'Kawena']];
+const ADV_STUDENTS = [['koa', 'Koa'], ['kaipo', 'Kaipo'], ['ikaika', 'Ikaika'], ['malia', 'Malia'], ['lani', 'Lani'], ['keahi', 'Keahi'], ['nalani', 'Nālani'], ['makoa', 'Makoa'], ['kainoa', 'Kainoa'], ['pomaikai', 'Pōmaikaʻi'], ['maile', 'Maile'], ['kaimi', 'Kaʻimi'], ['hiwa', 'Hiwa'], ['pono', 'Pono']];
+const ADV_LEFTOVER = ['formertech', 'tempsub', 'oldlab'];
+const ADV_UID0 = ['sysadm', 'ops', 'maint', 'svcadmin', 'toor', 'backupadm'];
+/* the fault pool: kind -> hardening family, weight for the points, and where it fits */
+const ADV_POOL = {
+  acct: ['extra-user', 'sudo-member', 'blank-pw', 'uid0', 'pass-max', 'pass-min', 'minlen', 'remember', 'lockout', 'nullok'],
+  access: ['ssh-root', 'ssh-empty', 'ssh-maxauth', 'sudoers-dropin', 'sudo-noauth', 'suid', 'caps', 'shadow-perms', 'guest', 'autologin', 'mysql-anon'],
+  config: ['ufw', 'pkg', 'svc-vsftpd', 'svc-samba', 'telnet', 'ipfwd', 'apache-tokens', 'aa', 'flatpak'],
+  patch: ['updates', 'autoupd', 'badrepo'],
+  malware: ['rogue-svc', 'miner', 'rclocal', 'cron', 'tampered'],
+  data: ['media'],
+  audit: ['auditd', 'journal', 'ntp'],
+};
+const ADV_KINDS_ALL = [].concat(...Object.values(ADV_POOL));
+const ADV_W = { 'extra-user': 6, 'sudo-member': 6, 'blank-pw': 6, uid0: 8, 'pass-max': 5, 'pass-min': 4, minlen: 6, remember: 4, lockout: 5, nullok: 4, 'ssh-root': 6, 'ssh-empty': 5, 'ssh-maxauth': 4, 'sudoers-dropin': 6, 'sudo-noauth': 5, suid: 6, caps: 5, 'shadow-perms': 5, guest: 5, autologin: 5, 'mysql-anon': 4, ufw: 6, pkg: 5, 'svc-vsftpd': 5, 'svc-samba': 5, telnet: 5, ipfwd: 4, 'apache-tokens': 4, aa: 3, flatpak: 3, updates: 5, autoupd: 5, badrepo: 4, 'rogue-svc': 7, miner: 6, rclocal: 6, cron: 6, tampered: 5, media: 5, auditd: 5, journal: 4, ntp: 3 };
+function advEligible(k, x) {
+  if (/^ssh-/.test(k)) return x.ssh;
+  if (k === 'guest' || k === 'flatpak') return x.flavor === 'mint' && x.gui;
+  if (k === 'autologin' || k === 'aa') return x.gui;
+  if (k === 'mysql-anon') return x.db;
+  if (k === 'apache-tokens') return !x.gui;
+  return true;
+}
+/* the layout as plain data: every choice the PRNG makes, so the same code gives the same object */
+function advSpec(code) {
+  const R = advRng(code);
+  const kind = R.pick(['lab', 'lab', 'laptop', 'library', 'office', 'server', 'server']);
+  const gui = kind !== 'server', flavor = !gui ? 'ubuntu' : kind === 'library' ? R.pick(['mint', 'mint', 'ubuntu']) : R.pick(['ubuntu', 'ubuntu', 'mint']);
+  const nn = two(R.int(1, 30));
+  const host = kind === 'lab' ? 'phn-lab-' + nn : kind === 'laptop' ? 'phn-laptop-' + nn : kind === 'library' ? 'phn-lib-' + nn : kind === 'office' ? 'phn-office-' + nn : R.pick(['phn-web01', 'phn-web02', 'phn-sis01']);
+  const used = new Set(['labuser']);
+  const person = (name, display, role) => { used.add(name); return { name, display, role }; };
+  const pickFrom = (list, n, role) => R.take(list.filter(p => !used.has(p[0])), n).map(p => person(p[0], p[1], role));
+  const staff = n => person(n, ADV_STAFF[n][0], ADV_STAFF[n][1]);
+  const adminMain = kind === 'library' || kind === 'laptop' ? R.pick(['hoku', 'keoni']) : kind === 'server' ? 'keoni' : R.pick(['keoni', 'keoni', 'hoku']);
+  const admins = [staff(adminMain)];
+  if (kind === 'server' && R.chance(0.6)) admins.push(staff('kanoa'));
+  else if (kind !== 'server' && R.chance(0.3)) admins.push(staff(adminMain === 'hoku' ? 'keoni' : 'hoku'));
+  let users = [];
+  if (kind === 'lab') users = pickFrom(ADV_TEACHERS, 1, 'teacher').concat(pickFrom(ADV_STUDENTS, R.int(3, 5), 'student'));
+  else if (kind === 'laptop') users = pickFrom(ADV_TEACHERS, R.int(1, 2), 'teacher').concat(pickFrom(ADV_STUDENTS, R.int(2, 3), 'student aide'));
+  else if (kind === 'library') users = pickFrom(ADV_TEACHERS, 1, 'librarian').concat(pickFrom(ADV_STUDENTS, R.int(3, 5), 'student'));
+  else if (kind === 'office') { users = R.take(['makana', 'kalea', 'mahina', 'iolana'], R.int(3, 4)).map(staff); if (!used.has('hoku') && R.chance(0.5)) users.push(staff('hoku')); }
+  else { users = pickFrom(ADV_TEACHERS, R.int(1, 2), 'website editor'); if (!used.has('hoku')) users.push(staff('hoku')); if (R.chance(0.5)) users.push(staff('mahina')); }
+  users = R.shuffle(users);
+  const ssh = !gui || R.chance(kind === 'library' ? 0.35 : 0.55);
+  const ip = '10.20.4.' + R.int(20, 240);
+  const db = !gui && R.chance(0.8);
+  const x = { kind, gui, flavor, ssh, db };
+  /* the faults: a few per hardening family, then at least two investigation facts */
+  const plan = [['acct', R.int(4, 5)], ['access', R.int(3, 4)], ['config', R.int(2, 3)], ['patch', R.int(1, 2)], ['malware', R.int(1, 2)], ['data', R.chance(0.75) ? 1 : 0], ['audit', R.int(1, 2)]];
+  const kinds = [];
+  for (const [cat, n] of plan) R.take(ADV_POOL[cat].filter(k => advEligible(k, x)), n).forEach(k => kinds.push(k));
+  const qFacts = ['blank-pw', 'sudo-member', 'uid0', 'suid', 'rogue-svc', 'cron'];
+  const facts = () => kinds.filter(k => qFacts.includes(k)).length + (kinds.includes('extra-user') && ssh ? 1 : 0) + (kinds.includes('pkg') ? 1 : 0);
+  for (const k of R.shuffle(['uid0', 'blank-pw', 'suid', 'sudo-member'])) if (facts() < 2 && !kinds.includes(k)) kinds.push(k);
+  const faults = []; const free = R.shuffle(users.filter(u => !ADV_STAFF[u.name] || u.name === 'mahina' || u.name === 'iolana').map(u => u.name));
+  const takeUser = () => free.length ? free.shift() : null;
+  const port = (() => { const pool = R.shuffle([4444, 5555, 6667, 7777, 8081, 9001, 1337, 31338, 2323, 6000]); return () => pool.shift(); })();
+  const hiddenBin = R.pick([['/tmp', '.sysupd'], ['/var/tmp', '.cache-upd'], ['/tmp', '.X11-agent'], ['/var/tmp', '.fsck-helper'], ['/tmp', '.dbus-sess']]);
+  let shellBin = null;
+  for (const k of ADV_KINDS_ALL.filter(k => kinds.includes(k))) {
+    const f = { k };
+    if (k === 'extra-user') { const pool = ADV_STUDENTS.concat(ADV_TEACHERS).filter(p => !used.has(p[0])).map(p => p[0]).concat(ADV_LEFTOVER); f.names = R.take(pool, R.chance(0.4) ? 2 : 1); f.names.forEach(n => used.add(n)); f.from = f.names.map(() => '10.20.4.' + R.int(60, 199)); }
+    else if (k === 'sudo-member' || k === 'blank-pw' || k === 'sudoers-dropin') { const n = takeUser(); if (!n) continue; f.name = n; if (k === 'sudoers-dropin') { f.file = '/etc/sudoers.d/' + R.pick(['90-' + n, '50-lab-helpers', '60-temp-access', '99-' + n + '-tools']); f.imm = R.chance(0.5); } }
+    else if (k === 'uid0') { f.name = R.pick(ADV_UID0.filter(n => !used.has(n))); used.add(f.name); }
+    else if (k === 'pass-max') f.max = R.pick([99999, 180, 365]);
+    else if (k === 'pass-min') f.min = R.pick([0, 1, 2]);
+    else if (k === 'minlen') f.variant = R.pick(['missing', 'nominlen', 'short']);
+    else if (k === 'ssh-maxauth') f.line = R.pick(['#MaxAuthTries 6', 'MaxAuthTries 10', 'MaxAuthTries 8']);
+    else if (k === 'suid') f.path = R.pick(['/usr/local/bin/', '/usr/local/sbin/', '/opt/tools/']) + R.pick(['lsmon', 'sysinfo', 'diskcheck', 'netstatus', 'pyhelper', 'printctl']);
+    else if (k === 'shadow-perms') f.mode = R.pick([0o644, 0o604, 0o664]);
+    else if (k === 'autologin') f.variant = flavor === 'mint' ? 'lightdm' : R.pick(['auto', 'timed']), f.delay = R.int(20, 60);
+    else if (k === 'pkg') { f.names = R.take(['torrentbolt', 'netprobe-ng', 'cracklite'], R.chance(0.4) ? 2 : 1); const owners = users.filter(u => /student|aide/.test(u.role)).map(u => u.name); f.owner = owners.length ? R.pick(owners) : users[0].name; f.dir = R.pick(['.hidden_tools', '.tools', '.cache-x', '.kit']); }
+    else if (k === 'flatpak') f.app = R.pick([['PixelQuest', 'io.example.PixelQuest', '2.3.1'], ['BlockRush', 'io.example.BlockRush', '1.8.0'], ['KartBlitz', 'io.example.KartBlitz', '0.9.4']]);
+    else if (k === 'updates') f.held = R.pick([null, 'sudo', 'openssl']);
+    else if (k === 'badrepo') { const h = R.pick(['torrentbolt-cdn', 'freeware-mirror', 'gamehub-dl', 'fastdl-apps']); f.host = 'repo.' + h + '.example'; f.file = '/etc/apt/sources.list.d/' + h.split('-')[0] + '.list'; }
+    else if (k === 'rogue-svc') { const r = R.pick([['sysmond-helper', 'System monitor helper'], ['netcheckd', 'Network check daemon'], ['printsync', 'Print queue sync'], ['gpu-telemetry', 'GPU telemetry agent'], ['kbdlight-helper', 'Keyboard backlight helper']]); f.unit = r[0]; f.desc = r[1]; const d = R.pick([['/opt/.', 'upd'], ['/usr/local/lib/.', 'cache'], ['/var/lib/.', 'sys']]); f.bin = d[0] + d[1] + R.int(1, 9) + '/' + r[0].split('-')[0].slice(0, 8) + 'd'; f.port = port(); }
+    else if (k === 'rclocal' || k === 'cron') { if (!shellBin) shellBin = { bin: hiddenBin[0] + '/' + hiddenBin[1], port: port() }; f.bin = shellBin.bin; f.port = shellBin.port; }
+    else if (k === 'tampered') { const t = R.pick([['procps', '/usr/bin/ps'], ['iproute2', '/usr/bin/ss'], ['psmisc', '/usr/bin/pstree']]); f.pkg = t[0]; f.file = t[1]; }
+    else if (k === 'media') { const owners = R.take(users.filter(u => !ADV_STAFF[u.name] || kind === 'office'), R.int(1, 2)); f.files = []; for (const o of owners) for (let i = R.int(1, 2); i > 0; i--) { const ext = R.pick(['mp3', 'mp4', 'm4a', 'flac', 'mkv', 'wav', 'ogg', 'mov']); const dir = !gui ? 'Downloads' : /mp4|mkv|mov/.test(ext) ? 'Videos' : R.pick(['Music', 'Downloads']); f.files.push({ owner: o.name, path: dir + '/' + R.pick(['pep-rally-mix', 'hula-practice', 'study-beats', 'game-highlights', 'talent-show', 'skate-clip', 'road-trip', 'lunch-playlist']) + '-' + R.int(1, 9) + '.' + ext }); } }
+    faults.push(f);
+  }
+  // at least two investigation facts: a fault that needed a free user may have dropped out
+  const factCount = () => faults.filter(f => ['blank-pw', 'sudo-member', 'uid0', 'suid', 'rogue-svc', 'cron', 'pkg'].includes(f.k) || (f.k === 'extra-user' && ssh)).length;
+  if (factCount() < 2 && !faults.some(f => f.k === 'uid0')) { const n = R.pick(ADV_UID0.filter(x => !used.has(x))); used.add(n); faults.push({ k: 'uid0', name: n }); }
+  if (factCount() < 2 && !faults.some(f => f.k === 'suid')) faults.push({ k: 'suid', path: '/usr/local/bin/' + R.pick(['lsmon', 'sysinfo', 'diskcheck']) });
+  /* decoys: school software and a backup job that look like the planted ones but belong to the school */
+  const decoys = {};
+  if (R.chance(0.55)) { const d = R.pick([['phn-bellsync', 'Bell schedule sync', 'bellsync'], ['phn-signage', 'Hallway signage player', 'signage'], ['phn-attendance', 'Attendance upload agent', 'attendd']]); decoys.svc = { unit: d[0], desc: d[1], bin: '/opt/phn/' + d[2] + '/' + d[2] }; }
+  if (R.chance(0.5)) decoys.backup = { file: '/etc/cron.d/phn-backup', script: '/usr/local/sbin/phn-backup', line: R.int(1, 4) + ' ' + R.int(1, 4) + ' * * * root /usr/local/sbin/phn-backup' };
+  decoys.notes = { owner: users[0].name, dir: R.pick(['.lesson-drafts', '.notes', '.backup-docs']) };
+  const hook = R.pick(['A substitute teacher reported a program nobody recognized.', 'The help desk got a report that an account signed in after school hours.', 'A former help-desk tech set this machine up and left in a hurry.', 'Over the break, someone changed settings nobody approved.']);
+  const room = kind === 'lab' ? R.pick(['B201', 'B204', 'C110', 'D102']) : kind === 'library' ? R.pick(['the library reading room', 'the library study corner']) : kind === 'office' ? 'the front office' : kind === 'laptop' ? R.pick(['Room A105', 'Room C112', 'Room D210']) : 'the server room';
+  const spec = { code, rev: ADV_REV, kind, gui, flavor, host, ip, ssh, web: !gui, db, room, hook, admins, users, faults, decoys, mac: '08:00:27:' + [1, 2, 3].map(() => two(R.int(16, 255).toString(16))).join(':'), seed: R.int(1, 899) };
+  /* the investigation questions: two facts from the faults, answered from the machine */
+  const q = [];
+  const fk = k => faults.find(f => f.k === k);
+  if (fk('blank-pw')) q.push({ k: 'blank', a: fk('blank-pw').name });
+  if (fk('sudo-member')) q.push({ k: 'sudo', a: fk('sudo-member').name });
+  if (fk('uid0')) q.push({ k: 'uid0', a: fk('uid0').name });
+  if (fk('suid')) q.push({ k: 'suid', a: fk('suid').path });
+  if (fk('rogue-svc')) q.push({ k: 'port', a: String(fk('rogue-svc').port) });
+  if (fk('cron')) q.push({ k: 'cron', a: fk('cron').bin });
+  if (fk('extra-user') && ssh) q.push({ k: 'login', name: fk('extra-user').names[0], a: fk('extra-user').from[0] });
+  if (fk('pkg')) q.push({ k: 'hidden', a: '/home/' + fk('pkg').owner + '/' + fk('pkg').dir });
+  spec.questions = R.take(q, 2);
+  return spec;
+}
+/* ---- check and availability factories for the parameters a layout picks ---- */
+const ADV_JOURNALD = n => '#  This file is part of systemd.\n#\n# Entries in this file show the compile time defaults. Local configuration\n# should be created by either modifying this file (or a copy of it placed in\n# /etc/ if the original file is shipped in /usr/), or by creating "drop-ins" in\n# the /etc/systemd/journald.conf.d/ directory.\n#\n# See journald.conf(5) for details.\n\n[Journal]\n# ' + n + '\nStorage=volatile\n#Compress=yes\n#Seal=yes\n#SplitMode=uid\n#SyncIntervalSec=5m\n#RateLimitIntervalSec=30s\n#RateLimitBurst=10000\n#SystemMaxUse=\n#MaxRetentionSec=\n#MaxFileSec=1month\n#ForwardToSyslog=yes\n';
+const ADV_APACHE_CONF = '# This is the main Apache server configuration file.  It contains the\n# configuration directives that give the server its instructions.\n\nDefaultRuntimeDir ${APACHE_RUN_DIR}\nPidFile ${APACHE_PID_FILE}\nTimeout 300\nKeepAlive On\nUser ${APACHE_RUN_USER}\nGroup ${APACHE_RUN_GROUP}\nHostnameLookups Off\nErrorLog ${APACHE_LOG_DIR}/error.log\nLogLevel warn\nIncludeOptional mods-enabled/*.load\nIncludeOptional mods-enabled/*.conf\nInclude ports.conf\n\n<Directory /var/www/>\n        Options Indexes FollowSymLinks\n        AllowOverride None\n        Require all granted\n</Directory>\n\nIncludeOptional conf-enabled/*.conf\nIncludeOptional sites-enabled/*.conf\n';
+const ADV_CK = {
+  dropin: (n, file, imm) => ({ id: 'sudoers-' + n, acct: n, title: 'Unauthorized sudo rule for ' + n + ' removed (/etc/sudoers.d)', cat: AREA.access, test: () => !U.user(n) || !U.isSudoer(n), hint: "sudo grep -rn 'NOPASSWD' /etc/sudoers.d lists drop-in rules; sudo -l -U " + n + ' shows what ' + n + ' may run.' + (imm ? ' When sudo rm says Operation not permitted, sudo lsattr FILE shows the i (immutable) flag: sudo chattr -i FILE first.' : ''), fix: (imm ? 'sudo chattr -i ' + file + ' && ' : '') + 'sudo rm ' + file, why: 'NOPASSWD: ALL in a drop-in file is silent root for an account the brief never made an administrator.', learn: ['s3'] }),
+  noauth: () => ({ id: 'sudo-noauth', title: 'Sudo asks for a password again (Defaults !authenticate removed)', cat: AREA.access, test: () => !U.sudoersFiles().some(f => activeLines(FS.text(f)).some(l => /^Defaults\b.*!authenticate\b/.test(l.trim()))), hint: "sudo grep -rnE 'NOPASSWD|!authenticate' /etc/sudoers /etc/sudoers.d/ lists every line that skips the password prompt. Delete the Defaults !authenticate line with sudo visudo, then sudo -k.", fix: "sudo sed -i '/^Defaults[[:space:]]*!authenticate/d' /etc/sudoers   (or: sudo visudo, delete the line, then sudo visudo -c)", why: 'Defaults !authenticate lets every sudoer run root commands without a password, so a stolen session is a root session.', learn: ['s3'] }),
+  suid: p => ({ id: 'suid', title: 'Setuid bit removed from ' + p, cat: AREA.access, test: () => { const n = S.fs[p]; return !n || !(n.m & 0o4000); }, hint: 'sudo find / -perm -4000 -type f 2>/dev/null lists setuid programs; dpkg -S PATH says which package owns one. sudo chmod u-s PATH clears the bit (or delete the copy).', fix: 'sudo rm ' + p + '   (or: sudo chmod u-s ' + p + ')', why: 'A setuid copy of a shell gives any local user an instant root shell.', learn: ['s3'] }),
+  caps: () => ({ id: 'caps', title: 'cap_setuid removed from python3.12', cat: AREA.access, learn: ['j3'], test: () => !(S.fs['/usr/bin/python3.12'] || {}).caps, hint: 'sudo getcap -r / 2>/dev/null lists file capabilities (ping keeps cap_net_raw); sudo setcap -r /usr/bin/python3.12 clears one.', fix: 'sudo setcap -r /usr/bin/python3.12', why: 'An interpreter that may change its user ID is a root shell for everyone.' }),
+  shadow: () => ({ id: 'shadow-perms', title: '/etc/shadow permissions restored (640 root:shadow)', cat: AREA.access, test: () => { const n = S.fs['/etc/shadow']; return !!n && (n.m & 0o027) === 0 && n.u === 0 && !(n.acl && n.acl.length); }, hint: 'ls -l /etc/shadow shows its mode; it should read -rw-r----- root shadow.', fix: 'sudo chmod 640 /etc/shadow && sudo chown root:shadow /etc/shadow', why: 'Readable hashes can be cracked offline by any user.' }),
+  guest: () => ({ id: 'guest', title: 'Guest session disabled in LightDM (allow-guest=false)', cat: AREA.access, test: () => !guestAllowed(), hint: 'sudo nano /etc/lightdm/lightdm.conf and set allow-guest=false under [Seat:*].', fix: "sudo sed -i 's/^allow-guest=.*/allow-guest=false/' /etc/lightdm/lightdm.conf", why: 'A guest session is an anonymous login, open without a password and untraceable to any person.', learn: ['s3'] }),
+  autologin: mint => ({ id: 'autologin', title: 'Automatic login disabled in ' + (mint ? 'LightDM' : 'GDM'), cat: AREA.access, test: () => !autoLoginUser() && !timedLoginInfo(), hint: mint ? 'Remove the autologin-user= line in /etc/lightdm/lightdm.conf.' : 'In /etc/gdm3/custom.conf set AutomaticLoginEnable = false and TimedLoginEnable = false.', fix: mint ? "sudo sed -i '/^autologin-user/d' /etc/lightdm/lightdm.conf" : "sudo sed -i -e 's/^AutomaticLoginEnable.*/AutomaticLoginEnable = false/' -e 's/^TimedLoginEnable.*/TimedLoginEnable = false/' /etc/gdm3/custom.conf", why: 'Automatic login hands a session to whoever sits down.', learn: ['s3'] }),
+  mysqlAnon: () => ({ id: 'mysql-anon', title: 'Anonymous MySQL account removed', cat: AREA.access, learn: ['j3'], test: () => !mysqlState().users.some(u => u[0] === ''), hint: 'sudo mysql -e "SELECT user, host FROM mysql.user;" shows an account with an empty user name.', fix: 'sudo mysql -e "DROP USER \'\'@\'localhost\';"   (or: sudo mysql_secure_installation, answering y to Remove anonymous users)', why: 'An anonymous account lets anyone on the server connect without a name.' }),
+  smb: () => ({ id: 'svc-smbd', title: 'Samba file sharing removed or disabled (smbd/nmbd)', cat: AREA.config, test: () => !S.pkgs.samba || (['smbd', 'nmbd'].every(u => !S.svc[u] || S.svc[u].masked || (!S.svc[u].active && !S.svc[u].enabled))), hint: 'systemctl status smbd nmbd; sudo apt purge samba (or disable --now both units).', fix: 'sudo apt purge -y samba   (or: sudo systemctl disable --now smbd nmbd)', why: 'A guest-writable share lets anyone on the network change school files.' }),
+  telnet: () => ({ id: 'telnet', title: 'Telnet server removed (nothing listening on port 23)', cat: AREA.config, test: () => !listeners().some(l => l.port === 23), hint: 'sudo ss -tulpn shows port 23 (inetd). On Ubuntu 24.04 and Mint 22, telnetd is a transitional package and inetutils-telnetd holds the server, so purge both.', fix: 'sudo apt purge -y telnetd inetutils-telnetd   (or: sudo systemctl disable --now inetd)', why: 'Telnet sends passwords in clear text.' }),
+  ipfwd: () => ({ id: 'ipfwd', title: 'IPv4 forwarding disabled at boot (sysctl files)', cat: AREA.config, test: () => (sysctlFileValue('net.ipv4.ip_forward') || '0') === '0', hint: 'grep -rn ip_forward /etc/sysctl.conf /etc/sysctl.d/ shows every file that sets it. Set net.ipv4.ip_forward=0, then sudo sysctl --system.', fix: "sudo sed -i 's/^net.ipv4.ip_forward=1/net.ipv4.ip_forward=0/' /etc/sysctl.conf && sudo sysctl -p", why: 'A forwarding machine is a pivot into the rest of the school network.' }),
+  apache: () => ({ id: 'apache-tokens', title: 'Apache hides its version (ServerTokens Prod, ServerSignature Off)', cat: AREA.config, test: () => !S.pkgs.apache2 || (/^prod(uctonly)?$/i.test(apacheDirective('ServerTokens') || '') && /^off$/i.test(apacheDirective('ServerSignature') || '')), hint: 'curl -sI localhost shows the Server header. In /etc/apache2/conf-available/security.conf set ServerTokens Prod and ServerSignature Off, then sudo systemctl reload apache2.', fix: "sudo sed -i -e 's/^ServerTokens .*/ServerTokens Prod/' -e 's/^ServerSignature .*/ServerSignature Off/' /etc/apache2/conf-available/security.conf && sudo apache2ctl configtest && sudo systemctl reload apache2", why: 'A version string tells an attacker which exploits to try.' }),
+  aa: () => ({ id: 'aa-cupsd', title: 'cupsd AppArmor profile back in enforce mode', cat: AREA.config, learn: ['j3'], test: () => !S.pkgs.cups || ((S.aa || {})['/usr/sbin/cupsd'] || 'enforce') === 'enforce', hint: 'sudo aa-status lists the profiles in complain mode. sudo apt install apparmor-utils, then sudo aa-enforce /etc/apparmor.d/usr.sbin.cupsd.', fix: 'sudo apt install -y apparmor-utils && sudo aa-enforce /etc/apparmor.d/usr.sbin.cupsd', why: 'A profile in complain mode logs a violation and lets it happen.' }),
+  flatpak: (name, id) => ({ id: 'flatpak-' + name.toLowerCase(), title: 'Unauthorized Flatpak app removed (' + name + ')', cat: AREA.config, test: () => !(S.flatpaks || []).some(a => a.id === id), hint: 'flatpak list --app names Flatpak apps (dpkg -l misses them); sudo flatpak uninstall ID removes one.', fix: 'sudo flatpak uninstall -y ' + id, why: 'Flatpak apps sit outside apt, so they outlive a package audit.', learn: ['s3'] }),
+  badrepo: (host, file) => ({ id: 'badrepo', title: 'Untrusted third-party repository removed', cat: AREA.patch, test: () => !aptSources().some(s => s.uri.includes(host)), hint: "grep -rn 'trusted=yes' /etc/apt/sources.list /etc/apt/sources.list.d/ finds a repository that skips signature checks. Remove its file, then sudo apt update.", fix: 'sudo rm ' + file + ' && sudo apt update', why: 'A [trusted=yes] repository can push any package onto the machine.' }),
+  rogue: (unit, bin) => ({ id: 'bogus', title: 'Rogue service ' + unit + ' disabled or removed', cat: AREA.malware, test: () => { const st = S.svc[unit]; return !st || st.masked || (!st.active && !st.enabled); }, hint: 'sudo ss -tulpn names the program on each port; systemctl status PID names its unit, and systemctl cat UNIT shows ExecStart and Restart=always, so kill is not enough. Disable it, then remove the unit file and its program.', fix: 'sudo systemctl disable --now ' + unit + '\nsudo rm /etc/systemd/system/' + unit + '.service && sudo rm -r ' + FS.parent(bin) + ' && sudo systemctl daemon-reload', why: 'A homemade unit that restarts itself and listens on a port is a backdoor.' }),
+  rclocal: bin => ({ id: 'rclocal', title: 'Persistence line removed from /etc/rc.local', cat: AREA.malware, test: () => !activeLines(FS.text('/etc/rc.local')).some(l => l.includes(bin)), hint: 'cat /etc/rc.local; delete the line that starts ' + FS.base(bin) + ' (then remove the program and stop the process).', fix: "sudo sed -i '/" + FS.base(bin).replace(/^\./, '') + "/d' /etc/rc.local && sudo rm -f " + bin + ' && sudo pkill -f ' + FS.base(bin).replace(/^\./, ''), why: 'rc.local runs as root at boot: the listener returns after every reboot until this line is gone.' }),
+  cron: bin => ({ id: 'cron', title: 'Planted root cron job removed', cat: AREA.malware, test: () => { const sp = activeLines(FS.text('/var/spool/cron/crontabs/root')); const ct = activeLines(FS.text('/etc/crontab')); const cd = FS.list('/etc/cron.d').flatMap(f => activeLines(FS.text('/etc/cron.d/' + f))); const dec = l => { const m = /echo\s+(\S+)\s*\|\s*base64\s+-d/.exec(l); try { return m ? atob(m[1]) : ''; } catch (e) { return ''; } }; return ![].concat(sp, ct, cd).some(l => l.includes(bin) || dec(l).includes(bin)); }, hint: 'sudo crontab -l shows a line that pipes an encoded string through base64 -d into sh; echo THE-STRING | base64 -d shows the command. sudo crontab -r removes root\'s crontab (or sudo crontab -e opens it to edit the line out).', fix: 'sudo crontab -r', why: 'Cron restarts the program every few minutes even after you kill it.' }),
+  tampered: (pkg, file) => ({ id: 'tampered', title: 'Changed package file restored (debsums -s clean)', cat: AREA.malware, learn: ['j3'], test: () => !pkgChanged(pkg).length && !pkgMissing(pkg).length, hint: 'sudo apt install debsums, then sudo debsums -s names every package file that differs from its package; dpkg -S FILE names the package, and sudo apt install --reinstall PACKAGE puts the shipped copy back.', fix: 'sudo apt install -y debsums && sudo debsums -s && sudo apt install --reinstall -y ' + pkg, why: 'A changed ' + FS.base(file) + ' can hide what an intruder runs; the package archive holds the real one.' }),
+  nullok: () => ({ id: 'nullok', title: 'Empty passwords rejected at sign-in (nullok removed from common-auth)', cat: AREA.acct, test: () => !pamLines('/etc/pam.d/common-auth').some(l => l.module === 'pam_unix.so' && l.args.some(a => a === 'nullok' || a === 'nullok_secure')), hint: 'grep -n nullok /etc/pam.d/common-auth. nullok on the pam_unix line lets an account with an empty password sign in. Delete that one word.', fix: "sudo sed -i -E 's/[[:space:]]+nullok(_secure)?([[:space:]]|$)/\\2/' /etc/pam.d/common-auth", why: 'nullok is the PAM switch that turns a blank /etc/shadow field into a working login.' }),
+  ntp: () => ({ id: 'ntp', title: 'Clock synchronization on (systemd-timesyncd)', cat: AREA.audit, test: () => { const st = S.svc['systemd-timesyncd']; return !!st && st.active && st.enabled; }, hint: 'timedatectl status reads NTP service: inactive; sudo timedatectl set-ntp true turns it on.', fix: 'sudo timedatectl set-ntp true', why: 'Logs line up across machines only when their clocks agree.', learn: ['s3'] }),
+};
+const ADV_AVAIL = {
+  schoolSvc: d => ({ id: 'avail-svc-' + d.unit, title: 'Required service ' + d.unit + ' stopped, disabled, or removed', need: 'Required service ' + d.unit + ' stays on', test: () => { const st = S.svc[d.unit]; return !st || !st.active || !st.enabled || st.masked || !S.fs[d.bin]; }, why: 'The scenario brief names this school service as required; a homemade-looking unit can still be one the school relies on.', restore: 'Start it and keep it on at boot: sudo systemctl enable --now ' + d.unit + '. If its unit file or its program is gone, Reset lab is the way back.' }),
+  backup: d => ({ id: 'avail-backup', title: 'Required nightly backup job removed or stopped', need: 'The nightly backup job keeps running', test: () => !activeLines(FS.text(d.file)).some(l => l.replace(/\s+/g, ' ') === d.line) || !S.fs[d.script] || !S.svc.cron || !S.svc.cron.active || !S.svc.cron.enabled, why: 'The scenario brief lists this backup job as authorized; without it, a lost file stays lost.', restore: 'Put the job back: echo "' + d.line + '" | sudo tee ' + d.file + ', and keep cron on: sudo systemctl enable --now cron. If ' + d.script + ' is gone too, Reset lab is the way back.' }),
+};
+/* the points: weights scaled to 90 (2 to 10 each, largest remainder), plus 5 for each investigation question */
+function advPoints(checks, total) {
+  const W = checks.reduce((a, c) => a + c.w, 0), raw = checks.map(c => c.w * total / W);
+  const pts = raw.map(x => Math.max(2, Math.min(10, Math.floor(x)))); let sum = pts.reduce((a, b) => a + b, 0);
+  const order = raw.map((x, i) => [x - Math.floor(x), i]).sort((a, b) => b[0] - a[0] || a[1] - b[1]).map(p => p[1]);
+  for (let k = 0; sum < total && k < 5000; k++) { const i = order[k % order.length]; if (pts[i] < 10) { pts[i]++; sum++; } }
+  for (let k = 0; sum > total && k < 5000; k++) { const i = order[order.length - 1 - (k % order.length)]; if (pts[i] > 2) { pts[i]--; sum--; } }
+  checks.forEach((c, i) => { c.pts = pts[i]; delete c.w; });
+}
+/* the planted units (rogue and school software) need a service entry before the machine boots */
+let ADV_REG = null;
+function advRegister(spec) {
+  if (ADV_REG === spec.code) return; ADV_REG = spec.code;
+  for (const k of Object.keys(SVC)) if (SVC[k].adv) delete SVC[k];
+  const r = spec.faults.find(f => f.k === 'rogue-svc');
+  if (r) SVC[r.unit] = { desc: r.desc, exec: r.bin + ' -p ' + r.port, proc: FS.base(r.bin), ports: [r.port + '/tcp'], restart: 'always', planted: true, bin: r.bin, adv: 1 };
+  const d = spec.decoys.svc;
+  if (d) SVC[d.unit] = { desc: d.desc, exec: d.bin + ' --config /etc/phn/' + FS.base(d.bin) + '.conf', proc: FS.base(d.bin), restart: 'on-failure', bin: d.bin, adv: 1 };
+}
+let ADV_MEMO = null;
+function advScenario(code) {
+  if (!advValid(code)) code = 'ACDEFH';
+  if (!ADV_MEMO || ADV_MEMO.code !== code) { const spec = advSpec(code); ADV_MEMO = { code, spec, sc: advBuild(spec) }; }
+  advRegister(ADV_MEMO.spec);
+  return ADV_MEMO.sc;
+}
+function advBuild(spec) {
+  const R = advRng(spec.code + ':build'); const F = FLAVORS[spec.flavor]; const mint = spec.flavor === 'mint', gui = spec.gui;
+  const fk = k => spec.faults.find(f => f.k === k), has = k => !!fk(k);
+  const who = {}; const roleOf = p => p.display + ', ' + (/teacher|student|editor|aide|librarian/.test(p.role) ? 'a ' : 'the ') + p.role;
+  spec.admins.concat(spec.users).forEach(p => { who[p.name] = roleOf(p); });
+  who.labuser = 'you, the lab account';
+  const cap = s => s[0].toUpperCase() + s.slice(1);
+  /* accounts: labuser, the administrators, the authorized users, and whatever the faults add */
+  const users = [{ name: 'labuser', pw: ADV_PW, full: 'Lab User', admin: true, history: ['ls ~/Desktop', 'cat ~/Desktop/Investigation\\ 1.txt', 'exit'] }];
+  spec.admins.forEach(p => users.push({ name: p.name, pw: 'Phn-' + cap(p.name) + '-' + (1000 + hash32(p.name + spec.code) % 9000) + '!', full: cap(p.name) + ' (' + p.role + ')', admin: true, history: ['sudo apt update', 'sudo systemctl status ' + (spec.ssh ? 'ssh' : 'cron'), 'exit'] }));
+  const authorized = spec.users.map(p => { const u = { name: p.name, pw: cap(p.name) + '#' + (10 + hash32(p.name + spec.code) % 89) + 'phn', full: cap(p.name) + ' (' + p.role + ')', files: [] }; users.push(u); return u; });
+  const U4 = n => users.find(u => u.name === n);
+  const extras = []; const ex = fk('extra-user');
+  if (ex) ex.names.forEach((n, i) => { const u = { name: n, pw: n, full: n, history: ['ls -la', 'sudo -l', 'cat /etc/passwd', 'exit'], files: [] }; extras.push(u); users.splice(1 + spec.admins.length + R.int(0, authorized.length), 0, u); });
+  if (has('uid0')) { const n = fk('uid0').name; users.splice(1 + R.int(1, users.length - 1), 0, { name: n, pw: n, uid: 0, gid: 0, gecos: 'maintenance,,,', home: '/home/' + n, history: ['cat /etc/shadow', 'exit'] }); }
+  if (has('sudo-member')) U4(fk('sudo-member').name).groups = ['sudo'];
+  if (has('blank-pw')) U4(fk('blank-pw').name).pw = '';
+  const humanNames = users.filter(u => u.uid !== 0).map(u => u.name);
+  /* hidden tools, media, decoy notes */
+  if (has('pkg')) { const p = fk('pkg'), o = U4(p.owner) || authorized[0]; o.files.push({ path: p.dir, dir: true, mode: 0o700 }); p.names.forEach(n => o.files.push({ path: p.dir + '/' + n, bin: true, size: PKG[n].kb * 1024 + 512, mode: 0o755 })); o.files.push({ path: p.dir + '/targets.txt', text: '10.20.4.1 gateway\n10.20.4.10 phn-fs01\n' }); o.history = ['cd ' + p.dir, './' + p.names[0], 'exit']; }
+  if (has('media')) fk('media').files.forEach(m => { const o = U4(m.owner); if (!gui && !o.files.some(f => f.path === 'Downloads')) o.files.push({ path: 'Downloads', dir: true }); o.files.push({ path: m.path, bin: true, size: 3145728 + hash32(m.path) % 90000000 }); });
+  const nt = U4(spec.decoys.notes.owner); if (nt) { if (!gui) nt.files.push({ path: 'Documents', dir: true }); nt.files.push({ path: spec.decoys.notes.dir, dir: true, mode: 0o700 }, { path: spec.decoys.notes.dir + '/week-' + R.int(2, 9) + '-plan.txt', text: 'Warm-up: 10 minutes\nGroup work: 25 minutes\nExit ticket\n' }, { path: 'Documents/playlist-ideas.txt', text: 'Ideas for the assembly playlist (titles only; the files themselves stay off school computers):\n- Hawaiʻi Aloha\n- a slow kani kā pila song\n' }); }
+  /* the brief: people, services, and the policy lines, each tied to the checks that test it */
+  const checks = [], add = (k, c) => { c.w = ADV_W[k]; c.fault = k; checks.push(c); return c; };
+  const policyMap = [], serviceMap = [];
+  const pol = (parts, lead) => { const p = parts.filter(x => x && has(x[0])); if (!p.length) return; const ids = p.flatMap(x => x[2]); policyMap.push({ text: (lead || '') + p.map(x => x[1]).join(' ') , ids }); };
+  const svcLine = (text, ids) => serviceMap.push({ text, ids });
+  const main = spec.admins[0];
+  if (spec.ssh) svcLine('SSH (openssh-server) is a critical service: ' + cap(main.name) + ', the ' + main.role + ', administers this machine remotely from the office network (10.20.4.0/24). Keep it running and reachable.', ['avail-svc-ssh', 'avail-ufw-22']);
+  if (spec.web) svcLine('The school website runs on Apache (apache2) and must stay up and reachable on port 80.', ['avail-svc-apache2', 'avail-ufw-80']);
+  if (spec.db) svcLine('MySQL (mysql-server) stores the website database (phnweb) and must stay running.', ['avail-svc-mysql']);
+  if (spec.decoys.svc) svcLine('The ' + spec.decoys.svc.desc.toLowerCase() + ' (' + spec.decoys.svc.unit + ', installed in ' + FS.parent(spec.decoys.svc.bin) + ') is school software. Keep it running.', ['avail-svc-' + spec.decoys.svc.unit]);
+  if (spec.decoys.backup) svcLine('The nightly backup job in ' + spec.decoys.backup.file + ' is authorized. Keep it in place and keep cron running.', ['avail-backup']);
+  if (!serviceMap.length) svcLine('Every network service on this machine is optional; it only needs to stay usable for the people listed above.', []);
+  /* checks, family by family */
+  if (ex) ex.names.forEach(n => add('extra-user', CK.userGone(n, 0)));
+  if (has('uid0')) add('uid0', CK.uid0(fk('uid0').name, 0));
+  if (has('sudo-member')) add('sudo-member', CK.demote(fk('sudo-member').name, 0));
+  if (has('blank-pw')) add('blank-pw', CK.blankPw(fk('blank-pw').name, 0));
+  if (has('pass-max')) add('pass-max', CK.passMax(0, humanNames));
+  if (has('pass-min')) add('pass-min', CK.passMin(0, humanNames));
+  if (has('minlen')) add('minlen', CK.minlen(0));
+  if (has('remember')) add('remember', CK.remember(0));
+  if (has('lockout')) add('lockout', CK.lockout(0));
+  if (has('nullok')) add('nullok', ADV_CK.nullok());
+  if (has('ssh-root')) add('ssh-root', CK.sshRoot(0));
+  if (has('ssh-empty')) add('ssh-empty', CK.sshEmpty(0));
+  if (has('ssh-maxauth')) add('ssh-maxauth', CK.sshTries(0));
+  if (has('sudoers-dropin')) { const f = fk('sudoers-dropin'); add('sudoers-dropin', ADV_CK.dropin(f.name, f.file, f.imm)); }
+  if (has('sudo-noauth')) add('sudo-noauth', ADV_CK.noauth());
+  if (has('suid')) add('suid', ADV_CK.suid(fk('suid').path));
+  if (has('caps')) add('caps', ADV_CK.caps());
+  if (has('shadow-perms')) add('shadow-perms', ADV_CK.shadow());
+  if (has('guest')) add('guest', ADV_CK.guest());
+  if (has('autologin')) add('autologin', ADV_CK.autologin(mint));
+  if (has('mysql-anon')) add('mysql-anon', ADV_CK.mysqlAnon());
+  const allows = (spec.ssh ? ['ssh'] : []).concat(spec.web ? ['80/tcp'] : []);
+  if (has('ufw')) add('ufw', CK.ufw(0, allows));
+  const pkgLabel = { torrentbolt: 'file-sharing client', 'netprobe-ng': 'network scanner', cracklite: 'password cracker' };
+  /* the package and the copy of its program in the hidden folder both have to go */
+  const pkgCopy = n => { const p = fk('pkg'), o = U4(p.owner) || authorized[0]; return '/home/' + o.name + '/' + p.dir + '/' + n; };
+  if (has('pkg')) fk('pkg').names.forEach(n => add('pkg', Object.assign(CK.pkgGone(n, 0, pkgLabel[n]), { title: 'Unauthorized software ' + n + ' removed (' + pkgLabel[n] + ': the package and its hidden copy)', test: () => !S.pkgs[n] && !S.fs[pkgCopy(n)], hint: 'dpkg -l | grep -i ' + n.split('-')[0] + '  then  sudo apt purge ' + n + '. A copy of the program also sits in a hidden folder in a home directory, outside apt: sudo find /home -type f -name ' + n + ' finds it.', fix: 'sudo apt purge -y ' + n + '\nsudo find /home -type f -name ' + n + ' -delete', why: 'A ' + pkgLabel[n] + ' has no business on a school computer, and a copy kept outside apt survives the purge.' })));
+  if (has('svc-vsftpd')) add('svc-vsftpd', CK.svcOff('vsftpd', 'vsftpd', 0, 'FTP server (vsftpd)'));
+  if (has('svc-samba')) add('svc-samba', ADV_CK.smb());
+  if (has('telnet')) add('telnet', ADV_CK.telnet());
+  if (has('ipfwd')) add('ipfwd', ADV_CK.ipfwd());
+  if (has('apache-tokens')) add('apache-tokens', ADV_CK.apache());
+  if (has('aa')) add('aa', ADV_CK.aa());
+  if (has('flatpak')) add('flatpak', ADV_CK.flatpak(fk('flatpak').app[0], fk('flatpak').app[1]));
+  if (has('updates')) add('updates', CK.updates(0, fk('updates').held));
+  if (has('autoupd')) add('autoupd', CK.autoupd(0, mint));
+  if (has('badrepo')) add('badrepo', ADV_CK.badrepo(fk('badrepo').host, fk('badrepo').file));
+  if (has('rogue-svc')) add('rogue-svc', ADV_CK.rogue(fk('rogue-svc').unit, fk('rogue-svc').bin));
+  if (has('miner')) add('miner', Object.assign(CK.pkgGone('minerd-x', 0, 'cryptocurrency miner', AREA.malware), { why: 'A cryptocurrency miner has no business on a school computer.' }));
+  if (has('rclocal')) add('rclocal', ADV_CK.rclocal(fk('rclocal').bin));
+  if (has('cron')) add('cron', ADV_CK.cron(fk('cron').bin));
+  if (has('tampered')) add('tampered', ADV_CK.tampered(fk('tampered').pkg, fk('tampered').file));
+  if (has('media')) add('media', CK.media(0));
+  if (has('auditd')) add('auditd', CK.auditd(0));
+  if (has('journal')) add('journal', CK.journalPersist(0));
+  if (has('ntp')) add('ntp', ADV_CK.ntp());
+  checks.forEach(c => { if (!c.learn) c.learn = learnUnits(c); });
+  const kindIds = {}; checks.forEach(c => { (kindIds[c.fault] = kindIds[c.fault] || []).push(c.id); });
+  /* policy lines (each names the checks it stands for) */
+  const P = (k, text) => has(k) ? [k, text, kindIds[k] || []] : null;
+  pol([P('sudo-member', 'Only the Authorized Administrators may have sudo (administrator) rights.') || P('sudoers-dropin', 'Only the Authorized Administrators may have sudo (administrator) rights, through any sudoers file.')].concat(has('sudo-member') && has('sudoers-dropin') ? [['sudoers-dropin', 'That includes the files in /etc/sudoers.d.', kindIds['sudoers-dropin']]] : []));
+  pol([P('extra-user', 'Every account on this machine belongs to a person listed above; remove any other account.'), P('uid0', 'Only root may have UID 0.')]);
+  pol([P('sudo-noauth', 'Every sudo command must ask for the user’s own password.')]);
+  { const parts = [P('minlen', 'be at least 10 characters long'), P('pass-max', 'expire within 90 days'), P('pass-min', 'stay unchanged for at least 7 days after each change'), P('remember', 'never reuse any of the last 5')].filter(Boolean);
+    const bp = P('blank-pw', 'Every account must have a password.');
+    if (bp || parts.length) policyMap.push({ text: [bp ? bp[1] : '', parts.length ? 'Passwords must ' + andList(parts.map(p => p[1])) + '.' : ''].filter(Boolean).join(' '), ids: (bp ? bp[2] : []).concat(...parts.map(p => p[2])) }); }
+  pol([P('lockout', 'An account locks after 10 or fewer failed sign-ins in a row.')]);
+  pol([P('nullok', 'An account with an empty password must never be able to sign in.')]);
+  { const parts = [P('ssh-root', 'root may not log in over SSH'), P('ssh-empty', 'SSH refuses empty passwords'), P('ssh-maxauth', 'SSH allows 4 password tries or fewer per connection')].filter(Boolean); if (parts.length) policyMap.push({ text: cap(andList(parts.map(p => p[1]))) + '.', ids: [].concat(...parts.map(p => p[2])) }); }
+  { const parts = [P('autologin', 'nobody is logged in automatically'), P('guest', 'the sign-in screen offers only named accounts (the guest session stays off)')].filter(Boolean); if (parts.length) policyMap.push({ text: 'This is a shared school computer: ' + andList(parts.map(p => p[1])) + '.', ids: [].concat(...parts.map(p => p[2])) }); }
+  { const parts = [P('suid', 'setuid programs'), P('caps', 'file capabilities')].filter(Boolean); if (parts.length) policyMap.push({ text: cap(andList(parts.map(p => p[1]))) + ' come only from the installed packages.', ids: [].concat(...parts.map(p => p[2])) }); }
+  pol([P('shadow-perms', '/etc/shadow stays readable by root and the shadow group only.')]);
+  { const cats = (has('pkg') ? fk('pkg').names.map(n => pkgLabel[n] + 's') : []).concat(has('miner') ? ['cryptocurrency miners'] : []); if (cats.length) policyMap.push({ text: 'Only approved software stays installed: ' + andList(cats) + ' are banned, packages and copies alike.', ids: (kindIds.pkg || []).concat(kindIds.miner || []) }); }
+  { const parts = [P('svc-vsftpd', 'FTP (vsftpd)'), P('svc-samba', 'Samba'), P('telnet', 'Telnet')].filter(Boolean); if (parts.length) policyMap.push({ text: andList(parts.map(p => p[1])) + (parts.length === 1 ? ' is' : ' are') + ' NOT authorized on this machine.', ids: [].concat(...parts.map(p => p[2])) }); }
+  pol([P('flatpak', 'Only approved apps stay installed, Flatpak apps included (games are not approved).')]);
+  { const parts = [P('rogue-svc', 'service'), P('rclocal', 'startup script'), P('cron', 'scheduled job')].filter(Boolean); if (parts.length) policyMap.push({ text: 'Every ' + andList(parts.map(p => p[1])) + ' runs a program from a package or one this brief names.', ids: [].concat(...parts.map(p => p[2])) }); }
+  pol([P('tampered', 'Every system program matches its package.')]);
+  pol([P('ipfwd', 'IP forwarding stays off: this machine works as an end device, never as a router.')]);
+  pol([P('badrepo', 'Software comes only from the official ' + (mint ? 'Linux Mint and Ubuntu' : 'Ubuntu') + ' repositories.')]);
+  { const parts = [P('updates', 'install all pending updates'), P('autoupd', 'install security updates automatically')].filter(Boolean); if (parts.length) policyMap.push({ text: 'The machine must ' + andList(parts.map(p => p[1])) + '.', ids: [].concat(...parts.map(p => p[2])) }); }
+  pol([P('ufw', 'The firewall must be on' + (allows.length ? ', with the critical services above let through.' : '.'))]);
+  { const parts = [P('apache-tokens', 'the web server hides its version'), P('mysql-anon', 'every database account has a name')].filter(Boolean); if (parts.length) policyMap.push({ text: cap(andList(parts.map(p => p[1]))) + '.', ids: [].concat(...parts.map(p => p[2])) }); }
+  pol([P('aa', 'Every AppArmor profile runs in enforce mode.')]);
+  pol([P('media', 'Music and video files stay off school computers.')]);
+  { const parts = [P('auditd', 'the audit daemon (auditd) records every change to /etc/sudoers'), P('journal', 'the system journal survives a reboot'), P('ntp', 'the clock stays synchronized with the network time service')].filter(Boolean); if (parts.length) policyMap.push({ text: cap(andList(parts.map(p => p[1]))) + '.', ids: [].concat(...parts.map(p => p[2])) }); }
+  /* investigation questions */
+  const QT = {
+    blank: { text: 'Which user account on this machine has an empty (blank) password? Answer with the username only.', hint: 'Hint: the second field of each line in /etc/shadow is the password hash. Reading it needs sudo.' },
+    sudo: { text: 'One user who is NOT an Authorized Administrator is a member of the sudo group. Which username is it?', hint: 'Hint: getent group sudo' },
+    uid0: { text: 'Which user account other than root has a UID of 0?', hint: "Hint: awk -F: '$3 == 0' /etc/passwd" },
+    suid: { text: 'Someone planted a setuid-root program outside the normal system directories. What is its full path?', hint: 'Hint: sudo find / -perm -4000 -type f 2>/dev/null, then dpkg -S PATH for anything you do not recognize.' },
+    port: { text: 'A service unit that no package installed and the brief does not name listens on a TCP port. Which port? Answer with the number only.', hint: 'Hint: sudo ss -tulpn names the program on each port; systemctl status PID names its unit.' },
+    cron: { text: 'Root’s crontab runs an encoded command. Which program does it start? Answer with the full path.', hint: 'Hint: sudo crontab -l, then echo THE-STRING | base64 -d' },
+    login: { text: 'The account NAME is not on the brief. From which IP address did it last sign in over SSH?', hint: 'Hint: last, or sudo grep NAME /var/log/auth.log' },
+    hidden: { text: 'Someone keeps a hidden folder of unauthorized tools in a home directory. What is the full path of that folder?', hint: 'Hint: sudo ls -la /home/* shows hidden entries; look inside each one before you decide.' },
+  };
+  const questions = spec.questions.map(q => ({ text: QT[q.k].text.replace('NAME', q.name || ''), hint: QT[q.k].hint.replace('NAME', q.name || ''), answers: [q.a] }));
+  advPoints(checks, 100 - 5 * questions.length);
+  questions.forEach((q, i) => checks.push(CK.question(i + 1, '/home/labuser/Desktop/' + questionFile(i + 1), q.answers, 5, ['s6'])));
+  /* availability: every person and service the brief names */
+  const availability = [AVAIL.authUser(spec.admins.map(p => p.name).concat(spec.users.map(p => p.name))), AVAIL.authAdmin(spec.admins.map(p => p.name))];
+  if (spec.ssh) availability.push(gui ? AVAIL.ssh() : AVAIL.ssh('The scenario brief calls SSH critical. On Ubuntu Server 24.04 ssh.socket, rather than ssh.service, holds port 22 and starts sshd on demand. Stopping or disabling the socket cuts the administrators off, and so does leaving sshd_config broken.'));
+  if (spec.web) availability.push(AVAIL.svc('apache2', 'apache2', 'Apache (apache2)'));
+  if (spec.db) availability.push(AVAIL.svc('mysql', 'mysql-server', 'MySQL'));
+  if (spec.ssh) availability.push(AVAIL.ufwBlocks(22, 'SSH'));
+  if (spec.web) availability.push(AVAIL.ufwBlocks(80, 'web (Apache)'));
+  if (spec.decoys.svc) availability.push(ADV_AVAIL.schoolSvc(spec.decoys.svc));
+  if (spec.decoys.backup) availability.push(ADV_AVAIL.backup(spec.decoys.backup));
+  availability.push(AVAIL.self('labuser'));
+  // every Level 4 layout is a school: the shared availability reasons say so
+  availability.forEach(p => { p.why = p.why.replace(/\bthe business\b/g, 'the school'); });
+  /* the machine's starting configuration */
+  const packages = [].concat(spec.ssh && gui ? ['openssh-server'] : [], spec.web ? ['apache2'] : [], spec.db ? ['mysql-server'] : [], !gui ? ['net-tools'] : [], has('minlen') && fk('minlen').variant === 'missing' ? [] : ['libpam-pwquality'],
+    has('pkg') ? fk('pkg').names : [], has('svc-vsftpd') ? ['vsftpd'] : [], has('svc-samba') ? ['samba'] : [], has('telnet') ? ['telnetd'] : [], has('miner') ? ['minerd-x'] : []);
+  const sshd = {}; if (has('ssh-root')) sshd.PermitRootLogin = 'PermitRootLogin yes'; if (has('ssh-empty')) sshd.PermitEmptyPasswords = 'PermitEmptyPasswords yes'; if (has('ssh-maxauth')) sshd.MaxAuthTries = fk('ssh-maxauth').line;
+  if (!has('ssh-root')) sshd.PermitRootLogin = 'PermitRootLogin no';
+  const lightdm = mint ? '[Seat:*]\n' + (has('autologin') ? 'autologin-user=labuser\nautologin-user-timeout=0\n' : '') + (has('guest') ? 'allow-guest=true\n' : '') + 'user-session=cinnamon\n' : undefined;
+  const gdm = !mint && gui && has('autologin') ? (fk('autologin').variant === 'auto' ? GDM_CONF.replace('#  AutomaticLoginEnable = true\n#  AutomaticLogin = user1', 'AutomaticLoginEnable = true\nAutomaticLogin = labuser') : GDM_CONF.replace('#  TimedLoginEnable = true\n#  TimedLogin = user1\n#  TimedLoginDelay = 10', 'TimedLoginEnable = true\nTimedLogin = labuser\nTimedLoginDelay = ' + fk('autologin').delay)) : undefined;
+  const minlenLine = !has('minlen') ? 'pam_pwquality.so retry=3 minlen=12' : fk('minlen').variant === 'missing' ? undefined : fk('minlen').variant === 'short' ? 'pam_pwquality.so retry=3 minlen=8' : 'pam_pwquality.so retry=3';
+  /* the log trail: the extra accounts signed in, and bots guessed root's password */
+  const authLog = [], lastLog = [];
+  if (ex) ex.names.forEach((n, i) => { const pid = 1400 + R.int(0, 500); if (spec.ssh) { const ago = 70000 + i * 9000, dt = ADV_LOG_SPAN - ago; /* the same moment in auth.log and in last */ authLog.push({ dt, msg: 'sshd[' + pid + ']: Accepted password for ' + n + ' from ' + ex.from[i] + ' port ' + R.int(40000, 60000) + ' ssh2' }, { dt: dt + 1, msg: 'sshd[' + pid + ']: pam_unix(sshd:session): session opened for user ' + n + '(uid=' + (1000 + users.findIndex(u => u.name === n)) + ') by (uid=0)' }); lastLog.push({ u: n, tty: 'pts/' + (i + 1), from: ex.from[i], ago, dur: '(00:' + two(R.int(5, 59)) + ')' }); } else lastLog.push({ u: n, tty: 'tty7', from: ':0', ago: 80000 + i * 9000, dur: '(01:' + two(R.int(5, 59)) + ')' }); });
+  if (spec.ssh) { const bot = '203.0.113.' + R.int(10, 250), pid = 1800 + R.int(0, 99); authLog.push({ dt: 6000, msg: 'sshd[' + pid + ']: Failed password for root from ' + bot + ' port ' + R.int(40000, 60000) + ' ssh2' }, { dt: 6003, msg: 'sshd[' + pid + ']: Failed password for root from ' + bot + ' port ' + R.int(40000, 60000) + ' ssh2' }); lastLog.push({ u: main.name, tty: 'pts/0', from: '10.20.4.' + R.int(2, 19), ago: 200000, dur: '(00:' + two(R.int(5, 59)) + ')' }); }
+  authLog.sort((a, b) => a.dt - b.dt);
+  const rootHistory = ['apt update'].concat(has('suid') ? ['cp /bin/bash ' + fk('suid').path, 'chmod 4755 ' + fk('suid').path] : [], has('rogue-svc') ? ['systemctl daemon-reload', 'systemctl enable --now ' + fk('rogue-svc').unit] : [], has('sudoers-dropin') ? ['visudo -f ' + fk('sudoers-dropin').file] : [], has('cron') ? ['crontab -e'] : [], ['exit']);
+  const kindLabel = { lab: 'computer-lab desktop', laptop: 'teacher laptop', library: 'library shared PC', office: 'front-office PC', server: 'web server' }[spec.kind];
+  const placeText = spec.kind === 'lab' ? 'the Room ' + spec.room + ' computer lab' : spec.room;
+  const adminText = cap(main.name) + ', the ' + main.role + ', manages it' + (spec.ssh ? ' remotely over SSH' : '') + '.';
+  const blurb = { lab: 'This ' + F.name + ' desktop (' + spec.host + ') sits in ' + placeText + '. Students sign in with their own accounts for class projects. ', laptop: 'This ' + F.name + ' laptop (' + spec.host + ') stays in ' + placeText + '. A teacher plans lessons and takes attendance on it, and student aides sign in to help with grading. ', library: 'This ' + F.name + ' computer (' + spec.host + ') sits in ' + placeText + '. Students sign in with their own accounts to research and print. ', office: 'This ' + F.name + ' computer (' + spec.host + ') sits in ' + placeText + '. Office staff use it for schedules, records, and letters home. ', server: 'This Ubuntu Server (' + spec.host + '.phn.k12.lan) hosts the school website on Apache' + (spec.db ? ' with its MySQL database' : '') + '. ' }[spec.kind] + adminText + ' ' + spec.hook;
+  const company = 'Pōhinahina High School (PHN): the ' + kindLabel + ' in ' + placeText;
+  const sc = {
+    id: ADV_ID, level: 4, name: 'Advanced', advanced: true, code: spec.code, spec,
+    title: 'Pōhinahina High School — ' + spec.host + ' (layout ' + spec.code + ')',
+    flavor: spec.flavor, gui, hostname: spec.host, flavorLabel: gui ? F.name + ' ' + F.release + (mint ? ' Shared Workstation' : ' Workstation') : 'Ubuntu Server ' + F.release, sshSocket: !gui, deb822: !gui,
+    student: { user: 'labuser', pw: ADV_PW }, admins: ['labuser'].concat(spec.admins.map(p => p.name)), authorizedUsers: spec.users.map(p => p.name), studentHome: '/home/labuser', who,
+    layoutNote: 'Layout code ' + spec.code + '. This is Level 4 · Advanced · extra credit: every layout code builds its own machine, and the same code builds this machine again in any browser.',
+    brief: { company, blurb, services: serviceMap.map(s => s.text), policy: policyMap.map(p => p.text) }, policyMap, serviceMap,
+    loginDefs: { PASS_MAX_DAYS: has('pass-max') ? fk('pass-max').max : 90, PASS_MIN_DAYS: has('pass-min') ? fk('pass-min').min : 7, PASS_WARN_AGE: 14 },
+    pwqualityLine: minlenLine, remember: has('remember') ? undefined : 5, autoUpgrades: has('autoupd') ? (mint ? { lists: '1', unattended: '0' } : { lists: R.pick(['0', '1']), unattended: '0' }) : { lists: '1', unattended: '1' },
+    sshd, lightdm, gdm, packages, users, sudoersExtra: has('sudo-noauth') ? '\nDefaults\t!authenticate\n' : undefined, shadowMode: has('shadow-perms') ? fk('shadow-perms').mode : undefined, ipForward: has('ipfwd'),
+    net: Object.assign({ ip: spec.ip, mac: spec.mac }, gui ? {} : { iface: 'ens3' }),
+    authLog, lastLog, rootHistory, questions, checks, availability,
+    plant: () => advPlant(spec, sc, allows),
+  };
+  return sc;
+}
+/* what the faults and decoys put on the machine after the base system is built */
+function advPlant(spec, sc, allows) {
+  const fk = k => spec.faults.find(f => f.k === k), has = k => !!fk(k);
+  const t0 = daysAgo(20 + spec.seed % 15);
+  const file = (p, c, m, extra) => FS.mk(p, Object.assign({ t: 'f', m: m == null ? 0o644 : m, u: 0, g: 0, mt: t0, c }, extra || {}));
+  const dir = (p, m) => { if (!S.fs[p]) FS.mk(p, { t: 'd', m: m == null ? 0o755 : m, u: 0, g: 0, mt: t0 }); };
+  const dirs = p => { const parts = p.split('/').filter(Boolean); for (let i = 1; i <= parts.length; i++) dir('/' + parts.slice(0, i).join('/')); };
+  const bin = (p, sz, m, extra) => { dirs(FS.parent(p)); FS.mk(p, Object.assign({ t: 'f', m: m == null ? 0o755 : m, u: 0, g: 0, bin: 1, sz, mt: t0 }, extra || {})); };
+  /* the firewall: on with the critical services allowed, unless the layout turned it off */
+  if (!has('ufw')) { S.ufw.on = true; S.ufw.rules = allows.map(a => ufwParseRule(['allow', a === 'ssh' ? '22/tcp' : a])); ufwWriteConf(); }
+  /* the web server and its database */
+  if (spec.web) {
+    dir('/etc/apache2'); file('/etc/apache2/apache2.conf', ADV_APACHE_CONF); file('/etc/apache2/ports.conf', '# If you just change the port or add more ports here, you will likely also\n# have to change the VirtualHost statement in\n# /etc/apache2/sites-enabled/000-default.conf\n\nListen 80\n\n<IfModule ssl_module>\n        Listen 443\n</IfModule>\n');
+    dir('/etc/apache2/conf-available'); dir('/etc/apache2/conf-enabled'); file('/etc/apache2/conf-available/security.conf', APACHE_SECURITY_CONF); FS.mk('/etc/apache2/conf-enabled/security.conf', { t: 'l', m: 0o777, u: 0, g: 0, ln: '../conf-available/security.conf', mt: t0 });
+    if (!has('apache-tokens')) FS.setText('/etc/apache2/conf-available/security.conf', APACHE_SECURITY_CONF.replace('\nServerTokens OS\n', '\nServerTokens Prod\n').replace('\nServerSignature On\n', '\nServerSignature Off\n'));
+    dirs('/var/www/html'); file('/var/www/html/index.html', '<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8"><title>Pōhinahina High School</title></head>\n<body><h1>Pōhinahina High School</h1><p>Bell schedule, lunch menu, and family news.</p></body></html>\n');
+  }
+  /* the school website's database and its account (the brief names phnweb) */
+  if (spec.db) S.mysql = { users: [['debian-sys-maint', 'localhost', 'caching_sha2_password'], ['mysql.infoschema', 'localhost', 'caching_sha2_password'], ['mysql.session', 'localhost', 'caching_sha2_password'], ['mysql.sys', 'localhost', 'caching_sha2_password'], ['phnweb', 'localhost', 'caching_sha2_password'], ['root', 'localhost', 'auth_socket']], dbs: ['information_schema', 'mysql', 'performance_schema', 'phnweb', 'sys'] };
+  if (spec.db) { dirs('/etc/mysql/mysql.conf.d'); file('/etc/mysql/mysql.conf.d/mysqld.cnf', '#\n# The MySQL database server configuration file.\n#\n[mysqld]\nuser            = mysql\npid-file        = /var/run/mysqld/mysqld.pid\nsocket          = /var/run/mysqld/mysqld.sock\nport            = 3306\ndatadir         = /var/lib/mysql\nbind-address            = 127.0.0.1\nlog_error = /var/log/mysql/error.log\n'); if (has('mysql-anon')) mysqlState().users.push(['', 'localhost', 'caching_sha2_password']); }
+  /* accounts and sudo */
+  if (has('sudoers-dropin')) { const f = fk('sudoers-dropin'); file(f.file, f.name + ' ALL=(ALL) NOPASSWD: ALL\n', 0o440, f.imm ? { attrs: 'i' } : null); }
+  if (has('suid')) bin(fk('suid').path, 1396520, 0o4755, { strs: ['GNU bash, version %s-(%s)', 'bash_execute_unix_command', '/etc/bash.bashrc'] });
+  if (has('caps') && S.fs['/usr/bin/python3.12']) S.fs['/usr/bin/python3.12'].caps = 'cap_setuid=ep';
+  /* software, services, and repositories */
+  if (has('svc-vsftpd')) file('/etc/vsftpd.conf', '# /etc/vsftpd.conf\nlisten=NO\nlisten_ipv6=YES\nanonymous_enable=YES\nlocal_enable=YES\nwrite_enable=YES\nanon_upload_enable=YES\nxferlog_enable=YES\nftpd_banner=Welcome to the PHN file service.\nsecure_chroot_dir=/var/run/vsftpd/empty\npam_service_name=vsftpd\nssl_enable=NO\n');
+  if (has('svc-samba')) { dir('/etc/samba'); file('/etc/samba/smb.conf', '[global]\n   workgroup = PHN\n   server string = %h server (Samba, Ubuntu)\n   server role = standalone server\n   map to guest = bad user\n   usershare allow guests = yes\n\n[shared]\n   comment = Class files\n   path = /srv/shared\n   browseable = yes\n   read only = no\n   guest ok = yes\n'); dir('/srv/shared'); }
+  if (has('miner') && S.svc['minerd-x']) S.svc['minerd-x'].enabled = true;
+  if (has('aa')) S.aa = { '/usr/sbin/cupsd': 'complain' };
+  if (has('flatpak')) { const a = fk('flatpak').app; S.flatpaks = [{ name: a[0], id: a[1], ver: a[2] }]; }
+  if (has('updates') && fk('updates').held && S.pkgs[fk('updates').held]) S.pkgs[fk('updates').held].hold = true;
+  if (has('badrepo')) { const f = fk('badrepo'); file(f.file, '# added by a setup script\ndeb [trusted=yes] http://' + f.host + '/ubuntu ' + FLAVORS.ubuntu.codename + ' main\n'); }
+  /* malware and persistence */
+  if (has('rogue-svc')) { const r = fk('rogue-svc'); bin(r.bin, 1183744, 0o755, { mal: 'Unix.Trojan.Backdoor-9993310-0', strs: [FS.base(r.bin), '0.0.0.0:%d', '/bin/bash -i', 'Restart=always'] }); file('/etc/systemd/system/' + r.unit + '.service', '[Unit]\nDescription=' + r.desc + '\nAfter=network.target\n\n[Service]\nExecStart=' + r.bin + ' -p ' + r.port + '\nRestart=always\nRestartSec=5\nUser=root\n\n[Install]\nWantedBy=multi-user.target\n'); svcAdd(r.unit, { unitPath: '/etc/systemd/system/' + r.unit + '.service', enabled: true, active: false }); }
+  if (has('rclocal') || has('cron')) { const f = fk('rclocal') || fk('cron'); bin(f.bin, 848160, 0o755, { mal: 'Unix.Trojan.Agent-9991204-0', strs: ['/bin/sh', '0.0.0.0', String(f.port), 'listen: %s:%d', 'connected, spawning shell'] }); }
+  if (has('rclocal')) { const f = fk('rclocal'); file('/etc/rc.local', '#!/bin/sh -e\n#\n# rc.local\n#\n# This script is executed at the end of each multiuser runlevel.\n# Make sure that the script will "exit 0" on success or any other\n# value on error.\n#\n# By default this script does nothing.\n\n' + f.bin + ' -l ' + f.port + ' -e /bin/sh &\n\nexit 0\n', 0o755); }
+  if (has('cron')) { const f = fk('cron'); file('/var/spool/cron/crontabs/root', '# DO NOT EDIT THIS FILE - edit the master and reinstall.\n# (- installed on ' + fmtDate(t0).replace(/ \S+ (\d{4})$/, ' $1') + ')\n# (Cron version -- $Id: crontab.c,v 2.13 1994/01/17 03:20:37 vixie Exp $)\n*/' + (5 + spec.seed % 3 * 5) + ' * * * * echo ' + btoa(f.bin + ' -l ' + f.port + ' -e /bin/sh') + ' | base64 -d | sh\n', 0o600, { g: 104 }); }
+  if (has('tampered')) { const f = fk('tampered'); if (S.fs[f.file]) Object.assign(S.fs[f.file], { sz: pkgFileSize(f.file) + 61440, mt: t0 }); }
+  /* audit trail */
+  if (has('journal')) file('/etc/systemd/journald.conf', ADV_JOURNALD('a former tech set volatile to save disk space'));
+  if (has('ntp')) svcEnable('systemd-timesyncd', false);
+  /* decoys: school software and the backup job (both in the brief) */
+  if (spec.decoys.svc) { const d = spec.decoys.svc, base = FS.base(d.bin); bin(d.bin, 245760, 0o755, { strs: [base + ' 2.1', 'usage: ' + base + ' --config FILE', 'Pohinahina High School'] }); dirs('/etc/phn'); file('/etc/phn/' + base + '.conf', '# ' + d.desc + '\nserver = phn-fs01.phn.k12.lan\ninterval = 300\n'); file('/etc/systemd/system/' + d.unit + '.service', '[Unit]\nDescription=' + d.desc + '\nAfter=network-online.target\n\n[Service]\nType=simple\nExecStart=' + d.bin + ' --config /etc/phn/' + base + '.conf\nRestart=on-failure\n\n[Install]\nWantedBy=multi-user.target\n'); svcAdd(d.unit, { unitPath: '/etc/systemd/system/' + d.unit + '.service', enabled: true, active: false }); }
+  if (spec.decoys.backup) { const d = spec.decoys.backup; file(d.script, '#!/bin/sh\n# nightly copy of the home folders to the school file server\ntar czf /var/backups/homes-$(date +%a).tgz /home\n', 0o755); file(d.file, '# Pōhinahina High School nightly backup (help desk ticket 4471)\nSHELL=/bin/sh\nPATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin\n\n' + d.line + '\n'); }
+}
+/* a hash of the machine a layout builds, without the clock: the tests compare it across builds and page loads. The time zone
+   files follow the viewer's own zone (dates print in it), so they stay out of the hash: the same code builds the same machine
+   apart from /etc/timezone and /etc/localtime. */
+function advStateHash() {
+  const tzFile = p => p === '/etc/timezone' || p === '/etc/localtime' || /^\/usr\/share\/zoneinfo(\/|$)/.test(p);
+  const skip = p => /^\/(var\/log|var\/lib\/plocate|run|proc|tmp\/\.X11-unix)\b/.test(p) || /^\/etc\/(shadow|gshadow)-?$/.test(p) || p === '/var/spool/cron/crontabs/root' || /\/\.bash_history$/.test(p);
+  const rows = Object.keys(S.fs).filter(p => !tzFile(p)).sort().map(p => { const n = S.fs[p]; return [p, n.t, n.m, n.u, n.g, n.ln || '', n.bin ? n.sz : skip(p) ? '' : sha256Hex(n.c || '').slice(0, 16), n.caps || '', n.attrs || ''].join('|'); });
+  const shadow = U.shadow().map(s => [s.name, s.hash, s.min, s.max].join(':'));
+  const svc = Object.keys(S.svc).sort().map(k => k + ':' + (S.svc[k].enabled ? 1 : 0) + (S.svc[k].active ? 1 : 0));
+  return sha256Hex(JSON.stringify([S.layout, S.flavor, S.hostname, S.net, Object.keys(S.pkgs).sort(), svc, S.ufw, shadow, rows, (S.mysql || {}).users || null, S.aa || null, S.flatpaks || null]));
+}
+
 /* ---------------- page UI: levels, theme, progress check, debrief, reset, persistence ---------------- */
 let STORE = loadStore() || { current: 'recruit', scenarios: {} };
 let hintOpen = {};
@@ -7869,6 +8580,7 @@ function persistNow() {
   STORE.current = S.id; STORE.lastSeen = Date.now();
   const rec = STORE.scenarios[S.id] || {};
   rec.S = S; if (!(lastResult && lastResult.broken.length)) rec.best = Math.max(rec.best || 0, lastTotal || 0);
+  if (S.id === ADV_ID) rec.lastCode = S.layout;
   STORE.scenarios[S.id] = rec;
   saveStore(STORE);
 }
@@ -7889,9 +8601,12 @@ function evaluate() {
   for (const ck of sc.checks) { if (okOf(ck)) { earned.push(ck); total += ck.pts; } else todo.push(ck); }
   if (broken.length) { S.availBroke = S.availBroke || {}; for (const p of broken) S.availBroke[p.id] = brokeWhich(S.availBroke[p.id], p); }
   lastTotal = total; lastResult = { earned, todo, broken, total, max: sc.checks.reduce((a, c) => a + c.pts, 0) };
-  const scoreEl = $('.score'); scoreEl.textContent = total + ' / ' + lastResult.max + ' pts'; scoreEl.classList.toggle('neg', broken.length > 0); scoreEl.title = broken.length ? broken.length + ' availability check' + (broken.length === 1 ? '' : 's') + ' to fix before you finish' : '';
+  if (HOLD_DIRTY) { HOLD_DIRTY = false; persist(); }
+  // a must-fix flag holds the points: the number keeps its color and a short visible tag says why
+  const scoreEl = $('.score'); scoreEl.textContent = total + ' / ' + lastResult.max + ' pts'; scoreEl.classList.remove('neg'); scoreEl.classList.toggle('held', broken.length > 0); scoreEl.removeAttribute('title');
+  if (broken.length) scoreEl.append(el('span', { class: 'held-tag', text: HELD_TAG }));
   renderReport();
-  const rec = STORE.scenarios[S.id]; if (rec && !broken.length && total > (rec.best || 0)) { rec.best = total; rec.bestHints = hintCount(); rec.bestCoach = coachMode(sc.level); persist(); }
+  const rec = STORE.scenarios[S.id]; if (rec && !broken.length && total > (rec.best || 0)) { rec.best = total; rec.bestHints = hintCount(); rec.bestCoach = coachMode(sc.level); if (sc.advanced) rec.bestCode = sc.code; persist(); }
 }
 /* Coach: how much the Progress Check tells you, chosen apart from the scenario level (the level sets the default) */
 const COACH = [['level', 'Match the level'], ['todo', 'To-do list with hints'], ['areas', 'Remaining by area'], ['passed', 'Passed checks only']];
@@ -7908,27 +8623,52 @@ function coachControl(lvl) {
 }
 const scheduleEvaluate = debounce(evaluate, 150);
 /* ---------------- availability: the must-fix flags ---------------- */
-const OUTAGE_LINE = 'Finish waits until every business need works again, because an outage is an incident you fix before you are done.';
+function outageLine() { return 'Finish waits until every ' + orgWord() + ' need works again, because an outage is an incident you fix before you are done.'; }
+const HELD_TAG = 'Held: fix the flagged outage';
 /* a break holds the score: a check whose result changes in the same step that breaks a business need keeps its
    earlier result until that need works again, so a break neither raises nor lowers the points (deleting an authorized
-   user earns none of that user's checks and costs none). S.hold keeps the held results across a reload. */
-var HOLD_MEMO = null;
+   user earns none of that user's checks and costs none). S.hold keeps the held results across a reload.
+   A deleted account stays deleted for the points: re-creating it makes a new, empty account. S.gone[name] is 1 while
+   an account the scenario brief names is missing and 2 once it exists again. The step that deletes it and the step
+   that re-creates it hold every check they change, and every check about that account (c.acct), at the result it had
+   just before, with keep set, so that hold lasts for the rest of the attempt (saved in S; Reset lab clears it). */
+var HOLD_MEMO = null, HOLD_SIG = null, HOLD_DIRTY = false;
+function briefAccounts() { const sc = scenario(), set = new Set(); sc.availability.forEach(p => (p.accts || []).forEach(n => set.add(n))); set.add(sc.student.user); return [...set]; }
 function holdResults(checks, failed, live) {
   const keys = new Set();
   failed.forEach(p => { const w = availWhich(p); if (w) w.split(', ').forEach(x => keys.add(p.id + ':' + x)); else keys.add(p.id); });
-  const memo = HOLD_MEMO && HOLD_MEMO.s === S ? HOLD_MEMO : null, hold = S.hold || {};
-  Object.keys(hold).forEach(id => { if (!(hold[id].by || []).some(k => keys.has(k))) delete hold[id]; });
+  const memo = HOLD_MEMO && HOLD_MEMO.s === S ? HOLD_MEMO : null, hold = S.hold || {}, gone = S.gone || {};
+  Object.keys(hold).forEach(id => { if (!hold[id].keep && !(hold[id].by || []).some(k => keys.has(k))) delete hold[id]; });
   const fresh = memo ? [...keys].filter(k => !memo.keys.has(k)) : [];
   if (fresh.length) checks.forEach(c => { if (!memo.live.has(c.id) || memo.live.get(c.id) === live.get(c.id)) return; if (hold[c.id]) hold[c.id].by = hold[c.id].by.concat(fresh); else hold[c.id] = { v: memo.live.get(c.id) ? 1 : 0, by: fresh }; });
+  const keepAt = (c, why) => { if (hold[c.id]) { hold[c.id].keep = 1; return; } if (memo && memo.live.has(c.id)) hold[c.id] = { v: memo.live.get(c.id) ? 1 : 0, by: [why], keep: 1 }; };
+  const changed = c => memo && memo.live.has(c.id) && memo.live.get(c.id) !== live.get(c.id);
+  // ids[n]: the account's UID; usermod -l keeps the UID under the new name, so a renamed account counts as renamed, not deleted
+  const ids = {}, uids = new Set(U.passwd().map(x => x.uid));
+  briefAccounts().forEach(n => {
+    const u = U.user(n), was = memo ? memo.ids[n] : null;
+    ids[n] = u ? u.uid : was != null && uids.has(was) ? was : null;
+    if (!u && was != null && !uids.has(was) && gone[n] !== 1) { gone[n] = 1; checks.forEach(c => { if (c.acct === n || changed(c)) keepAt(c, 'gone:' + n); }); Object.keys(hold).forEach(id => { if ((hold[id].by || []).some(k => k.slice(-n.length - 1) === ':' + n)) hold[id].keep = 1; }); }
+    else if (u && gone[n] === 1) { gone[n] = 2; checks.forEach(c => { if (changed(c)) keepAt(c, 'back:' + n); }); }
+  });
   if (Object.keys(hold).length) S.hold = hold; else delete S.hold;
-  HOLD_MEMO = { s: S, keys, live };
+  if (Object.keys(gone).length) S.gone = gone; else delete S.gone;
+  HOLD_MEMO = { s: S, keys, live, ids };
+  // a changed hold is saved right away, so a reload keeps it
+  const sig = JSON.stringify([S.hold || null, S.gone || null]); if (HOLD_SIG !== null && sig !== HOLD_SIG) HOLD_DIRTY = true; HOLD_SIG = sig;
   return c => S.hold && S.hold[c.id] ? !!S.hold[c.id].v : !!live.get(c.id);
 }
+/* the accounts deleted this attempt, for the Progress Check note and the Debrief */
+function goneNames() { return Object.keys((S && S.gone) || {}); }
+const GONE_LINE = 'Re-creating an account gives a new, empty account: on a real system, its files, group memberships, and settings come back only from a backup, so disable or fix an account instead of deleting it.';
+function goneHeld() { const g = goneNames(); return 'The checks about ' + andList(g) + ' keep the result they had before ' + (g.length === 1 ? 'that account was' : 'those accounts were') + ' deleted, for the rest of this attempt. Reset lab starts over.'; }
 /* which(): the broken items right now; S.availBroke[id] keeps 1, or every name that broke this attempt ("kalani, noe") */
 function availWhich(p) { let w = ''; try { w = p.which ? String(p.which(S) || '') : ''; } catch (e) { w = ''; } return w; }
 function brokeWhich(prev, p) { const w = availWhich(p); if (!w) return prev || 1; const names = typeof prev === 'string' ? prev.split(', ') : []; w.split(', ').forEach(n => { if (!names.includes(n)) names.push(n); }); return names.join(', '); }
 function brokeNames(p) { const v = S && S.availBroke && S.availBroke[p.id]; return typeof v === 'string' ? v : ''; }
-function fillName(text, w) { return w && w.indexOf(',') < 0 ? text.replace(/\bNAME\b/g, w) : text; }
+/* NAME in a restore step: one broken item fills it in; several are listed after the step */
+function andList(a) { return a.length < 3 ? a.join(' and ') : a.slice(0, -1).join(', ') + ', and ' + a[a.length - 1]; }
+function fillName(text, w) { if (!w || !/\bNAME\b/.test(text)) return text; const n = w.split(', '); return n.length === 1 ? text.replace(/\bNAME\b/g, w) : text + ' Use each name in place of NAME: ' + andList(n) + '.'; }
 /* the need in plain words (what keeps working), for the Debrief; the title names the failure, for the must-fix flag */
 function availNeed(p) { return p.need || p.title; }
 function availName(p) { const w = availWhich(p); return p.title + (w ? ' (' + w + ')' : ''); }
@@ -7936,32 +8676,37 @@ function availName(p) { const w = availWhich(p); return p.title + (w ? ' (' + w 
 function availRestore(p) { return fillName(p.restore, availWhich(p)); }
 function availBroke(p) { return !!(S && S.availBroke && S.availBroke[p.id]); }
 function mustFixList(R) { return el('ul', { class: 'avail mustfix' }, R.broken.map(p => el('li', null, el('span', { class: 'pts', text: 'must fix' }), el('b', { class: 'af-t', text: '✗ Availability check failed: ' + availName(p) }), el('span', { class: 'restore', text: 'Restore: ' + availRestore(p) })))); }
-function availSummary(R) { const n = scenario().availability.filter(availBroke).length; return R.broken.length ? R.broken.length + ' availability check' + (R.broken.length === 1 ? '' : 's') + ' to fix' : n ? n + ' business ' + (n === 1 ? 'need' : 'needs') + ' broken and restored' : 'every business need kept working'; }
+function availSummary(R) { const n = scenario().availability.filter(availBroke).length; return R.broken.length ? R.broken.length + ' availability check' + (R.broken.length === 1 ? '' : 's') + ' to fix' : n ? n + ' ' + orgWord() + ' ' + (n === 1 ? 'need' : 'needs') + ' broken and restored' : 'every ' + orgWord() + ' need kept working'; }
 function finishWaits(R) {
-  const modal = $('#modal'); modal.hidden = false; modal.textContent = '';
+  const modal = $('#modal'); modalOpen(modal);
   const card = el('div', { class: 'modal-card', role: 'dialog', 'aria-label': 'Finish waits for a fix', style: 'max-width:640px' });
   const close = el('button', { class: 'close', text: 'Back to the lab' }); close.addEventListener('click', closeModal);
-  card.append(close, el('h2', { text: 'Finish waits for a fix' }), el('p', { class: 'mustfix-why', text: OUTAGE_LINE }), el('div', { class: 'report-like' }, mustFixList(R)), el('p', { class: 'why', style: 'color:var(--muted)', text: 'Your points stay as they are. Reset lab also brings everything back, and keeps your best score.' }));
+  card.append(close, el('h2', { text: 'Finish waits for a fix' }), el('p', { class: 'mustfix-why', text: outageLine() }), el('div', { class: 'report-like' }, mustFixList(R)), el('p', { class: 'why', style: 'color:var(--muted)', text: 'Your points stay as they are. Reset lab also brings everything back, and keeps your best score.' }));
   modal.append(card); close.focus();
 }
 /* the Debrief's availability section, in the where-to-invest-next style: Strong when a need kept working all along, Revisit when you broke it and restored it */
 function availInvest() {
   const sc = scenario(), broke = sc.availability.filter(availBroke);
   const box = el('div', { class: 'dbr-avail' }, el('h3', { text: 'Availability: where to invest next' }),
-    el('p', { text: 'Availability is the A in confidentiality, integrity, and availability: hardening keeps the people and services the business relies on working. ' + (broke.length ? 'You broke ' + broke.length + ' business need' + (broke.length === 1 ? '' : 's') + ' and restored ' + (broke.length === 1 ? 'it' : 'them') + '. Next time, read the Scenario Brief’s critical list before each change that touches it.' : 'You kept every business need working the whole time.') }));
-  box.append(el('ul', null, sc.availability.slice().sort((a, b) => availBroke(b) - availBroke(a)).map(p => { const b = availBroke(p), w = brokeNames(p); return el('li', null, el('b', { class: b ? 'rate-revisit' : 'rate-strong', text: b ? 'Revisit' : 'Strong' }), ' ' + availNeed(p) + ': ' + (b ? 'broken' + (w ? ' (' + w + ')' : '') + ', then restored. ' + p.why + ' The way back: ' + fillName(p.restore, w) : 'kept working the whole time.')); })));
+    el('p', { text: 'Availability is the A in confidentiality, integrity, and availability: hardening keeps the people and services the ' + orgWord(sc) + ' relies on working. ' + (broke.length ? 'You broke ' + broke.length + ' ' + orgWord(sc) + ' need' + (broke.length === 1 ? '' : 's') + ' and restored ' + (broke.length === 1 ? 'it' : 'them') + '. Next time, read the Scenario Brief’s critical list before each change that touches it.' : 'You kept every ' + orgWord(sc) + ' need working the whole time.') }));
+  // the first Revisit row about a deleted account says what re-creating it does
+  const order = sc.availability.slice().sort((a, b) => availBroke(b) - availBroke(a)), goneRow = order.find(p => availBroke(p) && (p.accts || []).some(n => goneNames().includes(n))) || (goneNames().length ? order.find(availBroke) : null);
+  box.append(el('ul', null, order.map(p => { const b = availBroke(p), w = brokeNames(p); return el('li', null, el('b', { class: b ? 'rate-revisit' : 'rate-strong', text: b ? 'Revisit' : 'Strong' }), ' ' + availNeed(p) + ': ' + (b ? 'broken' + (w ? ' (' + w + ')' : '') + ', then restored. ' + p.why + ' The way back: ' + fillName(p.restore, w) + (p === goneRow ? ' ' + GONE_LINE + ' ' + goneHeld() : '') : 'kept working the whole time.')); })));
   return box;
 }
 function renderReport() {
   const R = lastResult; if (!R) return;
   const sc = scenario(); const rep = $('#report'); rep.textContent = '';
-  rep.append(el('h2', { text: 'Progress Check' }), el('p', { class: 'scn', text: sc.title + ' (' + sc.name + ')' }), coachControl(sc.level));
+  rep.append(el('h2', { text: 'Progress Check' }), el('p', { class: 'scn', text: sc.title + ' (' + sc.name + ')' }));
+  if (sc.advanced) rep.append(el('p', { class: 'adv-note', text: 'Layout code ' + sc.code + '. Level 4 sits outside the three tiers (Recruit, Operator, and Captain): extra credit for learners who finished them, and open to everyone. Finishing Captain first gives the smoothest start.' + (advTypedCode === sc.code ? ' You typed this code: compare ' + sc.code + ' with the code you were given, because one changed character builds a different machine.' : '') }));
+  rep.append(coachControl(sc.level));
   const mode = coachMode(sc.level);
   rep.append(el('div', { class: 'tot', text: 'Progress: ' + R.total + ' / ' + R.max + ' points' }), el('p', { class: 'sub', text: 'Checks passed: ' + R.earned.length + ' of ' + sc.checks.length }));
   rep.append(el('h3', { text: 'Checks passed' }));
   if (!R.earned.length) rep.append(el('p', { class: 'none', text: 'No checks passed yet. Read the Scenario Brief on the Desktop, then start fixing.' }));
   else rep.append(el('ul', { class: 'earn' }, R.earned.map(c => el('li', null, el('span', { class: 'pts', text: c.pts + ' pts' }), c.title))));
-  if (R.broken.length) rep.append(el('h3', { class: 'mustfix-h', text: 'Must fix: availability checks failed' }), mustFixList(R), el('p', { class: 'mustfix-why', text: 'Your points stay as they are. ' + OUTAGE_LINE }));
+  if (R.broken.length) rep.append(el('h3', { class: 'mustfix-h', text: 'Must fix: availability checks failed' }), mustFixList(R), el('p', { class: 'mustfix-why', text: 'Your points stay as they are. ' + outageLine() }));
+  if (goneNames().length) rep.append(el('p', { class: 'gone-note', text: 'Held for this attempt: ' + goneHeld() + ' ' + GONE_LINE }));
   if (mode === 'todo') {
     rep.append(el('h3', { text: 'To do (with hints)' }));
     const ul = el('ul', { class: 'todo' });
@@ -7986,18 +8731,24 @@ function renderReport() {
   const foot = el('div', { class: 'foot' });
   const timer = el('span', { class: 'timer', text: 'Elapsed ' + fmtElapsed(S.elapsed || 0) });
   const rec0 = STORE.scenarios[S.id] || {};
-  const best = el('span', { class: 'best', text: 'Best: ' + (rec0.best || 0) + ' pts' + (rec0.best ? (rec0.bestHints ? ' with ' + rec0.bestHints + ' hint' + (rec0.bestHints === 1 ? '' : 's') : ', no hints') + (rec0.bestCoach ? ' (' + coachLabel(rec0.bestCoach) + ')' : '') : '') + ' · Hints now: ' + hintCount() });
-  const fin = el('button', { class: 'fin', text: 'Finish / Debrief' }); fin.addEventListener('click', openDebrief);
+  const best = el('span', { class: 'best', text: 'Best: ' + (rec0.best || 0) + ' pts' + (rec0.best ? (rec0.bestHints ? ' with ' + rec0.bestHints + ' hint' + (rec0.bestHints === 1 ? '' : 's') : ', no hints') + (rec0.bestCoach ? ' (' + coachLabel(rec0.bestCoach) + ')' : '') : '') + (sc.advanced && rec0.best && rec0.bestCode ? ' on layout ' + rec0.bestCode : '') + ' · Hints now: ' + hintCount() });
+  const fin = el('button', { class: 'fin', id: 'finBtn', text: 'Finish / Debrief' }); fin.addEventListener('click', openDebrief);
   foot.append(timer, best, fin); rep.append(foot);
 }
+/* Level 4: every hardening area of the layout, Strong when all of its checks pass, Revisit with what is still open; weakest first */
+function advAreas(R) {
+  const by = {};
+  scenario().checks.forEach(c => { const a = by[c.cat] || (by[c.cat] = { n: 0, ok: 0, miss: [] }); a.n++; if (R.earned.includes(c)) a.ok++; else a.miss.push(c.title); });
+  return Object.keys(by).map(k => Object.assign({ area: k }, by[k])).sort((a, b) => (a.ok / a.n) - (b.ok / b.n) || a.area.localeCompare(b.area));
+}
 function openDebrief() {
-  evaluate(); const R = lastResult; const sc = scenario();
+  modalOpener = document.activeElement; evaluate(); const R = lastResult; const sc = scenario();
   if (R.broken.length) { finishWaits(R); return; }
-  const modal = $('#modal'); modal.hidden = false; modal.textContent = '';
+  const modal = $('#modal'); modalOpen(modal);
   const card = el('div', { class: 'modal-card', role: 'dialog', 'aria-label': 'Debrief' });
   const close = el('button', { class: 'close', text: 'Close' }); close.addEventListener('click', closeModal);
   card.append(close, el('h2', { text: 'Debrief: ' + sc.title }));
-  card.append(el('div', { class: 'sum' }, el('span', { text: 'Score ' + R.total + ' / ' + R.max }), el('span', { text: R.earned.length + ' of ' + sc.checks.length + ' checks passed' }), el('span', { text: 'Availability: ' + availSummary(R) }), el('span', { text: 'Time ' + fmtElapsed(S.elapsed || 0) })));
+  card.append(el('div', { class: 'sum' }, sc.advanced ? el('span', { class: 'adv-code', text: 'Layout code ' + sc.code }) : '', el('span', { text: 'Score ' + R.total + ' / ' + R.max }), el('span', { text: R.earned.length + ' of ' + sc.checks.length + ' checks passed' }), el('span', { text: 'Availability: ' + availSummary(R) }), el('span', { text: 'Time ' + fmtElapsed(S.elapsed || 0) })));
   const table = el('table', { class: 'debrief' });
   table.append(el('thead', null, el('tr', null, el('th', { text: '' }), el('th', { text: 'Check' }), el('th', { text: 'Pts' }), el('th', { text: 'Fix' }), el('th', { text: 'Why it matters' }))));
   const tb = el('tbody');
@@ -8005,12 +8756,15 @@ function openDebrief() {
   for (const c of sc.checks) { const ok = R.earned.includes(c); tb.append(el('tr', null, el('td', { class: 'st ' + (ok ? 'ok' : 'bad'), text: ok ? '✓' : '✗' }), el('td', { text: c.title }), el('td', { text: String(c.pts) }), el('td', { class: 'fix', text: c.fix }), el('td', { class: 'why' }, c.why, learnLinks(c)))); }
   for (const p of sc.availability) { const hit = R.broken.includes(p); tb.append(el('tr', null, el('td', { class: 'st ' + (hit ? 'bad' : 'ok'), text: hit ? '✗' : '✓' }), el('td', { text: 'Availability check: ' + (hit ? availName(p) : availNeed(p)) }), el('td', { text: hit ? 'must fix' : '—' }), el('td', { class: 'fix', text: hit ? 'Restore: ' + availRestore(p) : availBroke(p) ? 'Broken' + (brokeNames(p) ? ' (' + brokeNames(p) + ')' : '') + ', then restored. ' + fillName(p.restore, brokeNames(p)) : 'Kept working the whole time.' }), el('td', { class: 'why', text: p.why }))); }
   table.append(tb);
+  if (sc.advanced) card.append(el('div', { class: 'dbr-avail dbr-areas' }, el('h3', { text: 'Hardening areas: where to invest next' }), el('p', { text: 'Layout ' + sc.code + ' built this machine. Enter the same code to try it again, or build a new layout to practice on a different machine.' }),
+    el('ul', null, advAreas(R).map(a => el('li', null, el('b', { class: a.ok === a.n ? 'rate-strong' : 'rate-revisit', text: a.ok === a.n ? 'Strong' : 'Revisit' }), ' ' + a.area + ': ' + a.ok + ' of ' + a.n + (a.ok === a.n ? ' passed.' : ' passed. Still open: ' + a.miss.join('; ') + '.'))))));
   card.append(availInvest(), el('p', { class: 'dbr-hints', text: 'Hints this attempt: ' + hintCount() + ' of ' + sc.checks.length + ' checks (' + hintCommands() + ' with the command shown). Coach: ' + coachLabel(coachMode(sc.level)) + '. A pass with no hints on a fresh attempt is the one that counts.' }), table);
   const rec = STORE.scenarios[S.id] || (STORE.scenarios[S.id] = {});
   const ta = el('textarea', { id: 'dbr-reflect' }); ta.value = rec.reflect || ''; ta.addEventListener('input', () => { rec.reflect = ta.value; saveStore(STORE); });
   card.append(el('label', { class: 'dbr-reflect' }, el('span', { text: 'What broke, and what will you do first next time? (saved with this scenario)' }), ta));
   const cp = el('button', { class: 'ubtn', id: 'dbr-copy', text: 'Copy debrief as text' }); const st = el('span', { role: 'status' }); const out = el('textarea', { hidden: true, 'aria-label': 'Debrief as text' }); out.readOnly = true;
-  const debriefText = () => { const lines = ['Lockdown Range: Linux - ' + sc.title + ' (' + sc.name + ')', 'Progress ' + R.total + ' / ' + R.max + ' - checks passed ' + R.earned.length + ' of ' + sc.checks.length + ' - availability: ' + availSummary(R) + ' - time ' + fmtElapsed(S.elapsed || 0) + ' - hints ' + hintCount() + ' (' + hintCommands() + ' with the command) - coach: ' + coachLabel(coachMode(sc.level)), ''];
+  const debriefText = () => { const lines = ['Lockdown Range: Linux - ' + sc.title + ' (' + sc.name + ')', 'Progress ' + R.total + ' / ' + R.max + ' - checks passed ' + R.earned.length + ' of ' + sc.checks.length + ' - availability: ' + availSummary(R) + ' - time ' + fmtElapsed(S.elapsed || 0) + ' - hints ' + hintCount() + ' (' + hintCommands() + ' with the command) - coach: ' + coachLabel(coachMode(sc.level))].concat(sc.advanced ? ['Layout code: ' + sc.code + ' (Level 4 · Advanced · extra credit; the same code builds the same machine)'] : [], ['']);
+    if (sc.advanced) { lines.push('Hardening areas: where to invest next'); advAreas(R).forEach(a => lines.push((a.ok === a.n ? 'Strong: ' : 'Revisit: ') + a.area + ' ' + a.ok + ' of ' + a.n)); lines.push(''); }
     for (const c of sc.checks) { const h = hintStep(c.id); lines.push((R.earned.includes(c) ? '[x] ' : '[ ] ') + c.title + ' (' + c.pts + ' pts)' + (h ? '  [hint: ' + (h >= 2 ? 'command shown' : 'principle') + ']' : '')); }
     for (const p of sc.availability) lines.push((R.broken.includes(p) ? '[!] ' : availBroke(p) ? '[restored] ' : '[ok] ') + 'Availability: ' + (R.broken.includes(p) ? availName(p) + ' (must fix)' : availNeed(p) + (availBroke(p) ? ' (Revisit: ' + (brokeNames(p) ? brokeNames(p) + ' ' : '') + 'broken, then restored)' : ' (Strong: kept working)')));
     if (rec.reflect) lines.push('', 'What broke, and what I will do first next time:', rec.reflect); return lines.join('\n') + '\n'; };
@@ -8019,9 +8773,30 @@ function openDebrief() {
   card.append(el('p', { class: 'why', style: 'margin-top:.8rem;color:var(--muted)', text: 'Reset lab starts this scenario over (your best score is kept). Switch levels with the pills in the header.' }));
   modal.append(card); close.focus();
 }
-function closeModal() { const modal = $('#modal'); modal.hidden = true; modal.textContent = ''; }
+/* the page dialog (#modal): opening one remembers where focus was and marks it modal; Tab and Shift+Tab stay inside it
+   (modalTrap), and closing it puts focus back on that control, or on the control with the same id when the page rebuilt it */
+var modalPrev = null, modalOpener = null;
+function modalOpen(modal) {
+  if (modal.hidden || !modal.contains(document.activeElement)) modalPrev = modalOpener || document.activeElement;
+  modalOpener = null;
+  modal.hidden = false; modal.textContent = '';
+  queueMicrotask(() => { const c = modal.querySelector('.modal-card'); if (c) c.setAttribute('aria-modal', 'true'); });
+}
+function modalTrap(e) {
+  const modal = $('#modal'); if (e.key !== 'Tab' || modal.hidden) return;
+  const f = Array.from(modal.querySelectorAll('a[href], button, input, textarea, select, [tabindex]:not([tabindex="-1"])')).filter(x => !x.disabled && !x.hidden && x.offsetParent !== null);
+  if (!f.length) { e.preventDefault(); return; }
+  const i = f.indexOf(document.activeElement);
+  if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); } else if (!e.shiftKey && (i < 0 || i === f.length - 1)) { e.preventDefault(); f[0].focus(); }
+}
+function closeModal() {
+  const modal = $('#modal'); const wasOpen = !modal.hidden; modal.hidden = true; modal.textContent = '';
+  let t = modalPrev; modalPrev = null; if (!wasOpen) return;
+  if (t && !t.isConnected) t = t.id ? document.getElementById(t.id) : null;
+  if (t && t.focus && t !== document.body) { try { t.focus({ preventScroll: true }); } catch (e) { } }
+}
 function openHelp() {
-  const modal = $('#modal'); modal.hidden = false; modal.textContent = '';
+  const modal = $('#modal'); modalOpen(modal);
   const card = el('div', { class: 'modal-card help', role: 'dialog', 'aria-label': 'Help' });
   const close = el('button', { class: 'close', text: 'Close' }); close.addEventListener('click', closeModal);
   card.append(close, el('h2', { text: 'How to use Linux Range' }));
@@ -8036,6 +8811,7 @@ function openHelp() {
     '<li><b>Hints:</b> a hint opens in two steps: the hardening area and the principle, then the command.</li>' +
     '<li><b>Availability:</b> breaking something the Scenario Brief says the business needs keeps your points where they are and shows a must-fix item in red with its restore step. Finish waits until it works again, because an outage is an incident you fix before you are done.</li>' +
     '<li><b>Levels:</b> Recruit = Ubuntu desktop, Operator = Linux Mint shared PC, Captain = Ubuntu Server (terminal only). Progress is saved per level in this browser.</li>' +
+    '<li><b>Level 4 · Advanced · extra credit:</b> for learners who finished the three levels (open to everyone). Each layout code builds a different Pōhinahina High School machine from the faults Levels 1-3 teach, with its own people, services, and decoys, so you use your skills rather than a memorized walkthrough. <b>New layout</b> builds a fresh one; <b>Enter a layout code</b> builds the machine a teacher or classmate shares (the same code builds the same machine in any browser). The sign-in is <code>labuser</code> / <code>' + ADV_PW + '</code>. Your best Level 4 score and your last layout code are saved.</li>' +
     '<li><b>Versions:</b> the machines follow Ubuntu ' + FLAVORS.ubuntu.release + ' LTS and Linux Mint ' + FLAVORS.mint.release + '. On Ubuntu 26.04 LTS the default sudo is sudo-rs, so its password prompt and messages look slightly different.</li></ul>' +
     '<p>Solution walkthrough for every scenario: <code>linux-range-reference.txt</code> beside this page. Try each scenario on your own first.</p>' +
     '<p>Want more practice? The OverTheWire Bandit wargame builds shell skills, and picoCTF offers broader security challenges.</p>' +
@@ -8043,9 +8819,9 @@ function openHelp() {
   card.prepend(close); modal.append(card); close.focus();
 }
 function confirmReset() {
-  const modal = $('#modal'); modal.hidden = false; modal.textContent = '';
+  const modal = $('#modal'); modalOpen(modal);
   const card = el('div', { class: 'modal-card', role: 'alertdialog', 'aria-label': 'Reset lab', style: 'max-width:520px' });
-  card.append(el('h2', { text: 'Reset lab?' }), el('p', { text: 'This puts the ' + scenario().name + ' machine back to its original snapshot: every fix you made is undone and the timer restarts. Your best score for this level is kept.' }));
+  card.append(el('h2', { text: 'Reset lab?' }), el('p', { text: 'This puts the ' + scenario().name + ' machine back to its original snapshot' + (S.id === ADV_ID ? ' (layout ' + S.layout + ')' : '') + ': every fix you made is undone and the timer restarts. Your best score for this level is kept.' }));
   const acts = el('div', { class: 'acts', style: 'display:flex;gap:.5rem;justify-content:flex-end' });
   const no = el('button', { class: 'ubtn', text: 'Cancel' }); no.addEventListener('click', closeModal);
   const yes = el('button', { class: 'ubtn primary', id: 'resetConfirm', text: 'Reset lab' }); yes.addEventListener('click', () => { closeModal(); resetLab(); });
@@ -8055,12 +8831,47 @@ function resetLab() {
   const id = S.id; hintOpen = {};
   for (const w of M.wins.slice()) w.close(true);
   if (M.term) { M.term.dead = true; }
-  initialState(id); S.elapsed = 0;
-  STORE.scenarios[id] = { S, best: (STORE.scenarios[id] || {}).best || 0 };
+  initialState(id, S.layout); S.elapsed = 0;
+  STORE.scenarios[id] = advKeep(id, { S, best: (STORE.scenarios[id] || {}).best || 0 });
   persistNow(); M.boot(); evaluate(); updateToolbar();
 }
+/* Level 4 keeps its best score, the layout code of that best, and the reflection when its machine is rebuilt */
+function advKeep(id, rec) { const old = STORE.scenarios[id] || {}; if (id === ADV_ID) { rec.lastCode = S.layout; if (old.bestCode) rec.bestCode = old.bestCode; if (old.bestHints != null) rec.bestHints = old.bestHints; if (old.bestCoach) rec.bestCoach = old.bestCoach; } return rec; }
 /* a saved lab reloads only when it was built from the current scenario revision (older ones are rebuilt) */
-function savedFits(rec, id) { return !!(rec && rec.S && rec.S.fs && rec.S.id === id && rec.S.rev === SCENARIO_REV); }
+function savedFits(rec, id) { return !!(rec && rec.S && rec.S.fs && rec.S.id === id && rec.S.rev === SCENARIO_REV && (id !== ADV_ID || (rec.S.l4 === ADV_REV && advValid(rec.S.layout)))); }
+/* Level 4: build the machine for a layout code (a new one, or one a teacher or classmate shares) */
+function advStart(code) {
+  for (const w of M.wins.slice()) w.close(true);
+  if (M.term) M.term.dead = true;
+  hintOpen = {};
+  initialState(ADV_ID, code); S.elapsed = 0;
+  STORE.scenarios[ADV_ID] = advKeep(ADV_ID, { S, best: (STORE.scenarios[ADV_ID] || {}).best || 0 });
+  STORE.current = ADV_ID; persistNow();
+  renderLevels(); updateToolbar(); evaluate(); M.boot();
+}
+function advNewLayout() {
+  const modal = $('#modal'); modalOpen(modal);
+  const card = el('div', { class: 'modal-card', role: 'alertdialog', 'aria-label': 'New layout', style: 'max-width:520px' });
+  card.append(el('h2', { text: 'Build a new layout?' }), el('p', { text: 'A new layout code builds a different machine' + (S && S.id === ADV_ID ? ' in place of layout ' + S.layout : '') + '. Every fix on the current machine is left behind, and your best Level 4 score is kept.' }));
+  const acts = el('div', { class: 'acts', style: 'display:flex;gap:.5rem;justify-content:flex-end' });
+  const no = el('button', { class: 'ubtn', text: 'Cancel' }); no.addEventListener('click', closeModal);
+  const yes = el('button', { class: 'ubtn primary', id: 'advNewConfirm', text: 'New layout' }); yes.addEventListener('click', () => { closeModal(); advStart(advNewCode()); });
+  acts.append(no, yes); card.append(acts); modal.append(card); yes.focus();
+}
+var advTypedCode = null; // the last code typed in Enter a layout code, so the Progress Check can ask the learner to compare it
+function advEnterCode() {
+  const modal = $('#modal'); modalOpen(modal);
+  const card = el('div', { class: 'modal-card', role: 'dialog', 'aria-label': 'Enter a layout code', style: 'max-width:520px' });
+  const inp = el('input', { id: 'advCode', type: 'text', maxlength: '12', autocomplete: 'off', spellcheck: 'false', 'aria-describedby': 'advCodeHelp', style: 'font:1.1rem var(--mono);letter-spacing:.15em;text-transform:uppercase;width:10em;padding:.3rem .5rem;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink)' });
+  const msg = el('p', { id: 'advCodeMsg', role: 'status', style: 'color:var(--muted);min-height:1.2em' });
+  card.append(el('h2', { text: 'Enter a layout code' }), el('p', { id: 'advCodeHelp', text: 'Type the six-character code a teacher or classmate shared. It uses only these characters: ' + [...ADV_ALPHA].join(' ') + '. Building it replaces the machine you have now; your best Level 4 score is kept.' }), el('p', { class: 'adv-typo', text: 'Check each character against the shared code before you build: a code with one character changed still builds, and it builds a different machine.' }), el('label', { for: 'advCode', text: 'Layout code ' }), inp, msg);
+  const acts = el('div', { class: 'acts', style: 'display:flex;gap:.5rem;justify-content:flex-end' });
+  const no = el('button', { class: 'ubtn', text: 'Cancel' }); no.addEventListener('click', closeModal);
+  const yes = el('button', { class: 'ubtn primary', id: 'advCodeGo', text: 'Build this layout' });
+  const go = () => { const c = advNorm(inp.value); if (!advValid(c)) { msg.textContent = 'That code needs exactly ' + ADV_LEN + ' characters from the list above (it skips look-alikes such as 0, O, 1, I, and L).'; inp.focus(); return; } advTypedCode = c; closeModal(); advStart(c); };
+  yes.addEventListener('click', go); inp.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  acts.append(no, yes); card.append(acts); modal.append(card); inp.focus();
+}
 function switchScenario(id) {
   if (S && S.id === id) return;
   if (S) persistNow();
@@ -8070,7 +8881,7 @@ function switchScenario(id) {
   const rec = STORE.scenarios[id];
   const fits = savedFits(rec, id);
   if (fits) { S = rec.S; if (S.power === 'boot') S.power = 'login'; if (!S.journal) S.journal = []; }
-  else { initialState(id); STORE.scenarios[id] = { S, best: (rec && rec.best) || 0 }; }
+  else { initialState(id, id === ADV_ID ? (rec && advValid(rec.lastCode) ? rec.lastCode : advNewCode()) : undefined); STORE.scenarios[id] = advKeep(id, { S, best: (rec && rec.best) || 0 }); }
   STORE.current = id; persistNow();
   renderLevels(); updateToolbar(); evaluate();
   if (S.power === 'off' && !fits) M.boot(); else M.render();
@@ -8081,6 +8892,9 @@ function renderLevels() {
     const b = el('button', { role: 'tab', 'aria-selected': String(S && S.id === sc.id), text: sc.level + ' · ' + sc.name, title: sc.title });
     b.addEventListener('click', () => switchScenario(sc.id)); box.append(b);
   }
+  // Level 4 sits outside the three tiers: extra credit, open to everyone
+  const b4 = el('button', { role: 'tab', class: 'adv-pill', 'aria-selected': String(!!S && S.id === ADV_ID), text: ADV_LABEL, title: 'Pōhinahina High School: a new machine for each layout code (finish Captain first for the smoothest start)' });
+  b4.addEventListener('click', () => switchScenario(ADV_ID)); box.append(b4);
 }
 function applyTheme(v) { if (v) document.documentElement.dataset.theme = v; else delete document.documentElement.dataset.theme; const b = $('.theme'); if (b) b.textContent = 'Theme: ' + (v || 'auto'); }
 /* a return after 30 minutes or more on a browser that holds progress: another person may have been here */
@@ -8109,11 +8923,12 @@ function init() {
   if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches) setCollapsed(true); else setCollapsed(false);
   $('#modal').addEventListener('click', e => { if (e.target === $('#modal')) closeModal(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#modal').hidden) closeModal(); });
-  const id = STORE.current && SCENARIOS.some(s => s.id === STORE.current) ? STORE.current : 'recruit';
+  document.addEventListener('keydown', modalTrap);
+  const id = STORE.current && (SCENARIOS.some(s => s.id === STORE.current) || STORE.current === ADV_ID) ? STORE.current : 'recruit';
   const rec = STORE.scenarios[id];
   let fresh = false;
   if (savedFits(rec, id)) { S = rec.S; if (S.power === 'boot') S.power = 'login'; if (!S.journal) S.journal = []; if (!S.hist) S.hist = {}; }
-  else { initialState(id); STORE.scenarios[id] = { S, best: (rec && rec.best) || 0 }; fresh = true; }
+  else { initialState(id, id === ADV_ID ? (rec && advValid(rec.lastCode) ? rec.lastCode : advNewCode()) : undefined); STORE.scenarios[id] = advKeep(id, { S, best: (rec && rec.best) || 0 }); fresh = true; }
   renderLevels(); updateToolbar(); evaluate();
   shareBanner();
   if (fresh || S.power === 'off') M.boot(); else M.render();

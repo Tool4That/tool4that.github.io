@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-DWG4sCnfo2VEGUw4OiKPN7K9iejijD63+eAQJ/4v6O8=' 'sha256-ZYAmHVntNfpcFIY8P3WWkevYNR29r1e8jMP6wN1V/NM=' 'sha256-qztxMnJoUe6DrFfKPnwPEtQGKx4jG6O7ImEXtEmeW28='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-DWG4sCnfo2VEGUw4OiKPN7K9iejijD63+eAQJ/4v6O8=' 'sha256-qnl/rfnEVH2ZPmLIS+MiPptxpcvzdqBgqZmV2qnQTdg=' 'sha256-qztxMnJoUe6DrFfKPnwPEtQGKx4jG6O7ImEXtEmeW28='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Configure a simulated router and switch from their consoles, then prove it from two PCs. Timed missions, from the basics to VLAN trunks, router-on-a-stick, and SSH access for the Teachers VLAN only.">
 <link rel="canonical" href="https://freeapp4that.store/net-drills/ios-cli-lab/">
@@ -3105,7 +3105,7 @@ function siteBasics(d, host) {
   d.hostname = host; d.domainLookup = false; d.enableSecret = E.mkSecret('En@ble-S3cret'); d.spe = true;
   d.con.password = E.mkPass(true, 'C0nsole-Pa55'); d.con.login = 'line';
   d.banner = 'Authorized access only. Activity is monitored.';
-  d.domainName = 'school.lan'; d.users.netadmin = Object.assign({ type: 'secret', priv: null }, E.mkSecret('N3tAdmin-2026'));
+  d.domainName = 'phn.k12.lan'; d.users.netadmin = Object.assign({ type: 'secret', priv: null }, E.mkSecret('N3tAdmin-2026'));
   d.rsaBits = 2048; d.sshVersion = 2;
   d.vty.forEach(l => { l.login = 'local'; l.transport = 'ssh'; });
   return d;
@@ -3176,7 +3176,7 @@ const M5_INSTR = `
 <ul><li>Hostnames R1 and S1.</li><li>Enable secret En@ble-S3cret.</li><li>Console password C0nsole-Pa55, enforced.</li><li>Turn off DNS lookup so typos return at once.</li><li>MOTD banner that includes the word Authorized.</li><li>Scramble plaintext passwords (type 7).</li></ul>
 <p>Each password here is a fixed lab value so the checker can compare it. On real devices, give every one of them its own unique passphrase.</p>
 <h3>Part 2: SSH (R1 and S1)</h3>
-<ul><li>Domain name school.lan.</li><li>User netadmin with secret N3tAdmin-2026.</li><li>RSA keys, 2048 bits.</li><li>SSH version 2 only.</li><li>All VTY lines use local usernames and accept SSH only.</li></ul>
+<ul><li>Domain name phn.k12.lan.</li><li>User netadmin with secret N3tAdmin-2026.</li><li>RSA keys, 2048 bits.</li><li>SSH version 2 only.</li><li>All VTY lines use local usernames and accept SSH only.</li></ul>
 <h3>Part 3: switch</h3>
 <ul><li>VLAN 10 named STUDENTS, VLAN 20 named TEACHERS, VLAN 99 named NATIVE, and VLAN 999 named PARKING.</li><li>F0/1: access port in VLAN 10. F0/2: access port in VLAN 20.</li><li>F0/3 to F0/24 and G0/2: access ports parked in VLAN 999, shut down.</li><li>G0/1: static trunk, DTP off, native VLAN 99, only VLANs 10, 20, and 99 allowed. The native VLAN carries no hosts, and the parking VLAN stays separate from it.</li><li>VLAN 20 SVI addressed and enabled; VLAN 1 SVI shut down (it starts enabled here); default gateway set.</li><li>F0/1 and F0/2: port security with a maximum of 1 sticky address and violation mode restrict; PortFast and BPDU Guard.</li></ul>
 <h3>Part 4: router</h3>
@@ -3200,7 +3200,7 @@ const M7_INSTR = `
 </tbody></table>
 <p>${MGMT_NOTE}</p>
 <h3>Part 1: basic settings and SSH (R1 and S1)</h3>
-<ul><li>Hostnames R1 and S1, enable secret En@ble-S3cret, and console password C0nsole-Pa55, enforced.</li><li>DNS lookup off, a MOTD banner that includes the word Authorized, and plaintext passwords scrambled (type 7).</li><li>Domain name school.lan, user netadmin with secret N3tAdmin-2026, RSA keys of 2048 bits, and SSH version 2 only.</li><li>Every VTY line uses local usernames and accepts SSH only.</li></ul>
+<ul><li>Hostnames R1 and S1, enable secret En@ble-S3cret, and console password C0nsole-Pa55, enforced.</li><li>DNS lookup off, a MOTD banner that includes the word Authorized, and plaintext passwords scrambled (type 7).</li><li>Domain name phn.k12.lan, user netadmin with secret N3tAdmin-2026, RSA keys of 2048 bits, and SSH version 2 only.</li><li>Every VTY line uses local usernames and accepts SSH only.</li></ul>
 <p>Each password here is a fixed lab value so the checker can compare it. On real devices, give every one of them its own unique passphrase.</p>
 <h3>Part 2: switch</h3>
 <ul><li>VLAN 10 named STUDENTS, VLAN 20 named TEACHERS, VLAN 30 named PRINCIPALS, VLAN 99 named NATIVE, and VLAN 999 named PARKING.</li><li>F0/1: access port in VLAN 10. F0/2: access port in VLAN 20. F0/3 to F0/24 and G0/2: access ports parked in VLAN 999, shut down.</li><li>G0/1: static trunk, DTP off, native VLAN 99, only VLANs 10, 20, 30, and 99 allowed.</li><li>VLAN 20 SVI addressed and enabled; VLAN 1 SVI shut down (it starts enabled here); default gateway set.</li><li>F0/1 and F0/2: port security with a maximum of 1 sticky address and violation mode restrict, plus PortFast and BPDU guard. G0/1 stays free of PortFast.</li></ul>
@@ -3219,7 +3219,7 @@ const M5_TASKS = [
   { t: 'R1 no ip domain-lookup', cmd: 'no ip domain-lookup', ok: L => !L.r1.dev.domainLookup },
   { t: 'R1 banner includes Authorized', cmd: 'banner motd #Authorized access only. Activity is monitored.#', ok: L => bannerOK(L.r1.dev) },
   { t: 'R1 service password-encryption', cmd: 'service password-encryption', ok: L => L.r1.dev.spe },
-  { t: 'R1 domain school.lan', cmd: 'ip domain-name school.lan', ok: L => L.r1.dev.domainName === 'school.lan' },
+  { t: 'R1 domain phn.k12.lan', cmd: 'ip domain-name phn.k12.lan', ok: L => L.r1.dev.domainName === 'phn.k12.lan' },
   { t: 'R1 user netadmin secret N3tAdmin-2026', cmd: 'username netadmin secret N3tAdmin-2026', ok: L => userOK(L.r1.dev) },
   { t: 'R1 RSA keys, 2048 bits', cmd: 'crypto key generate rsa general-keys modulus 2048', ok: L => L.r1.dev.rsaBits >= 2048 },
   { t: 'R1 SSH version 2', cmd: 'ip ssh version 2', ok: L => L.r1.dev.sshVersion === 2 },
@@ -3239,7 +3239,7 @@ const M5_TASKS = [
   { t: 'S1 no ip domain-lookup', cmd: 'no ip domain-lookup', ok: L => !L.s1.dev.domainLookup },
   { t: 'S1 banner includes Authorized', cmd: 'banner motd #Authorized access only. Activity is monitored.#', ok: L => bannerOK(L.s1.dev) },
   { t: 'S1 service password-encryption', cmd: 'service password-encryption', ok: L => L.s1.dev.spe },
-  { t: 'S1 domain school.lan', cmd: 'ip domain-name school.lan', ok: L => L.s1.dev.domainName === 'school.lan' },
+  { t: 'S1 domain phn.k12.lan', cmd: 'ip domain-name phn.k12.lan', ok: L => L.s1.dev.domainName === 'phn.k12.lan' },
   { t: 'S1 user netadmin secret N3tAdmin-2026', cmd: 'username netadmin secret N3tAdmin-2026', ok: L => userOK(L.s1.dev) },
   { t: 'S1 RSA keys, 2048 bits', cmd: 'crypto key generate rsa general-keys modulus 2048', ok: L => L.s1.dev.rsaBits >= 2048 },
   { t: 'S1 SSH version 2', cmd: 'ip ssh version 2', ok: L => L.s1.dev.sshVersion === 2 },
@@ -3309,7 +3309,7 @@ const MISSIONS = [
       { t: 'Reject new passwords shorter than 10 characters', cmd: 'security passwords min-length 10', ok: L => L.r1.dev.minLen === 10 },
       { t: 'Block logins for 120 s after 3 failures within 60 s', cmd: 'login block-for 120 attempts 3 within 60', ok: L => { const b = L.r1.dev.blockFor; return !!b && b.sec === 120 && b.attempts === 3 && b.within === 60; } },
       { t: 'Create user netadmin with the secret N3tAdmin-2026', cmd: 'username netadmin secret N3tAdmin-2026', ok: L => userOK(L.r1.dev) },
-      { t: 'Set the domain name school.lan', cmd: 'ip domain-name school.lan', ok: L => L.r1.dev.domainName === 'school.lan' },
+      { t: 'Set the domain name phn.k12.lan', cmd: 'ip domain-name phn.k12.lan', ok: L => L.r1.dev.domainName === 'phn.k12.lan' },
       { t: 'Generate RSA keys of 2048 bits', cmd: 'crypto key generate rsa general-keys modulus 2048', ok: L => L.r1.dev.rsaBits >= 2048 },
       { t: 'Allow SSH version 2 only', cmd: 'ip ssh version 2', ok: L => L.r1.dev.sshVersion === 2 },
       { t: 'VTY lines: local usernames, SSH only', cmd: 'line vty 0 4\nlogin local\ntransport input ssh', ok: L => vtySsh(L.r1.dev) },
@@ -3328,7 +3328,7 @@ const MISSIONS = [
       { t: 'Privileged EXEC is guarded by a plaintext enable password', cmd: 'no enable password\nenable secret En@ble-S3cret', ok: L => !!L.r1.dev.enableSecret && !L.r1.dev.enablePassword },
       { t: 'Remote (VTY) sessions ask for nothing', cmd: 'username netadmin secret N3tAdmin-2026\nline vty 0 4\nlogin local', ok: L => { const d = L.r1.dev; return d.vty.every(l => (l.login === 'local' ? hasUsers(d) : l.login === 'line' && !!l.password)); } },
       { t: 'Remote access allows cleartext Telnet', cmd: 'line vty 0 4\ntransport input ssh', ok: L => L.r1.dev.vty.every(l => l.transport === 'ssh' || l.transport === 'none') },
-      { t: 'Admins still need a working SSH way in', cmd: 'ip domain-name school.lan\ncrypto key generate rsa general-keys modulus 2048\nip ssh version 2\n(then on PC1)\nssh -l netadmin 192.168.1.1', ok: L => !!L.ev['sshLogin:r1'] },
+      { t: 'Admins still need a working SSH way in', cmd: 'ip domain-name phn.k12.lan\ncrypto key generate rsa general-keys modulus 2048\nip ssh version 2\n(then on PC1)\nssh -l netadmin 192.168.1.1', ok: L => !!L.ev['sshLogin:r1'] },
       { t: 'Passwords appear in plain text in the config', cmd: 'service password-encryption', ok: L => L.r1.dev.spe },
       { t: 'The LAN interface G0/0 is down', cmd: 'interface g0/0\nno shutdown', ok: L => !L.r1.dev.ifaces[G0].shut },
       { t: 'The banner welcomes visitors instead of warning them', cmd: 'banner motd #Authorized access only. Activity is monitored.#', ok: L => !!L.r1.dev.banner && !/welcome/i.test(L.r1.dev.banner) && bannerOK(L.r1.dev) },
@@ -3345,7 +3345,7 @@ const MISSIONS = [
       { t: 'Protect privileged EXEC with the hashed secret En@ble-S3cret', cmd: 'enable secret En@ble-S3cret', ok: L => secretOK(L.s1.dev) },
       { t: 'Console requires the password C0nsole-Pa55', cmd: 'line console 0\npassword C0nsole-Pa55\nlogin', ok: L => conPwOK(L.s1.dev) },
       { t: 'Create user netadmin with the secret N3tAdmin-2026', cmd: 'username netadmin secret N3tAdmin-2026', ok: L => userOK(L.s1.dev) },
-      { t: 'Domain name school.lan and RSA keys of 2048 bits', cmd: 'ip domain-name school.lan\ncrypto key generate rsa general-keys modulus 2048', ok: L => L.s1.dev.domainName === 'school.lan' && L.s1.dev.rsaBits >= 2048 },
+      { t: 'Domain name phn.k12.lan and RSA keys of 2048 bits', cmd: 'ip domain-name phn.k12.lan\ncrypto key generate rsa general-keys modulus 2048', ok: L => L.s1.dev.domainName === 'phn.k12.lan' && L.s1.dev.rsaBits >= 2048 },
       { t: 'Allow SSH version 2 only', cmd: 'ip ssh version 2', ok: L => L.s1.dev.sshVersion === 2 },
       { t: 'All 16 VTY lines: local usernames, SSH only', cmd: 'line vty 0 15\nlogin local\ntransport input ssh', ok: L => vtySsh(L.s1.dev) },
       { t: 'Create VLAN 20 named TEACHERS', cmd: 'vlan 20\nname TEACHERS', ok: L => vlanNamed(L.s1.dev, 20, 'TEACHERS') },

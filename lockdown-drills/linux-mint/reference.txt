@@ -84,12 +84,12 @@
 
 [B-03] Fix admin group membership
   AREA: Account management (CIS Control 5)
-  $ sudo gpasswd -d mallory sudo
-  $ sudo loginctl terminate-user mallory      (ends the open sessions, which keep the old groups)
-  $ sudo usermod -aG sudo alice
-  $ groups alice
+  $ sudo gpasswd -d ikaika sudo
+  $ sudo loginctl terminate-user ikaika      (ends the open sessions, which keep the old groups)
+  $ sudo usermod -aG sudo keoni
+  $ groups keoni
   $ sudo adduser keola   (when the brief lists an account this machine lacks: it sets a password and creates the home; the low-level form is sudo useradd -m -s /bin/bash keola, then sudo passwd keola)
-  $ sudo addgroup designers && sudo gpasswd -M malia,keola designers   (when the brief names a group and its members; -M sets the whole member list)
+  $ sudo addgroup yearbook && sudo gpasswd -M malia,keola yearbook   (when the brief names a group and its members; -M sets the whole member list)
   GUI: Users and Groups: Account Type Standard or Administrator (Administrator =
        sudo group); the Groups row opens a tick list of every other group.
   WHY: Least privilege. -aG appends; -G alone replaces existing groups. Open
@@ -98,8 +98,8 @@
 
 [B-04] Passwords: strong, forced change, no empties, root locked
   AREA: Account management (CIS Control 5)
-  $ sudo passwd alice
-  $ sudo chage -d 0 alice
+  $ sudo passwd keoni
+  $ sudo chage -d 0 keoni
   $ awk -F: '$3>=1000 && $3<65534 {print $1}' /etc/passwd | grep -vx "${SUDO_USER:-$USER}" | xargs -r -n1 sudo chage -d 0     (every human account except yours)
   $ sudo awk -F: '$2=="" {print $1" HAS NO PASSWORD"}' /etc/shadow
   $ awk -F: '$2!="x" {print $1" has something other than x in /etc/passwd field 2"}' /etc/passwd
@@ -124,7 +124,7 @@
   $ sudo sed -i 's/^PASS_WARN_AGE.*/PASS_WARN_AGE\t7/' /etc/login.defs
   $ sudo sed -i 's/^UMASK.*/UMASK\t\t027/' /etc/login.defs
   $ diff /etc/login.defs.bak /etc/login.defs   (compares the B-00 copy with your edit: < marks the old lines, > the new ones)
-  $ sudo chage -M 60 -m 1 -W 7 alice
+  $ sudo chage -M 60 -m 1 -W 7 keoni
   $ for u in $(awk -F: '$3>=1000 && $3<=60000 {print $1}' /etc/passwd); do sudo chage -M 60 -m 1 -W 7 "$u"; done
   $ sudo passwd -S -a                         (min, max, and warn for every account)
   $ sudo apt install -y libpam-pwquality
@@ -165,15 +165,15 @@
       auth  sufficient                 pam_faillock.so authsucc
   $ sudo nano /etc/pam.d/common-account       (add first)
       account required pam_faillock.so
-  $ su - alice   (the lockout test, in a second terminal while your root shell stays open: each wrong password raises the count sudo faillock --user alice shows)
-  $ sudo faillock --user alice
-  $ sudo faillock --user alice --reset
+  $ su - keoni   (the lockout test, in a second terminal while your root shell stays open: each wrong password raises the count sudo faillock --user keoni shows)
+  $ sudo faillock --user keoni
+  $ sudo faillock --user keoni --reset
   WHY: Stops online brute force. pam_faillock replaced pam_tally2, which current
        Ubuntu, Mint, and Debian releases have dropped. nullok allows empty
        passwords. faillock.conf holds the numbers; locking starts only once the
        PAM lines are in place, and numbers written on a PAM line override the
        file. Confirm with sudo faillock --user NAME after failed tries.
-  NOTE: Test with su - alice in a second terminal before closing your root
+  NOTE: Test with su - keoni in a second terminal before closing your root
         shell. Set the pam_unix line to [success=1 default=ignore] whatever
         number it had: some installs (Ubuntu desktop among them) ship
         [success=2] because a pam_sss line follows, and a 2 left in place sends
@@ -346,7 +346,7 @@
       PermitRootLogin no        PermitEmptyPasswords no     MaxAuthTries 3
       LoginGraceTime 30         X11Forwarding no            UsePAM yes
       PermitUserEnvironment no
-      PasswordAuthentication yes or no per the brief      AllowUsers alice bob
+      PasswordAuthentication yes or no per the brief      AllowUsers keoni koa
   $ sudo sshd -t && sudo systemctl restart ssh
   $ sudo sshd -T | grep -E '^(permitrootlogin|permitemptypasswords|permituserenvironment|maxauthtries|passwordauthentication|x11forwarding|allowusers) '
   $ sudo sshd -T -C user=root,host=localhost,addr=127.0.0.1 | grep -i '^permitrootlogin'
@@ -373,7 +373,7 @@
   $ sudo grep -R -nE 'NOPASSWD|!authenticate|ALL=\(ALL' /etc/sudoers /etc/sudoers.d/
   $ sudo visudo
   $ sudo visudo -f /etc/sudoers.d/<file>
-  $ sudo -l -U mallory
+  $ sudo -l -U ikaika
   $ sudo visudo -c; sudo -k; sudo -v          (expect a password prompt)
   $ sudoedit /etc/hosts   (edits a copy as you, then installs it as root; grant sudoedit FILE in sudoers in place of an editor, which can open a root shell)
   WHY: A NOPASSWD ALL line in a sudoers.d drop-in is a silent root backdoor.
@@ -526,7 +526,7 @@
   AREA: Account management (CIS Control 5)
   $ grep -vE 'nologin|/bin/false|/bin/sync' /etc/passwd
   $ sudo usermod -s /usr/sbin/nologin <system-account>
-  $ sudo chage -l alice
+  $ sudo chage -l keoni
   $ sudo lslogins -u   (every human account with its process count, lock state, and last login in one table)
   $ getent group root shadow adm systemd-journal sudo admin docker lxd disk
   $ for g in shadow disk adm systemd-journal docker lxd; do awk -F: -v g="$(getent group "$g" | cut -d: -f3)" -v n="$g" 'g!="" && $4==g {print $1" has primary group "n}' /etc/passwd; done
@@ -838,17 +838,17 @@
         ltrace, inotify-tools, and unhide install from universe.
 
 ------------------------------ FIX OR BREAK? (practice cards) ------------------
-  Brief: Authorized administrators: alice. Authorized users: bob, carol.
-  Action: Run sudo gpasswd -d bob sudo because bob is in the sudo group.
-  Call: FIX. The brief lists bob as a standard user. Removing that account from
+  Brief: Authorized administrators: keoni. Authorized users: koa, nohea.
+  Action: Run sudo gpasswd -d koa sudo because koa is in the sudo group.
+  Call: FIX. The brief lists koa as a standard user. Removing that account from
              sudo is least privilege.
 
-  Brief: This server hosts the company website with Apache.
+  Brief: This server hosts the school website with Apache.
   Action: Run sudo apt purge apache2 to remove the web server.
   Call: BREAKS IT. Required service. Keep it running and harden it: ServerTokens
                    Prod, no directory listing, updates.
 
-  Brief: Investigation 2: what is the SHA-256 hash of /home/bob/Music/track.mp3?
+  Brief: Investigation 2: what is the SHA-256 hash of /home/koa/Music/track.mp3?
   Action: Delete all media files, then answer the investigation questions.
   Call: CHECK FIRST. Hash it first, then delete. Evidence before cleanup.
 
@@ -858,20 +858,20 @@
                      it (a systemd unit, a cron job, the file owner) and ask the
                      system owner before removing a backup or monitoring agent.
 
-  Brief: Only alice may log in with SSH; SSH must stay available.
+  Brief: Only keoni may log in with SSH; SSH must stay available.
   Action: Run sudo systemctl disable --now ssh.socket ssh.service.
-  Call: BREAKS IT. SSH is required. Set PermitRootLogin no and AllowUsers alice,
+  Call: BREAKS IT. SSH is required. Set PermitRootLogin no and AllowUsers keoni,
                    and keep it running; ssh.socket is what listens on port 22,
                    so leave it enabled.
 
-  Brief: No games are allowed on company machines.
+  Brief: No games are allowed on school machines.
   Action: Run sudo apt purge --auto-remove minetest after confirming no
           investigation question mentions it, and read the REMOVED list before
           answering Y.
   Call: FIX. Acceptable-use violation, and confirmed it is not evidence. Log the
              removal.
 
-  Brief: The company uses Samba for the shared drive.
+  Brief: The school uses Samba for the shared drive.
   Action: Set guest ok = no and map to guest = Never in smb.conf and restart
           smbd.
   Call: FIX. Hardening a required service without breaking it. Exactly the job.
@@ -899,7 +899,7 @@
   Call: BREAKS IT. Required software per the brief. Leave it; snapshots are also
                    your own undo button.
 
-  Brief: The design team installs approved apps through Flatpak.
+  Brief: The yearbook class installs approved apps through Flatpak.
   Action: Run sudo apt purge flatpak to remove an unneeded package manager.
   Call: BREAKS IT. Required tooling. Audit flatpak list for unapproved apps
                    instead.
@@ -934,7 +934,7 @@
                      pwquality.conf, so 8 still applies. Remove minlen=8 from
                      the PAM line and keep the number in the conf file (B-05).
 
-  Brief: The brief requires SSH and the company website, behind a firewall.
+  Brief: The brief requires SSH and the school website, behind a firewall.
   Action: Run sudo ufw disable because the website stopped loading after you
           enabled ufw.
   Call: BREAKS IT. Turning ufw off exposes every listening port. Allow the site
@@ -944,31 +944,31 @@
 ------------------------------ SPOT THE FINDING (output snippets) --------------
   Lines from /etc/passwd. Tap the finding.
      root:x:0:0:root:/root:/bin/bash
-     alice:x:1000:1000:Alice:/home/alice:/bin/bash
+     keoni:x:1000:1000:Keoni:/home/keoni:/bin/bash
   >> sysadm:x:0:0::/home/sysadm:/bin/bash
      www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin
   WHY: A second UID-0 account is a second root. Remove it (after noting it for
        the investigation).
 
-  Output of getent group sudo. Brief: alice is the only admin. Tap the finding.
-  >> sudo:x:27:alice,mallory
-     adm:x:4:syslog,alice
+  Output of getent group sudo. Brief: keoni is the only admin. Tap the finding.
+  >> sudo:x:27:keoni,ikaika
+     adm:x:4:syslog,keoni
      users:x:100:
-     plugdev:x:46:alice
-  WHY: mallory in the sudo group is an unauthorized admin: sudo gpasswd -d
-       mallory sudo.
+     plugdev:x:46:keoni
+  WHY: ikaika in the sudo group is an unauthorized admin: sudo gpasswd -d
+       ikaika sudo.
 
   Lines from /etc/shadow. Tap the finding.
-     alice:$y$j9T$...:19600:0:99999:7:::
-  >> bob::19600:0:99999:7:::
-     carol:!:19600:0:99999:7:::
+     keoni:$y$j9T$...:19600:0:99999:7:::
+  >> koa::19600:0:99999:7:::
+     nohea:!:19600:0:99999:7:::
      daemon:*:19600:0:99999:7:::
-  WHY: An empty second field means bob logs in with no password. ! and * mean
+  WHY: An empty second field means koa logs in with no password. ! and * mean
        locked, which is fine.
 
   More lines from /etc/passwd. Tap the finding.
      root:x:0:0:root:/root:/bin/bash
-     alice:x:1000:1000:Alice:/home/alice:/bin/bash
+     keoni:x:1000:1000:Keoni:/home/keoni:/bin/bash
   >> keola::1003:1003::/home/keola:/bin/bash
      syslog:x:104:110::/home/syslog:/usr/sbin/nologin
   WHY: An empty second field in /etc/passwd means keola signs in with no
@@ -986,7 +986,7 @@
   Lines found in /etc/sudoers.d/. Tap the finding.
      %sudo ALL=(ALL:ALL) ALL
      Defaults env_reset
-  >> mallory ALL=(ALL) NOPASSWD: ALL
+  >> ikaika ALL=(ALL) NOPASSWD: ALL
      root ALL=(ALL:ALL) ALL
   WHY: Passwordless full sudo for an unlisted user is a root backdoor. Remove it
        with visudo -f.
