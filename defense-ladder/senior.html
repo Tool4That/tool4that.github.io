@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/X3+kdvW9NIw4IS0xpUvKdshcspuIO0pDWUO0WlOMns=' 'sha256-7EU8vDkjuUwN5ltAP7ldBQm0+Z0XrSW3GySN3vrnVdc=' 'sha256-EJUo6x7FMJBCtLbdASMoHTewo5O+8qSveS6aF0fMm8o=' 'sha256-pIOwQci8QUCVNCzIdma6PdyqS+KTwmeD0z3QM9D2RcI=' 'sha256-vvupNOdurWeXQeDiyzHmiufX6Sy5JRpCbek45co3P9g='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/X3+kdvW9NIw4IS0xpUvKdshcspuIO0pDWUO0WlOMns=' 'sha256-EJUo6x7FMJBCtLbdASMoHTewo5O+8qSveS6aF0fMm8o=' 'sha256-MVSIKf4AK/WbgVXH/7YoeTmEUFW1rIdv8JRdx6ShYPw=' 'sha256-vvupNOdurWeXQeDiyzHmiufX6Sy5JRpCbek45co3P9g=' 'sha256-wZzTzExic9eeCwrUEsjX3yvbR7Z8eTxTje4qZuDFOBQ='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/defense-ladder/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%8E%93%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -55,11 +55,13 @@ html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Segoe UI","SF Pro Text",-apple-system,system-ui,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
 code,kbd,pre,.mono{font-family:ui-monospace,"Cascadia Mono","SF Mono",Menlo,Consolas,"Liberation Mono",monospace}
 a{color:var(--l2);text-decoration-thickness:1px;text-underline-offset:2px}
-sup.docs{margin-left:.3rem;font-size:.72rem;line-height:1}
+sup.docs{margin-left:.3rem;font-size:.72rem;line-height:1;white-space:nowrap}
 sup.docs a,.docs-b{display:inline-block;padding:.4rem .25rem;margin:-.4rem 0;color:var(--l2);font:inherit;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px}
 .docs-b{background:none;border:0;cursor:pointer}
 .docs-l{display:block;margin-top:3px;font-size:.82rem}
 .docs-l[hidden]{display:none}
+.gtk{margin-left:.3rem;padding:0 .35em;border:1px solid var(--line);border-radius:999px;color:var(--ink-2)}
+@media print{.gtk{color:#000;border-color:#000}}
 :root[data-theme="dark"] a{color:var(--l1)}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) a{color:var(--l1)}}
 button{font:inherit;color:inherit}
@@ -1984,17 +1986,26 @@ function cmdLink(id,text){
   if(text!==name) a.setAttribute('aria-label',name+' docs: options and vendor documentation in the Command Atlas, online, new tab');
   return a;
 }
-function cmdDocs(code,cmd){
+/* "good to know": CMD_REF.k lists the commands taught for reference that no drill step or Range check asks. A command-table
+   row whose every command is in it shows the tag after its docs; one shared hidden line (#gtk-d) tells screen readers
+   what the tag means. Without CMD_REF.k, no row shows it. */
+const GTK_TEXT='Good to know: kept for reference; the drills and Range checks practice other commands.';
+function gtkTag(sup,ctl){
+  if(!document.getElementById('gtk-d')){ const d=el('span','sr',GTK_TEXT); d.id='gtk-d'; document.body.appendChild(d); }
+  ctl.setAttribute('aria-describedby','gtk-d');
+  const t=el('span','gtk','good to know'); t.title=GTK_TEXT; t.setAttribute('aria-hidden','true'); sup.appendChild(t);
+}
+function cmdDocs(code,cmd,tag){
   const r=code&&typeof CMD_REF!=='undefined'?CMD_REF.m[cmdKey(String(cmd))]:null;
   if(!r) return;
-  const ids=r.map(i=>CMD_REF.ids[i]), sup=el('sup','docs');
-  if(ids.length===1){ sup.appendChild(cmdLink(ids[0],'docs')); code.after(sup); return; }
+  const ids=r.map(i=>CMD_REF.ids[i]), sup=el('sup','docs'), k=CMD_REF.k, g=tag&&Array.isArray(k)&&r.every(i=>k.includes(i));
+  if(ids.length===1){ const a=cmdLink(ids[0],'docs'); sup.appendChild(a); if(g) gtkTag(sup,a); code.after(sup); return; }
   const b=el('button','docs-b','docs'), list=el('span','docs-l');
   b.type='button'; b.setAttribute('aria-expanded','false'); b.setAttribute('aria-label','docs for the '+ids.length+' commands on this line');
   list.hidden=true;
   ids.forEach((id,i)=>{ if(i) list.appendChild(document.createTextNode(' · ')); list.appendChild(cmdLink(id,id.slice(id.indexOf('/')+1))); });
   b.addEventListener('click',()=>{ const open=list.hidden; list.hidden=!open; b.setAttribute('aria-expanded',String(open)); });
-  sup.appendChild(b); code.after(sup,list);
+  sup.appendChild(b); if(g) gtkTag(sup,b); code.after(sup,list);
 }
 function renderCmds(b){
   const wrap=el('div','cmdw');
@@ -2004,7 +2015,7 @@ function renderCmds(b){
   b.rows.forEach(([cmd,why])=>{
     const tr=el('tr');
     const td=el('td',null,`<code>${esc(cmd)}</code>`);
-    cmdDocs(td.firstChild,cmd);
+    cmdDocs(td.firstChild,cmd,true);
     tr.appendChild(td);
     tr.appendChild(el('td',null,why));
     t.appendChild(tr);
@@ -3806,7 +3817,7 @@ function renderAbout(){
   c1.innerHTML=`<h3>What this is</h3>
     <p>Defense Ladder is a free, offline cybersecurity course built around Bloom’s revised taxonomy: you move from <b>remembering</b> facts (Freshman) to <b>creating</b> your own checklist, runbook, and team plan (Senior). It maps to open frameworks: the <b>CIS Critical Security Controls v8.1</b> for the six hardening areas and the <b>NIST Cybersecurity Framework 2.0</b> for the big picture.</p>
     <p>It is informative at every level and gets more interactive as you climb: flashcards and quizzes early, then config-reading and triage drills, then builders for your own checklist and session plan. For hands-on work, use Lockdown Range (labs that run in your browser) or practice virtual machines you own. The same skills carry over to cyber defense exercises and competitions, capture-the-flag events, and IT and security jobs.</p>
-    <p>Commands and settings change between versions, so vendor documentation always wins over anything here.</p>`;
+    <p>Commands and settings change between versions, so vendor documentation always wins over anything here. A <span class="gtk">good to know</span> tag beside a command’s docs marks it as kept for reference; the drills and Range checks practice the others.</p>`;
   main.appendChild(c1);
 
   const cw=el('div','card');
@@ -5049,7 +5060,7 @@ LADDER.addLevel({
      ['A capture shows 203.0.113.70 sending SYN packets to 200 different ports on phn-web01 within 3 seconds. What is it?',['A SYN flood against one service','A port scan looking for open services','Normal web browsing','A rogue DHCP server'],1,'In a scan, SYN-ACK replies mark the open ports, and RSTs mark the closed ones. <a href="#junior/j7">Review: Read the wire: captures, flows, and network attacks</a>',{whys:['A SYN flood hammers one port, often from many sources.','One source touching 200 ports in 3 seconds is looking for open services, which is a port scan.','Browsing uses a few ports, such as 443.','DHCP hands out addresses.'],imp:'core',c:'net-scan-results'}],
      ['Where does an extended ACL that blocks Students’ Telnet to the Site B servers belong, and why?',['Close to the destination, so it filters only what you mean','On every interface in both directions','On the VTY lines, as an access-class','Close to the source, inbound on the Students subinterface, so unwanted traffic stops early'],3,'Extended ACLs go near the source; a standard ACL reads the source alone, so it goes near the destination. <a href="#junior/j4">Review: Cisco: VLANs, routing, and ACLs</a>',{whys:['Close to the destination fits a standard ACL.','Every interface multiplies the work and the mistakes.','access-class limits VTY sign-ins alone.','An extended ACL reads source, destination, and port, so it matches exactly near the source and stops the traffic before it crosses the network.'],imp:'core',c:'cisco-acls'}],
      ['Hilo Lehua Clinic wants alerts on its patient-portal link, and that link must keep carrying business traffic even if the sensor fails. Which sensor fits?',['An IDS fed by a SPAN or TAP copy','An inline IPS set to fail closed','An inline IPS that blocks on every new rule','A host firewall on the portal server alone'],0,'A copy-fed sensor’s false positive drops nothing; inline sensors can block, and can stop the link. <a href="#junior/j6">Review: Network security design: firewalls, zones, VPNs, and Wi-Fi</a>',{whys:['A SPAN or TAP sends the sensor a copy, so a sensor crash leaves the real link carrying traffic.','Fail closed stops the link when the sensor fails.','Blocking on new rules risks dropping business traffic.','A host firewall guards one server, and the alerts belong on the link.'],imp:'core',c:'det-ids-ips'}],
-     ['kanoa sits in Domain Admins, and the brief lists kanoa as a standard user. How far does that admin power reach?',['Nowhere until kanoa signs in at the DC','Only the domain controller','Every computer joined to the domain, because Domain Admins sits in each machine’s local Administrators group','Only kanoa’s own PC'],2,'Domain Admins holds full control of the domain, so an extra member is an administrator everywhere. <a href="#junior/j1">Review: Windows Server and Active Directory</a>',{whys:['Domain Admin power applies at once.','Domain Admins reaches every joined machine.','Domain Admins is placed in every joined machine’s local Administrators group, so kanoa is an admin on all of them.','The group reaches far beyond one PC.'],imp:'core',c:'win-active-directory'}],
+     ['liko sits in Domain Admins, and the brief lists liko as a standard user. How far does that admin power reach?',['Nowhere until liko signs in at the DC','Only the domain controller','Every computer joined to the domain, because Domain Admins sits in each machine’s local Administrators group','Only liko’s own PC'],2,'Domain Admins holds full control of the domain, so an extra member is an administrator everywhere. <a href="#junior/j1">Review: Windows Server and Active Directory</a>',{whys:['Domain Admin power applies at once.','Domain Admins reaches every joined machine.','Domain Admins is placed in every joined machine’s local Administrators group, so liko is an admin on all of them.','The group reaches far beyond one PC.'],imp:'core',c:'win-active-directory'}],
      ['malia joins the Finance group, and no GPO in the domain uses security filtering. Which GPOs apply to malia’s user account now?',['Every GPO linked to the Finance group','Only the Default Domain Controllers Policy','Only local policy until malia signs out','The same as before: policy follows the account’s OU, while a group grants rights and permissions'],3,'Security filtering is the one way a group narrows a linked GPO. <a href="#junior/j2">Review: Group Policy</a>',{whys:['GPOs link to sites, domains, and OUs.','That policy targets domain controllers.','Joining a group leaves policy as it was.','GPOs link to sites, domains, and OUs, and joining a group leaves the account in its OU, so the same GPOs apply.'],imp:'core',c:'win-group-policy'}],
      ['You run sudo sysctl -w net.ipv4.conf.all.rp_filter=1. What happens after a reboot?',['The value stays, because sysctl -w writes a file','The value resets unless a file in /etc/sysctl.d sets it','The machine stops routing','The kernel refuses the change'],1,'sysctl -w changes the running kernel; a line in /etc/sysctl.d makes the value return at every boot. <a href="#junior/j3">Review: Debian and deeper Linux</a>',{whys:['sysctl -w changes the running kernel alone.','sysctl -w changes only the running kernel, and a file in /etc/sysctl.d sets the value again at every boot.','rp_filter checks source addresses, and routing goes on.','The kernel accepts it at once.'],imp:'core',c:'host-misc-hardening'}],
      ['You delete a cron line that runs <code>/bin/bash -c \'… 203.0.113.9:4444 …\'</code>, a reverse shell. What comes next?',['Hunt for how it got there: other cron locations, systemd units, and shell startup files','Block port 4444 and keep the line','Reboot and move on','Reinstall cron'],0,'Persistence rarely travels alone. <a href="#junior/j3">Review: Debian and deeper Linux</a>',{whys:['Whatever planted the line can plant it again, and persistence often hides in several places, so you hunt them all.','Keeping the line keeps the backdoor.','A reboot leaves other persistence running.','Reinstalling cron leaves the planter in place.'],imp:'core',c:'host-malware-persistence'}],

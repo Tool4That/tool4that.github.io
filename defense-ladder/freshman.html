@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/X3+kdvW9NIw4IS0xpUvKdshcspuIO0pDWUO0WlOMns=' 'sha256-CAchmrrVwzgxd7xbcHLDMZpxgiVi6tCwi4MlxaHCqyw=' 'sha256-EJUo6x7FMJBCtLbdASMoHTewo5O+8qSveS6aF0fMm8o=' 'sha256-vvupNOdurWeXQeDiyzHmiufX6Sy5JRpCbek45co3P9g=' 'sha256-zaNKp79p2RHFZp7lCvMvymbf+DCccd/OPw3A3V+LWGw='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/X3+kdvW9NIw4IS0xpUvKdshcspuIO0pDWUO0WlOMns=' 'sha256-EJUo6x7FMJBCtLbdASMoHTewo5O+8qSveS6aF0fMm8o=' 'sha256-Q1ECKRq7R388vQAkIX+2+tGMOWsQDrYzLXS4qIT+Pto=' 'sha256-vvupNOdurWeXQeDiyzHmiufX6Sy5JRpCbek45co3P9g=' 'sha256-zaNKp79p2RHFZp7lCvMvymbf+DCccd/OPw3A3V+LWGw='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/defense-ladder/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%8E%93%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -55,11 +55,13 @@ html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Segoe UI","SF Pro Text",-apple-system,system-ui,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
 code,kbd,pre,.mono{font-family:ui-monospace,"Cascadia Mono","SF Mono",Menlo,Consolas,"Liberation Mono",monospace}
 a{color:var(--l2);text-decoration-thickness:1px;text-underline-offset:2px}
-sup.docs{margin-left:.3rem;font-size:.72rem;line-height:1}
+sup.docs{margin-left:.3rem;font-size:.72rem;line-height:1;white-space:nowrap}
 sup.docs a,.docs-b{display:inline-block;padding:.4rem .25rem;margin:-.4rem 0;color:var(--l2);font:inherit;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px}
 .docs-b{background:none;border:0;cursor:pointer}
 .docs-l{display:block;margin-top:3px;font-size:.82rem}
 .docs-l[hidden]{display:none}
+.gtk{margin-left:.3rem;padding:0 .35em;border:1px solid var(--line);border-radius:999px;color:var(--ink-2)}
+@media print{.gtk{color:#000;border-color:#000}}
 :root[data-theme="dark"] a{color:var(--l1)}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) a{color:var(--l1)}}
 button{font:inherit;color:inherit}
@@ -2726,7 +2728,7 @@ COMPARE('Snapshot or backup: what is copied, and where the copy lives',[
      ['Which sign-in method leaves a perfect look-alike sign-in page with nothing it can use?',['SMS code','App code','Passkey','A password with symbols'],2,'Anything typed into a fake page can be relayed; a passkey stays bound to the real site.',{whys:['A fake page can ask for the SMS code and relay it to the real site.','A fake page can relay an app code within its 30 seconds.','A passkey is tied to the real site’s name, so on a look-alike name it declines to sign in, which leaves the page nothing to steal.','A fake page captures any password typed into it, symbols included.'],imp:'core',c:'sec-passwords-mfa'}],
      ['Approval prompts keep arriving on Healani’s phone at 2 a.m. What do they mean, and what does she do?',['The app is updating, so she approves one','Someone has her password: she denies them all, reports it, and changes the password','Her phone storage is full','She approves one to make them stop'],1,'Number matching ends push fatigue, because you type the number the sign-in screen shows.',{whys:['App updates arrive without sign-in prompts, and approving one hands the attacker the sign-in.','A prompt appears only after someone enters her password, so the password is stolen: denying blocks each attempt, and a new password ends them.','Full storage brings storage warnings, and these are sign-in prompts.','Approving one to stop them lets the attacker in.'],imp:'core',c:'sec-passwords-mfa'}],
      ['Two students choose the same password, yet the stored hashes differ. Why?',['Each password got its own salt','The system made an error','Every hash is random','One password was encrypted'],0,'Salts defeat precomputed tables, since a unique salt changes what gets hashed.',{whys:['The system adds a unique random salt to each password before hashing, so equal passwords produce different hashes.','Different hashes for equal passwords are the salt doing its job.','Hashes repeat: the same input always gives the same hash, so the difference comes from the salt.','Passwords are stored as hashes, and the salt, rather than encryption, makes the hashes differ.'],imp:'core',c:'crypto-salted-hashes'}],
-     ['Kanoa’s Linux ISO finishes downloading, and its SHA-256 value matches the one on the official site. What does the match tell him?',['The file arrived complete and unaltered','The download traveled over an encrypted connection','The file will install faster','The ISO is the newest release'],0,'A hash proves integrity only against a trusted expected value. <a href="#freshman/f4">Review: Computers, virtualization, and the network</a>',{whys:['Any change to a file changes its SHA-256 value, so a match means the copy equals the publisher’s file.','Encrypted travel is the job of TLS; a hash checks the content after it lands.','A hash leaves install speed unchanged.','A hash matches one exact file, whichever release it is.'],imp:'core',c:'comp-integrity-hashing'}],
+     ['Koa’s Linux ISO finishes downloading, and its SHA-256 value matches the one on the official site. What does the match tell him?',['The file arrived complete and unaltered','The download traveled over an encrypted connection','The file will install faster','The ISO is the newest release'],0,'A hash proves integrity only against a trusted expected value. <a href="#freshman/f4">Review: Computers, virtualization, and the network</a>',{whys:['Any change to a file changes its SHA-256 value, so a match means the copy equals the publisher’s file.','Encrypted travel is the job of TLS; a hash checks the content after it lands.','A hash leaves install speed unchanged.','A hash matches one exact file, whichever release it is.'],imp:'core',c:'comp-integrity-hashing'}],
      ['An email from the “principal” asks the office to switch a vendor’s bank details today. What is it, and what stops it?',['Whaling, stopped by a spam filter','Business email compromise, stopped by a call-back on a known number before any payment change','Smishing, stopped by deleting the text','A drive-by, stopped by a browser update'],1,'Payment changes get a second check through a trusted channel. <a href="#freshman/f8">Review: Threats and the people behind them</a>',{whys:['Whaling targets a leader, while this mail poses as one, and spam filters often pass it.','BEC asks for a payment change by email, so a call-back on a number already on file reaches the real person before any money moves.','Smishing comes by text, and this is an email.','A drive-by installs malware through a page visit, and this email asks for a payment change.'],imp:'core',c:'sec-social-engineering'}]
    ]),
    LINKS('Go further',['fido-passkeys','nist-63b','eff'])
@@ -3728,17 +3730,26 @@ function cmdLink(id,text){
   if(text!==name) a.setAttribute('aria-label',name+' docs: options and vendor documentation in the Command Atlas, online, new tab');
   return a;
 }
-function cmdDocs(code,cmd){
+/* "good to know": CMD_REF.k lists the commands taught for reference that no drill step or Range check asks. A command-table
+   row whose every command is in it shows the tag after its docs; one shared hidden line (#gtk-d) tells screen readers
+   what the tag means. Without CMD_REF.k, no row shows it. */
+const GTK_TEXT='Good to know: kept for reference; the drills and Range checks practice other commands.';
+function gtkTag(sup,ctl){
+  if(!document.getElementById('gtk-d')){ const d=el('span','sr',GTK_TEXT); d.id='gtk-d'; document.body.appendChild(d); }
+  ctl.setAttribute('aria-describedby','gtk-d');
+  const t=el('span','gtk','good to know'); t.title=GTK_TEXT; t.setAttribute('aria-hidden','true'); sup.appendChild(t);
+}
+function cmdDocs(code,cmd,tag){
   const r=code&&typeof CMD_REF!=='undefined'?CMD_REF.m[cmdKey(String(cmd))]:null;
   if(!r) return;
-  const ids=r.map(i=>CMD_REF.ids[i]), sup=el('sup','docs');
-  if(ids.length===1){ sup.appendChild(cmdLink(ids[0],'docs')); code.after(sup); return; }
+  const ids=r.map(i=>CMD_REF.ids[i]), sup=el('sup','docs'), k=CMD_REF.k, g=tag&&Array.isArray(k)&&r.every(i=>k.includes(i));
+  if(ids.length===1){ const a=cmdLink(ids[0],'docs'); sup.appendChild(a); if(g) gtkTag(sup,a); code.after(sup); return; }
   const b=el('button','docs-b','docs'), list=el('span','docs-l');
   b.type='button'; b.setAttribute('aria-expanded','false'); b.setAttribute('aria-label','docs for the '+ids.length+' commands on this line');
   list.hidden=true;
   ids.forEach((id,i)=>{ if(i) list.appendChild(document.createTextNode(' · ')); list.appendChild(cmdLink(id,id.slice(id.indexOf('/')+1))); });
   b.addEventListener('click',()=>{ const open=list.hidden; list.hidden=!open; b.setAttribute('aria-expanded',String(open)); });
-  sup.appendChild(b); code.after(sup,list);
+  sup.appendChild(b); if(g) gtkTag(sup,b); code.after(sup,list);
 }
 function renderCmds(b){
   const wrap=el('div','cmdw');
@@ -3748,7 +3759,7 @@ function renderCmds(b){
   b.rows.forEach(([cmd,why])=>{
     const tr=el('tr');
     const td=el('td',null,`<code>${esc(cmd)}</code>`);
-    cmdDocs(td.firstChild,cmd);
+    cmdDocs(td.firstChild,cmd,true);
     tr.appendChild(td);
     tr.appendChild(el('td',null,why));
     t.appendChild(tr);
@@ -5550,7 +5561,7 @@ function renderAbout(){
   c1.innerHTML=`<h3>What this is</h3>
     <p>Defense Ladder is a free, offline cybersecurity course built around Bloom’s revised taxonomy: you move from <b>remembering</b> facts (Freshman) to <b>creating</b> your own checklist, runbook, and team plan (Senior). It maps to open frameworks: the <b>CIS Critical Security Controls v8.1</b> for the six hardening areas and the <b>NIST Cybersecurity Framework 2.0</b> for the big picture.</p>
     <p>It is informative at every level and gets more interactive as you climb: flashcards and quizzes early, then config-reading and triage drills, then builders for your own checklist and session plan. For hands-on work, use Lockdown Range (labs that run in your browser) or practice virtual machines you own. The same skills carry over to cyber defense exercises and competitions, capture-the-flag events, and IT and security jobs.</p>
-    <p>Commands and settings change between versions, so vendor documentation always wins over anything here.</p>`;
+    <p>Commands and settings change between versions, so vendor documentation always wins over anything here. A <span class="gtk">good to know</span> tag beside a command’s docs marks it as kept for reference; the drills and Range checks practice the others.</p>`;
   main.appendChild(c1);
 
   const cw=el('div','card');

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/X3+kdvW9NIw4IS0xpUvKdshcspuIO0pDWUO0WlOMns=' 'sha256-7AS8EGApIHqEEAwvQjPLLWff3cBRKKzLHyECYBnsJYc=' 'sha256-vvupNOdurWeXQeDiyzHmiufX6Sy5JRpCbek45co3P9g=' 'sha256-xGFSYgU3XED+ZT7n9Nb3d4bNvapWGXTEygSEPIloQsI=' 'sha256-zaNKp79p2RHFZp7lCvMvymbf+DCccd/OPw3A3V+LWGw='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/X3+kdvW9NIw4IS0xpUvKdshcspuIO0pDWUO0WlOMns=' 'sha256-5ejVBUW+Wv25L4qVmau0Pr6yAuiRXrfNKlaANhevnIQ=' 'sha256-Au3fadNUKlPrLzjhZvTBCjzKDXkqN/XcUM4AVOfepQk=' 'sha256-vvupNOdurWeXQeDiyzHmiufX6Sy5JRpCbek45co3P9g=' 'sha256-zaNKp79p2RHFZp7lCvMvymbf+DCccd/OPw3A3V+LWGw='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/defense-ladder/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%8E%93%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -55,11 +55,13 @@ html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Segoe UI","SF Pro Text",-apple-system,system-ui,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
 code,kbd,pre,.mono{font-family:ui-monospace,"Cascadia Mono","SF Mono",Menlo,Consolas,"Liberation Mono",monospace}
 a{color:var(--l2);text-decoration-thickness:1px;text-underline-offset:2px}
-sup.docs{margin-left:.3rem;font-size:.72rem;line-height:1}
+sup.docs{margin-left:.3rem;font-size:.72rem;line-height:1;white-space:nowrap}
 sup.docs a,.docs-b{display:inline-block;padding:.4rem .25rem;margin:-.4rem 0;color:var(--l2);font:inherit;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px}
 .docs-b{background:none;border:0;cursor:pointer}
 .docs-l{display:block;margin-top:3px;font-size:.82rem}
 .docs-l[hidden]{display:none}
+.gtk{margin-left:.3rem;padding:0 .35em;border:1px solid var(--line);border-radius:999px;color:var(--ink-2)}
+@media print{.gtk{color:#000;border-color:#000}}
 :root[data-theme="dark"] a{color:var(--l1)}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) a{color:var(--l1)}}
 button{font:inherit;color:inherit}
@@ -1984,17 +1986,26 @@ function cmdLink(id,text){
   if(text!==name) a.setAttribute('aria-label',name+' docs: options and vendor documentation in the Command Atlas, online, new tab');
   return a;
 }
-function cmdDocs(code,cmd){
+/* "good to know": CMD_REF.k lists the commands taught for reference that no drill step or Range check asks. A command-table
+   row whose every command is in it shows the tag after its docs; one shared hidden line (#gtk-d) tells screen readers
+   what the tag means. Without CMD_REF.k, no row shows it. */
+const GTK_TEXT='Good to know: kept for reference; the drills and Range checks practice other commands.';
+function gtkTag(sup,ctl){
+  if(!document.getElementById('gtk-d')){ const d=el('span','sr',GTK_TEXT); d.id='gtk-d'; document.body.appendChild(d); }
+  ctl.setAttribute('aria-describedby','gtk-d');
+  const t=el('span','gtk','good to know'); t.title=GTK_TEXT; t.setAttribute('aria-hidden','true'); sup.appendChild(t);
+}
+function cmdDocs(code,cmd,tag){
   const r=code&&typeof CMD_REF!=='undefined'?CMD_REF.m[cmdKey(String(cmd))]:null;
   if(!r) return;
-  const ids=r.map(i=>CMD_REF.ids[i]), sup=el('sup','docs');
-  if(ids.length===1){ sup.appendChild(cmdLink(ids[0],'docs')); code.after(sup); return; }
+  const ids=r.map(i=>CMD_REF.ids[i]), sup=el('sup','docs'), k=CMD_REF.k, g=tag&&Array.isArray(k)&&r.every(i=>k.includes(i));
+  if(ids.length===1){ const a=cmdLink(ids[0],'docs'); sup.appendChild(a); if(g) gtkTag(sup,a); code.after(sup); return; }
   const b=el('button','docs-b','docs'), list=el('span','docs-l');
   b.type='button'; b.setAttribute('aria-expanded','false'); b.setAttribute('aria-label','docs for the '+ids.length+' commands on this line');
   list.hidden=true;
   ids.forEach((id,i)=>{ if(i) list.appendChild(document.createTextNode(' · ')); list.appendChild(cmdLink(id,id.slice(id.indexOf('/')+1))); });
   b.addEventListener('click',()=>{ const open=list.hidden; list.hidden=!open; b.setAttribute('aria-expanded',String(open)); });
-  sup.appendChild(b); code.after(sup,list);
+  sup.appendChild(b); if(g) gtkTag(sup,b); code.after(sup,list);
 }
 function renderCmds(b){
   const wrap=el('div','cmdw');
@@ -2004,7 +2015,7 @@ function renderCmds(b){
   b.rows.forEach(([cmd,why])=>{
     const tr=el('tr');
     const td=el('td',null,`<code>${esc(cmd)}</code>`);
-    cmdDocs(td.firstChild,cmd);
+    cmdDocs(td.firstChild,cmd,true);
     tr.appendChild(td);
     tr.appendChild(el('td',null,why));
     t.appendChild(tr);
@@ -3806,7 +3817,7 @@ function renderAbout(){
   c1.innerHTML=`<h3>What this is</h3>
     <p>Defense Ladder is a free, offline cybersecurity course built around Bloom’s revised taxonomy: you move from <b>remembering</b> facts (Freshman) to <b>creating</b> your own checklist, runbook, and team plan (Senior). It maps to open frameworks: the <b>CIS Critical Security Controls v8.1</b> for the six hardening areas and the <b>NIST Cybersecurity Framework 2.0</b> for the big picture.</p>
     <p>It is informative at every level and gets more interactive as you climb: flashcards and quizzes early, then config-reading and triage drills, then builders for your own checklist and session plan. For hands-on work, use Lockdown Range (labs that run in your browser) or practice virtual machines you own. The same skills carry over to cyber defense exercises and competitions, capture-the-flag events, and IT and security jobs.</p>
-    <p>Commands and settings change between versions, so vendor documentation always wins over anything here.</p>`;
+    <p>Commands and settings change between versions, so vendor documentation always wins over anything here. A <span class="gtk">good to know</span> tag beside a command’s docs marks it as kept for reference; the drills and Range checks practice the others.</p>`;
   main.appendChild(c1);
 
   const cw=el('div','card');
@@ -5173,7 +5184,7 @@ LADDER.addLevel({
    ],{note:'<b>Follow the brief.</b> Authorized users stay enabled; remove only their extra privilege. Unauthorized accounts are disabled or deleted, as the brief instructs. On a local machine the matching cmdlets are <code>Remove-LocalGroupMember</code>, <code>Disable-LocalUser</code>, and <code>Remove-LocalUser</code>.',
      bloom:'Apply'}),
    QUIZ('j1ck2','Check yourself',[
-     ['The brief lists Domain Admins as: administrator, malia. You find administrator, malia, kanoa. Action?',['Delete kanoa','Remove kanoa from Domain Admins (delete only if kanoa is also an unauthorized account)','Leave it','Add everyone to be safe'],1,'Deleting an account the scenario expects elsewhere breaks availability for that person.',{whys:['Deleting removes an account the scenario may still need; the finding is the group membership.','Removing the membership takes the power and keeps the person’s account.','kanoa holds Domain Admins without a line in the brief, which is a finding.','Adding everyone hands every account full domain control, the opposite of least privilege.'],imp:'core',c:'host-admin-groups'}]
+     ['The brief lists Domain Admins as: administrator, malia. You find administrator, malia, liko. Action?',['Delete liko','Remove liko from Domain Admins (delete only if liko is also an unauthorized account)','Leave it','Add everyone to be safe'],1,'Deleting an account the scenario expects elsewhere breaks availability for that person.',{whys:['Deleting removes an account the scenario may still need; the finding is the group membership.','Removing the membership takes the power and keeps the person’s account.','liko holds Domain Admins without a line in the brief, which is a finding.','Adding everyone hands every account full domain control, the opposite of least privilege.'],imp:'core',c:'host-admin-groups'}]
    ]),
    C('Accounts over time: joiner, mover, leaver','Apply',
      SEQ('Joiner, mover, leaver',[
@@ -5247,7 +5258,9 @@ LADDER.addLevel({
        ['Get-SmbShare | Select-Object Name,Path,Description','File shares. Keep ADMIN$, C$, and IPC$, plus SYSVOL and NETLOGON on a DC, which Group Policy and logon scripts need; remove shares the scenario leaves unexplained with Remove-SmbShare.'],
        ['Get-SmbSession | Select-Object ClientUserName,ClientComputerName','Who holds an SMB session on this file server, and from which computer.'],
        ['Close-SmbSession -ClientUserName \'PHN\\kawika\' -Force','End that user’s sessions once the account is disabled; unsaved changes in files open over them are lost.'],
-       ['Get-DnsServerResourceRecord -ZoneName example.com','If it is a DNS server: look for stray records.']
+       ['Get-DnsServerZone | Select-Object ZoneName,ZoneType,DynamicUpdate,SecureSecondaries','If it is a DNS server: each zone’s update and transfer settings. Either is a finding: DynamicUpdate NonsecureAndSecure, or SecureSecondaries TransferAnyServer.'],
+       ['Get-DnsServerResourceRecord -ZoneName example.com','The zone’s records: look for any the brief leaves out.'],
+       ['Get-Website | Select-Object Name,State,PhysicalPath','If it runs IIS: every site, whether it is Started, and its folder on disk, where a stray script is a likely webshell.']
      ]),
      TIPS('<b>A DNS server you keep.</b> Zone transfers to any host hand out the whole network map, and unsecured dynamic updates let anyone rewrite records, so close transfers and require secure updates. <b>A DHCP server you keep.</b> In a domain, a Windows DHCP server needs authorization in AD before it hands out addresses, so an unauthorized one is a rogue.'),
      DETAIL('Server Core: tools without a desktop',
@@ -5281,9 +5294,9 @@ LADDER.addLevel({
      ['Web-Ftp-Server','The brief leaves FTP out: Uninstall-WindowsFeature -Name Web-Ftp-Server, then confirm the web site still answers.'],
      ['FS-SMB1','SMBv1 is the obsolete, wormable protocol that EternalBlue exploited. Remove it: Uninstall-WindowsFeature -Name FS-SMB1.']
    ]),
-   SPOT('j1sp2','Spot the stale and over-powered accounts','Pōhinahina High School, 20 October 2026. HR lists the staff as malia, keola, pua, and kawika; kanoa left on 1 September; pua moved from the records office to teaching in August. Domain Admins: Administrator and malia. Tap every line that breaks the HR list or least privilege, then Check.',[
+   SPOT('j1sp2','Spot the stale and over-powered accounts','Pōhinahina High School, 20 October 2026. HR lists the staff as malia, keola, pua, and kawika; liko left on 1 September; pua moved from the records office to teaching in August. Domain Admins: Administrator and malia. Tap every line that breaks the HR list or least privilege, then Check.',[
      ['PS> Search-ADAccount -AccountInactive -TimeSpan 45.00:00:00 -UsersOnly | Select-Object Name,Enabled,LastLogonDate',null],
-     ['kanoa      True     8/29/2026 4:51:07 PM','kanoa left on 1 September and is still enabled. Disable the account now, reset the password, and strip its groups.'],
+     ['liko       True     8/29/2026 4:51:07 PM','liko left on 1 September and is still enabled. Disable the account now, reset the password, and strip its groups.'],
      ['Guest      False',null,'Guest is meant to stay unused, so it shows as inactive, and False means disabled: the safe state for Guest.'],
      ['svc_scan   True     3/2/2025 9:00:12 AM','An enabled service account unused for 19 months. Confirm with its owner, then disable it; a dormant account with a password is a door nobody watches.'],
      ['PS> Search-ADAccount -PasswordNeverExpires -UsersOnly | Select-Object Name',null],
@@ -5318,7 +5331,8 @@ LADDER.addLevel({
        ['Set-ADDefaultDomainPasswordPolicy phn.k12.lan -MinPasswordLength 14 -PasswordHistoryCount 24 -LockoutThreshold 5 -LockoutDuration 00:15:00 -LockoutObservationWindow 00:15:00','Sets the same domain policy from PowerShell. The Default Domain Policy GPO defines the password values from install and rewrites any it defines at its next refresh, so set the GPO to match.'],
        ['Get-ADDefaultDomainPasswordPolicy','Confirm domain password settings after editing the Default Domain Policy.'],
        ['auditpol /get /category:*','Current audit policy. Enable logon and account-management auditing where the brief or good practice calls for it.'],
-       ['reg query HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU','Read what a GPO wrote: most Administrative Templates settings write their values under a Policies key such as this one, and Not Configured removes them. A hand edit there lasts until Group Policy rewrites it: at gpupdate /force, when the GPO changes, or at every background refresh once Configure registry policy processing is set to Process even if the Group Policy objects have not changed. Change the GPO instead.']
+       ['reg query HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU','Read what a GPO wrote: most Administrative Templates settings write their values under a Policies key such as this one, and Not Configured removes them. A hand edit there lasts until Group Policy rewrites it: at gpupdate /force, when the GPO changes, or at every background refresh once Configure registry policy processing is set to Process even if the Group Policy objects have not changed. Change the GPO instead.'],
+       ['winrm get winrm/config/service','Read what WinRM, the service behind PowerShell remoting, accepts. Keep AllowUnencrypted = false and Basic = false (under Auth), the defaults; a GPO under Windows Components &gt; Windows Remote Management (WinRM) locks them.']
      ]),
      DETAIL('Security Options and User Rights: targets and reach',
        TIPS('<b>Security Options</b> (one setting per row):<br>Accounts: Limit local account use of blank passwords to console logon only = Enabled.<br>Interactive logon: Don’t display last signed-in = Enabled.<br>Interactive logon: Do not require CTRL+ALT+DEL = Disabled (worded in the negative, so Disabled requires it).<br>Interactive logon: Machine inactivity limit = 900 seconds or fewer.<br>Network access: Do not allow anonymous enumeration of SAM accounts and shares = Enabled.<br>Network security: LAN Manager authentication level = Send NTLMv2 response only. Refuse LM &amp; NTLM.<br>Microsoft network client and server: Digitally sign communications (always) = Enabled.<br>User Account Control: Run all administrators in Admin Approval Mode = Enabled.<br>Shutdown: Allow system to be shut down without having to log on = Disabled (Windows 11 ships it Enabled).<br>Registry forms: DontDisplayLastUserName 1, DisableCAD 0, and ShutdownWithoutLogon 0 under HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System.<br>Check before you change: System cryptography: Use FIPS compliant algorithms stays as the brief sets it, because Microsoft’s baselines leave it off and turning it on can break Remote Desktop and older TLS connections.',
@@ -5667,7 +5681,8 @@ LADDER.addLevel({
        ['sudo chmod 440 /etc/sudoers','Expect -r--r----- root root; edit it only with visudo.'],
        ['sudo chmod g-w,o-w FILE','Symbolic form: takes write from group and other, and keeps the owner’s bits.'],
        ['sudo find / -xdev -type d -perm -0002 ! -perm -1000 2>/dev/null','World-writable directories that lack the sticky bit.'],
-       ['sudo find / -xdev -type f -perm -2000 2>/dev/null','SGID files. Compare them with a clean VM, as with SUID in Sophomore.']
+       ['sudo find / -xdev -type f -perm -2000 2>/dev/null','SGID files. Compare them with a clean VM, as with SUID in Sophomore.'],
+       ['sudo setcap -r /usr/bin/python3.12','Removes the file’s capabilities, here the cap_setuid that lets anyone who runs python3.12 become root. Verify: <code>getcap /usr/bin/python3.12</code> prints nothing.']
      ]),
      TIPS('<b>SGID</b> (2000, an s in the group’s x spot) runs a program with its group’s rights; on a directory, new files take the directory’s group. The <b>sticky bit</b> (1000, a t in the other x spot) on a world-writable directory such as /tmp lets only a file’s owner delete or rename it.',
            '<b>A + after the mode</b> (<code>-rw-r-----+</code>) means ACL entries the nine bits hide: <code>getfacl</code> lists them, and <code>setfacl -x u:NAME FILE</code> removes one.',
@@ -6280,7 +6295,7 @@ LADDER.addLevel({
    ],'Analyze'),
    QUIZ('j7q','Check: read the wire',[
      ['Packets with <code>Flags [FS]</code> arrive from an outside address. What do you conclude?',['A normal close','A crafted packet: no normal stack sets SYN and FIN together','A slow handshake','A reply to your own scan'],1,'SYN+FIN, null, and Xmas packets probe the firewall: drop them at the edge and note the source.',{whys:['A normal close uses FIN on its own, apart from SYN.','No normal stack sets SYN and FIN together, so a crafting tool made this packet.','A slow handshake still uses SYN, SYN-ACK, and ACK in turn.','Replies to your own scan come back as SYN-ACK or RST.'],imp:'good',c:'net-handshake'}],
-     ['Kanoa wants to practice with Wireshark on the school Wi-Fi at lunch. What is the right call?',['Go ahead: it only reads','Capture only his own traffic there','Capture only where he owns the network or holds written permission, such as his own lab','Ask a friend first'],2,'School networks forbid capture; his own lab and these excerpts give the same practice.',{whys:['Reading alone still collects other people’s data, which needs permission.','His own traffic shares the school network, and school rules forbid capturing there.','A capture holds other people’s data, so he captures only where he owns the network or holds written permission.','Permission comes from the network’s owner, the school, rather than a friend.'],imp:'core',c:'eth-cyber-ethics'}],
+     ['Koa wants to practice with Wireshark on the school Wi-Fi at lunch. What is the right call?',['Go ahead: it only reads','Capture only his own traffic there','Capture only where he owns the network or holds written permission, such as his own lab','Ask a friend first'],2,'School networks forbid capture; his own lab and these excerpts give the same practice.',{whys:['Reading alone still collects other people’s data, which needs permission.','His own traffic shares the school network, and school rules forbid capturing there.','A capture holds other people’s data, so he captures only where he owns the network or holds written permission.','Permission comes from the network’s owner, the school, rather than a friend.'],imp:'core',c:'eth-cyber-ethics'}],
      ['A priority 1 alert: an SMB exploit signature from 203.0.113.44 to phn-web01, a Linux web server with no SMB service and 445 filtered. Best next step?',['Wipe phn-web01','Confirm it is not exposed (no listener, no session in the capture), record it, and watch the source','Turn the sensor off','Escalate as a confirmed breach'],1,'An alert is a question; its priority describes the rule, and this event needs its own rating.',{whys:['Wiping on an unconfirmed alert destroys evidence and service over a likely miss.','The exploit needs SMB, so confirming exposure, recording it, and watching the source fits the facts.','Turning the sensor off blinds you to the next, real alert.','Calling it a breach jumps ahead of the evidence, since the server runs without SMB.'],imp:'core',c:'det-triage'}],
      ['PHN-LAB-07’s <code>ipconfig /all</code> shows DHCP Server, Default Gateway, and DNS Servers all reading 10.1.10.44, a classroom PC. What happened, and what stops it?',['A rogue DHCP server answered first; DHCP snooping','A normal second pool; nothing','A broadcast storm; storm control','A DNS outage; flush the cache'],0,'A rogue DHCP offer puts one PC on-path for everything PHN-LAB-07 sends. <a href="#sophomore/s7">Review: Network tools and a safer router</a>',{whys:['One classroom PC as server, gateway, and DNS means a rogue DHCP offer; DHCP snooping drops offers from access ports.','A real second pool would name the school’s own gateway and DNS servers.','A broadcast storm floods the network and leaves address settings alone.','A DNS outage leaves the DHCP server and gateway as they were.'],imp:'core',c:'threat-network-attacks'}],
      ['<code>nslookup bank.example</code> returns 10.1.10.44 from the school resolver; <code>nslookup bank.example 203.0.113.53</code> returns 198.51.100.40. What do you suspect first?',['Normal regional answers','A poisoned cache or a changed DNS setting steering users to an inside host','A slow resolver','IPv6'],1,'Check the resolver’s cache and forwarders and warn users; nslookup skips the hosts file, so DNS answered. <a href="#sophomore/s7">Review: Network tools and a safer router</a>',{whys:['Regional answers would still be public addresses, and 10.1.10.44 is private.','A private answer for a public bank marks a tampered lookup in the school resolver’s cache or settings.','A slow resolver delays the answer and keeps it correct.','IPv6 answers use longer addresses with colons, and both answers here are IPv4.'],imp:'core',c:'threat-network-attacks'}],
@@ -6686,7 +6701,7 @@ LADDER.addLevel({
      P('Kahikina High’s portal shows a student’s grades at <code>/grades?student=1041</code>. If the server checks only that a session exists, changing 1041 to 1042 shows someone else’s grades. That is <b>broken access control</b>, first on the OWASP Top 10; this form of it is an <b>insecure direct object reference (IDOR)</b>. In the log it looks calm: one account, numbers counting upward, and a 200 of similar size each time.'),
      P('The fix lives on the server: on every request, confirm the record belongs to the signed-in user (or to a teacher of that student), and answer 403 or 404 when it does not. Random ids slow guessing; only the ownership check closes the hole.')),
    PATH('A forged request, and the token that stops it',[
-     {name:'Student',tag:'signed in',tone:'l1',note:'Nohea is signed in to portal.kahikina-high.example, so the browser holds its session cookie',via:'Opens a link from a chat'},
+     {name:'Student',tag:'signed in',tone:'l1',note:'Alohi is signed in to portal.kahikina-high.example, so the browser holds its session cookie',via:'Opens a link from a chat'},
      {name:'Hostile page',tag:'another site',tone:'bad',note:'Carries a hidden form aimed at the portal’s change-email address',via:'The browser sends the form'},
      {name:'Browser',tag:'break 1',tone:'amber',note:['Sends POST /account/email to the portal','Attaches the portal cookie unless the cookie forbids it','<b>SameSite=Lax or Strict keeps the cookie off this request</b>'],via:'Arrives at the portal'},
      {name:'Portal server',tag:'break 2',tone:'ok',note:['Checks the anti-CSRF token, a secret value placed in the portal’s own forms','The hostile page cannot read it, so the request lacks it','<b>Token missing or wrong: refused with 403</b>']}
@@ -6710,8 +6725,8 @@ LADDER.addLevel({
      P('An AI assistant reads instructions and data as one stream of text. <b>Prompt injection</b> is text the model follows as instructions when it should treat it as data. <b>Direct</b> injection is typed into the chat to override its rules. <b>Indirect</b> injection hides in a page, email, or file the assistant reads; it is the more dangerous kind, because the user never sees it. That is the injection family again: untrusted text treated as instructions. Kalani asks the shop’s assistant to summarize a supplier newsletter, and its activity log reads:'),
      TERM('10:02:14  read newsletter.html (hidden text found)\n10:02:15  tool request: send_email to orders@outside.example, attach customers.csv\n10:02:15  held: waiting for user confirmation\n10:02:31  denied by kalani'),
      P('Two defenses limit the harm: give the assistant <b>least-privilege tools</b> (read this folder, never send mail), and have <b>a person confirm</b> any action with consequences. Treat model output as untrusted input too: it never goes straight into a shell, a query, or a page. What to paste in the first place: <a href="#freshman/f2">Safe and ethical online</a>.')),
-   SPOT('j9sp','Tag the access-log lines','Kahikina High’s portal app log, trimmed to client, account (- for none), time (HST), request, status, and size. Each student’s own id: nohea 1041, kekoa 1077, kai 1062; 192.0.2.10 is the school’s uptime monitor. Tap every line that shows misuse; each answer names its tag: scan, guess, injection, traversal, or access beyond rights. Then Check.',[
-     ['192.0.2.140 nohea 07:58:12 "GET /grades?student=1041" 200 3812',null],
+   SPOT('j9sp','Tag the access-log lines','Kahikina High’s portal app log, trimmed to client, account (- for none), time (HST), request, status, and size. Each student’s own id: alohi 1041, kekoa 1077, kai 1062; 192.0.2.10 is the school’s uptime monitor. Tap every line that shows misuse; each answer names its tag: scan, guess, injection, traversal, or access beyond rights. Then Check.',[
+     ['192.0.2.140 alohi 07:58:12 "GET /grades?student=1041" 200 3812',null],
      ['203.0.113.77 - 08:02:01 "GET /wp-login.php" 404 196','Scan: a path this portal never had, one of hundreds from this address in a minute.'],
      ['203.0.113.77 - 08:02:01 "GET /.env" 404 196','Scan: probing for a settings file full of secrets. The 404 means the probe missed.'],
      ['198.51.100.23 - 08:10:44 "POST /login" 401 412   (x58 in 2 min, 58 different usernames)','Guess: one try per account across many accounts, a password spray. Rate-limit by address and alert.'],
@@ -7030,7 +7045,7 @@ LADDER.addLevel({
      ['07:10:00 fw   ALLOW 10.0.9.5 -> 10.0.5.0/24 tcp/1-1024 job=weekly-scan',null,'This is the approved weekly scan: it comes from 10.0.9.5 and carries job=weekly-scan, as the intro describes.'],
      ['07:12:48 fw   ALLOW 10.0.5.31 -> 10.0.5.1-254 tcp/445 (254 hosts in 20 s)','An office PC sweeping every address for file sharing is Discovery (T1046): that PC may be compromised, so isolate and investigate it.'],
      ['07:15:09 sec  4625 makana from 10.0.5.20, then 4624 makana at 07:15:21',null,'One failed sign-in and a success 12 seconds later is a typo followed by the right password; reconnaissance shows many names or many tries.'],
-     ['07:31:44 mail 203.0.113.77 RCPT keola 250, nohea 550, pua 250 … (60 names in 1 min, no message sent)','Reading the yes or no replies to guessed mailbox names builds a target list (T1589); answer every name alike and rate-limit.']
+     ['07:31:44 mail 203.0.113.77 RCPT keola 250, alohi 550, pua 250 … (60 names in 1 min, no message sent)','Reading the yes or no replies to guessed mailbox names builds a target list (T1589); answer every name alike and rate-limit.']
    ]),
    C('Threat intelligence you can act on','Analyze',
      P('Threat intelligence is evidence that changes a decision. An advisory from CISA, a vendor, or a partner school arrives with <b>indicators</b> (hashes, addresses, and domains) and <b>methods</b> (ATT&amp;CK techniques). Work it in four moves: pull out the indicators, search your logs back to its first-seen date, block or alert on what applies, and report under its sharing label.'),

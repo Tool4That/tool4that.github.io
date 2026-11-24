@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/X3+kdvW9NIw4IS0xpUvKdshcspuIO0pDWUO0WlOMns=' 'sha256-B8/bhYsK6tcP5IxzC+6dRLwlISbtDqGLu/sDq2fj330=' 'sha256-EJUo6x7FMJBCtLbdASMoHTewo5O+8qSveS6aF0fMm8o=' 'sha256-al+ZJSuvhN67q2spnFG8hnDEt8u6i1gV+T4JvZO1US4=' 'sha256-zaNKp79p2RHFZp7lCvMvymbf+DCccd/OPw3A3V+LWGw='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/X3+kdvW9NIw4IS0xpUvKdshcspuIO0pDWUO0WlOMns=' 'sha256-EJUo6x7FMJBCtLbdASMoHTewo5O+8qSveS6aF0fMm8o=' 'sha256-LSgn+lnhuhHFCDwDVSIQy/6F962Flq1OPdHDhQfQME0=' 'sha256-j8Non+0OWjeOEmbYV335DJ+dmKNsQSne6cd8rJKTtSg=' 'sha256-zaNKp79p2RHFZp7lCvMvymbf+DCccd/OPw3A3V+LWGw='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/defense-ladder/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%8E%93%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -55,11 +55,13 @@ html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Segoe UI","SF Pro Text",-apple-system,system-ui,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
 code,kbd,pre,.mono{font-family:ui-monospace,"Cascadia Mono","SF Mono",Menlo,Consolas,"Liberation Mono",monospace}
 a{color:var(--l2);text-decoration-thickness:1px;text-underline-offset:2px}
-sup.docs{margin-left:.3rem;font-size:.72rem;line-height:1}
+sup.docs{margin-left:.3rem;font-size:.72rem;line-height:1;white-space:nowrap}
 sup.docs a,.docs-b{display:inline-block;padding:.4rem .25rem;margin:-.4rem 0;color:var(--l2);font:inherit;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px}
 .docs-b{background:none;border:0;cursor:pointer}
 .docs-l{display:block;margin-top:3px;font-size:.82rem}
 .docs-l[hidden]{display:none}
+.gtk{margin-left:.3rem;padding:0 .35em;border:1px solid var(--line);border-radius:999px;color:var(--ink-2)}
+@media print{.gtk{color:#000;border-color:#000}}
 :root[data-theme="dark"] a{color:var(--l1)}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) a{color:var(--l1)}}
 button{font:inherit;color:inherit}
@@ -1984,17 +1986,26 @@ function cmdLink(id,text){
   if(text!==name) a.setAttribute('aria-label',name+' docs: options and vendor documentation in the Command Atlas, online, new tab');
   return a;
 }
-function cmdDocs(code,cmd){
+/* "good to know": CMD_REF.k lists the commands taught for reference that no drill step or Range check asks. A command-table
+   row whose every command is in it shows the tag after its docs; one shared hidden line (#gtk-d) tells screen readers
+   what the tag means. Without CMD_REF.k, no row shows it. */
+const GTK_TEXT='Good to know: kept for reference; the drills and Range checks practice other commands.';
+function gtkTag(sup,ctl){
+  if(!document.getElementById('gtk-d')){ const d=el('span','sr',GTK_TEXT); d.id='gtk-d'; document.body.appendChild(d); }
+  ctl.setAttribute('aria-describedby','gtk-d');
+  const t=el('span','gtk','good to know'); t.title=GTK_TEXT; t.setAttribute('aria-hidden','true'); sup.appendChild(t);
+}
+function cmdDocs(code,cmd,tag){
   const r=code&&typeof CMD_REF!=='undefined'?CMD_REF.m[cmdKey(String(cmd))]:null;
   if(!r) return;
-  const ids=r.map(i=>CMD_REF.ids[i]), sup=el('sup','docs');
-  if(ids.length===1){ sup.appendChild(cmdLink(ids[0],'docs')); code.after(sup); return; }
+  const ids=r.map(i=>CMD_REF.ids[i]), sup=el('sup','docs'), k=CMD_REF.k, g=tag&&Array.isArray(k)&&r.every(i=>k.includes(i));
+  if(ids.length===1){ const a=cmdLink(ids[0],'docs'); sup.appendChild(a); if(g) gtkTag(sup,a); code.after(sup); return; }
   const b=el('button','docs-b','docs'), list=el('span','docs-l');
   b.type='button'; b.setAttribute('aria-expanded','false'); b.setAttribute('aria-label','docs for the '+ids.length+' commands on this line');
   list.hidden=true;
   ids.forEach((id,i)=>{ if(i) list.appendChild(document.createTextNode(' · ')); list.appendChild(cmdLink(id,id.slice(id.indexOf('/')+1))); });
   b.addEventListener('click',()=>{ const open=list.hidden; list.hidden=!open; b.setAttribute('aria-expanded',String(open)); });
-  sup.appendChild(b); code.after(sup,list);
+  sup.appendChild(b); if(g) gtkTag(sup,b); code.after(sup,list);
 }
 function renderCmds(b){
   const wrap=el('div','cmdw');
@@ -2004,7 +2015,7 @@ function renderCmds(b){
   b.rows.forEach(([cmd,why])=>{
     const tr=el('tr');
     const td=el('td',null,`<code>${esc(cmd)}</code>`);
-    cmdDocs(td.firstChild,cmd);
+    cmdDocs(td.firstChild,cmd,true);
     tr.appendChild(td);
     tr.appendChild(el('td',null,why));
     t.appendChild(tr);
@@ -3806,7 +3817,7 @@ function renderAbout(){
   c1.innerHTML=`<h3>What this is</h3>
     <p>Defense Ladder is a free, offline cybersecurity course built around Bloom’s revised taxonomy: you move from <b>remembering</b> facts (Freshman) to <b>creating</b> your own checklist, runbook, and team plan (Senior). It maps to open frameworks: the <b>CIS Critical Security Controls v8.1</b> for the six hardening areas and the <b>NIST Cybersecurity Framework 2.0</b> for the big picture.</p>
     <p>It is informative at every level and gets more interactive as you climb: flashcards and quizzes early, then config-reading and triage drills, then builders for your own checklist and session plan. For hands-on work, use Lockdown Range (labs that run in your browser) or practice virtual machines you own. The same skills carry over to cyber defense exercises and competitions, capture-the-flag events, and IT and security jobs.</p>
-    <p>Commands and settings change between versions, so vendor documentation always wins over anything here.</p>`;
+    <p>Commands and settings change between versions, so vendor documentation always wins over anything here. A <span class="gtk">good to know</span> tag beside a command’s docs marks it as kept for reference; the drills and Range checks practice the others.</p>`;
   main.appendChild(c1);
 
   const cw=el('div','card');
@@ -5127,6 +5138,7 @@ LADDER.addLevel({
        ['Get-LocalUser | Select-Object Name,Enabled,PasswordRequired','Who exists, who is enabled, and who can have a blank password.'],
        ['Disable-LocalUser -Name Guest','Guest off. Also: net user Guest /active:no'],
        ['Remove-LocalUser -Name svc_update','Delete an unauthorized user. Also: net user svc_update /delete'],
+       ['cmdkey /list','Passwords Windows saved for the signed-in account. One that signs in as a removed account still opens its target: <code>cmdkey /delete:PHN-FS-01</code> deletes the entry whose Target line ends target=PHN-FS-01.'],
        ['net user test * /add','Create a local user; the * prompts for its password. PowerShell: New-LocalUser -Name test'],
        ['Remove-LocalGroupMember -Group Administrators -Member kawika','Strip admin from an authorized standard user. Also: net localgroup Administrators kawika /delete'],
        ['Add-LocalGroupMember -Group "Remote Desktop Users" -Member keola','Give exactly the access the scenario brief asks for.'],
@@ -5135,13 +5147,14 @@ LADDER.addLevel({
        ['Set-LocalUser -Name malia -PasswordNeverExpires $false','Follow the same expiry policy as every other account.'],
        ['net user malia /logonpasswordchg:yes','Windows asks for a new password at the next sign-in. Clear Password never expires first (the line above): the two settings exclude each other.'],
        ['New-LocalGroup -Name Teachers; Add-LocalGroupMember -Group Teachers -Member keola','Create a group the brief requires, then add exactly the listed members. Also: net localgroup Teachers /add'],
+       ['New-ADUser -Name nohea -SamAccountName nohea -AccountPassword (Read-Host -AsSecureString \'Password\') -Enabled $true; Add-ADGroupMember -Identity Teachers -Members nohea','On a domain controller: create the domain user, then add it to the group the brief lists (New-ADGroup -Name Teachers -GroupScope Global creates a missing one). New-ADUser leaves an account disabled until it has a valid password and -Enabled $true. Verify: Get-ADGroupMember -Identity Teachers.'],
        ['quser','Who is signed in. Read the ID column: each session’s number.'],
        ['logoff ID','Ends session ID, the one the brief rules out, so a demoted or disabled user’s old token ends with it. Both commands: Pro and higher; on Home, sign the user out from Task Manager &gt; Users.']
      ]),
      TIPS('<b>Disable built-ins instead of deleting them:</b> Guest, and on a workstation the built-in Administrator unless the brief signs in with it.','<b>Rename-LocalUser changes only the label:</b> the built-in Administrator’s SID still ends in -500, and its rights stay (<a href="#freshman/f5">First look at Windows</a>).','<b>Remote Desktop:</b> when the brief needs it, require NLA and the SSL (TLS) security layer; otherwise turn it off.',
           '<b>Remote Desktop Users holds only the listed users;</b> Administrators connect without joining. Scope the firewall rule to the addresses that need it.','<b>Remote Assistance</b>, on by default in Windows 11, lets an invited helper see and control the desktop. It is separate from Remote Desktop and from the Quick Assist app.','<b>When the brief rules out remote access,</b> clear Allow Remote Assistance connections in <code>SystemPropertiesRemote</code>, then close its firewall rules with <code>Disable-NetFirewallRule -Group "@FirewallAPI.dll,-33002"</code>.',
           '<b>Group changes wait for a sign-in,</b> when Windows builds the <a href="#junior/j8">access token</a>: a demoted user stays admin until you sign them out or restart the PC.','<b>Look before deleting.</b> A deleted account’s tasks and services stop: <code>Get-ScheduledTask | Where-Object {$_.Principal.UserId -like "*NAME"}</code> and <code>Get-CimInstance Win32_Service | Where-Object StartName -like "*NAME"</code>.','<b>Delete leaves the profile.</b> Remove-LocalUser and net user /delete keep C:\\Users\\NAME; Settings &gt; Accounts &gt; Remove deletes its files too.','<b>Reset only what the brief names</b> or what is weak or blank: resetting locks the user out of their encrypted files and saved sign-in passwords.','<b>Skip forced changes</b> on service, task, and Remote Desktop accounts: a service cannot answer, and NLA signs in before Windows can ask.','<b>PasswordRequired False only allows a blank password;</b> accounts Setup made often read False with a password set.','<b>Password protected</b> under Control Panel &gt; User Accounts &gt; Manage another account marks every account that has a password, on every edition.',
-          '<b>Require a password:</b> <code>net user NAME /passwordreq:yes</code> makes an account follow the policy once the minimum length is 1 or more.','<b>Lock an idle screen.</b> Interactive logon: Machine inactivity limit (900 seconds or fewer) covers every account; on Home, set InactivityTimeoutSecs under Policies\\System.'),
+          '<b>Require a password:</b> <code>net user NAME /passwordreq:yes</code> makes an account follow the policy once the minimum length is 1 or more.','<b>Lock an idle screen.</b> Interactive logon: Machine inactivity limit (900 seconds or fewer) covers every account; on Home, set InactivityTimeoutSecs under Policies\\System. <code>powercfg /setacvalueindex SCHEME_CURRENT SUB_NONE CONSOLELOCK 1</code> asks for the password when a plugged-in PC wakes from sleep (/setdcvalueindex: on battery), and <code>powercfg /setactive SCHEME_CURRENT</code> applies it. 1 is the default, so a 0 is a finding.'),
      DETAIL('Accounts, remote access, screen locks, and policy lookups',TIPS('<b>Workstation built-ins:</b> disable Administrator (strong password instead when the brief signs in with it) and Guest; leave DefaultAccount and WDAGUtilityAccount, which Windows already disables.',
           '<b>WDAGUtilityAccount</b> served Application Guard, which 24H2 removed; the disabled account often remains after an upgrade, so leave it alone.','<b>Server and domain controller:</b> the built-in Administrator is often the authorized sign-in; a DC adds krbtgt and the DSRM administrator; leave both in place.',
           '<b>krbtgt</b> holds the Kerberos key and stays disabled by design; the <b>DSRM administrator</b> is the local repair account. Both belong on a domain controller.','<b>The SSL (TLS) security layer</b> for Remote Desktop runs the session inside TLS, and the server shows its certificate before NLA checks you.','<b>Remote Assistance by script:</b> set fAllowToGetHelp 0 under HKLM\\SYSTEM\\CurrentControlSet\\Control\\Remote Assistance, then close its firewall rules as above.','<b>Screen savers lock per user:</b> each account must choose one with On resume, display logon screen ticked; the machine inactivity limit covers everyone at once.','<b>Workstation groups with extra power:</b> audit Backup Operators (-551), Remote Desktop Users (-555), Remote Management Users (-580), and Hyper-V Administrators (-578) like Administrators (S-1-5-32-544).',
@@ -5292,7 +5305,7 @@ LADDER.addLevel({
        ['reg delete HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer /v NoDriveTypeAutoRun /f','Remove one value, which returns that setting to the Windows default. Twin: Remove-ItemProperty']
      ]),
      NOTE('<b>Export first, then change.</b> A registry change is final, and /f overwrites at once. Export the key to a .reg file, log the change, make it, then reg query to confirm. A wrong value under HKLM\\SYSTEM can stop Windows from starting: snapshot the VM.',true),
-     TIPS('<b>New-Item -Force wipes an existing key</b>, every value and subkey. New-ItemProperty needs an existing key, so run Test-Path and create the key only on False.')),
+     TIPS('<b>New-Item -Force wipes an existing key</b>, every value and subkey. New-ItemProperty needs an existing key, so run Test-Path and create the key only on False: <code>if (-not (Test-Path $k)) { New-Item -Path $k -Force | Out-Null }</code>, where $k holds the key path and Out-Null keeps the new key’s details off the screen.')),
    C('Remove prohibited media: find, review, then delete','Apply',
      P('When the brief bans file types, such as music and video in user folders, keep the list of every path you remove for your log.'),
      CMDS('Find, review, and delete',[
@@ -5450,7 +5463,7 @@ LADDER.addLevel({
        ['loginctl list-sessions','The sessions systemd-logind tracks, including ones that who leaves out, such as an SSH command run without a terminal.'],
        ['sudo gpasswd -d NAME GROUP','Remove a member; /etc/gshadow updates too.'],
        ['sudo passwd -S -a','Column 2 shows each password’s state: P set, L locked, and NP none. NP is a finding; root reads L when the installer left root’s password empty.'],
-       ['sudo usermod -L -e 1 svc_update; sudo pkill -KILL -u svc_update','Lock the account and end its processes first: deluser calls userdel, which refuses an account with running processes and leaves it half removed.'],
+       ['sudo usermod -L -e 1 svc_update; sudo pkill -KILL -u svc_update','Lock the account and end its processes first: deluser calls userdel, which refuses an account with running processes and leaves it half removed. List them before you end them: <code>pgrep -a -u svc_update</code> prints each PID with its full command line, and <code>pgrep -a firefox</code> prints nothing once Firefox is closed, ready for a browser policy edit.'],
        ['sudo loginctl disable-linger svc_update','Stops the account’s own systemd services from starting at boot and running after it signs out. ls /var/lib/systemd/linger names each account that still lingers.'],
        ['sudo deluser --remove-home svc_update','Remove an unauthorized user and its home folder (elsewhere: sudo userdel -r svc_update).'],
        ['sudo gpasswd -d kawika sudo','Remove kawika from sudo and keep the user. Group changes apply at the next sign-in, so end kawika’s open sessions with sudo loginctl terminate-user kawika.'],
@@ -5577,6 +5590,7 @@ LADDER.addLevel({
        ['sudo apt install unattended-upgrades && sudo dpkg-reconfigure -plow unattended-upgrades','Automatic security updates on: answering Yes writes /etc/apt/apt.conf.d/20auto-upgrades.'],
        ['apt-config dump | grep -E \'Periodic::(Update-Package-Lists|Unattended-Upgrade) \'','The settings in force after every file in /etc/apt/apt.conf.d is read: both values read "1" when the lists refresh and unattended-upgrades runs daily. systemctl is-enabled apt-daily.timer apt-daily-upgrade.timer then answers enabled twice.'],
        ['sudo unattended-upgrade --dry-run -d 2>&1 | grep \'Allowed origins\'','The proof: on Debian 13 the list names codename=trixie-security,label=Debian-Security. The dry run installs nothing.'],
+       ['sudo mintupdate-automation upgrade enable','Linux Mint: the terminal form of Update Manager’s Automation switch (Edit, Preferences, Automation). Each day it runs <code>mintupdate-cli upgrade -r -y</code>: -r refreshes the package lists, and -y answers yes, so every update installs and each package’s new configuration files replace yours. To keep your hardened ones, add the line --keep-configuration to /etc/mintupdate-automatic-upgrades.conf. Verify: <code>systemctl is-enabled mintupdate-automation-upgrade.timer</code> reads enabled.'],
        ['sudo ss -tulnp','Listening TCP and UDP sockets with the owning process.'],
        ['systemctl list-units --type=service --state=running','Running services.'],
        ['systemctl list-sockets','Sockets systemd listens on for services it starts on demand, such as ssh.socket on port 22.'],
@@ -5663,7 +5677,7 @@ LADDER.addLevel({
      CMDS('More one-line edits from the Range and the drills',[
        ['sudo sed -i.bak \'s/^#\\?PermitRootLogin.*/PermitRootLogin no/\' /etc/ssh/sshd_config','#\\? matches an optional #, so a commented default line becomes the active setting too. Then run sudo sshd -t.'],
        ['printf \'PermitRootLogin no\\nMaxAuthTries 3\\n\' | sudo tee /etc/ssh/sshd_config.d/00-hardening.conf','printf turns each \\n into a line break, so one command writes a whole drop-in. tee writes it as root, where a plain &gt; would run as you. Then sudo sshd -t.'],
-       ['sudo sed -i.bak \'/^autologin-user/d\' /etc/lightdm/lightdm.conf','/PATTERN/d deletes each matching line. Preview it with sed -n \'/^autologin-user/p\' FILE.'],
+       ['sudo sed -i.bak \'/^autologin-user/d\' /etc/lightdm/lightdm.conf','/PATTERN/d deletes each matching line. Preview it with sed -n \'/^autologin-user/p\' FILE. Prove it with <code>/usr/sbin/lightdm --show-config 2&gt;&amp;1 | grep -E \'allow-guest|autologin\'</code>: lightdm prints the combined settings from its files on stderr, each tagged with a letter its Sources list maps to a file, so an autologin-user left in a lightdm.conf.d drop-in still shows. A key it leaves out takes lightdm’s default, so write allow-guest=false.'],
        ['sudo cp -a /etc/pam.d/common-auth /root/ && sudo sed -i \'s/ nullok\\(_secure\\)\\?//g\' /etc/pam.d/common-auth','Empty NEW deletes the match; g hits every match on the line instead of the first alone. \\(_secure\\)\\? removes the older nullok_secure whole (a bare \' nullok\' would leave pam_unix.so_secure, a module name PAM cannot load). The backup goes to /root because a .bak inside /etc/pam.d keeps answering grep -rn nullok /etc/pam.d/. Keep a root terminal open during PAM edits.'],
        ['diff FILE.bak FILE','Every changed line, old (&lt;) and new (&gt;). Empty output means sed matched nothing.']
      ]),
@@ -6435,7 +6449,7 @@ LADDER.addLevel({
       note:'TLS 1.3 always uses a fresh key per session (<b>forward secrecy</b>), so a key stolen later cannot unlock recorded traffic.',
       caption:'Keep TLS 1.2 and 1.3, switch off everything older, then confirm the devices the business needs still connect.',bloom:'Apply'}),
    QUIZ('s8c2','Check yourself',[
-     ['On Lauaʻe Café Wi-Fi, Nohea opens portal.kahikina-high.example over TLS 1.3. What can another customer watching the network read?',['The grades page and the session cookie','The password, once the page loads','The site name in the ClientHello, the server’s address, timing, and size','Nothing at all, not even the site name'],2,'SNI names the site in the clear unless ECH hides it.',{whys:['The page and the cookie travel encrypted after the hellos.','The password travels inside TLS, sealed from onlookers.','TLS 1.3 encrypts everything after the two hellos, while the site name in SNI, the server’s address, timing, and size stay visible.','SNI shows the site name unless ECH hides it.'],imp:'good',c:'crypto-tls'}]
+     ['On Lauaʻe Café Wi-Fi, Alohi opens portal.kahikina-high.example over TLS 1.3. What can another customer watching the network read?',['The grades page and the session cookie','The password, once the page loads','The site name in the ClientHello, the server’s address, timing, and size','Nothing at all, not even the site name'],2,'SNI names the site in the clear unless ECH hides it.',{whys:['The page and the cookie travel encrypted after the hellos.','The password travels inside TLS, sealed from onlookers.','TLS 1.3 encrypts everything after the two hellos, while the site name in SNI, the server’s address, timing, and size stay visible.','SNI shows the site name unless ECH hides it.'],imp:'good',c:'crypto-tls'}]
    ]),
    C('Worked example: switch the old versions off','Apply',
      TIPS('<b>Apache, finding:</b> <code>SSLProtocol all <span style="white-space:nowrap">-SSLv3</span></code>. ‘all’ still includes TLS 1.0 and 1.1.<br><b>Fixed:</b> <code>SSLProtocol <span style="white-space:nowrap">-all</span> <span style="white-space:nowrap">+TLSv1.2</span> <span style="white-space:nowrap">+TLSv1.3</span></code> starts empty and adds the two good versions.',
@@ -6664,7 +6678,7 @@ LADDER.addLevel({
    QUIZ('s9q','Check: what do you do next?',[
      ['An email from the principal’s real address passes DMARC, asks the office for gift cards today, and has a free-mail Reply-To. Next move?',['Call the principal on a known number','Buy them, since DMARC passed','Reply to ask whether it is real','Forward it to the staff as a warning'],0,'A taken-over mailbox sends from the real domain and passes every check; confirm, then report. <a href="#freshman/f8">Review: Threats and the people behind them</a>',{whys:['A number you already know reaches the real principal, which takes a taken-over mailbox out of the conversation.','A taken-over mailbox passes DMARC too, because it sends from the real domain.','A reply goes to the free-mail Reply-To, which the sender controls.','Forwarding spreads the lure; the report goes to IT.'],imp:'core',c:'threat-email-checks'}],
      ['A URL scan shows a link that redirects three times and ends at a copy of the Hōkū Hardware sign-in page on a domain registered two days ago. What next?',['Visit it yourself to confirm','Close the case, since the scanner visited safely','Report it so IT blocks the domain','Sign in with a made-up password to test it'],2,'Once a scan shows phishing, report it and leave the testing to IT.',{whys:['Visiting exposes your own device, and the scanner already visited for you.','The scan found phishing, so the case moves to blocking.','The scan already answered: a days-old domain serving your own sign-in page is phishing, and a report lets IT block it and warn staff.','Typing anything into a phishing page engages the attacker.'],imp:'core',c:'threat-email-checks'}],
-     ['A text tells Nohea her Kahului parking fine is unpaid and links to a short address with a 24-hour deadline. What does she do?',['Tap the link and pay before the deadline passes','Reply STOP so the sender takes her off the list','Type the county’s real web address, then report the text','Forward it to friends so they can watch for it'],2,'Smishing hides its target in a short link; any reply, even STOP, confirms the number is live.',{whys:['The short link and the deadline are the smishing tells.','Replying STOP tells the sender the number is live.','Typing the county’s real address skips the sender’s link, so she sees the true record, and the report warns others.','Forwarding spreads the lure to more people.'],imp:'core',c:'sec-social-engineering'}],
+     ['A text tells Alohi her Kahului parking fine is unpaid and links to a short address with a 24-hour deadline. What does she do?',['Tap the link and pay before the deadline passes','Reply STOP so the sender takes her off the list','Type the county’s real web address, then report the text','Forward it to friends so they can watch for it'],2,'Smishing hides its target in a short link; any reply, even STOP, confirms the number is live.',{whys:['The short link and the deadline are the smishing tells.','Replying STOP tells the sender the number is live.','Typing the county’s real address skips the sender’s link, so she sees the true record, and the report warns others.','Forwarding spreads the lure to more people.'],imp:'core',c:'sec-social-engineering'}],
      ['The bait reached Kekoa’s inbox; he left the link and file closed and reported it. Which kill-chain step did the attack reach?',['Weaponization','Delivery','Exploitation','Installation'],1,'Delivery is where the bait arrives, and a report there costs the least. <a href="#freshman/f8">Review: Threats and the people behind them</a>',{whys:['Weaponization happens before any contact with Kekoa.','Delivery is the step where bait arrives, and his report stopped the attack there, before any code ran.','Exploitation needs a click or a flaw, and he left both closed.','Installation needs code to run first.'],imp:'core',c:'threat-kill-chain'}],
      ['A link in Makana’s next email opens a perfect copy of the shop’s sign-in page on hoku-hardwre.example. He normally signs in with a passkey. Would the passkey have stopped this page?',['No: the page looks identical to the real one','Only with an SMS code added as well','Only when he signs in on a shop computer','Yes: it works only on hoku-hardware.example'],3,'Unlike a passkey, codes and passwords typed into a fake page can be relayed. <a href="#freshman/f10">Review: Keys, locks, and certificates</a>',{whys:['Looks fool people, while a passkey checks the site’s name.','The passkey already stops this page, and an SMS code can be relayed.','A passkey checks the site’s name on any device.','A passkey is tied to hoku-hardware.example, so on hoku-hardwre.example it declines to sign in and hands over nothing.'],imp:'core',c:'sec-passwords-mfa'}],
      ['That look-alike page shows a padlock. What does the padlock prove?',['A private connection to hoku-hardwre.example','Hōkū Hardware itself runs this site','The site passed a malware scan today','The domain has been registered for a year'],0,'Phishing pages carry padlocks too, so check the registered domain. <a href="#freshman/f11">Review: The web and the cloud in plain words</a>',{whys:['A padlock shows the connection is encrypted to whichever site is open, and here that site is the look-alike domain.','Free certificates let any site show a padlock.','A padlock covers the connection; malware scans are separate.','Domain age comes from RDAP, and the padlock covers the connection.'],imp:'core',c:'crypto-tls'}],
@@ -6827,7 +6841,7 @@ LADDER.addLevel({
      ['09:14:07 mele  0xC000006A 203.0.113.50','Real account, one guess, same address: the spray found mele.'],
      ['09:14:08 test  0xC0000064 203.0.113.50',null],
      ['09:14:09 keahi 0xC000006A 203.0.113.50','Real account hit by the same one-try-each pattern.'],
-     ['09:14:10 nohea 0xC000006A 203.0.113.50','Another real account from the spray address. Check each of these accounts for a 4624 next.'],
+     ['09:14:10 alohi 0xC000006A 203.0.113.50','Another real account from the spray address. Check each of these accounts for a 4624 next.'],
      ['09:31:40 malia 0xC000006A 10.0.5.31',null,'malia’s try came from an inside address, 17 minutes after the spray ended: a staff typo, apart from the spray.']
    ]),
    ORDER('s10o','Build the pipeline','Put the stages in order to rank the addresses with the most failed SSH passwords.',[

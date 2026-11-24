@@ -131,7 +131,7 @@
       "icon": "path",
       "category": "cyber",
       "section": "learning",
-      "sha256": "7e93532c15d0ad1632985e42c1de11c54666bb2edafa9e70965a66fef475c22a",
+      "sha256": "212c4a18a412a08ffa0151edd6126a735b48dfe9de798c0b553e7dfb2f2d23db",
       "updated": "2026-11-24",
       "download_menu": true,
       "download_label": "Everything (all four grades)",
@@ -140,28 +140,28 @@
           "label": "Freshman only",
           "file": "defense-ladder/freshman.html",
           "download_as": "defense-ladder-freshman.html",
-          "sha256": "a06ee5ae7c292cced5502c6ecd1f245c4e80edc3daf40253f3799d724ee546c1",
+          "sha256": "304a1e7553eba999d3800f7afa0c28edc3161a1a4b641fa1b3f186f04e06827b",
           "updated": "2026-11-24"
         },
         {
           "label": "Sophomore only",
           "file": "defense-ladder/sophomore.html",
           "download_as": "defense-ladder-sophomore.html",
-          "sha256": "cbc14308db894cdc0d1bdf4cacdbf5d8b7f51848bb85bb3e1f74c506ae30c25a",
+          "sha256": "eaac94bb05cc4864b32f8a8e6f629a271d7deecac2213ed2041f7a146368e96f",
           "updated": "2026-11-24"
         },
         {
           "label": "Junior only",
           "file": "defense-ladder/junior.html",
           "download_as": "defense-ladder-junior.html",
-          "sha256": "26e21e375f1deefe7cb1ce08c362c4956f50ef3a321318a696a41e79c2bc5a90",
+          "sha256": "ffd658275f71dbd7f92d6b0270cec3a3c106f4d521e13c805552ee118443de1c",
           "updated": "2026-11-24"
         },
         {
           "label": "Senior only",
           "file": "defense-ladder/senior.html",
           "download_as": "defense-ladder-senior.html",
-          "sha256": "458ef876d1d927836fb9c98d1a422733b5e97d9338b1c89cb7bcdf3b59e0f3ee",
+          "sha256": "2cb932906a165ebdb2ced2542154f712a0cfd939ef0a2f879c3c82cb6b93f35d",
           "updated": "2026-11-24"
         }
       ],
