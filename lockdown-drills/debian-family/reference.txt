@@ -37,6 +37,8 @@
   GUI: open the scenario brief (the documented requirements for this machine) and write down authorized users, admins, required services, and anything forbidden
   [Linux Mint] $ sudo timeshift --create --comments "before hardening"   (practice VMs)
   $ mkdir -p ~/audit/day1 && cd ~/audit/day1 && touch changes.txt && pwd   (one folder for evidence and backups; log each change with what, why, and how to undo it)
+  $ chmod 700 ~/audit && script -a session.log   (makes ~/audit a folder only you can read, then records this terminal into session.log, added to its end; exit stops the recording)
+  $ type -a sudo passwd su; alias; trap -p   (before your next password: each name should resolve under /usr/bin, /usr/sbin, /bin, or /sbin, aliases should be stock ones such as ls and grep, and trap -p should print nothing; anything else can capture what you type)
   $ sudo cp -a /etc/login.defs /etc/login.defs.bak   (copy each file before you edit it; -a keeps the owner, mode, and time)
   $ sudo rsync -a /home/ /mnt/backup/home/   (copies the home folders to a mounted backup drive; a backup counts once a test restore works)
   $ man login.defs   (the manual for a command or a config file; / searches, n finds the next match, q quits)
@@ -63,6 +65,7 @@
   $ getent group sudo admin adm wheel docker lxd disk
   $ awk -F: -v g="$(getent group sudo | cut -d: -f3)" '$4==g {print $1" has sudo as its primary group"}' /etc/passwd
   $ whoami; id   (the account you work as, and its groups, before you judge anyone else's)
+  $ loginctl list-sessions   (every session systemd-logind tracks, including ones that who leaves out, such as an SSH command run without a terminal)
   [Ubuntu] GUI: Settings, System, Users (Unlock first).
   [Linux Mint] GUI: Menu, Administration, Users and Groups.
   WHY: An extra UID-0 user is a second root. Members of sudo (or wheel) and
@@ -211,9 +214,11 @@
 [B-07] Firewall with ufw
   AREA: Secure configuration
   $ sudo apt install -y ufw
+  $ command -v ufw   (prints where ufw runs from: expect /usr/sbin/ufw; a copy in /usr/local/sbin runs first and needs an explanation; Debian leaves /usr/sbin out of a normal user's PATH, so there run sudo sh -c 'command -v ufw')
   $ sudo ufw default deny incoming
   $ sudo ufw default allow outgoing
   $ sudo ufw allow 22/tcp
+  $ sudo systemd-run --on-active=120 ufw disable   (only when you work over SSH, before you enable ufw: a timed undo that turns ufw off in 120 seconds, even if this session drops; once a second SSH session gets in, sudo systemctl stop run-NAME.timer, with the name it printed, cancels it; at the console, skip this line)
   $ sudo ufw enable
   $ sudo ufw logging on
   $ sudo ufw status verbose
@@ -236,6 +241,7 @@
   $ apt list --upgradable
   [Ubuntu] $ sudo apt full-upgrade                     (when upgrade lists packages kept back; read the REMOVED list)
   $ uname -r   (the running kernel; after a kernel update, the new version runs once you reboot)
+  $ sudo needrestart -r l   (after the upgrade, lists each service still running old code and restarts none itself: restart those; where it is missing, sudo apt install needrestart)
   [Ubuntu] $ sudo snap refresh
   [Ubuntu] $ snap list; apt-mark showhold              (held in the Notes column, or a held package, freezes updates)
   [Ubuntu] $ sudo snap refresh --unhold <name>; sudo apt-mark unhold <package>
@@ -413,7 +419,7 @@
       LoginGraceTime 30         X11Forwarding no            UsePAM yes
       PermitUserEnvironment no
       PasswordAuthentication yes or no per the brief      AllowUsers keoni koa
-  $ sudo sshd -t && sudo systemctl restart ssh
+  $ sudo sshd -t && sudo systemctl restart ssh   (or sudo systemctl try-reload-or-restart ssh: reloads a running ssh, or restarts it where reload is missing; a stopped ssh.service stays stopped, and ssh.socket starts it with the new settings at the next sign-in)
   $ sudo sshd -T | grep -E '^(permitrootlogin|permitemptypasswords|permituserenvironment|maxauthtries|passwordauthentication|x11forwarding|allowusers) '
   $ sudo sshd -T -C user=root,host=localhost,addr=127.0.0.1 | grep -i '^permitrootlogin'
   $ systemctl list-units 'ssh*' --no-pager     (is ssh.socket the unit that listens on 22?)
@@ -441,6 +447,7 @@
   $ sudo visudo -f /etc/sudoers.d/<file>
   $ sudo -l -U ikaika
   $ sudo visudo -c; sudo -k; sudo -v          (expect a password prompt)
+  $ ls -l /etc/sudoers-rs && sudo visudo-rs -c -f /etc/sudoers-rs   (where sudo-rs is installed, it reads this file in place of /etc/sudoers whenever the file exists; edit an existing one with sudo visudo-rs -f /etc/sudoers-rs, and leave a missing one missing)
   $ sudoedit /etc/hosts   (edits a copy as you, then installs it as root; grant sudoedit FILE in sudoers in place of an editor, which can open a root shell)
   WHY: A NOPASSWD ALL line in a sudoers.d drop-in is a silent root backdoor.
        Edit only with visudo, never nano: a syntax error locks everyone out of
@@ -509,7 +516,7 @@
   AREA: Secure configuration
   $ cat /etc/hosts
   $ resolvectl status 2>/dev/null | grep -i 'DNS Servers'
-  $ ip -br a; ip route   (addresses and the default route; explain anything the brief leaves out)
+  $ hostname; ip -br a; ip route   (the machine's name, its addresses, and the default route; explain anything the brief leaves out)
   $ ip -br link   (every interface; an unexpected tun0, wg0, or second NIC needs an explanation)
   $ ip neigh   (the MAC address behind each neighbor; two addresses that share one MAC suggest ARP spoofing)
   $ traceroute -n security.ubuntu.com   (hop 1 should be the gateway the brief names; a different first hop means a changed route; sudo apt install traceroute when it is missing, or use tracepath)
@@ -584,6 +591,7 @@
   $ logger -t hardening 'baseline done'; journalctl -t hardening --no-pager   (a test line that shows up proves logging works end to end)
   $ date   (the local time the logs stamp; timedatectl status below shows whether NTP keeps it right)
   $ timedatectl status   (System clock synchronized: yes and NTP service: active keep log times comparable; when either reads otherwise, run sudo timedatectl set-ntp true)
+  $ timedatectl timesync-status   (the server systemd-timesyncd uses, with its poll interval and offset: the Server line should name the source the brief names)
   WHY: Audit rules answer who changed /etc/passwd and when. auditd starts
        mid-boot, so audit=1 makes the kernel record from the first process;
        audit=0 anywhere on the kernel line keeps auditing off.

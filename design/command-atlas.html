@@ -47,6 +47,12 @@ h1{margin:0;font:700 var(--t-title)/1 var(--title)}
 #app{display:none}
 .js #app{display:block}
 .js #all{display:none}
+[hidden]{display:none!important}
+/* views: Commands and the Checklist map, as tabs like the Study Map's */
+.tabs{display:flex;gap:.15rem;margin:0 0 .7rem;border-bottom:2px solid var(--rule);overflow-x:auto;scrollbar-width:thin}
+.tab{flex:none;margin-bottom:-2px;padding:.55rem .85rem;border:0;border-bottom:3px solid transparent;background:none;font:600 var(--t-lg)/1.3 var(--body);color:var(--muted);cursor:pointer;white-space:nowrap}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{border-bottom-color:var(--accent);color:var(--ink)}
 .search input{width:100%;padding:.6rem .85rem;border:2px solid var(--rule);border-radius:8px;background:var(--face);font-size:var(--t-lg)}
 .search input:focus{border-color:var(--focus);outline:none}
 .search input::placeholder{color:var(--muted);opacity:1}
@@ -57,6 +63,8 @@ h1{margin:0;font:700 var(--t-title)/1 var(--title)}
   .js .wrap{display:flex;flex-direction:column;height:100vh;height:100dvh;padding-bottom:.4rem}
   .js .top{padding:1rem 0 .5rem}
   .js #app{display:flex;flex-direction:column;flex:1;min-height:0}
+  .js #v-cmds{display:flex;flex-direction:column;flex:1;min-height:0}
+  .js #v-map{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding-right:.4rem}
   .panes{flex:1;min-height:0;grid-template-columns:minmax(17rem,23rem) minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
   .side,.detail{height:100%;overflow:auto;overscroll-behavior:contain}
   .side{padding-right:.4rem}
@@ -145,6 +153,30 @@ a.chip{color:var(--accent)}
 .pls.pug>li{border-left-color:var(--ut)}
 .it .tg-pug{color:var(--ut)}
 .pls .fam{margin-left:.35rem;font-size:var(--t-xs);font-weight:600;color:var(--muted)}
+/* Checklist map: Cyber PUG's steps, each command's first lesson, drills, and Range check, and one status per step */
+.mapv{max-width:62rem;overflow-wrap:anywhere}
+.mapv .intro{margin:0 0 .3rem;font-size:var(--t-md);color:var(--muted)}
+.mapv .flab{margin:.5rem 0 0;font-size:var(--t-sm);font-weight:600;color:var(--muted)}
+.mapv .seg{margin:.25rem 0 .4rem}
+.sum{margin:.6rem 0 .3rem;padding:0;list-style:none;font-size:var(--t-md)}
+.sum li{margin:.15rem 0;padding-left:.5rem;border-left:3px solid transparent}
+.sum li[aria-current="true"]{border-left-color:var(--accent);font-weight:600}
+.mapv details.more>summary{margin:.3rem 0}
+.mapv .legend dl{grid-template-columns:auto minmax(0,1fr)}
+.mapv h2{margin:1rem 0 .1rem;font:700 var(--t-xl)/1.3 var(--body)}
+.mapv h3.ph{margin:1rem 0 .4rem;padding-top:.5rem;border-top:1px solid var(--rule);font:700 var(--t-lg)/1.3 var(--body)}
+.steps{margin:0;padding:0;list-style:none}
+.step{margin:0 0 .55rem;padding:.5rem .75rem;border:1px solid var(--rule);border-left:4px solid var(--stc);border-radius:6px;background:var(--face)}
+.stt{margin:0 0 .25rem;font-size:var(--t-md);font-weight:600;line-height:1.4}
+.st{display:inline-block;margin-right:.4rem;padding:.05rem .5rem;border:1.5px solid var(--stc);border-radius:999px;font-size:var(--t-xs);font-weight:700;line-height:1.4;color:var(--stc);white-space:nowrap;vertical-align:.08em}
+.st-r{--stc:var(--tra)}.st-p{--stc:var(--lnk)}.st-l{--stc:var(--int)}.st-b{--stc:var(--muted)}
+.fams{margin:0;padding:0;list-style:none}
+.fams>li{margin:.2rem 0;font-size:var(--t-sm);line-height:1.45}
+.fams code{font-size:var(--t-sm);font-weight:600}
+.fams .pl{color:var(--muted)}
+.fams .need{font-weight:700}
+.fams .need-l{color:var(--int)}.fams .need-p{color:var(--lnk)}.fams .need-b{color:var(--muted)}
+.fams .why{color:var(--ink)}
 .foot{margin-top:1.4rem;padding-top:.8rem;border-top:1px solid var(--rule);font-size:var(--t-sm);color:var(--muted)}
 .foot p{margin:0 0 .4rem}
 /* static listing: printing, and browsers without JavaScript */
@@ -159,6 +191,12 @@ a.chip{color:var(--accent)}
   #all{display:block!important}
   body{background:#fff}
   #all .list li{break-inside:avoid}
+  /* printed from the Checklist map: the steps on screen, in place of the command listing */
+  html.v-map #app{display:block!important}
+  html.v-map #all,html.v-map .tabs,html.v-map .mapv .seg,html.v-map .mapv .flab,html.v-map .mapv details.more{display:none!important}
+  /* paper is white in either theme, so print with the light theme's ink */
+  body{--ink:#17212B;--muted:#55647A;--rule:#C6D0DA;--accent:#1F5C9E;--app:#1F5C9E;--tra:#23794A;--int:#A8461A;--lnk:#6E4526;--ut:#B84A00;--face:#fff;--bg:#fff;color:var(--ink)}
+  .step{break-inside:avoid}
 }
 @media (prefers-reduced-motion:no-preference){.it{transition:background .1s}}
 </style>
@@ -168,9 +206,14 @@ a.chip{color:var(--accent)}
 <div class="wrap">
 <header class="top">
   <h1>Command Atlas</h1>
-  <p class="lede">Every command in the course on Windows, Linux, FreeBSD, and Cisco IOS: what it does, its options, and every lesson, drill, and lab that uses it. Concepts live in the <a id="to-map" href="../study-map/">Study Map</a>.</p>
+  <p class="lede">Every command in the course on Windows, Linux, FreeBSD, and Cisco IOS: what it does, its options, and every lesson, drill, and lab that uses it. Concepts live in the <a id="to-map" href="../study-map/">Study Map</a>.<span id="map-note" hidden> The <a href="#map">Checklist map</a> traces each checklist step to its lessons and practice.</span></p>
 </header>
 <div id="app">
+  <div class="tabs" role="tablist" aria-label="View" hidden>
+    <button class="tab" type="button" role="tab" id="t-cmds" data-view="cmds" aria-controls="v-cmds" aria-selected="true">Commands</button>
+    <button class="tab" type="button" role="tab" id="t-map" data-view="map" aria-controls="v-map" aria-selected="false" tabindex="-1">Checklist map</button>
+  </div>
+  <div id="v-cmds" role="tabpanel" aria-labelledby="t-cmds">
   <div class="search"><label class="vh" for="q">Search commands and tasks</label><input id="q" type="search" placeholder="Search: sh ip int br, lockout, firewall, vlan, sudo" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
   <div class="panes">
     <section class="side" id="side" aria-label="Commands">
@@ -180,6 +223,8 @@ a.chip{color:var(--accent)}
     </section>
     <section class="detail" id="detail" aria-label="Details" tabindex="-1"></section>
   </div>
+  </div>
+  <section id="v-map" role="tabpanel" aria-labelledby="t-map" tabindex="-1" hidden></section>
 </div>
 <script type="application/json" id="atlas-data">{"atlas":"no data yet"}</script>
 <script>
@@ -216,6 +261,12 @@ a.chip{color:var(--accent)}
   };
   var prefs = store.get(KP) || {};
   var S = {q: '', sys: ['all', 'windows', 'linux', 'freebsd', 'cisco'].indexOf(prefs.sys) >= 0 ? prefs.sys : 'all', cmd: null, cmdQ: null};
+  /* the Checklist map (C.clm): steps [step id, system, priority 1-3, [family ids], status r|p|l|b] */
+  var M = C.clm && Array.isArray(C.clm.steps) && C.pug ? C.clm : null;
+  var MSYS = M ? M.sys.map(function (s) { return s[0]; }) : [];
+  S.view = M && prefs.view === 'map' ? 'map' : 'cmds';
+  S.msys = MSYS.indexOf(prefs.msys) >= 0 ? prefs.msys : (MSYS[0] || '');
+  S.mp = [1, 2, 3].indexOf(prefs.mp) >= 0 ? prefs.mp : 1;
   var wide = window.matchMedia('(min-width: 900px)');
 
   var site = String(C.site || '').replace(/\/+$/, '');
@@ -226,8 +277,10 @@ a.chip{color:var(--accent)}
   function mapHref(id) { return href('study-map/') + (id ? '#c=' + encodeURIComponent(id) : ''); }
   var toMap = $('#to-map');
   if (toMap) toMap.setAttribute('href', mapHref(''));
-  function mark(h) {
-    try { history.replaceState(null, '', location.pathname + location.search + (h ? '#' + h : '')); } catch (e) { /* not allowed here */ }
+  /* the address names the view; push adds a history entry, so Back returns to the Checklist map a command was opened from */
+  function mark(h, push) {
+    try { history[push ? 'pushState' : 'replaceState'](null, '', location.pathname + location.search + (h ? '#' + h : '')); } catch (e) { /* not allowed here */ }
+    S.lastHash = location.hash;
   }
   function refocus(sel) { var x = document.querySelector(sel); if (x) x.focus({preventScroll: true}); }
 
@@ -515,16 +568,148 @@ a.chip{color:var(--accent)}
     d.appendChild(lg);
     return d;
   }
-  function render() {
-    renderList();
-    var det = $('#detail');
-    det.textContent = '';
-    det.appendChild(S.cmd && C.byId[S.cmd] ? cmdDetail(C.byId[S.cmd]) : placeholder());
-    store.set(KP, {sys: S.sys});
+  var STAT = {r: 'Ready', p: 'Needs practice', l: 'Needs a lesson', b: 'Beyond the course'}, STORD = ['r', 'p', 'l', 'b'];
+  function andList(xs) { return xs.length < 3 ? xs.join(' and ') : xs.slice(0, -1).join(', ') + ', and ' + xs[xs.length - 1]; }
+  function mapRows(sys, p) { return M.steps.filter(function (s) { return s[1] === sys && s[2] === p; }); }
+  function tally(rows) {
+    var c = {r: 0, p: 0, l: 0, b: 0};
+    rows.forEach(function (s) { c[s[4]]++; });
+    return c;
   }
-  function selectCmd(id) {
+  function radios(label, id, items, on, key) {
+    var seg = el('div', {cls: 'seg', role: 'radiogroup', 'aria-labelledby': id});
+    items.forEach(function (x) {
+      var b = el('button', {cls: 'pill', type: 'button', role: 'radio', 'aria-checked': String(String(on) === String(x[0])), text: x[1]});
+      b.setAttribute('data-' + key, x[0]);
+      seg.appendChild(b);
+    });
+    return [el('p', {cls: 'flab', id: id, text: label}), seg];
+  }
+  function toolLinks(ts) {
+    var out = [];
+    ts.forEach(function (t, i) { if (i) out.push(', '); out.push(el('a', {href: href(t + '/'), text: (C.tools[t] || {name: t}).name})); });
+    return out;
+  }
+  /* one command of a step: its Atlas entry, then its first lesson, drills, and Range check, or the scope file's mark */
+  function famItem(id) {
+    var f = C.byId[id], name = f ? f.name : id.slice(id.indexOf('/') + 1);
+    var kids = [f ? el('a', {href: '#cmd=' + encodeURIComponent(id), 'data-go': id}, [el('code', {text: name})]) : el('code', {text: name})];
+    var bits = [];
+    if (M.beyond[id]) bits.push([el('span', {cls: 'need need-b', text: 'Beyond the course'}), ': ', el('span', {cls: 'why', text: M.beyond[id]})]);
+    else if (M.helper[id]) bits.push([el('span', {cls: 'pl', text: 'General helper: '}), el('span', {cls: 'why', text: M.helper[id]})]);
+    else {
+      var v = M.fam[id] || ['', [], []];
+      var tw = M.twin && M.twin[id];
+      bits.push(v[0] ? [el('span', {cls: 'pl', text: tw ? 'Lesson (' + (C.sysName[tw.split('/')[0]] || tw.split('/')[0]) + ' twin): ' : 'Lesson: '}), el('a', {href: dlHref(v[0]), text: (M.units && M.units[v[0]]) || v[0]})]
+        : [el('span', {cls: 'need need-l', text: 'Needs a lesson'})]);
+      if (v[1].length) bits.push([el('span', {cls: 'pl', text: (v[1].length > 1 ? 'Drills' : 'Drill') + ': '})].concat(toolLinks(v[1])));
+      if (v[2].length) bits.push([el('span', {cls: 'pl', text: (v[2].length > 1 ? 'Range checks' : 'Range check') + ': '})].concat(toolLinks(v[2])));
+      if (v[3]) bits.push([el('span', {cls: 'pl', text: (v[3].length > 1 ? 'Range hints' : 'Range hint') + ': '})].concat(toolLinks(v[3])));
+      if (!v[1].length && !v[2].length && !v[3]) bits.push([el('span', {cls: 'need need-p', text: 'Needs practice'})]);
+    }
+    bits.forEach(function (b) { kids.push(' · '); b.forEach(function (x) { kids.push(x); }); });
+    return el('li', {'data-fam': id}, kids);
+  }
+  function renderMap() {
+    var box = $('#v-map'), P = C.pug.name, sysName = {};
+    M.sys.forEach(function (s) { sysName[s[0]] = s[1]; });
+    box.textContent = '';
+    var v = el('div', {cls: 'mapv'});
+    v.appendChild(el('p', {cls: 'intro'}, ['Each step of ', el('a', {href: href('cyber-pug/'), text: P}),
+      '’s takeover checklists for the four taught systems that runs a command in this Atlas, with each command’s first lesson, drills, and Range checks.']));
+    radios('System', 'm-sys-l', M.sys, S.msys, 'msys').forEach(function (x) { v.appendChild(x); });
+    radios('Priority', 'm-p-l', [1, 2, 3].map(function (p) { return [p, 'P' + p + ' (' + mapRows(S.msys, p).length + ')']; }), S.mp, 'mp')
+      .forEach(function (x) { v.appendChild(x); });
+    // the counts for every system at this priority, the chosen system marked
+    var sum = el('ul', {cls: 'sum', 'aria-label': 'P' + S.mp + ' steps by system'});
+    M.sys.forEach(function (s) {
+      var rows = mapRows(s[0], S.mp), c = tally(rows);
+      sum.appendChild(el('li', {'data-sys': s[0], 'data-n': rows.length, 'data-r': c.r, 'data-p': c.p, 'data-l': c.l, 'data-b': c.b,
+        'aria-current': s[0] === S.msys ? 'true' : null},
+        [s[1] + ', ' + plural(rows.length, 'P' + S.mp + ' step', 'P' + S.mp + ' steps') + (rows.length ? ': ' + andList(STORD.filter(function (k) { return c[k]; }).map(function (k) { return c[k] + ' ' + STAT[k]; })) : '') + '.']));
+    });
+    v.appendChild(sum);
+    var lg = el('details', {cls: 'more legend'}, [el('summary', {text: 'What each status means'})]), dl = el('dl');
+    [['r', 'Every command has a lesson and a drill, Range check, or Range hint, or is a general helper the course teaches elsewhere.'],
+     ['p', 'Every command in the course has a lesson; at least one still waits for practice in a drill or the Range.'],
+     ['l', 'At least one command in the course still waits for its first lesson.'],
+     ['b', 'Every other command is ready; at least one lies beyond the course, with its reason beside it.']].forEach(function (r) {
+      dl.appendChild(el('dt', null, [el('span', {cls: 'st st-' + r[0], text: STAT[r[0]]})]));
+      dl.appendChild(el('dd', {text: r[1]}));
+    });
+    lg.appendChild(dl);
+    lg.appendChild(el('p', {text: 'A FreeBSD command without a lesson of its own takes the lesson of its Linux twin, the command of the same name that works the same way.'}));
+    v.appendChild(lg);
+    var rows = mapRows(S.msys, S.mp);
+    v.appendChild(el('h2', {id: 'm-h', text: sysName[S.msys] + ', P' + S.mp + ' steps'}));
+    if (!rows.length) {
+      var has = [1, 2, 3].filter(function (p) { return mapRows(S.msys, p).length; }).map(function (p) { return 'P' + p; });
+      v.appendChild(el('p', {cls: 'empty', text: has.length ? 'Every ' + sysName[S.msys] + ' step that runs a command in this Atlas is ' + has.join(' or ') + ': pick ' + (has.length > 1 ? 'one' : 'it') + ' above.' : 'Nothing here yet.'}));
+    }
+    var phase = null, ul = null;
+    rows.forEach(function (s) {
+      var stp = C.pug.steps[s[0]] || ['', '', s[0]];
+      if (stp[1] !== phase || !ul) {
+        phase = stp[1];
+        v.appendChild(el('h3', {cls: 'ph', text: phase || 'Steps'}));
+        ul = el('ul', {cls: 'steps'});
+        v.appendChild(ul);
+      }
+      ul.appendChild(el('li', {cls: 'step st-' + s[4], 'data-step': s[0], 'data-st': s[4]}, [
+        el('p', {cls: 'stt'}, [el('span', {cls: 'st', text: STAT[s[4]]}), (M.full && M.full[s[0]]) || stp[2]]),
+        el('ul', {cls: 'fams'}, s[3].map(famItem))]));
+    });
+    box.appendChild(v);
+  }
+  function render() {
+    var map = !!M && S.view === 'map';
+    if (M) {
+      ['cmds', 'map'].forEach(function (t) {
+        var b = $('#t-' + t), on = (t === 'map') === map;
+        b.setAttribute('aria-selected', String(on));
+        b.tabIndex = on ? 0 : -1;
+      });
+    }
+    $('#v-cmds').hidden = map;
+    $('#v-map').hidden = !map;
+    document.documentElement.classList.toggle('v-map', map);
+    var skip = $('.skip');
+    if (skip) { skip.setAttribute('href', map ? '#v-map' : '#q'); skip.textContent = map ? 'Skip to the checklist map' : 'Skip to search'; }
+    var back = null;
+    if (map) { renderMap(); back = restoreMap(); }
+    else {
+      renderList();
+      var det = $('#detail');
+      det.textContent = '';
+      det.appendChild(S.cmd && C.byId[S.cmd] ? cmdDetail(C.byId[S.cmd]) : placeholder());
+    }
+    store.set(KP, {sys: S.sys, view: S.view, msys: S.msys, mp: S.mp});
+    return back;
+  }
+  /* the map scrolls inside its panel on wide screens and with the page on narrow ones; leaving it keeps the place */
+  function mapBox() { return wide.matches ? $('#v-map') : null; }
+  function keepMapPlace(link) {
+    var box = mapBox(), st = link && link.closest('.step');
+    S.ret = {sys: S.msys, p: S.mp, y: box ? box.scrollTop : window.scrollY,
+      sid: st ? st.dataset.step : '', fam: link ? link.dataset.go : '', top: link ? link.getBoundingClientRect().top : 0};
+  }
+  /* back on the map with the same system and priority: the command that was opened sits where it was (returned to take focus);
+     the map's history entry keeps that place too, so every Back to it, after a Forward as well, restores it */
+  function restoreMap() {
+    var r = S.ret, box = mapBox();
+    S.ret = null;
+    if (!r || r.sys !== S.msys || r.p !== S.mp) return null;
+    var a = r.fam && document.querySelector('#v-map li[data-step="' + CSS.escape(r.sid) + '"] a[data-go="' + CSS.escape(r.fam) + '"]');
+    if (!a) { if (box) box.scrollTop = r.y; else window.scrollTo(0, r.y); return null; }
+    var d = a.getBoundingClientRect().top - r.top;
+    if (box) box.scrollTop += d; else window.scrollBy(0, d);
+    return a;
+  }
+  function mapMark() { mark('map=' + S.msys + '/' + S.mp); }
+  function selectCmd(id, push) {
     S.cmd = id;
-    mark('cmd=' + encodeURIComponent(id));
+    S.view = 'cmds';
+    mark('cmd=' + encodeURIComponent(id), push);
     render();
     if (wide.matches) { $('#detail').scrollTop = 0; }
     else { var x = document.querySelector('.it[data-cmd="' + id + '"]'); if (x) x.scrollIntoView({block: 'start'}); }
@@ -539,11 +724,24 @@ a.chip{color:var(--accent)}
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(function () { btn.textContent = 'Link copied'; }, fallback);
     else fallback();
   }
-  /* #cmd=<id> opens a command; #q=<text> runs a search */
-  function route() {
+  /* #cmd=<id> opens a command; #q=<text> runs a search; #map or #map=<system>/<priority> opens the Checklist map.
+     A bare address that opens on the remembered map names it first, so Back from a command returns there. */
+  function route(first) {
+    if (first && M && S.view === 'map' && !location.hash.replace(/^#/, '')) mapMark();
     var h = '';
+    S.lastHash = location.hash;
     try { h = decodeURIComponent(location.hash.replace(/^#/, '')); } catch (e) { h = ''; }
-    var mc = /^cmd=(.+)$/.exec(h), mq = /^q=(.*)$/.exec(h);
+    var mc = /^cmd=(.+)$/.exec(h), mq = /^q=(.*)$/.exec(h), mm = /^map(?:=([a-z]+)(?:\/([123]))?)?$/.exec(h);
+    if (mm && M) {
+      S.view = 'map';
+      if (MSYS.indexOf(mm[1]) >= 0) S.msys = mm[1];
+      if (mm[2]) S.mp = +mm[2];
+      if (history.state && history.state.ret) S.ret = history.state.ret;
+      var back = render();
+      if (back) back.focus({preventScroll: true});
+      return;
+    }
+    if (mc || mq) S.view = 'cmds';
     if (mc && C.byId[mc[1]]) {
       S.cmd = mc[1];
       if (cliList().indexOf(C.byId[mc[1]]) < 0) { S.q = ''; $('#q').value = ''; S.sys = 'all'; }
@@ -558,9 +756,30 @@ a.chip{color:var(--accent)}
 
   document.addEventListener('click', function (e) {
     if (!e.target.closest) return;
+    // a command in the Checklist map opens its entry in place (a modified click still opens a new tab)
+    var go = e.target.closest('a[data-go]');
+    if (go && C.byId[go.dataset.go] && !(e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button)) {
+      e.preventDefault();
+      keepMapPlace(go);
+      try { history.replaceState({ret: S.ret}, '', location.href); } catch (x) { /* not allowed here */ }
+      if (cliList().indexOf(C.byId[go.dataset.go]) < 0) { S.q = ''; $('#q').value = ''; S.sys = 'all'; S.cmdQ = ''; }
+      selectCmd(go.dataset.go, true);
+      return;
+    }
     var b = e.target.closest('button');
     if (!b) return;
     var d = b.dataset;
+    if (d.view) {
+      if (S.view === 'map' && d.view !== 'map') keepMapPlace(null);
+      S.view = d.view;
+      if (S.view === 'map') mapMark(); else mark(S.cmd ? 'cmd=' + encodeURIComponent(S.cmd) : S.q ? 'q=' + encodeURIComponent(S.q) : '');
+      var back = render();
+      // the arrow keys keep focus on the tabs; a click or Enter returns to the command opened from the map
+      if (back && !S.arrow) back.focus({preventScroll: true}); else refocus('#t-' + d.view);
+      return;
+    }
+    if (d.msys) { S.msys = d.msys; mapMark(); render(); refocus('[data-msys="' + d.msys + '"]'); return; }
+    if (d.mp) { S.mp = +d.mp; mapMark(); render(); refocus('[data-mp="' + d.mp + '"]'); return; }
     if (d.sys) { S.sys = d.sys; render(); refocus('[data-sys="' + d.sys + '"]'); return; }
     if (d.cmd) {
       if (!wide.matches && S.cmd === d.cmd && b.classList.contains('it')) { S.cmd = null; mark(S.q ? 'q=' + encodeURIComponent(S.q) : ''); render(); refocus('.it[data-cmd="' + d.cmd + '"]'); return; }
@@ -574,13 +793,14 @@ a.chip{color:var(--accent)}
   document.addEventListener('keydown', function (e) {
     var keys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
     if (keys.indexOf(e.key) < 0 || !e.target.closest || e.target.tagName !== 'BUTTON') return;
-    var grp = e.target.closest('[role="radiogroup"]');
+    var grp = e.target.closest('[role="radiogroup"], [role="tablist"]');
     if (!grp) return;
     var items = Array.prototype.slice.call(grp.querySelectorAll('button')), i = items.indexOf(e.target), n = items.length;
     var j = e.key === 'Home' ? 0 : e.key === 'End' ? n - 1 : (e.key === 'ArrowLeft' || e.key === 'ArrowUp') ? (i - 1 + n) % n : (i + 1) % n;
     e.preventDefault();
     items[j].focus();
-    items[j].click();
+    S.arrow = true;
+    try { items[j].click(); } finally { S.arrow = false; }
   });
   $('#q').addEventListener('input', function (e) {
     S.q = e.target.value.trim();
@@ -588,8 +808,12 @@ a.chip{color:var(--accent)}
     render();
   });
   if (wide.addEventListener) wide.addEventListener('change', render);
-  window.addEventListener('hashchange', route);
-  route();
+  if (M) { $('.tabs').hidden = false; $('#map-note').hidden = false; }
+  // Back, Forward, and a typed or followed #link route once (a browser may fire both events for one move)
+  function onNav() { if (location.hash !== S.lastHash) route(); }
+  window.addEventListener('hashchange', onNav);
+  window.addEventListener('popstate', onNav);
+  route(true);
 })();
 </script>
 <div id="all">

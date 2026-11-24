@@ -27,7 +27,7 @@
       "slug": "command-atlas",
       "name": "Command Atlas",
       "tagline": "Every command in the course: what it does and where you use it.",
-      "description": "Every command in the cybersecurity course on Windows, Linux, FreeBSD, and Cisco IOS in one place. Type a command or a task to see what it does, its options and arguments, every lesson, drill, and lab that uses it, the expected answers behind a reveal, and its vendor documentation.",
+      "description": "Every command in the cybersecurity course on Windows, Linux, FreeBSD, and Cisco IOS in one place. Type a command or a task to see what it does, its options and arguments, every lesson, drill, and lab that uses it, the expected answers behind a reveal, and its vendor documentation. The Checklist map lists each Cyber PUG checklist step with its commands' first lesson, drills, and Range checks.",
       "badges": [
         "Cybersecurity",
         "Study",

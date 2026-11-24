@@ -131,8 +131,8 @@
       "icon": "path",
       "category": "cyber",
       "section": "learning",
-      "sha256": "b0f4a305844b52e470e4b217dc1b51a07fa095e7e8effe3f4a9642ada77f1f86",
-      "updated": "2026-11-23",
+      "sha256": "c68b05fd7d0b53ab761cadc25c2b041d733edf37a94a6134ea699b7ca7edf0c0",
+      "updated": "2026-11-24",
       "download_menu": true,
       "download_label": "Everything (all four grades)",
       "extras": [
@@ -140,29 +140,29 @@
           "label": "Freshman only",
           "file": "defense-ladder/freshman.html",
           "download_as": "defense-ladder-freshman.html",
-          "sha256": "3920f133670f69f09e506be0c49bd85f35662b5fda7c5f0a02c6b8715ade67a5",
-          "updated": "2026-11-23"
+          "sha256": "0d7880955f3a607c74a2dd0a716024ea926d7b0a588d3847c19bc31facb84f6c",
+          "updated": "2026-11-24"
         },
         {
           "label": "Sophomore only",
           "file": "defense-ladder/sophomore.html",
           "download_as": "defense-ladder-sophomore.html",
-          "sha256": "82f62c580e15a835595717ffcf96397bf9a50464e54177a914ac168ca487ab79",
-          "updated": "2026-11-23"
+          "sha256": "3b90cf9c117ed029b8f41bebfca21e2a24608c86644acdf033851d736e6e773b",
+          "updated": "2026-11-24"
         },
         {
           "label": "Junior only",
           "file": "defense-ladder/junior.html",
           "download_as": "defense-ladder-junior.html",
-          "sha256": "0ba86860b4746cfb04275f7e18fa374a48f3bfbb098817f14c08732412238ec7",
-          "updated": "2026-11-23"
+          "sha256": "dbf0db6c18055ef612fe066f365c58de6f5de4280689ad6f1598ad2dcdd22882",
+          "updated": "2026-11-24"
         },
         {
           "label": "Senior only",
           "file": "defense-ladder/senior.html",
           "download_as": "defense-ladder-senior.html",
-          "sha256": "8e5685bac9bfd814e4ed4b58c2a7aec48d8673f094d68edea4f7896287ffe9b2",
-          "updated": "2026-11-23"
+          "sha256": "1262785b83aa640de8933cc3575c71b786ae27cd353bd0d5e9b50b0a00f3f060",
+          "updated": "2026-11-24"
         }
       ],
       "download_note": "Each grade also comes as its own smaller download for offline use; links to other grades open the online course."
@@ -266,8 +266,8 @@
           "download_as": "windows-11-lockdown-reference.txt"
         }
       ],
-      "sha256": "2e28dc0ac5409640e5cc16ecf70c9ed8c74221480d216f70c7e50c6a82a76511",
-      "updated": "2026-11-23"
+      "sha256": "bac7275ab67cc34cf9a9c46e4c0f2b2bb08fde8bcfca9b2fdec16a1836cf2085",
+      "updated": "2026-11-24"
     },
     {
       "slug": "lockdown-drills/windows-server",
@@ -292,8 +292,8 @@
           "download_as": "windows-server-lockdown-reference.txt"
         }
       ],
-      "sha256": "ca3ee4f1376bdd5532b359ee48ab98a951ad3752189ae0b3e28a46cd0834b3d3",
-      "updated": "2026-11-23"
+      "sha256": "c7a2a4c1f319b1f2bb4738e502805324f0629f9e7fcd28199cbcfecfcef1fcde",
+      "updated": "2026-11-24"
     },
     {
       "slug": "lockdown-drills/debian-family",
@@ -318,8 +318,8 @@
           "download_as": "debian-family-lockdown-reference.txt"
         }
       ],
-      "sha256": "ae43175cf8004dedfc8d367fb74ec6122acc0563381c123787ff174dcacc2b69",
-      "updated": "2026-11-23"
+      "sha256": "2847151a46fda4a3263ce3b8914262c5e8ad0aad8b47be360eccae15cd5d5bfa",
+      "updated": "2026-11-24"
     },
     {
       "slug": "lockdown-drills/freebsd",
@@ -396,8 +396,8 @@
           "download_as": "windows-range-walkthrough.txt"
         }
       ],
-      "sha256": "c54cfa531e949f0fddadcdc4733a35c578ad6785d36d8c237c787c1882efd4bd",
-      "updated": "2026-11-23"
+      "sha256": "1c02a6f5c266a957298afd5e902b8e4a9c3accebd7bbff13c9b1fba995eef610",
+      "updated": "2026-11-24"
     },
     {
       "slug": "lockdown-range/linux",
@@ -422,8 +422,8 @@
           "download_as": "linux-range-walkthrough.txt"
         }
       ],
-      "sha256": "7adf678754ab198138339688e51d0f6cc58e921af594b7d82fe242749c41b760",
-      "updated": "2026-11-23"
+      "sha256": "704a94efc2840a657d9953a918e77908e583d711a047a1320f66f0a9d95bd5a3",
+      "updated": "2026-11-24"
     },
     {
       "slug": "lockdown-range/cisco-ios",
@@ -467,14 +467,14 @@
       "icon": "map",
       "category": "cyber",
       "section": "learning",
-      "sha256": "521709509c2d923bd8f7b69a16bee6c689c65a26f60dbb4390866e556a41e1ba",
-      "updated": "2026-11-23"
+      "sha256": "f240c3fb470261c10e0a1008713c7e5205a1bfd75fbc8fa89c658d70418f167f",
+      "updated": "2026-11-24"
     },
     {
       "slug": "command-atlas",
       "name": "Command Atlas",
       "tagline": "Every command in the course: what it does and where you use it.",
-      "description": "Every command in the cybersecurity course on Windows, Linux, FreeBSD, and Cisco IOS in one place. Type a command or a task to see what it does, its options and arguments, every lesson, drill, and lab that uses it, the expected answers behind a reveal, and its vendor documentation.",
+      "description": "Every command in the cybersecurity course on Windows, Linux, FreeBSD, and Cisco IOS in one place. Type a command or a task to see what it does, its options and arguments, every lesson, drill, and lab that uses it, the expected answers behind a reveal, and its vendor documentation. The Checklist map lists each Cyber PUG checklist step with its commands' first lesson, drills, and Range checks.",
       "badges": [
         "Cybersecurity",
         "Study",
@@ -486,8 +486,8 @@
       "icon": "terminal",
       "category": "cyber",
       "section": "learning",
-      "sha256": "6440bf00cb2286877c6ea6e2aa34de1c5aa659624e54e1c8c497ceeeaf6a53ae",
-      "updated": "2026-11-23"
+      "sha256": "1302f8063d22a2ce1c2251ffd9dc34016d46de37c1bcc8a55c432f3e518e4bc7",
+      "updated": "2026-11-24"
     },
     {
       "slug": "cyber-pug",

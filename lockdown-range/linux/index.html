@@ -2,7 +2,7 @@
 <html lang="en">
 <head><meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Gcf1UHowxxQlmkBt5u+pKpzCzSW7FB5SwEfeAs3n3RE='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-XB8c7yI10SgQNJwRfv1FkmT6cf7ugyLjqNr+vYVnLFw='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/lockdown-range/linux/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%96%A5%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -755,14 +755,11 @@ function sysctlFileValue(key) {
   for (const f of sysctlDropins()) for (const l of activeLines(sysctlText(f))) { const m = /^([\w.]+)\s*=\s*(\S+)/.exec(l); if (m && m[1] === key) val = m[2]; }
   return val;
 }
-/* apt.conf style  APT::Periodic::Unattended-Upgrade "1"; */
-function aptConfValue(key) {
-  let val = null;
-  for (const f of FS.list('/etc/apt/apt.conf.d')) {
-    for (const l of activeLines(FS.text('/etc/apt/apt.conf.d/' + f))) { const m = /^([\w:+-]+)\s+"([^"]*)"\s*;/.exec(l); if (m && m[1] === key) val = m[2]; }
-  }
-  return val;
-}
+/* one apt key as apt reads it (aptConfig in 65-cmds-pkg.js, which apt-config prints): null when unset, or when a file has
+   a syntax error, since apt then stops before it runs anything */
+function aptConfValue(key) { const cfg = aptConfig(null); if (cfg.err) return null; const n = aptFind(cfg.root, key); return n ? n.v : null; }
+/* the values of an apt list such as Unattended-Upgrade::Allowed-Origins, in the order apt reads them */
+function aptConfList(key) { const cfg = aptConfig(null), n = !cfg.err && aptFind(cfg.root, key); return n ? n.kids.map(x => x.v) : []; }
 /* pam line parse: returns [{type, control, module, args:[...], raw}] of active lines */
 function pamLines(file) {
   return activeLines(FS.text(file)).map(l => {
@@ -1002,7 +999,7 @@ const CMDS = {};
 function def(names, fn, opts) { for (const n of [].concat(names)) CMDS[n] = Object.assign({ run: fn }, opts || {}); }
 const PATH_DIRS = ['/usr/local/sbin', '/usr/local/bin', '/usr/sbin', '/usr/bin', '/sbin', '/bin', '/snap/bin'];
 function findBin(name) { for (const d of PATH_DIRS) { const p = d + '/' + name; const n = S.fs[FS.real(p) || p]; if (n && n.t === 'f') return FS.real(p) || p; } return null; }
-const BUILTINS = ['cd', 'pwd', 'echo', 'exit', 'logout', 'export', 'unset', 'history', 'alias', 'unalias', 'type', 'source', '.', 'true', 'false', 'test', '[', 'help', 'umask', 'set', 'shopt', 'read', 'command', 'builtin', 'declare', 'local', 'return', 'ulimit', 'bg', 'fg', 'jobs', 'wait', 'times', 'hash', 'let', 'printf'];
+const BUILTINS = ['cd', 'pwd', 'echo', 'exit', 'logout', 'export', 'unset', 'history', 'alias', 'unalias', 'type', 'source', '.', 'true', 'false', 'test', '[', 'help', 'umask', 'set', 'shopt', 'read', 'command', 'builtin', 'declare', 'local', 'return', 'ulimit', 'bg', 'fg', 'jobs', 'wait', 'times', 'hash', 'let', 'printf', 'trap'];
 class ShellAbort extends Error { constructor() { super('abort'); this.abort = true; } }
 
 /* ---- tokenizer: words are lists of segments {s, q:'n'|'s'|'d'} so quoting survives until expansion ---- */
@@ -1190,6 +1187,16 @@ function newShell(user) {
   return { stack: [{ user, cwd: u.home }], env: { TERM: 'xterm-256color', LANG: 'en_US.UTF-8', PATH: PATH_DIRS.join(':') }, hist: (S.hist && S.hist[user]) || [], last: 0, sudoAuth: 0, pid: 2210 + Math.floor(Math.random() * 500), aliases: {} };
 }
 function shTop(sh) { return sh.stack[sh.stack.length - 1]; }
+/* aliases belong to one shell level: an interactive bash starts with the alias lines of its user's ~/.bashrc (and the
+   ~/.bash_aliases that file sources), so sudo -i and su - root start with root's, which define none here */
+function rcAliases(user) {
+  const u = U.user(user), out = {}; if (!u || !u.home) return out;
+  const rc = activeLines(FS.text(FS.real(FS.join(u.home, '.bashrc')) || FS.join(u.home, '.bashrc'))), texts = [rc];
+  if (rc.some(l => /^(\.|source)\s+~\/\.bash_aliases\b/.test(l))) texts.push(activeLines(FS.text(FS.join(u.home, '.bash_aliases'))));
+  for (const t of texts) for (const l of t) { const m = /^alias\s+([^=\s]+)=(?:'([^']*)'|"([^"]*)"|(\S+))$/.exec(l); if (m) out[m[1]] = m[2] != null ? m[2] : m[3] != null ? m[3] : m[4]; }
+  return out;
+}
+function shAliases(sh) { if (sh.stack.length < 2) return sh.aliases || (sh.aliases = {}); const t = shTop(sh); return t.aliases || (t.aliases = t.noRc ? {} : rcAliases(t.user)); }
 /* each shell level keeps its own set options and shell variables; a new shell starts with bash's defaults */
 function shOpts(sh) { const t = shTop(sh); return t.opts || (t.opts = {}); }
 function shVars(sh) { const t = shTop(sh); return t.vars || (t.vars = {}); }
@@ -1248,6 +1255,16 @@ async function runLine(term, sh, line) {
   // an expansion error abandons the line; under set -e it also ends the shell, as bash's report_error does
   catch (e) { if (e && e.unbound) { term.write('bash: ' + e.unbound + ': ' + (e.msg || 'unbound variable') + '\n'); sh.last = 1; if (shOn(shOpts(sh), 'e')) sh.exitRequested = true; return 1; } throw e; }
 }
+/* trap actions (the trap builtin, 55-cmds-core.js): DEBUG runs before each command, ERR after one that fails, INT on
+   Ctrl+C, and EXIT once as the shell ends. A trap's own commands set off no trap, $? keeps the status the trap saw, and
+   command substitutions run without the traps, as bash runs them unless set -T or set -E is on. */
+async function runTrap(term, sh, sig) {
+  const top = shTop(sh), traps = top && top.traps, act = traps && traps[sig];
+  if (sig === 'EXIT' && traps && act != null) delete traps.EXIT;
+  if (!act || sh.inTrap || sh.subDepth) return;
+  const keep = sh.last; sh.inTrap = true;
+  try { await runLine(term, sh, act); } catch (e) { if (!(e && e.abort)) throw e; } finally { sh.inTrap = false; sh.last = keep; sh.aborted = false; }
+}
 /* for loops run here; while, until, if, case, and select blocks are skipped whole with a lab note */
 const BLOCK_CLOSE = { for: 'done', while: 'done', until: 'done', select: 'done', if: 'fi', case: 'esac' };
 const KW_STRAY = ['do', 'done', 'then', 'fi', 'elif', 'else', 'esac'];
@@ -1264,10 +1281,11 @@ async function runList(term, sh, list) {
     if (!skip) {
       if (loop) { if (loop.note) { term.write(loop.note); code = 0; } else code = await runFor(term, sh, loop); }
       else if (other) { term.write('[Range] This trainer runs for loops (for NAME in WORDS; do COMMANDS; done). The ' + k + ' block runs on a real shell.\n'); code = 0; }
-      else code = await runPipeline(term, sh, seg.pipe);
+      else { await runTrap(term, sh, 'DEBUG'); if (sh.exitRequested) return sh.last; code = await runPipeline(term, sh, seg.pipe); }
       sh.last = code;
       if (sh.exitRequested || sh.aborted) return code;
-      // set -e: a failed command ends the shell, unless an && or || list is testing it
+      // an ERR trap, then set -e, act on a failed command, unless an && or || list is testing it
+      if (code !== 0 && op !== '&&' && op !== '||') { await runTrap(term, sh, 'ERR'); if (sh.exitRequested) return code; }
       if (code !== 0 && op !== '&&' && op !== '||' && shOn(shOpts(sh), 'e')) { sh.exitRequested = true; return code; }
     }
     // after && or ||, the next command runs only when the status calls for it
@@ -1346,7 +1364,7 @@ async function runPipeline(term, sh, pipe) {
     let argv = [];
     for (const w of cmd.words.slice(wi)) argv.push(...expandWord(w, v));
     // alias expansion (ll etc.)
-    if (argv.length && sh.aliases[argv[0]]) argv = sh.aliases[argv[0]].split(' ').concat(argv.slice(1));
+    if (argv.length && shAliases(sh)[argv[0]]) argv = shAliases(sh)[argv[0]].split(' ').concat(argv.slice(1));
     const outR = cmd.redirs.filter(r => r.fd === '1' || r.fd === '&').pop();
     const errR = cmd.redirs.filter(r => r.fd === '2' || r.fd === '&').pop();
     const inR = cmd.redirs.find(r => r.fd === '0');
@@ -1411,7 +1429,14 @@ function cnfMessage(name) {
   return 'bash: ' + name + ': command not found\n';
 }
 const DANGEROUS = ['dd', 'mkfs', 'mkfs.ext4', 'fdisk', 'parted', 'shred', 'wipefs', 'init', 'telinit', 'halt'];
+/* a lab saved before systemd-run joined the systemd package gains the program once, with the attributes a build gives it */
+function fillSavedLab() {
+  S.fillRun = 1; const p = '/usr/bin/systemd-run', ref = S.fs['/usr/bin/systemctl'];
+  if (S.pkgs.systemd && !S.fs[p]) FS.mk(p, { t: 'f', m: pkgFileMode(p), u: 0, g: 0, bin: 1, sz: pkgFileSize(p), mt: ref ? ref.mt : nowSec() });
+}
 async function dispatch(c) {
+  if (!S.fillRun) fillSavedLab();
+  if (S.runTimers && S.runTimers.length) await runTimersDue(); // systemd-run timers whose time came while the page was closed
   let name = c.argv[0]; AUDIT_CTX = c;
   if (name === 'sudo' || name === 'su' || name === 'time' || name === 'nice' || name === 'nohup' || name === 'watch' || name === 'xargs' || name === 'env' || name === 'command' || name === 'builtin') return CMDS[name].run(c);
   if (name.includes('/')) {
@@ -1693,7 +1718,11 @@ def('printf', c => {
   const fmt = c.args[0].replace(/\\n/g, '\n').replace(/\\t/g, '\t'); const rest = c.args.slice(1); let i = 0;
   c.out(fmt.replace(/%[sd%]/g, m => m === '%%' ? '%' : (rest[i++] || ''))); return 0;
 });
-def(['exit', 'logout'], c => { c.sh.exitRequested = true; if (c.argv[0] === 'exit' && c.sh.stack.length > 1) { c.out(c.sh.stack[c.sh.stack.length - 1].ssh ? 'logout\n' : 'exit\n'); } else if (c.argv[0] === 'logout') { c.out('logout\n'); } return c.args[0] ? parseInt(c.args[0], 10) || 0 : 0; });
+def(['exit', 'logout'], async c => {
+  if (c.argv[0] === 'exit' && c.sh.stack.length > 1) { c.out(c.sh.stack[c.sh.stack.length - 1].ssh ? 'logout\n' : 'exit\n'); } else if (c.argv[0] === 'logout') { c.out('logout\n'); }
+  // an EXIT trap runs once as the shell ends, after bash prints exit (runTrap in 50-shell.js)
+  if ((shTop(c.sh).traps || {}).EXIT != null) { c.flush(); await runTrap(c.term, c.sh, 'EXIT'); }
+  c.sh.exitRequested = true; return c.args[0] ? parseInt(c.args[0], 10) || 0 : 0; });
 def('export', c => { const vars = shVars(c.sh); for (const a of c.args) { const m = /^([A-Za-z_]\w*)(?:=(.*))?$/.exec(a); if (m) { if (m[2] != null) { c.sh.env[m[1]] = m[2]; delete vars[m[1]]; } else if (vars[m[1]] != null) { c.sh.env[m[1]] = vars[m[1]]; delete vars[m[1]]; } } else { c.err("bash: export: `" + a + "': not a valid identifier\n"); return 1; } } if (!c.args.length) for (const k of Object.keys(c.sh.env).sort()) c.out('declare -x ' + k + '="' + c.sh.env[k] + '"\n'); return 0; });
 def('unset', c => { const vars = shVars(c.sh); for (const a of c.args) { delete c.sh.env[a]; delete vars[a]; } return 0; });
 def(['env', 'printenv'], c => {
@@ -1703,8 +1732,8 @@ def(['env', 'printenv'], c => {
   for (const k of Object.keys(all)) c.out(k + '=' + all[k] + '\n'); return 0;
 });
 def('history', c => { if (c.args[0] === '-c') { c.sh.hist.length = 0; return 0; } const h = c.sh.hist; const n = c.args[0] ? parseInt(c.args[0], 10) : h.length; h.slice(-n).forEach((l, i) => c.out(padL(h.length - Math.min(n, h.length) + i + 1, 5) + '  ' + l + '\n')); return 0; });
-def('alias', c => { if (!c.args.length) { for (const k of Object.keys(c.sh.aliases)) c.out("alias " + k + "='" + c.sh.aliases[k] + "'\n"); return 0; } for (const a of c.args) { const m = /^([^=]+)=(.*)$/.exec(a); if (m) c.sh.aliases[m[1]] = m[2].replace(/^['"]|['"]$/g, ''); else if (c.sh.aliases[a]) c.out("alias " + a + "='" + c.sh.aliases[a] + "'\n"); else { c.err('bash: alias: ' + a + ': not found\n'); return 1; } } return 0; });
-def('unalias', c => { for (const a of c.args) delete c.sh.aliases[a]; return 0; });
+def('alias', c => { if (!c.args.length) { for (const k of Object.keys(shAliases(c.sh)).sort(cmpStr)) c.out("alias " + k + "='" + shAliases(c.sh)[k] + "'\n"); return 0; } for (const a of c.args) { const m = /^([^=]+)=(.*)$/.exec(a); if (m) shAliases(c.sh)[m[1]] = m[2].replace(/^['"]|['"]$/g, ''); else if (shAliases(c.sh)[a]) c.out("alias " + a + "='" + shAliases(c.sh)[a] + "'\n"); else { c.err('bash: alias: ' + a + ': not found\n'); return 1; } } return 0; });
+def('unalias', c => { for (const a of c.args) delete shAliases(c.sh)[a]; return 0; });
 def(['true', ':'], () => 0); def('false', () => 1);
 def(['shopt', 'umask', 'ulimit', 'hash'], c => { if (c.argv[0] === 'umask' && !c.args.length) c.out('0022\n'); return 0; });
 /* set (bash 5.2): -e (errexit) ends the shell at a failed command, -u (nounset) stops a line that reads an unset
@@ -1737,19 +1766,67 @@ def(['command', 'builtin', 'time', 'nice', 'nohup'], c => {
   // command -v NAME prints how bash would run NAME (an alias, a keyword or builtin by name, or the path PATH finds); -V says it in words
   if (c.argv[0] === 'command' && /^-p?[vV]p?$/.test(c.args[0])) {
     const V = c.args[0].includes('V'); let code = 0;
-    for (const n of c.args.slice(1)) { const al = c.sh.aliases[n], kw = /^(if|then|else|elif|fi|case|esac|for|select|while|until|do|done|in|function|time|[{}!]|\[\[|\]\]|coproc)$/.test(n) ? 'keyword' : BUILTINS.includes(n) ? 'builtin' : null, p = PATH_DIRS.map(d => d + '/' + n).find(x => (S.fs[FS.real(x) || x] || {}).t === 'f');
+    for (const n of c.args.slice(1)) { const al = shAliases(c.sh)[n], kw = /^(if|then|else|elif|fi|case|esac|for|select|while|until|do|done|in|function|time|[{}!]|\[\[|\]\]|coproc)$/.test(n) ? 'keyword' : BUILTINS.includes(n) ? 'builtin' : null, p = PATH_DIRS.map(d => d + '/' + n).find(x => (S.fs[FS.real(x) || x] || {}).t === 'f');
       if (al != null) c.out(V ? n + ' is aliased to `' + al + "'\n" : 'alias ' + n + "='" + al + "'\n"); else if (kw) c.out(V ? n + ' is a shell ' + kw + '\n' : n + '\n'); else if (p) c.out(V ? n + ' is ' + p + '\n' : p + '\n'); else { if (V) c.err('bash: command: ' + n + ': not found\n'); code = 1; } }
     return code;
   }
   c.argv = c.args.filter((a, i) => !(i === 0 && a.startsWith('-'))); c.args = c.argv.slice(1); return dispatch(c); });
 def('watch', c => { c.out('[Range] watch would re-run the command every 2 seconds; run it once instead.\n'); return 0; });
+/* type (bash 5.2): -a lists every match in order (alias, keyword, builtin, then each PATH folder that holds the name,
+   so /usr/bin/sudo and its /bin twin through the /bin -> usr/bin link), -t prints the kind, -p and -P only the path */
+const SH_KEYWORDS = ['if', 'then', 'else', 'elif', 'fi', 'case', 'esac', 'for', 'select', 'while', 'until', 'do', 'done', 'in', 'function', 'time', '{', '}', '!', '[[', ']]', 'coproc'];
 def('type', c => {
-  let code = 0;
+  let code = 0, all = false, kind = false, path = false, force = false; const names = [];
   for (const a of c.args) {
-    if (c.sh.aliases[a]) c.out(a + " is aliased to `" + c.sh.aliases[a] + "'\n");
-    else if (BUILTINS.includes(a)) c.out(a + ' is a shell builtin\n');
-    else { const b = findBin(a); if (b) c.out(a + ' is ' + b + '\n'); else { c.err('bash: type: ' + a + ': not found\n'); code = 1; } }
+    if (names.length || !/^-./.test(a)) { names.push(a); continue; }
+    for (const ch of a.slice(1)) { const f = '-' + ch; if (f === '-a') all = true; else if (f === '-t') kind = true; else if (f === '-p') path = true; else if (f === '-P') force = true; else if (f !== '-f') { c.err('bash: type: ' + f + ': invalid option\ntype: usage: type [-afptP] name [name ...]\n'); return 2; } }
   }
+  const dirs = String((c.env && c.env.PATH) || PATH_DIRS.join(':')).split(':').filter(Boolean);
+  for (const a of names) {
+    const hits = [];
+    if (!force && shAliases(c.sh)[a]) hits.push(['alias', a + " is aliased to `" + shAliases(c.sh)[a] + "'"]);
+    if (!force && SH_KEYWORDS.includes(a)) hits.push(['keyword', a + ' is a shell keyword']);
+    if (!force && BUILTINS.includes(a)) hits.push(['builtin', a + ' is a shell builtin']);
+    for (const d of dirs) { const p = d + '/' + a, n = S.fs[FS.real(p) || p]; if (n && n.t === 'f' && !a.includes('/')) hits.push(['file', a + ' is ' + p, p]); }
+    if (a.includes('/')) { const n = FS.get(FS.norm(a, c.cwd)); if (n && n.t === 'f') hits.push(['file', a + ' is ' + a, a]); }
+    const shown = all ? hits : hits.slice(0, 1);
+    if (!shown.length) { if (!kind && !path && !force) c.err('bash: type: ' + a + ': not found\n'); code = 1; continue; }
+    for (const h of shown) { if (kind) c.out(h[0] + '\n'); else if (path || force) { if (h[0] === 'file') c.out(h[2] + '\n'); } else c.out(h[1] + '\n'); }
+  }
+  return code;
+});
+/* trap (bash 5.2): ARG runs when the shell gets SIGNAL (or EXIT when it ends); -p prints the traps as trap commands,
+   -l lists the signals, and - (or a lone signal) resets it. A fresh shell has none, so trap -p prints nothing. The lab
+   runs DEBUG, ERR, INT (Ctrl+C), and EXIT traps (runTrap in 50-shell.js); a trap on any other signal is kept and listed. */
+const SIG_NAMES = ['HUP', 'INT', 'QUIT', 'ILL', 'TRAP', 'ABRT', 'BUS', 'FPE', 'KILL', 'USR1', 'SEGV', 'USR2', 'PIPE', 'ALRM', 'TERM', 'STKFLT', 'CHLD', 'CONT', 'STOP', 'TSTP', 'TTIN', 'TTOU', 'URG', 'XCPU', 'XFSZ', 'VTALRM', 'PROF', 'WINCH', 'IO', 'PWR', 'SYS'];
+const TRAP_SPECIAL = ['DEBUG', 'ERR', 'RETURN'];
+function sigList() { const l = SIG_NAMES.map((n, i) => [i + 1, 'SIG' + n]); for (let k = 34; k <= 64; k++) l.push([k, k === 34 ? 'SIGRTMIN' : k === 64 ? 'SIGRTMAX' : k < 50 ? 'SIGRTMIN+' + (k - 34) : 'SIGRTMAX-' + (64 - k)]); return l; }
+/* a signal spec as the trap table keys it: EXIT, SIGINT, DEBUG; null when it names no signal */
+function trapKey(s) {
+  const u = String(s).toUpperCase().replace(/^SIG/, '');
+  if (u === '0' || u === 'EXIT') return 'EXIT'; if (TRAP_SPECIAL.includes(u)) return u;
+  if (/^\d+$/.test(s)) { const hit = sigList().find(x => x[0] === +s); return hit ? hit[1] : null; }
+  const hit = sigList().find(x => x[1] === 'SIG' + u); return hit ? hit[1] : null;
+}
+const trapOrder = k => k === 'EXIT' ? 0 : TRAP_SPECIAL.includes(k) ? 100 + TRAP_SPECIAL.indexOf(k) : sigList().find(x => x[1] === k)[0];
+const shq = s => "'" + String(s).replace(/'/g, "'\\''") + "'";
+def('trap', c => {
+  const top = shTop(c.sh), traps = top.traps || (top.traps = {}); let a = c.args.slice(), print = false;
+  while (a.length && (a[0] === '-l' || a[0] === '-p')) {
+    const f = a.shift();
+    if (f !== '-p') { const l = sigList(); let out = ''; l.forEach((x, i) => { out += padL(x[0], 2) + ') ' + x[1] + ((i + 1) % 5 === 0 || i === l.length - 1 ? '\n' : '\t'); }); c.out(out); return 0; }
+    print = true;
+  }
+  if (/^-[^-]/.test(a[0] || '') && !trapKey(a[0].slice(1))) { c.err('bash: trap: ' + a[0].slice(0, 2) + ': invalid option\ntrap: usage: trap [-lp] [[arg] signal_spec ...]\n'); return 2; }
+  if (a[0] === '--') a.shift();
+  if (print || !a.length) {
+    let code = 0; const keys = a.length ? a.map(s => { const k = trapKey(s); if (!k) { c.err('bash: trap: ' + s + ': invalid signal specification\n'); code = 1; } return k; }).filter(Boolean) : Object.keys(traps).sort((x, y) => trapOrder(x) - trapOrder(y));
+    for (const k of keys) if (k in traps) c.out('trap -- ' + shq(traps[k]) + ' ' + k + '\n');
+    return code;
+  }
+  const reset = a.length === 1 || a[0] === '-', action = a.length === 1 ? null : a[0], sigs = a.length === 1 ? a : a.slice(1);
+  let code = 0;
+  for (const s of sigs) { const k = trapKey(s); if (!k) { c.err('bash: trap: ' + s + ': invalid signal specification\n'); code = 1; continue; } if (reset) delete traps[k]; else traps[k] = action; }
   return code;
 });
 def('help', c => { c.out("GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)\nThese shell commands are defined internally.  Type `help' to see this list.\n alias  cd  echo  exit  export  history  logout  pwd  source  type  unset\n[Range] Tab completes, Up/Down recall history, Ctrl+C aborts, Ctrl+L clears, man <command> helps.\n"); return 0; });
@@ -1764,14 +1841,23 @@ def('clear', c => { c.term.out.textContent = ''; c.term.newLine(); return 0; });
 def(['sleep'], async c => { const n = parseFloat(c.args[0]); if (isNaN(n)) { c.err("sleep: invalid time interval '" + (c.args[0] || '') + "'\n"); return 1; } await sleep(Math.min(n, 3) * 1000); return 0; });
 /* ---- ls ---- */
 def(['ls', 'dir', 'vdir'], c => {
-  const o = opts(c, 'laAhRd1rtSFinGgoXUcuvpqNQZk', 'IwT'); if (o.err) { c.err(o.err); return 2; }
-  const long = o.l || o.n || o.g || o.o, all = o.a, almost = o.A; let code = 0;
+  const o = opts(c, 'laAhRd1CrtSFinGgoXUcuvpqNQZk', 'IwT'); if (o.err) { c.err(o.err); return 2; }
+  // the last layout option given wins, as in GNU ls: -l (and -n, -g, -o) long, -1 one per line, -C columns
+  const at = {}; let seq = 0;
+  for (let i = 0; i < c.args.length; i++) {
+    const s = c.args[i]; if (s === '--') break; if (!/^-[^-]/.test(s)) continue;
+    for (let j = 1; j < s.length; j++) { const ch = s[j]; if ('IwT'.includes(ch)) { if (j === s.length - 1) i++; break; } at[ch] = ++seq; }
+  }
+  const pos = ch => at[ch] || 0;
+  const long = !!(o.l || o.n || o.g || o.o) && Math.max(pos('l'), pos('n'), pos('g'), pos('o')) > Math.max(pos('1'), pos('C'));
+  const oneLine = (o['1'] && pos('1') > pos('C')) || (!o.C && !c.isTTY), all = o.a, almost = o.A; let code = 0;
   const paths = o._.length ? o._ : ['.'];
   const colorize = c.isTTY && (o.long.color !== 'never');
-  const nameSeg = (name, node) => {
+  const suffix = node => o.F && node ? (node.t === 'd' ? '/' : node.t === 'l' ? '@' : (node.m & 0o111) ? '*' : '') : '';
+  const nameSeg = (name, node, bare) => {
     let cls = '';
     if (node) { if (node.t === 'd') cls = 'dir'; else if (node.t === 'l') cls = 'lnk'; else if (node.t === 'f' && (node.m & 0o4000)) cls = 'suid'; else if (node.t === 'f' && (node.m & 0o111)) cls = 'exe'; }
-    let text = name; if (o.F && node) text += node.t === 'd' ? '/' : node.t === 'l' ? '@' : (node.m & 0o111) ? '*' : '';
+    const text = bare ? name : name + suffix(node);
     return colorize && cls ? { text, cls } : { text };
   };
   const files = [], dirs = [];
@@ -1799,13 +1885,13 @@ def(['ls', 'dir', 'vdir'], c => {
         if (vl) c.err("ls: cannot read symbolic link '" + (dir ? FS.join(dir, x.r.name) : x.r.name) + "': " + vl + '\n');
         c.rich([{ text: (o.i ? padL(hash32(x.r.full || x.r.name) % 900000 + 100000, 7) + ' ' : '') + line }, nameSeg(x.r.name, x.r.node), { text: x.r.node && x.r.node.t === 'l' && !vl ? ' -> ' + x.r.node.ln : '' }, { text: '\n' }]);
       }
-    } else if (o['1'] || !c.isTTY) { for (const r of rows) c.rich([{ text: o.Z ? '? ' : '' }, nameSeg(r.name, r.node), { text: '\n' }]); }
+    } else if (oneLine) { /* -C prints columns into a pipe too */ for (const r of rows) c.rich([{ text: o.Z ? '? ' : '' }, nameSeg(r.name, r.node), { text: '\n' }]); }
     else {
-      const names = rows.map(r => (o.Z ? '? ' : '') + r.name + (o.F && r.node && r.node.t === 'd' ? '/' : ''));
+      const names = rows.map(r => (o.Z ? '? ' : '') + r.name + suffix(r.node));
       const lines = columns(names, 80).split('\n'); let idx = 0;
       for (const ln of lines) {
         const segs = []; let pos = 0;
-        while (pos < ln.length) { const r = rows[idx]; const nm = names[idx]; const at = ln.indexOf(nm, pos); if (at < 0 || !r) { segs.push({ text: ln.slice(pos) }); break; } if (at > pos) segs.push({ text: ln.slice(pos, at) }); segs.push(nameSeg(nm, r.node)); pos = at + nm.length; idx++; }
+        while (pos < ln.length) { const r = rows[idx]; const nm = names[idx]; const at = ln.indexOf(nm, pos); if (at < 0 || !r) { segs.push({ text: ln.slice(pos) }); break; } if (at > pos) segs.push({ text: ln.slice(pos, at) }); segs.push(nameSeg(nm, r.node, true)); pos = at + nm.length; idx++; }
         segs.push({ text: '\n' }); c.rich(segs);
       }
     }
@@ -2695,7 +2781,10 @@ def('which', c => { const o = opts(c, 'as', ''); let code = 0; for (const n of o
 def('lsb_release', c => { const F = FLAVORS[S.flavor]; const o = opts(c, 'aidrcsvh', ''); if (o.err) { c.err(o.err); return 2; } const out = []; const all = o.a; if (all || o.i) out.push((o.s ? '' : 'Distributor ID:\t') + F.distrib); if (all || o.d) out.push((o.s ? '' : 'Description:\t') + F.osPretty); if (all || o.r) out.push((o.s ? '' : 'Release:\t') + F.release); if (all || o.c) out.push((o.s ? '' : 'Codename:\t') + F.codename); if (c.isTTY) c.err('No LSB modules are available.\n'); if (out.length) c.out(out.join('\n') + '\n'); return 0; });
 def('man', c => {
   const t = c.args.filter(a => a[0] !== '-')[0]; if (!t) { c.err('What manual page do you want?\nFor example, try \'man man\'.\n'); return 1; }
-  const page = MAN[t]; if (!page) { c.err('No manual entry for ' + t + '\n'); return 16; }
+  // a program's page ships with its package, so it is missing until a package that holds the program is installed
+  // (vim's page ships in vim-common, which vim-tiny brings too)
+  const owners = Object.keys(PKG).filter(n => (PKG[n].bins || []).concat(PKG[n].sbins || []).includes(t)).concat(t === 'vim' ? ['vim-tiny'] : []);
+  const page = MAN[t]; if (!page || owners.length && !owners.some(n => S.pkgs[n])) { c.err('No manual entry for ' + t + '\n'); return 16; }
   c.out(t.toUpperCase() + '(' + (page.sec || 1) + ')' + padL(t.toUpperCase() + '(' + (page.sec || 1) + ')', 70 - t.length * 2) + '\n\nNAME\n       ' + t + ' - ' + page.name + '\n\nSYNOPSIS\n       ' + page.syn.join('\n       ') + '\n\nDESCRIPTION\n' + page.desc.map(l => '       ' + l).join('\n') + '\n' + (page.ex ? '\nEXAMPLES\n' + page.ex.map(l => '       ' + l).join('\n') + '\n' : '') + '\n[Range] Condensed page. The real one is much longer: press q to leave it.\n'); return 0;
 });
 /* ---- network views ---- */
@@ -2775,7 +2864,7 @@ function killProc(c, p, sig) {
   if (sig === 'STOP' || sig === 'CONT' || sig === 'HUP' && p.svc) { if (sig === 'HUP' && p.svc) return null; return null; }
   S.procs = S.procs.filter(x => x !== p);
   if (p.svc && S.svc[p.svc]) { const d = SVC[p.svc]; if (d && d.restart && spawnSvc(p.svc)) { S.svc[p.svc].restarts = (S.svc[p.svc].restarts || 0) + 1; } else { S.svc[p.svc].active = false; S.svc[p.svc].since = nowSec(); S.svc[p.svc].killed = true; } }
-  if (p.shell) { c.sh.exitRequested = true; }
+  if (p.shell) { c.sh.exitRequested = true; if (sig === 'KILL') delete (shTop(c.sh).traps || {}).EXIT; } // SIGKILL ends bash before any EXIT trap
   return null;
 }
 def('kill', c => {
@@ -2783,7 +2872,7 @@ def('kill', c => {
   for (const a of c.args) { if (/^-\d+$/.test(a)) sig = { 9: 'KILL', 15: 'TERM', 1: 'HUP', 19: 'STOP', 18: 'CONT', 2: 'INT' }[a.slice(1)] || a.slice(1); else if (/^-(SIG)?[A-Z]+$/.test(a)) sig = a.replace(/^-(SIG)?/, ''); else if (a === '-l') { c.out(' 1) SIGHUP   2) SIGINT   3) SIGQUIT  9) SIGKILL  15) SIGTERM\n'); return 0; } else pids.push(a); }
   if (!pids.length) { c.err('kill: usage: kill [-s sigspec | -n signum | -sigspec] pid | jobspec ... or kill -l [sigspec]\n'); return 2; }
   let code = 0;
-  for (const ps of pids) { const pid = parseInt(ps, 10); if (isNaN(pid)) { c.err('bash: kill: ' + ps + ': arguments must be process or job IDs\n'); code = 1; continue; } const p = S.procs.find(x => x.pid === pid); if (!p) { if (pid === c.sh.pid) { c.sh.exitRequested = true; continue; } c.err('bash: kill: (' + pid + ') - No such process\n'); code = 1; continue; } const e = killProc(c, p, sig); if (e === 'sandbox') { c.out('[Range] Killing PID 1 would crash the machine; not simulated.\n'); } else if (e) { c.err('bash: kill: (' + pid + ') - ' + e + '\n'); code = 1; } }
+  for (const ps of pids) { const pid = parseInt(ps, 10); if (isNaN(pid)) { c.err('bash: kill: ' + ps + ': arguments must be process or job IDs\n'); code = 1; continue; } const p = S.procs.find(x => x.pid === pid); if (!p) { if (pid === c.sh.pid) { c.sh.exitRequested = true; if (sig === 'KILL') delete (shTop(c.sh).traps || {}).EXIT; continue; } c.err('bash: kill: (' + pid + ') - No such process\n'); code = 1; continue; } const e = killProc(c, p, sig); if (e === 'sandbox') { c.out('[Range] Killing PID 1 would crash the machine; not simulated.\n'); } else if (e) { c.err('bash: kill: (' + pid + ') - ' + e + '\n'); code = 1; } }
   return code;
 });
 def(['pkill', 'killall'], c => { let sig = 'TERM'; const names = []; let full = false, uspec = null; const args = c.args; for (let i = 0; i < args.length; i++) { const a = args[i]; if (/^-\d+$/.test(a)) sig = a.slice(1) === '9' ? 'KILL' : 'TERM'; else if (/^-(SIG)?[A-Z]+$/.test(a)) sig = a.replace(/^-(SIG)?/, ''); else if (a === '-f') full = true; else if (a === '-u' && c.argv[0] === 'pkill') uspec = args[++i] || ''; else if (/^-u.+/.test(a) && c.argv[0] === 'pkill') uspec = a.slice(2); else if (a[0] !== '-') names.push(a); }
@@ -3418,7 +3507,7 @@ const PKG = {
   passwd: { v: '1:4.13+dfsg1-4ubuntu3.2', d: 'change and administer password and group data', bins: ['passwd', 'chage', 'chsh', 'chfn', 'gpasswd', 'expiry'], sbins: ['useradd', 'userdel', 'usermod', 'groupadd', 'groupdel', 'groupmod', 'chpasswd', 'newusers', 'pwck', 'grpck', 'vipw', 'vigr'] },
   adduser: { v: '3.137ubuntu1', d: 'add and remove users and groups', sbins: ['adduser', 'deluser', 'addgroup', 'delgroup'] },
   sudo: { v: '1.9.15p5-3ubuntu5.24.04.3', d: 'Provide limited super user privileges to specific users', bins: ['sudo', 'sudoedit', 'sudoreplay'], sbins: ['visudo'], conf: ['/etc/sudoers', '/etc/sudoers.d'] },
-  systemd: { v: '255.4-1ubuntu8.17', d: 'system and service manager', bins: ['systemctl', 'journalctl', 'hostnamectl', 'timedatectl', 'loginctl', 'systemd-analyze', 'busctl'] },
+  systemd: { v: '255.4-1ubuntu8.17', d: 'system and service manager', bins: ['systemctl', 'journalctl', 'hostnamectl', 'timedatectl', 'loginctl', 'systemd-analyze', 'busctl', 'systemd-run'] },
   'systemd-sysv': { v: '255.4-1ubuntu8.17', d: 'system and service manager - SysV links', sbins: ['reboot', 'shutdown', 'poweroff', 'halt', 'init', 'telinit', 'runlevel'] },
   'systemd-resolved': { v: '255.4-1ubuntu8.17', d: 'systemd DNS resolver', bins: ['resolvectl'] },
   'systemd-timesyncd': { v: '255.4-1ubuntu8.17', d: 'minimal NTP client for time synchronisation', bins: [] },
@@ -3518,6 +3607,7 @@ const PKG = {
   'grub2-common': { v: '2.12-1ubuntu7.3', d: 'GRand Unified Bootloader (common files for version 2)', sbins: ['update-grub'] },
   bsdutils: { v: '1:2.39.3-9ubuntu6.6', d: 'basic utilities from 4.4BSD-Lite', ess: 1, bins: ['logger', 'script', 'scriptreplay', 'wall', 'renice'] },
   lsof: { v: '4.95.0-1build3', d: 'utility to list open files', bins: ['lsof'] },
+  needrestart: { v: '3.6-7ubuntu4.5', d: 'check which daemons need to be restarted after library upgrades', comp: 'main', sbins: ['needrestart'], conf: ['/etc/needrestart', '/etc/needrestart/needrestart.conf', '/etc/apt/apt.conf.d/99needrestart'], hook: 'needrestart' },
   mokutil: { v: '0.6.0-2build3', d: 'tools for manipulating machine owner keys', bins: ['mokutil'] },
   'netcat-openbsd': { v: '1.226-1ubuntu2', d: 'TCP/IP swiss army knife', bins: ['nc', 'netcat', 'nc.openbsd'] },
   openssl: { v: '3.0.13-0ubuntu3.15', d: 'Secure Sockets Layer toolkit - cryptographic utility', bins: ['openssl', 'c_rehash'] },
@@ -3747,6 +3837,13 @@ function pkgInstall(name, opts) {
   if (d.hook === 'cracklib' && !opts.quiet) { const f = '/etc/pam.d/common-password'; const t = FS.text(f); if (!/pam_cracklib\.so/.test(t)) FS.setText(f, t.replace(/^(password\s+\[success=1 default=ignore\]\s+pam_unix\.so.*)$/m, 'password        requisite                       pam_cracklib.so retry=3 minlen=8 difok=3\n$1')); }
   if (d.hook === 'plocate' && !opts.quiet) plocateSetup(false);
   if (d.hook === 'auditd') auditSetup();
+  /* needrestart lays down its settings and the apt hook that runs it after each dpkg run (apt-config dump lists it) */
+  if (d.hook === 'needrestart') {
+    const mk = (p, x) => { if (!S.fs[p]) FS.mk(p, Object.assign({ m: 0o644, u: 0, g: 0, mt: opts.mt || nowSec() }, x)); };
+    mk('/etc/needrestart', { t: 'd', m: 0o755 }); mk('/etc/needrestart/conf.d', { t: 'd', m: 0o755 }); mk('/etc/needrestart/hook.d', { t: 'd', m: 0o755 });
+    mk('/etc/needrestart/needrestart.conf', { t: 'f', c: "# needrestart - Restart daemons after library updates.\n#\n# This is the configuration file of needrestart. This is perl syntax.\n# needrestart uses reasonable default values, you might not need to\n# change anything.\n\n# Verbosity:\n#  0 => quiet\n#  1 => normal (default)\n#  2 => verbose\n#$nrconf{verbosity} = 2;\n\n# Path of the package manager hook scripts.\n#$nrconf{hook_d} = '/etc/needrestart/hook.d';\n\n# Restart mode: (l)ist only, (i)nteractive or (a)utomatically.\n#\n# ATTENTION: If needrestart is configured to run in interactive mode but is run\n# non-interactive (i.e. unattended-upgrades) it will fallback to list only mode.\n#\n#$nrconf{restart} = 'i';\n\n# Read additional config snippets.\nif(-d q(/etc/needrestart/conf.d)) {\n    foreach my $fn (sort </etc/needrestart/conf.d/*.conf>) {\n        print STDERR \"$LOGPREF eval $fn\\n\" if($nrconf{verbosity} > 1);\n        eval do { local(@ARGV, $/) = $fn; <>};\n        die \"Error parsing $fn: $@\" if($@);\n    }\n}\n" });
+    mk('/etc/apt/apt.conf.d/99needrestart', { t: 'f', c: 'DPkg::Post-Invoke {"test -x /usr/lib/needrestart/apt-pinvoke && /usr/lib/needrestart/apt-pinvoke || true"; };\n' });
+  }
   if (d.hook === 'autoupgrades' && !opts.quiet) FS.setText('/etc/apt/apt.conf.d/20auto-upgrades', 'APT::Periodic::Update-Package-Lists "1";\nAPT::Periodic::Unattended-Upgrade "1";\n');
   /* inetutils-telnetd's postinst adds its inetd line switched off (#<off>#); the planted server was switched on */
   if (d.hook === 'inetd') { if (!S.pkgs['openbsd-inetd']) pkgInstall('openbsd-inetd', Object.assign({}, opts, { auto: false })); const f = '/etc/inetd.conf'; const t = FS.text(f); if (!/^(#<off># )?telnet\s/m.test(t)) FS.setText(f, (t || '# /etc/inetd.conf:  see inetd(8) for further informations.\n#\n# Internet superserver configuration database\n#\n#:INTERNAL: Internal services\n#discard\t\tstream\ttcp\tnowait\troot\tinternal\n#:STANDARD: These are standard services.\n') + (opts.quiet ? '' : '#<off># ') + 'telnet\tstream\ttcp\tnowait\troot\t/usr/sbin/tcpd\t/usr/sbin/telnetd\n'); if (S.svc.inetd && !S.svc.inetd.active) svcStart('inetd'); }
@@ -3823,6 +3920,7 @@ async function aptUpgrade(c, yes, full) {
   c.out('Processing triggers for man-db (' + PKG['man-db'].v + ') ...\nProcessing triggers for libc-bin (2.39-0ubuntu8.9) ...\n');
   if (up.some(p => /^linux-image/.test(p.name))) { FS.setText('/var/run/reboot-required', '*** System restart required ***\n'); c.out('*** System restart required ***\n'); }
   S.updates.pending = held; S.updates.upgraded = true; S.updates.lastUpgrade = nowSec();
+  S.updates.done = Object.assign(S.updates.done || {}, Object.fromEntries(up.map(p => [p.name, nowSec()]))); // needrestart reads when each package changed
   return 0;
 }
 async function aptInstall(c, names, yes) {
@@ -4052,8 +4150,9 @@ def('dpkg-reconfigure', async c => {
 /* unattended-upgrade expands ${distro_id} and ${distro_codename} from lsb_release: on Mint that is Linuxmint and the Mint codename */
 def(['unattended-upgrade', 'unattended-upgrades'], c => {
   if (c.uid !== 0) { c.err('You need to be root to run this application\n'); return 1; }
-  const F = FLAVORS[S.flavor]; const ao = []; let inAO = false;
-  for (const l of activeLines(FS.text('/etc/apt/apt.conf.d/50unattended-upgrades'))) { if (/^Unattended-Upgrade::Allowed-Origins\s*\{/.test(l)) { inAO = true; continue; } if (inAO && /^\}/.test(l.trim())) { inAO = false; continue; } const m = inAO && /^"([^":]+):([^"]+)";/.exec(l.trim()); if (m) ao.push('o=' + m[1].replace('${distro_id}', F.distrib) + ',a=' + m[2].replace('${distro_codename}', F.codename)); }
+  // Allowed-Origins items read "origin:archive"; Origins-Pattern items are already key=value lists
+  const F = FLAVORS[S.flavor], sub = v => v.replace(/\$\{distro_id\}/g, F.distrib).replace(/\$\{distro_codename\}/g, F.codename);
+  const ao = aptConfList('Unattended-Upgrade::Allowed-Origins').map(v => /^([^:]+):(.+)$/.exec(v)).filter(Boolean).map(m => 'o=' + sub(m[1]) + ',a=' + sub(m[2])).concat(aptConfList('Unattended-Upgrade::Origins-Pattern').map(sub));
   const reaches = S.flavor !== 'mint' || uuUbuntuOrigin();
   c.out('Starting unattended upgrades script\nAllowed origins are: ' + ao.join(', ') + '\n' + (upgradable().length && reaches ? 'Packages that will be upgraded: ' + upgradable().map(p => p.name).join(' ') + '\n' : 'No packages found that can be upgraded unattended and no pending auto-removals\n'));
   return 0;
@@ -4122,6 +4221,174 @@ def('mintupdate-cli', async c => {
   if (code === 0) { S.updates.pending = rest; S.updates.upgraded = !rest.length; } else S.updates.pending = ups.concat(rest);
   return code;
 });
+/* ---- apt-config (apt 2.8): the configuration apt runs with. The built-in defaults come first, then every file in
+   /etc/apt/apt.conf.d in name order (a later file overrides an earlier value in place), then /etc/apt/apt.conf and -o.
+   dump prints the tree, shell prints VAR='value' lines for scripts. ---- */
+const APT_DEFAULTS = [['APT::Architecture', 'amd64'], ['APT::Build-Essential::', 'build-essential'], ['APT::Install-Recommends', '1'], ['APT::Install-Suggests', '0'], ['APT::Sandbox::User', '_apt'], ['APT::Architectures::', 'amd64'],
+  ['Dir', '/'], ['Dir::State', 'var/lib/apt'], ['Dir::State::lists', 'lists/'], ['Dir::State::cdroms', 'cdroms.list'], ['Dir::State::extended_states', 'extended_states'], ['Dir::State::status', '/var/lib/dpkg/status'],
+  ['Dir::Cache', 'var/cache/apt'], ['Dir::Cache::archives', 'archives/'], ['Dir::Cache::srcpkgcache', 'srcpkgcache.bin'], ['Dir::Cache::pkgcache', 'pkgcache.bin'],
+  ['Dir::Etc', 'etc/apt'], ['Dir::Etc::sourcelist', 'sources.list'], ['Dir::Etc::sourceparts', 'sources.list.d'], ['Dir::Etc::main', 'apt.conf'], ['Dir::Etc::netrc', 'auth.conf'], ['Dir::Etc::netrcparts', 'auth.conf.d'], ['Dir::Etc::parts', 'apt.conf.d'], ['Dir::Etc::preferences', 'preferences'], ['Dir::Etc::preferencesparts', 'preferences.d'], ['Dir::Etc::trusted', 'trusted.gpg'], ['Dir::Etc::trustedparts', 'trusted.gpg.d'],
+  ['Dir::Bin::methods', '/usr/lib/apt/methods'], ['Dir::Bin::dpkg', '/usr/bin/dpkg'], ['Dir::Log', 'var/log/apt'], ['Dir::Log::Terminal', 'term.log'], ['Dir::Log::History', 'history.log'], ['Dir::Log::Planner', 'eipp.log.xz'],
+  ...['~$', '\\.disabled$', '\\.bak$', '\\.dpkg-[a-z]+$', '\\.ucf-[a-z]+$', '\\.save$', '\\.orig$', '\\.distUpgrade$'].map(r => ['Dir::Ignore-Files-Silently::', r])];
+/* the tree: each node keeps its tag (as first written), value, and children in the order they were added; tags match
+   whatever their case, and an empty tag (a "value"; line inside a block) adds a list item */
+function aptTree() { return { tag: '', v: '', kids: [] }; }
+function aptSet(root, key, v) {
+  let n = root; const parts = key.split('::');
+  parts.forEach((p, i) => { let k = p === '' ? null : n.kids.find(x => x.tag.toLowerCase() === p.toLowerCase()); if (!k) { k = { tag: p, v: '', kids: [], up: n }; n.kids.push(k); } n = k; if (i === parts.length - 1 && v != null) n.v = v; });
+  return n;
+}
+function aptFind(root, key) { let n = root; for (const p of key.split('::')) { n = n.kids.find(x => x.tag !== '' && x.tag.toLowerCase() === p.toLowerCase()); if (!n) return null; } return n; }
+const aptFull = n => { const t = []; for (let x = n; x && x.up; x = x.up) t.unshift(x.tag); return t.join('::'); };
+/* one apt.conf file: Key "value";  Key { Sub "value"; "item"; };  #clear Key;  comments //, #, and slash-star;
+   returns the error line, or null */
+function aptParse(root, text, file) {
+  const toks = []; let i = 0, line = 1; const s = String(text || '');
+  const junk = l => 'E: Syntax error ' + file + ':' + l + ': Extra junk at end of file';
+  while (i < s.length) {
+    const ch = s[i];
+    if (ch === '\n') { line++; i++; continue; }
+    if (/\s/.test(ch)) { i++; continue; }
+    if (ch === '/' && s[i + 1] === '/') { while (i < s.length && s[i] !== '\n') i++; continue; }
+    if (ch === '/' && s[i + 1] === '*') { const e = s.indexOf('*/', i + 2), end = e < 0 ? s.length : e + 2; line += (s.slice(i, end).match(/\n/g) || []).length; i = end; continue; }
+    if (ch === '#') { const e = s.indexOf('\n', i), l = s.slice(i, e < 0 ? s.length : e), m = /^#clear\s+([^;\s]+)/.exec(l); if (m) toks.push({ t: 'clear', v: m[1], line }); i = e < 0 ? s.length : e; continue; }
+    if (ch === '"') { const e = s.indexOf('"', i + 1); if (e < 0) return junk(line); toks.push({ t: 'str', v: s.slice(i + 1, e), line }); line += (s.slice(i, e).match(/\n/g) || []).length; i = e + 1; continue; }
+    if (ch === '{' || ch === '}' || ch === ';') { toks.push({ t: ch, line }); i++; continue; }
+    let j = i; while (j < s.length && !/[\s{};"]/.test(s[j])) j++; toks.push({ t: 'word', v: s.slice(i, j), line }); i = j;
+  }
+  const scope = [], fullKey = k => scope.concat([k]).join('::');
+  for (let k = 0; k < toks.length; k++) {
+    const t = toks[k];
+    if (t.t === 'clear') { const n = aptFind(root, t.v); if (n && n.up) n.up.kids = n.up.kids.filter(x => x !== n); continue; }
+    if (t.t === ';') continue;
+    if (t.t === '}') { if (!scope.length) return junk(t.line); scope.pop(); continue; }
+    let key = '', val = null;
+    if (t.t === 'word') { key = t.v; const n = toks[k + 1]; if (n && (n.t === 'str' || n.t === 'word')) { val = n.v; k++; } }
+    else if (t.t === 'str') val = t.v;
+    else return 'E: Syntax error ' + file + ':' + t.line + ': Block starts with no name.';
+    const nx = toks[k + 1];
+    if (nx && nx.t === '{') { if (val != null) aptSet(root, fullKey(key), val); scope.push(key); k++; continue; }
+    if (!nx || nx.t !== ';') return junk(t.line);
+    aptSet(root, fullKey(key), val == null ? '' : val); k++;
+  }
+  return scope.length ? junk(line) : null;
+}
+/* the configuration as apt builds it; err is the first file error, notes the files apt passes over. c is the command
+   reading it, or null for the system's own reading (the progress check, the Software Updater, unattended-upgrades) */
+function aptConfig(c, over) {
+  const root = aptTree(), notes = []; let err = null;
+  for (const [k, v] of APT_DEFAULTS) aptSet(root, k, v);
+  const dir = '/etc/apt/apt.conf.d', files = FS.list(dir).filter(f => (FS.get(dir + '/' + f) || {}).t !== 'd').sort(cmpStr).map(f => dir + '/' + f);
+  // backups and package leftovers (Dir::Ignore-Files-Silently, as the directory is listed) are passed over without a note
+  const quiet = ((aptFind(root, 'Dir::Ignore-Files-Silently') || {}).kids || []).map(k => { try { return new RegExp(k.v); } catch (e) { return null; } }).filter(Boolean);
+  for (const p of files.concat(FS.get('/etc/apt/apt.conf') ? ['/etc/apt/apt.conf'] : [])) {
+    const f = FS.base(p);
+    if (p.startsWith(dir + '/')) {
+      // apt reads a part with no extension or .conf, named from letters, digits, _, -, :, and . (hidden files and other
+      // names it skips silently); another extension earns the N: note unless the name is on the quiet list
+      const dot = f.lastIndexOf('.'), ext = dot < 0 ? '' : f.slice(dot + 1);
+      if (f[0] === '.') continue;
+      if (ext !== '' && ext !== 'conf') { if (!quiet.some(r => r.test(f))) notes.push("N: Ignoring file '" + f + "' in directory '" + dir + "/' as it has an invalid filename extension"); continue; }
+      if (!/^[A-Za-z0-9_:.-]+$/.test(f) || f.endsWith('.')) continue;
+    }
+    const r = c ? FS.readText(p, c.ctx) : { ok: true, text: FS.text(FS.real(p) || p) }; if (!r.ok) { err = err || 'E: Opening configuration file ' + p + ' - ifstream::ifstream (13: ' + r.err + ')'; continue; }
+    const e = aptParse(root, r.text, p); if (e) err = err || e;
+  }
+  for (const [k, v] of over || []) aptSet(root, k, v);
+  return { root, notes, err };
+}
+def('apt-config', c => {
+  const a = c.args.slice(), over = [], pos = []; let empty = true, fmt = '%f "%v";%n', help = false;
+  while (a.length) {
+    const f = a.shift();
+    if (f === '-o' || f === '--option' || /^-o./.test(f)) { const kv = f.length > 2 && f[1] === 'o' ? f.slice(2) : a.shift() || '', eq = kv.indexOf('='); if (eq < 1) { c.err('E: Option ' + kv + ': Configuration item specification must have an =<val>.\n'); return 100; } over.push([kv.slice(0, eq), kv.slice(eq + 1)]); }
+    else if (f === '--no-empty') empty = false; else if (f === '--empty') empty = true;
+    else if (f === '--format') fmt = a.shift() || fmt; else if (f.startsWith('--format=')) fmt = f.slice(9);
+    else if (f === '-c' || f === '--config-file') a.shift();
+    else if (f === '-h' || f === '--help') help = true;
+    else if (f[0] === '-' && f !== '-') { c.err('E: Command line option ' + f + ' is not understood in combination with the other options\n'); return 100; }
+    else pos.push(f);
+  }
+  const verb = help ? null : pos.shift();
+  if (!verb) { c.out('apt ' + PKG.apt.v + ' (amd64)\nUsage: apt-config [options] command\n\napt-config is an interface to the configuration settings used by all APT tools,\nmainly intended for debugging and shell scripting.\n\nMost used commands:\n  shell - get configuration values via shell evaluation\n  dump - show the active configuration setting\n\nSee apt.conf(5) for more information about the available configuration options and syntax.\n'); return help ? 0 : 1; }
+  if (verb !== 'dump' && verb !== 'shell') { c.err('E: Invalid operation ' + verb + '\n'); return 100; }
+  const cfg = aptConfig(c, over);
+  if (cfg.notes.length) { c.flush(); c.err(cfg.notes.join('\n') + '\n'); }
+  if (cfg.err) { c.err(cfg.err + '\n'); return 100; }
+  if (verb === 'shell') {
+    if (pos.length % 2) { c.err('E: Arguments not in pairs\n'); return 100; }
+    for (let i = 0; i < pos.length; i += 2) {
+      // KEY/b answers true or false, KEY/i a number
+      const m = /^(.*?)(?:\/([fdbi]))?$/.exec(pos[i + 1]), n = aptFind(cfg.root, m[1]); let v = n ? n.v : '';
+      if (m[2] === 'b') v = /^(1|yes|true|with|on|enable)$/i.test(v) ? 'true' : 'false'; else if (m[2] === 'i' && v !== '') v = String(parseInt(v, 10) || 0);
+      if (v !== '') c.out(pos[i] + "='" + v.replace(/'/g, "'\\''") + "'\n");
+    }
+    return 0;
+  }
+  const out = [];
+  const walk = n => { if (n.up && (empty || n.v !== '')) out.push(fmt.replace(/%f/g, aptFull(n)).replace(/%t/g, n.tag).replace(/%v/g, n.v).replace(/%n/g, '\n')); for (const k of n.kids) walk(k); };
+  if (!pos.length) walk(cfg.root); else for (const k of pos) { const n = aptFind(cfg.root, k); if (n) walk(n); }
+  c.out(out.join(''));
+  return 0;
+});
+/* ---- needrestart 3.6 (Ubuntu's restart helper): which running services still use a library an upgrade replaced, and
+   whether the running kernel is the newest installed. A service started after the upgrade (or after a reboot) runs the
+   new code. -r l lists, -r a restarts, and the default asks for each service; -b prints NEEDRESTART-* lines, -k checks
+   the kernel only, and -l the services only. ---- */
+const NR_LIBS = { libssl3t64: ['ssh', 'apache2', 'nginx', 'mysql', 'vsftpd', 'snmpd'], libc6: null }; // null: every service
+const NR_DEFER = ['dbus', 'systemd-logind', 'systemd-journald', 'gdm3', 'lightdm']; // restarted only by a reboot
+/* when a package changed during this boot (0: it did not): apt upgrade records the time; the Software Updater and
+   mintupdate-cli leave only the last upgrade time, which counts once the package has left the pending list */
+function nrChanged(name) {
+  const done = (S.updates.done || {})[name] || (S.updates.lastUpgrade && NR_START.includes(name) && !S.updates.pending.some(p => p.name === name) ? S.updates.lastUpgrade : 0);
+  return done && done >= S.boot ? done : 0;
+}
+const NR_START = ['libssl3t64', 'linux-image-generic']; // the stock pending list's library and kernel (84-base.js)
+function nrServices() {
+  const out = new Set();
+  for (const [lib, users] of Object.entries(NR_LIBS)) { const t = nrChanged(lib); if (!t) continue; for (const n of Object.keys(S.svc)) { const st = S.svc[n]; if (st.active && (st.since < t || st.since === S.boot) && (!users || users.includes(n)) && !NR_DEFER.includes(n)) out.add(n); } }
+  return [...out].sort(cmpStr);
+}
+/* the kernel: KSTA 1 while the running one is current, 3 once an upgrade has installed a newer version this boot */
+function nrKernel() {
+  const F = FLAVORS[S.flavor], k = /^(\d+\.\d+\.\d+)-(\d+)-generic$/.exec(F.kernel), next = k ? k[1] + '-' + (+k[2] + 1) + '-generic' : F.kernel;
+  const done = Object.keys(S.updates.done || {}).some(n => /^linux-image-/.test(n) && nrChanged(n)) || nrChanged('linux-image-generic');
+  return done ? { cur: F.kernel, exp: next, sta: 3 } : { cur: F.kernel, exp: F.kernel, sta: 1 };
+}
+const NR_TAIL = 'No containers need to be restarted.\n\nNo user sessions are running outdated binaries.\n\nNo VM guests are running outdated hypervisor (qemu) binaries on this host.\n';
+def('needrestart', async c => {
+  const o = opts(c, 'vqnlkbwph', 'rcmuft'); if (o.err) { c.err(o.err); return 1; }
+  if (o.h) { c.out('needrestart 3.6 - Restart daemons after library updates.\n\nUsage:\n\n  needrestart [-vn] [-c <cfg>] [-r <mode>] [-f <fe>] [-u <ui>] [-(b|p|o)] [-klw]\n\n    -v\t\tbe more verbose\n    -q\t\tbe quiet\n    -n\t\tset default answer to \'no\'\n    -c <cfg>\tconfig filename\n    -r <mode>\tset restart mode\n\tl\t(l)ist only\n\ti\t(i)nteractive restart\n\ta\t(a)utomatically restart\n    -b\t\tenable batch mode\n\n  By using the following options only the specified checks are performed:\n    -k\t\tcheck for obsolete kernel\n    -l\t\tcheck for obsolete libraries\n    -w\t\tcheck for obsolete CPU microcode\n'); return 0; }
+  const mode = o.r || 'i'; if (!/^[lia]$/.test(mode)) { c.err("ERROR: Unknown restart option '" + mode + "'!\n"); return 1; }
+  const doK = o.k || !(o.l || o.w), doL = o.l || !(o.k || o.w), K = nrKernel();
+  // a normal user's run checks only that user's own processes, and every lab service runs under a system account
+  const svcs = doL && c.uid === 0 ? nrServices() : [];
+  if (o.b) {
+    let out = 'NEEDRESTART-VER: 3.6\n';
+    if (doK) out += 'NEEDRESTART-KCUR: ' + K.cur + '\nNEEDRESTART-KEXP: ' + K.exp + '\nNEEDRESTART-KSTA: ' + K.sta + '\n';
+    for (const n of svcs) out += 'NEEDRESTART-SVC: ' + n + '.service\n';
+    c.out(out); return 0;
+  }
+  if (!o.q) c.out((doL ? 'Scanning processes...\n' : '') + (svcs.length ? 'Scanning candidates...\n' : '') + (doK ? 'Scanning linux images...\n' : '') + '\n');
+  if (doK) c.out(K.sta === 1 ? 'Running kernel seems to be up-to-date.\n\n' : 'Pending kernel upgrade!\n\nRunning kernel version:\n  ' + K.cur + '\n\nDiagnostics:\n  The currently running kernel version is not the expected kernel version ' + K.exp + '.\n\nRestarting the system to load the new kernel will not be handled automatically, so you should consider rebooting.\n\n');
+  if (!doL) return 0;
+  if (c.uid !== 0) { c.out('No outdated processes.\n'); return 0; }
+  if (!svcs.length) { c.out('No services need to be restarted.\n\n' + NR_TAIL); return 0; }
+  let go = [];
+  if (mode === 'l') c.out('Services to be restarted:\n' + svcs.map(n => ' systemctl restart ' + n + '.service\n').join('') + '\n');
+  else if (mode === 'a') go = svcs;
+  else for (let i = 0; i < svcs.length; i++) {
+    const r = await c.prompt('Restart «' + svcs[i] + '.service»? [' + (o.n ? 'yNas?' : 'Ynas?') + '] ');
+    const ans = (r == null ? 'n' : r.trim().toLowerCase()) || (o.n ? 'n' : 'y');
+    if (ans === 'a') { go = go.concat(svcs.slice(i)); break; } if (ans === 's') break; if (ans === 'y') go.push(svcs[i]);
+  }
+  if (go.length) { c.out('Restarting services...\n' + go.map(n => ' systemctl restart ' + n + '.service\n').join('') + '\n'); for (const n of go) { svcStop(n); const r = svcStart(n); if (!r.ok) c.err(r.err + '\n'); } }
+  else if (mode !== 'l') c.out('\n');
+  c.out(NR_TAIL);
+  return 0;
+});
+manp('apt-config', 8, 'APT Configuration Query program', ['apt-config [options] {shell | dump}'], ['dump  print the configuration in force: the defaults, then every /etc/apt/apt.conf.d file in name order, a later file overriding an earlier value', 'shell VAR KEY  print VAR=value for a script'], ["apt-config dump | grep -E 'Periodic::(Update-Package-Lists|Unattended-Upgrade) '"]);
+manp('needrestart', 1, 'check which daemons need to be restarted after library upgrades', ['needrestart [-vn] [-r mode] [-b] [-klw]'], ['Lists the services still running code an upgrade replaced, and checks whether the running kernel is the newest installed.', '-r l  list only (restarts nothing), -r a  restart them, -r i  ask for each', '-b  batch output: NEEDRESTART-KSTA: 1 means the kernel is current, 2 or 3 that a reboot is due', '-k  check the kernel only, -l  check the services only'], ['sudo needrestart -r l', 'sudo needrestart -b -k']);
 
 /* ---------------- systemctl / service / ufw / cron / sshd / sysctl / journalctl ---------------- */
 const UNIT_NOINST = 'The unit files have no installation config (WantedBy=, RequiredBy=, Also=,\nAlias= settings in the [Install] section, and DefaultInstance= for template\nunits). This means they are not meant to be enabled using systemctl.\n';
@@ -4164,7 +4431,10 @@ function statusBlock(c, name) {
   if (planted) out.push({ text: '' });
   c.rich(out);
 }
-function unitFull(n) { return n === 'ssh.socket' ? n : n + '.service'; }
+function unitFull(n) { return /\.(socket|timer|target|service)$/.test(n) ? n : n + '.service'; }
+/* try-reload-or-restart (and its older name reload-or-try-restart): a running unit reloads when it can (ssh) and
+   restarts otherwise; a stopped unit stays stopped */
+const TRY_RELOAD = ['try-reload-or-restart', 'reload-or-try-restart'];
 /* systemctl verbs on ssh.socket (Ubuntu 24.04 socket activation; only the Captain scenario has it) */
 function sockVerb(c, verb, now) {
   const k = S.sshSock;
@@ -4183,6 +4453,7 @@ function sockVerb(c, verb, now) {
   if (verb === 'is-failed') { c.out((k.active ? 'active' : 'inactive') + '\n'); return 1; }
   if (verb === 'edit') { c.out('[Range] systemctl edit is not simulated; edit sshd_config, then systemctl daemon-reload and systemctl restart ssh.socket.\n'); return 0; }
   if (verb === 'reload') { c.err('Failed to reload ssh.socket: Job type reload is not applicable for unit ssh.socket.\n'); return 1; }
+  if (TRY_RELOAD.includes(verb)) verb = 'try-restart'; // a socket has no reload
   if (verb === 'start' || verb === 'restart' || verb === 'reload-or-restart' || verb === 'try-restart') {
     if (verb === 'try-restart' && !k.active) return 0;
     if (k.masked) { c.err('Failed to ' + verb + ' ssh.socket: Unit ssh.socket is masked.\n'); return 1; }
@@ -4234,10 +4505,12 @@ def('systemctl', async c => {
     // systemd 255 format_timestamp_relative_full(): "6 days", "1 day 3h", "17h", "5h 54min", "27min", "2min 5s", "40s" (LEFT omits "left", PASSED adds " ago")
     const span = s => { s = Math.max(1, Math.floor(s)); const d = Math.floor(s / 86400), h = Math.floor(s / 3600), m = Math.floor(s / 60); return s >= 2 * 86400 ? d + ' days' : s >= 25 * 3600 ? '1 day ' + (h - 24) + 'h' : s >= 6 * 3600 ? h + 'h' : s >= 3600 ? h + 'h ' + (m % 60) + 'min' : s >= 300 ? m + 'min' : s >= 60 ? m + 'min ' + (s % 60) + 's' : s + 's'; };
     let rows = T.map(([u, s, per]) => { const last = tnow - 300 - (hash32(u + S.id) % (per - 600)); return { u, s, next: last + per, last }; });
+    for (const t of runTimers()) rows.push({ u: t.unit + '.timer', s: t.unit + '.service', next: t.at, last: null }); // systemd-run --on-active
+
     if (units.length) rows = rows.filter(r => units.some(x => globRe(x.endsWith('.timer') ? x : x + '*').test(r.u)));
     rows.sort((a, b) => a.next - b.next);
     // systemd's table: each column as wide as its widest cell, LEFT and PASSED right-aligned, the last column unpadded
-    const cells = rows.map(r => [fmtSystemd(r.next), span(r.next - tnow), fmtSystemd(r.last), span(tnow - r.last) + ' ago', r.u, r.s]);
+    const cells = rows.map(r => [fmtSystemd(r.next), span(r.next - tnow), r.last == null ? '-' : fmtSystemd(r.last), r.last == null ? '-' : span(tnow - r.last) + ' ago', r.u, r.s]);
     const head = ['NEXT', 'LEFT', 'LAST', 'PASSED', 'UNIT', 'ACTIVATES']; const wd = head.map((h, k) => Math.max(h.length, ...cells.map(x => x[k].length)));
     const line = x => x.map((v, k) => k === 5 ? v : k === 1 || k === 3 ? padL(v, wd[k]) : padR(v, wd[k])).join(' ') + '\n';
     c.out(line(head)); for (const x of cells) c.out(line(x));
@@ -4246,13 +4519,13 @@ def('systemctl', async c => {
   }
   if (verb === 'list-sockets') return sysListSockets(c, all);
   if (verb === 'list-unit-files') return sysListUnitFiles(c, units, stateOpt, typeOpt);
-  const known = ['status', 'start', 'stop', 'restart', 'reload', 'reload-or-restart', 'try-restart', 'enable', 'disable', 'is-active', 'is-enabled', 'is-failed', 'mask', 'unmask', 'edit'];
+  const known = ['status', 'start', 'stop', 'restart', 'reload', 'reload-or-restart', 'try-restart', 'enable', 'disable', 'is-active', 'is-enabled', 'is-failed', 'mask', 'unmask', 'edit', 'try-reload-or-restart', 'reload-or-try-restart'];
   if (!known.includes(verb)) { c.err('Unknown command verb ' + verb + '.\n'); return 1; }
   if (verb === 'edit') return sysEdit(c, units);
   if (!units.length && verb !== 'status') { c.err('Too few arguments.\n'); return 1; }
   if (verb === 'status' && !units.length) { c.out('● ' + S.hostname + '\n    State: ' + (Object.values(S.svc).some(s => s.failed) ? 'degraded' : 'running') + '\n    Units: ' + (Object.keys(S.svc).length + 212) + ' loaded (incl. loaded aliases)\n     Jobs: 0 queued\n   Failed: ' + Object.values(S.svc).filter(s => s.failed).length + ' units\n    Since: ' + fmtSystemd(S.boot) + '; ' + fmtAgo(S.boot) + '\n  systemd: ' + PKG.systemd.v + '\n   CGroup: /\n           ├─user.slice\n           ├─init.scope\n           └─system.slice\n'); return 0; }
   let code = 0;
-  const needRoot = ['start', 'stop', 'restart', 'reload', 'reload-or-restart', 'try-restart', 'enable', 'disable', 'mask', 'unmask'].includes(verb);
+  const needRoot = ['start', 'stop', 'restart', 'reload', 'reload-or-restart', 'try-restart', 'enable', 'disable', 'mask', 'unmask', 'try-reload-or-restart', 'reload-or-try-restart'].includes(verb);
   if (needRoot && c.uid !== 0) { for (const u of units) c.err('Failed to ' + verb + ' ' + (['enable', 'disable', 'mask', 'unmask'].includes(verb) ? 'unit' : unitFull(svcName(u))) + ': Interactive authentication required.' + (['enable', 'disable', 'mask', 'unmask'].includes(verb) ? '' : '\nSee system logs and \'systemctl status ' + unitFull(svcName(u)) + '\' for details.') + '\n'); return 1; }
   for (const u of units) {
     const ox = sysOtherUnit(c, verb, u); if (ox != null) { if (ox) code = ox; continue; }
@@ -4264,12 +4537,13 @@ def('systemctl', async c => {
     if (verb === 'is-enabled') { if (!st) { c.err('Failed to get unit file state for ' + n + '.service: No such file or directory\n'); code = 1; continue; } c.out((st.masked ? 'masked' : st.enabled ? 'enabled' : d.fixed ? 'static' : 'disabled') + '\n'); if (!st.enabled) code = 1; continue; }
     if (verb === 'is-failed') { c.out(st && st.failed ? 'failed\n' : 'active\n'); if (!(st && st.failed)) code = 1; continue; }
     if (!st) { c.err('Failed to ' + verb + ' ' + n + '.service: Unit ' + n + '.service not found.\n'); code = 5; continue; }
-    if (verb === 'start' || verb === 'restart' || verb === 'reload' || verb === 'reload-or-restart' || verb === 'try-restart') {
-      if (verb === 'try-restart' && !st.active) continue;
-      if (verb === 'reload' && !st.active) { c.err('Failed to reload ' + n + '.service: Unit ' + n + '.service is not active.\nSee system logs and \'systemctl status ' + n + '.service\' for details.\n'); code = 1; continue; }
-      if (verb === 'reload' && n === 'ssh') { const chk = sshdCheck(); if (!chk.ok) { c.err('Job for ssh.service failed.\nSee "systemctl status ssh.service" and "journalctl -xeu ssh.service" for details.\n'); journal('ssh', chk.msg.split('\n')[0], 'sshd[' + st.pid + ']'); code = 1; continue; } journal('ssh', 'Reloaded OpenBSD Secure Shell server.'); S.sshdCfg = sshdSnap(); continue; }
+    const vb = TRY_RELOAD.includes(verb) ? (!st.active ? 'try-restart' : n === 'ssh' ? 'reload' : 'restart') : verb;
+    if (vb === 'start' || vb === 'restart' || vb === 'reload' || vb === 'reload-or-restart' || vb === 'try-restart') {
+      if (vb === 'try-restart' && !st.active) continue;
+      if (vb === 'reload' && !st.active) { c.err('Failed to reload ' + n + '.service: Unit ' + n + '.service is not active.\nSee system logs and \'systemctl status ' + n + '.service\' for details.\n'); code = 1; continue; }
+      if (vb === 'reload' && n === 'ssh') { const chk = sshdCheck(); if (!chk.ok) { c.err('Job for ssh.service failed.\nSee "systemctl status ssh.service" and "journalctl -xeu ssh.service" for details.\n'); journal('ssh', chk.msg.split('\n')[0], 'sshd[' + st.pid + ']'); code = 1; continue; } journal('ssh', 'Reloaded OpenBSD Secure Shell server.'); S.sshdCfg = sshdSnap(); continue; }
       if (st.masked) { c.err('Failed to ' + verb + ' ' + n + '.service: Unit ' + n + '.service is masked.\n'); code = 1; continue; }
-      if (verb !== 'start') svcStop(n);
+      if (vb !== 'start') svcStop(n);
       const r = svcStart(n); if (!r.ok) { c.err(r.err + '\n'); code = 1; }
       continue;
     }
@@ -4280,6 +4554,83 @@ def('systemctl', async c => {
     if (verb === 'unmask') { if (st.masked) { st.masked = false; const p = '/etc/systemd/system/' + n + '.service'; if (S.fs[p] && S.fs[p].t === 'l') delete S.fs[p]; c.out('Removed /etc/systemd/system/' + n + '.service.\n'); } continue; }
   }
   return code;
+});
+/* ---- systemd-run (systemd 255): a transient service, or with --on-active=SPAN a transient timer that starts it later.
+   The lab keeps the wall clock, as shutdown +MINUTES does: a pending timer fires when its time comes (a page timer
+   while the page stays open, else before the next command), runs its command as root in /, and leaves its output in
+   the journal; systemctl stop NAME.timer cancels it, and a reboot drops it, as it drops every transient unit. ---- */
+function runTimers() { return (S.runTimers || []).filter(t => t.boot === S.boot); }
+function runUnitId() { let h = ''; for (let i = 0; i < 32; i++) h += '0123456789abcdef'[Math.floor(Math.random() * 16)]; return 'run-r' + h; }
+/* systemd time spans: 120, 120s, 2min, 1h 30min, 1m30s */
+function parseSpan(v) {
+  const U = { us: 1e-6, usec: 1e-6, ms: 1e-3, msec: 1e-3, s: 1, sec: 1, second: 1, seconds: 1, m: 60, min: 60, minute: 60, minutes: 60, h: 3600, hr: 3600, hour: 3600, hours: 3600, d: 86400, day: 86400, days: 86400, w: 604800, week: 604800, weeks: 604800 };
+  const t = String(v || '').trim(); if (/^\d+(\.\d+)?$/.test(t)) return +t;
+  let sum = 0, rest = t; const re = /^\s*(\d+(?:\.\d+)?)\s*([a-z]+)/i;
+  if (!rest) return null;
+  while (rest.trim()) { const m = re.exec(rest); if (!m || !(m[2] in U)) return null; sum += +m[1] * U[m[2]]; rest = rest.slice(m[0].length); }
+  return sum;
+}
+/* runs a unit's command line as root, the way systemd starts its service, and journals what it prints */
+async function runUnitCmd(t) {
+  const unit = t.unit, sh = newShell('root'); sh.stack[0].cwd = '/'; sh.unit = unit; sh.env.INVOCATION_ID = runUnitId().slice(5); // started by systemd, outside any ssh session
+  let text = ''; const pid = S.nextPid++;
+  const term = { dead: true, out: { textContent: '' }, write(x) { if (x != null) text += x; }, writeSegs(segs) { for (const s of segs) text += s.text; }, newLine() {}, focus() {}, clear() {},
+    readLine() { return Promise.reject(new ShellAbort()); }, readKey() { return Promise.reject(new ShellAbort()); }, showPager(x) { text += x; return Promise.resolve(); } };
+  journal(unit, 'Started ' + unit + '.service - ' + t.desc + '.');
+  let code = 0; try { code = await runLine(term, sh, t.argv.map(xq).join(' ')); } catch (e) { code = 1; }
+  for (const l of text.split('\n').filter(Boolean)) journal(unit, l, FS.base(t.argv[0]) + '[' + pid + ']');
+  journal(unit, code ? unit + '.service: Main process exited, code=exited, status=' + code + '/FAILURE' : unit + '.service: Deactivated successfully.');
+  if (typeof scheduleEvaluate === 'function') { try { persist(); scheduleEvaluate(); refreshViews(); } catch (e) { /* headless */ } }
+  return code;
+}
+/* the timers whose time has come fire in order; the commands that call this see the machine they left */
+async function runTimersDue() {
+  if (!S || !S.runTimers || !S.runTimers.length) return;
+  S.runTimers = runTimers();
+  for (;;) { const due = S.runTimers.filter(t => t.at <= nowSec()).sort((x, y) => x.at - y.at)[0]; if (!due) break; S.runTimers = S.runTimers.filter(t => t !== due); journal(due.unit, due.unit + '.timer: Deactivated successfully.'); await runUnitCmd(due); }
+}
+function runTimerArm(t) { const sid = S.id; setTimeout(() => { try { if (S && S.id === sid && S.power === 'on' && (S.runTimers || []).includes(t)) runTimersDue(); } catch (e) { /* the page is gone */ } }, Math.max(0, t.at - nowSec()) * 1000 + 50); }
+/* systemctl verbs on a transient run-* unit: returns an exit code, or null for every other unit */
+function runUnitVerb(c, verb, u) {
+  const t = runTimers().find(x => [x.unit + '.timer', x.unit + '.service', x.unit].some(n => n === u || (/[*?[]/.test(u) && globRe(u).test(n)))); if (!t) return /^run-[ru]\w+\.(timer|service)$/.test(u) && verb === 'stop' ? (c.err('Failed to stop ' + u + ': Unit ' + u + ' not loaded.\n'), 5) : null;
+  const timer = /\.timer$/.test(u);
+  if (verb === 'stop') { if (timer) { S.runTimers = S.runTimers.filter(x => x !== t); journal(t.unit, 'Stopped ' + t.unit + '.timer - ' + t.desc + '.'); } return 0; }
+  if (verb === 'is-active') { c.out((timer ? 'active' : 'inactive') + '\n'); return timer ? 0 : 3; }
+  if (verb === 'is-enabled') { c.out('transient\n'); return 0; }
+  if (verb === 'status') {
+    if (!timer) { c.rich([{ text: '○ ' + t.unit + '.service - ' + t.desc + '\n     Loaded: loaded (/run/systemd/transient/' + t.unit + '.service; transient)\n  Transient: yes\n     Active: inactive (dead)\nTriggeredBy: ' }, { text: '●', cls: 'ok' }, { text: ' ' + t.unit + '.timer\n' }]); return 3; }
+    c.rich([{ text: '● ', cls: 'ok' }, { text: t.unit + '.timer - ' + t.desc + '\n     Loaded: loaded (/run/systemd/transient/' + t.unit + '.timer; transient)\n  Transient: yes\n     Active: ' }, { text: 'active (waiting)', cls: 'ok' }, { text: ' since ' + fmtSystemd(t.made) + '; ' + fmtAgo(t.made) + '\n    Trigger: ' + fmtSystemd(t.at) + '; ' + fmtAgo(nowSec() * 2 - t.at).replace(/ ago$/, ' left') + '\n   Triggers: ○ ' + t.unit + '.service\n' }]);
+    return 0;
+  }
+  if (verb === 'cat') { c.out('# /run/systemd/transient/' + t.unit + '.' + (timer ? 'timer' : 'service') + '\n# This is a transient unit file, created programmatically via the systemd API. Do not edit.\n[Unit]\nDescription=' + t.desc + '\n' + (timer ? '\n[Timer]\nOnActiveSec=' + t.span + '\nRemainAfterElapse=no\n' : '\n[Service]\nExecStart=' + t.argv.join(' ') + '\n')); return 0; }
+  return 0;
+}
+def('systemd-run', async c => {
+  const a = c.args.slice(); let span = null, unit = null, desc = null, quiet = false;
+  const val = f => { const eq = f.indexOf('='); return eq > 0 ? f.slice(eq + 1) : a.shift(); };
+  while (a.length && a[0][0] === '-') {
+    const f = a.shift(); if (f === '--') break;
+    if (f === '--on-active' || f.startsWith('--on-active=')) { const v = val(f); span = parseSpan(v); if (span == null || span < 0) { c.err('Failed to parse "' + (v || '') + '": Invalid argument\n'); return 1; } }
+    else if (f === '-u' || f === '--unit' || f.startsWith('--unit=')) unit = val(f);
+    else if (f === '--description' || f.startsWith('--description=')) desc = val(f);
+    else if (f === '-q' || f === '--quiet') quiet = true;
+    else if (f === '--no-block' || f === '-r' || f === '--remain-after-exit') continue;
+    else if (f === '-h' || f === '--help') { c.out('systemd-run [OPTIONS...] COMMAND [ARGUMENTS...]\n\nRun the specified command in a transient scope or service.\n\n  -u --unit=UNIT                  Run under the specified unit name\n     --description=TEXT           Description for unit\n  -q --quiet                      Suppress information messages during runtime\n     --on-active=SECONDS          Run after SECONDS delay\n\nSee the systemd-run(1) man page for details.\n'); return 0; }
+    else if (f === '--version') { c.out('systemd ' + PKG.systemd.v.split('-')[0].replace(/\.\d+$/, '') + ' (' + PKG.systemd.v + ')\n'); return 0; }
+    else { c.err("systemd-run: unrecognized option '" + f + "'\n"); return 1; }
+  }
+  if (!a.length) { c.err('Command line to execute required.\n'); return 1; }
+  const exe = a[0].includes('/') ? (FS.get(FS.norm(a[0], c.cwd)) ? FS.norm(a[0], c.cwd) : null) : findBin(a[0]);
+  if (!exe) { c.err('Failed to find executable ' + a[0] + ': No such file or directory\n'); return 1; }
+  if (c.uid !== 0) { c.err('Failed to start transient ' + (span != null ? 'timer' : 'service') + ' unit: Interactive authentication required.\n'); return 1; }
+  const name = (unit || runUnitId()).replace(/\.(service|timer)$/, '');
+  if (runTimers().some(t => t.unit === name) || S.svc[name] || timerNames().includes(name + '.timer')) { c.err('Failed to start transient ' + (span != null ? 'timer' : 'service') + ' unit: Unit ' + name + '.' + (span != null ? 'timer' : 'service') + ' was already loaded or has a fragment file.\n'); return 1; }
+  const t = { unit: name, argv: [exe].concat(a.slice(1)), desc: desc || [exe].concat(a.slice(1)).join(' '), made: nowSec(), boot: S.boot, span: span == null ? null : span < 60 || span % 60 ? span + 's' : span / 60 + 'min' };
+  if (span == null) { if (!quiet) c.err('Running as unit: ' + name + '.service\n'); c.flush(); await runUnitCmd(t); return 0; }
+  t.at = nowSec() + Math.round(span);
+  S.runTimers = runTimers().concat([t]); journal(name, 'Started ' + name + '.timer - ' + t.desc + '.'); runTimerArm(t);
+  if (!quiet) c.err('Running timer as unit: ' + name + '.timer\nWill run service as unit: ' + name + '.service\n');
+  return 0;
 });
 def('service', async c => {
   const a = c.args.slice();
@@ -4432,7 +4783,8 @@ def('ufw', async c => {
     c.out(out); return 0;
   }
   if (v === 'enable') {
-    if (!force && ((S.svc.ssh && S.svc.ssh.active) || (S.sshSock && S.sshSock.active))) { const k = await c.prompt('Command may disrupt existing ssh connections. Proceed with operation (y|n)? '); if (!/^y/i.test(k || '')) { c.out('Aborted\n'); return 1; } }
+    // ufw asks only when ssh is up; a transient unit (systemd-run) runs outside any ssh session, so it enables without asking
+    if (!force && !(c.sh && c.sh.unit) && ((S.svc.ssh && S.svc.ssh.active) || (S.sshSock && S.sshSock.active))) { const k = await c.prompt('Command may disrupt existing ssh connections. Proceed with operation (y|n)? '); if (!/^y/i.test(k || '')) { c.out('Aborted\n'); return 1; } }
     F.on = true; ufwWriteConf(); if (S.svc.ufw) { S.svc.ufw.enabled = true; S.svc.ufw.active = true; } journal('ufw', 'ufw enabled');
     c.out('Firewall is active and enabled on system startup\n'); return 0;
   }
@@ -4552,6 +4904,7 @@ def('sysctl', c => {
 });
 def(['torrentbolt', 'torrentbolt-daemon', 'netprobe-ng', 'netprobe', 'cracklite', 'minerd-x', 'pixelquest'], c => { c.out('[Range] ' + c.argv[0] + ' is unauthorized software planted on this machine. The trainer does not run it; remove it with apt purge.\n'); return 0; });
 def(['smbd', 'nmbd', 'mysqld', 'mariadbd', 'vsftpd', 'apache2', 'gdm3', 'lightdm', 'snapd', 'cupsd', 'NetworkManager', 'rsyslogd', 'cron', 'inetd', 'telnetd', 'in.tftpd', 'snmpd', 'named', 'auditd', 'fail2ban-server', 'bluetoothd', 'avahi-daemon'], c => { const n = c.argv[0]; c.out('[Range] ' + n + ' is a service daemon; control it with systemctl (e.g. systemctl status ' + (Object.keys(SVC).find(k => (SVC[k].proc || k) === n) || n) + ').\n'); return 0; });
+manp('systemd-run', 1, 'Run programs in transient scope units, service units, or timer-triggered service units', ['systemd-run [OPTIONS...] COMMAND [ARGS...]'], ['Runs COMMAND as a transient service; with --on-active=SECONDS a transient timer starts it that much later.', 'It prints the run-*.timer name; systemctl stop NAME.timer cancels the timer before it fires.'], ['sudo systemd-run --on-active=120 ufw disable']);
 
 /* ---------------- command coverage: the tools the Defense Ladder teaches (Ubuntu 24.04, Linux Mint 22) ----------------
    The lab segment: names come from /etc/hosts and systemd-resolved (other names are NXDOMAIN); this machine's addresses and the gateway answer. */
@@ -5559,7 +5912,8 @@ def(['bash', 'sh', 'dash', 'rbash'], async c => {
   const file = a.find(x => x[0] !== '-');
   if (file) { const st = FS.stat(FS.norm(file, c.cwd), c.ctx); if (!st.ok) { c.err(c.argv[0] + ': ' + file + ': ' + st.err + '\n'); return 127; } c.out('[Range] This trainer does not run scripts (' + file + '). Read it with cat instead.\n'); return 0; }
   if (c.stdin != null) { if (!c.stdin.trim()) return 0; c.out('[Range] This trainer does not run scripts (standard input). Read it with cat instead.\n'); return 0; }
-  c.sh.stack.push({ user: c.user, cwd: c.cwd }); return 0;
+  // sh and dash read no ~/.bashrc, so they start without its aliases
+  c.sh.stack.push(Object.assign({ user: c.user, cwd: c.cwd }, /bash$/.test(c.argv[0]) ? {} : { noRc: true })); return 0;
 });
 def('sudoedit', c => CMDS.sudo.run(Object.assign({}, c, { argv: ['sudo', '-e'].concat(c.args), args: ['-e'].concat(c.args) })));
 /* ---- MySQL 8.0: the account table answers SELECT ... FROM mysql.user, DROP USER removes one, and mysql_secure_installation walks its questions ---- */
@@ -5828,6 +6182,7 @@ function dropins(n) { const d = '/etc/systemd/system/' + n + '.service.d'; retur
 function rcLocalOn() { const n = S.fs['/etc/rc.local']; return !!(n && (n.m & 0o111)); }
 /* units that are not services (or a PID): returns an exit code when it handled the unit, or null */
 function sysOtherUnit(c, verb, u) {
+  const run = runUnitVerb(c, verb, u); if (run != null) return run; // systemd-run's transient units (66-cmds-svc.js)
   const mask = S.unitMask || (S.unitMask = {});
   if (/^\d+$/.test(u) && (verb === 'status' || verb === 'show')) {
     const p = S.procs.find(x => x.pid === +u); if (!p) { c.err('Failed to get unit for PID ' + u + ': PID ' + u + ' does not exist.\n'); return 1; }
@@ -6782,6 +7137,54 @@ manp('pmap', 1, 'report memory map of a process', ['pmap [options] PID [...]'], 
 manp('inotifywait', 1, 'wait for changes to files using inotify', ['inotifywait [-mrq] [-e EVENT[,EVENT]] [-t SECONDS] FILE...'], ['-m              keep listening (monitor) until Ctrl+C; without it, exit after the first event', '-r              watch every folder below a folder', '-e EVENTS       only these events: access, modify, attrib, close_write, close_nowrite, close, open, moved_to, moved_from, move, create, delete', '-t SECONDS      stop after SECONDS', 'Output: WATCHED-FOLDER EVENT FILE. In the trainer, events from another terminal window and from running programs print while it waits.']);
 manp(['unhide', 'unhide-linux'], 8, 'forensic tool to find hidden processes', ['unhide [options] test_list'], ['proc            compare /proc with the output of ps', 'sys             compare system call results with ps', 'procall, quick, reverse, brute   further tests', 'Runs as root. A PID it reports is a process that ps leaves out: check ps itself (debsums, dpkg --verify procps).']);
 manp('unhide-tcp', 8, 'forensic tool to find hidden TCP/IP ports', ['unhide-tcp [options]'], ['Tries every TCP and UDP port and reports each one in use that ss or netstat leaves out.']);
+/* ---- script (util-linux 2.39): records the session into a file (typescript unless named; -a adds to its end) until the
+   shell it starts exits; -c COMMAND records one command instead. The file gets what the terminal shows (prompts, the
+   lines typed, and the output) between a "Script started on" and a "Script done on" line; passwords stay out. ---- */
+function scriptStamp() { const d = new Date(), off = -d.getTimezoneOffset(), a = Math.abs(off); return fmtIso(nowSec()) + ' ' + fmtClock(nowSec()) + ':' + two(d.getSeconds()) + (off < 0 ? '-' : '+') + two(Math.floor(a / 60)) + ':' + two(a % 60); }
+def('script', async c => {
+  const o = opts(c, 'aefqhVt', 'cIOBTEmo'); if (o.err) { c.err(o.err); return 1; }
+  if (o.V) { c.out('script from util-linux 2.39.3\n'); return 0; }
+  if (o.h) { c.out('\nUsage:\n script [options] [file]\n\nMake a typescript of a terminal session.\n\nOptions:\n -a, --append                  append to the log file\n -c, --command <command>       run command rather than interactive shell\n -e, --return                  return exit code of the child process\n -f, --flush                   run flush after each write\n -q, --quiet                   be quiet\n\nFor more details see script(1).\n'); return 0; }
+  const file = o.O || o.B || o._[0] || 'typescript', p = FS.norm(file, c.cwd), ctx = c.ctx, sh = c.sh;
+  const head = 'Script started on ' + scriptStamp() + ' [' + (o.c ? 'COMMAND="' + o.c + '" ' : '') + 'TERM="' + ((c.env && c.env.TERM) || 'xterm-256color') + '" TTY="/dev/pts/0" COLUMNS="80" LINES="24"]\n';
+  const w = FS.writeText(p, head, ctx, { append: !!o.a }); if (!w.ok) { c.err('script: cannot open ' + file + ': ' + w.err + '\n'); return 1; }
+  if (!o.q) c.out("Script started, output log file is '" + file + "'.\n");
+  c.flush();
+  let log = '';
+  const save = () => { if (log) { FS.writeText(p, log, ctx, { append: true }); log = ''; } };
+  // the terminal as script sees it: whatever reaches the screen also goes to the log
+  const real = c.term, tee = new Proxy(real, { get(t, k) {
+    if (k === 'write') return (x, cls) => { if (x != null) log += String(x); return t.write(x, cls); };
+    if (k === 'writeSegs') return segs => { for (const s of segs) log += String(s.text); return t.writeSegs(segs); };
+    if (k === 'readLine') return async ro => { const r = await t.readLine(ro); log += ((ro && ro.prompt) || '') + (ro && ro.secret || r == null || r === '\u0004' ? '' : r) + '\n'; return r; };
+    if (k === 'showPager') return x => { log += String(x); return t.showPager(x); };
+    const v = t[k]; return typeof v === 'function' ? v.bind(t) : v; }, set(t, k, v) { t[k] = v; return true; } });
+  let code = 0;
+  if (o.c) { try { code = await runLine(tee, sh, o.c); } catch (e) { if (!(e && e.abort)) throw e; code = 130; } }
+  else {
+    // the child shell: a shell level of its own, so exit leaves it (and prints exit) and the shell that ran script carries on
+    sh.stack.push({ user: c.user, cwd: c.cwd }); const base = sh.stack.length;
+    for (;;) {
+      if (real.dead || S.power !== 'on') break;
+      const ps = ps1(sh); if (real.onPrompt) real.onPrompt(ps.title);
+      let line;
+      try { line = await readContinued(tee, await tee.readLine({ prompt: ps.text, shell: true })); }
+      catch (e) { if (e && e.abort) { save(); continue; } throw e; }
+      if (line == null || line === '\u0004') { tee.write('exit\n'); if (sh.stack.length > base) { sh.stack.pop(); continue; } break; }
+      line = line.trim(); if (!line) continue;
+      if (sh.hist[sh.hist.length - 1] !== line) sh.hist.push(line); if (sh.hist.length > 500) sh.hist.shift();
+      try { code = await runLine(tee, sh, line); } catch (e) { if (!(e && e.abort)) throw e; }
+      save();
+      if (typeof afterCommand === 'function') { try { afterCommand(); } catch (e) { /* headless */ } }
+      if (sh.exitRequested) { sh.exitRequested = false; if (sh.stack.length > base) { const x = sh.stack.pop(); if (x.ssh) tee.write('Connection to ' + x.ssh + ' closed.\n'); continue; } break; }
+    }
+    if (sh.stack.length >= base) sh.stack.length = base - 1;
+  }
+  save(); FS.writeText(p, '\nScript done on ' + scriptStamp() + ' [COMMAND_EXIT_CODE="' + code + '"]\n', ctx, { append: true });
+  if (!o.q) c.out('Script done.\n');
+  return o.e || o.c ? code : 0;
+});
+manp('script', 1, 'make typescript of terminal session', ['script [options] [file]'], ['Starts a shell and records everything the terminal shows into file (typescript by default) until that shell exits.', '-a  append to the file instead of replacing it', '-c COMMAND  record one command instead of a shell', '-q  quiet: skip the started and done messages'], ['script -a session.log']);
 
 /* ---------------- editors: nano, vi, pager ---------------- */
 /* runEditor(term, 'nano'|'vi', {path, display, text, ro, ctx, virtual}) -> Promise<{saved, text}> */
@@ -7287,26 +7690,27 @@ async function shellLoop(term) {
   if (!S.sh || !S.sh.stack || !U.user(S.sh.stack[0].user)) S.sh = newShell(S.login.user);
   const sh = S.sh; term.sh = sh;
   if (!sh.aliases) sh.aliases = {}; if (!sh.env) sh.env = { PATH: PATH_DIRS.join(':') };
-  sh.exitRequested = false;
-  if (S.gui && S.flavor === 'mint' && !sh.aliases.ll) { sh.aliases.ll = 'ls -alF'; sh.aliases.la = 'ls -A'; sh.aliases.l = 'ls -CF'; }
-  if (S.gui && S.flavor === 'ubuntu' && !sh.aliases.ll) { sh.aliases.ll = 'ls -alF'; sh.aliases.la = 'ls -A'; sh.aliases.l = 'ls -CF'; }
+  sh.exitRequested = false; sh.inTrap = false;
+  // the login shell's aliases come from the user's ~/.bashrc (rcAliases in 50-shell.js), read once per shell
+  if (!sh.rcAliases) { const rc = rcAliases(sh.stack[0].user); for (const k of Object.keys(rc)) if (!sh.aliases[k]) sh.aliases[k] = rc[k]; sh.rcAliases = 1; }
   for (;;) {
     if (term.dead) return;
     const p = ps1(sh); if (term.onPrompt) term.onPrompt(p.title);
     let line;
     // a line that ends in a backslash continues at the "> " prompt (readContinued), as a command printed across lines does
     try { line = await readContinued(term, await term.readLine({ prompt: p.text, shell: true })); }
-    catch (e) { if (e && e.abort) { continue; } throw e; }
-    if (line === '\u0004') { term.write('logout\n'); if (sh.stack.length > 1) { popLevel(term, sh); continue; } shReset(sh); return 'exit'; }
+    catch (e) { if (e && e.abort) { await runTrap(term, sh, 'SIGINT'); continue; } throw e; }
+    if (line === '\u0004') { term.write('logout\n'); await runTrap(term, sh, 'EXIT'); if (sh.stack.length > 1) { popLevel(term, sh); continue; } shReset(sh); return 'exit'; }
     line = line.trim();
     if (!line) continue;
     if (/(^|\s)!!(\s|$)/.test(line)) { const prev = sh.hist[sh.hist.length - 1]; if (!prev) { term.write('bash: !!: event not found\n'); continue; } line = line.replace(/!!/, prev); term.write(line + '\n'); }
     if (sh.hist[sh.hist.length - 1] !== line) sh.hist.push(line); if (sh.hist.length > 500) sh.hist.shift();
     if (!S.hist) S.hist = {}; S.hist[sh.stack[0].user] = sh.hist;
     try { await runLine(term, sh, line); }
-    catch (e) { if (e && e.abort) { /* ctrl-c */ } else { term.write('bash: internal error: ' + (e && e.message) + '\n'); console.warn(e); } }
+    catch (e) { if (e && e.abort) { await runTrap(term, sh, 'SIGINT'); } else { term.write('bash: internal error: ' + (e && e.message) + '\n'); console.warn(e); } }
     afterCommand();
-    if (sh.exitRequested) { sh.exitRequested = false; if (sh.stack.length > 1) { popLevel(term, sh); continue; } shReset(sh); return 'exit'; }
+    // the EXIT trap runs as the shell ends, whatever ended it (set -e too); the exit builtin has already run and cleared it
+    if (sh.exitRequested) { sh.exitRequested = false; if (S.power === 'on' && !term.dead) { await runTrap(term, sh, 'EXIT'); sh.exitRequested = false; } if (sh.stack.length > 1) { popLevel(term, sh); continue; } shReset(sh); return 'exit'; }
     if (S.power !== 'on') return 'power';
   }
 }
@@ -7977,7 +8381,7 @@ const AREA = {
 function mintAutoUpgradesOn() { return S.flavor === 'mint' && !!S.fs['/var/lib/linuxmint/mintupdate-automatic-upgrades-enabled'] && !!S.fs['/etc/systemd/system/timers.target.wants/mintupdate-automation-upgrade.timer']; }
 /* on Mint, lsb_release gives Linuxmint and zena, so the stock ${distro_id}:${distro_codename}-security entry patches
    nothing until an entry names Ubuntu's own pocket */
-function uuUbuntuOrigin() { const s = aptSuite() + '-security'; return FS.list('/etc/apt/apt.conf.d').some(f => activeLines(FS.text('/etc/apt/apt.conf.d/' + f)).some(l => l.trim() === '"Ubuntu:' + s + '";' || l.trim() === '"origin=Ubuntu,archive=' + s + '";' || l.trim() === '"o=Ubuntu,a=' + s + '";')); }
+function uuUbuntuOrigin() { const s = aptSuite() + '-security'; return aptConfList('Unattended-Upgrade::Allowed-Origins').concat(aptConfList('Unattended-Upgrade::Origins-Pattern')).some(v => v === 'Ubuntu:' + s || v === 'origin=Ubuntu,archive=' + s || v === 'o=Ubuntu,a=' + s); }
 /* password aging: login.defs sets the defaults for new accounts, and each existing human account (UID 1000-59999)
    keeps its own values in /etc/shadow until chage changes them, so the aging checks read both */
 function humanAging() { return U.passwd().filter(u => u.uid >= 1000 && u.uid < 60000).map(u => U.shadowOf(u.name)).filter(Boolean).map(s => ({ name: s.name, min: parseInt(s.min, 10), max: s.max === '' ? 99999 : parseInt(s.max, 10) })); }
@@ -8110,7 +8514,7 @@ const SCENARIOS = [
     loginDefs: { PASS_MAX_DAYS: 90, PASS_MIN_DAYS: 7, PASS_WARN_AGE: 14 }, pwqualityLine: 'pam_pwquality.so retry=3 minlen=12', remember: 5, autoUpgrades: { lists: '1', unattended: '1' }, shadowMode: 0o644, ipForward: true,
     sshd: { PermitRootLogin: 'PermitRootLogin yes', PermitEmptyPasswords: 'PermitEmptyPasswords yes', PasswordAuthentication: 'PasswordAuthentication yes' },
     sudoersExtra: '\nDefaults\t!authenticate\n',
-    packages: ['openssh-server', 'apache2', 'mysql-server', 'vsftpd', 'samba', 'netprobe-ng', 'net-tools'],
+    packages: ['openssh-server', 'apache2', 'mysql-server', 'vsftpd', 'samba', 'netprobe-ng', 'net-tools', 'needrestart'], // a stock Ubuntu Server install ships needrestart
     net: { iface: 'ens3', ip: '10.20.4.15', prefix: 24, mask: '255.255.255.0', bcast: '10.20.4.255', gw: '10.20.4.1', subnet: '10.20.4.0/24', mac: '52:54:00:9c:3e:a1', ll: 'fe80::5054:ff:fe9c:3ea1' },
     users: [
       { name: 'labuser', pw: 'Hard!2026', full: 'Lab User', admin: true, history: ['sudo systemctl status apache2', 'sudo ss -tulpn', 'cat ~/Desktop/Scenario\\ Brief.txt', 'exit'] },

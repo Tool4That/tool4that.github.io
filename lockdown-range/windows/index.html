@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-kDZ2tvHJA3n0htk+BMeYMuM4dgijN5k6rjT4499z34Q='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-80NIzU7voOix5yST1n1jj3p6MvuE6OTegBZfq//FGUs='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/lockdown-range/windows/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%96%A5%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -3767,10 +3767,24 @@ function termExit(t) {
 }
 function winVersion() { return '10.0.' + osBuild(); }
 function termPromptText(t) { return t.kind === 'cmd' ? t.cwd + '>' : 'PS ' + t.cwd + '> '; }
-function termPrompt(t) { t.promptEl.textContent = termPromptText(t); }
+// while Read-Host waits (79-cmds-netlog), the line shows its prompt, and -AsSecureString masks what you type
+function termPrompt(t) { t.promptEl.textContent = t.read ? t.read.prompt : termPromptText(t); if (t.input) { t.input.type = t.read && t.read.secure ? 'password' : 'text'; t.input.autocomplete = t.read && t.read.secure ? 'new-password' : 'off'; } }
+// a stand-in a goes back to the text b it replaced; an error's char:N and its ~~~ marker move with the line they point into
+function rhUndo(s, a, b) {
+  s = s.replace(/(At line:1 char:)\d+(\n\+ )([^\n]*)(\n\+ )( *)(~+)/g, (m, p1, p2, L, p3, sp, til) => {
+    const at = (x, end) => { let d = 0, k = 0; while ((k = L.indexOf(a, k)) >= 0 && k < x) { if (k + a.length > x) return k - d + (end ? b.length : 0); d += a.length - b.length; k += a.length; } return x - d; };
+    const st = at(sp.length, false), en = Math.max(st + 1, at(sp.length + til.length, true));
+    return p1 + (st + 1) + p2 + L + p3 + ' '.repeat(st) + '~'.repeat(en - st);
+  });
+  return s.split(a).join(b);
+}
 function termWrite(t, text, cls) {
   if (text == null || text === '') return;
+  // an error that echoes the statement shows (Read-Host ...) as typed, never the answer that stands in for it
+  // (the newest stand-in first: psExpand's SecureString stand-in goes back to $__rh0, then $__rh0 back to Read-Host)
+  if (t.rhSub) text = t.rhSub.reduceRight((s, [a, b]) => rhUndo(s, a, b), String(text));
   if (t.cap) { t.cap.push([text, cls]); return; }   // powershell -Command in Command Prompt: its output goes down cmd's pipe
+  if (t.txCap) t.txCap.push(String(text));          // Start-Transcript records what the console shows (79-cmds-netlog)
   const span = document.createElement('span');
   if (cls) span.className = cls;
   span.textContent = text;
@@ -3779,13 +3793,20 @@ function termWrite(t, text, cls) {
 }
 function termKey(t, e) {
   const inp = t.input;
+  // Ctrl+C while Read-Host waits stops the line, as in the console
+  if (t.read && e.ctrlKey && (e.key === 'c' || e.key === 'C')) { e.preventDefault(); termWrite(t, t.read.prompt + '\n'); t.read = null; t.readAns = null; inp.value = ''; termPrompt(t); return; }
+  // while Read-Host waits, Tab completes nothing, and a secure prompt recalls no history into its masked field
+  if (t.read && (e.key === 'Tab' || t.read.secure && (e.key === 'ArrowUp' || e.key === 'ArrowDown'))) { e.preventDefault(); return; }
   if (e.key === 'Enter') {
     e.preventDefault();
     const raw = inp.value; inp.value = '';
+    if (t.read) { readHostAnswer(t, raw); termPrompt(t); t.scroll.scrollTop = t.scroll.scrollHeight; return; }
+    txStart(t);
     termWrite(t, termPromptText(t) + raw + '\n');
     if (raw.trim()) { t.hist.push(raw); if (t.hist.length > 200) t.hist.shift(); }
     t.hidx = t.hist.length;
     termRun(t, raw);
+    txFlush(t);
     termPrompt(t);
     t.scroll.scrollTop = t.scroll.scrollHeight;
   } else if (e.key === 'ArrowUp') { e.preventDefault(); if (t.hidx > 0) { t.hidx--; inp.value = t.hist[t.hidx]; } }
@@ -3860,7 +3881,14 @@ function termRun(t, raw) {
   parts.push([op, cur]);
   let ok = true;
   // PowerShell statements (if, foreach, and $name = value) run here; a pipeline goes on to termRunOne (74-cmds-r3)
-  for (const [o, p] of parts) if (p.trim() && !(o === '&&' && !ok) && !(o === '||' && ok)) ok = (t.kind !== 'cmd' && psStatement(t, p.trim())) || termRunOne(t, p.trim());
+  for (let k = 0; k < parts.length; k++) {
+    const [o, p0] = parts[k]; let p = p0.trim();
+    if (!p || (o === '&&' && !ok) || (o === '||' && ok)) continue;
+    // a statement with Read-Host waits for the answer, and the rest of the line runs once it is typed (79-cmds-netlog)
+    const sub = t.rhSub; let tmp = null;
+    if (t.kind !== 'cmd') { const rh = readHostPrep(t, p, parts.slice(k).map(x => x[1]).join(';')); if (rh && rh.wait) return; if (rh && rh.done) { ok = true; continue; } if (rh) { p = rh.line; t.rhSub = (sub || []).concat(rh.sub); tmp = rh.tmp; } }
+    try { ok = (t.kind !== 'cmd' && psStatement(t, p)) || termRunOne(t, p); } finally { t.rhSub = sub; if (tmp) tmp.forEach(n => { delete t.vars[n]; }); }
+  }
 }
 function termRunOne(t, line0) {
   const red = splitRedirect(t.kind === 'cmd' ? line0 : psExpand(t, line0));
@@ -3927,7 +3955,8 @@ function runOne(ctx, seg, input) {
   // (pipeline).Property[.Property]: the values of a property of each object, such as (Get-CimInstance Win32_ComputerSystem).DomainRole
   // or (Get-ScheduledTask -TaskName NAME).Actions; objects come back as objects, other values as lines (74-cmds-r3)
   const mm = ctx.kind === 'ps' && /^\((.+)\)((?:\.\w+)+)$/.exec(seg);
-  if (mm) { const r = runPipeline(ctx, mm[1]); if (!r || !r.objs) return r && r.cls === 'err' ? r : null; const v = [].concat(mm[2].split('.').slice(1).reduce((x, k) => psProp(x, k), r.objs.length === 1 ? r.objs[0] : r.objs)).filter(x => x != null); return v.length && typeof v[0] === 'object' ? { objs: v, cols: Object.keys(v[0]).filter(k => k[0] !== '_') } : { text: v.map(x => x === true ? 'True' : x === false ? 'False' : String(x)).join('\n') }; }
+  // a property that holds a list (ServerAddresses) gives its items, as member enumeration does
+  if (mm) { const r = runPipeline(ctx, mm[1]); if (!r || !r.objs) return r && r.cls === 'err' ? r : null; const v = [].concat(mm[2].split('.').slice(1).reduce((x, k) => psProp(x, k), r.objs.length === 1 ? r.objs[0] : r.objs)).flatMap(x => Array.isArray(x) ? x : [x]).filter(x => x != null); return v.length && typeof v[0] === 'object' ? { objs: v, cols: Object.keys(v[0]).filter(k => k[0] !== '_') } : { text: v.map(x => x === true ? 'True' : x === false ? 'False' : String(x)).join('\n') }; }
   // a .NET static call that decodes or encodes text: [Text.Encoding]::Unicode.GetString([Convert]::FromBase64String('...')) (72-cmds-more)
   if (ctx.kind === 'ps' && /^\[[A-Za-z][\w.]*\]::/.test(seg)) return dotnetCall(ctx, seg);
   // a value typed alone prints itself ('text', 42, 'a','b'), and a variable prints what it holds ($PROFILE lists its paths with Select-Object *)
@@ -3987,6 +4016,8 @@ function pipeStage(ctx, name, rest, seg, input) {
     if (input.objs && input.text != null && /^(select-object|select|sort-object|sort|where-object|where|\?|format-list|fl|format-table|ft)$/.test(name)) input = Object.assign({}, input, { text: null });
     // objects piped into a cmdlet bind by property: Get-LocalUser Guest | Disable-LocalUser, ... | Remove-Item, Get-Process -Id 1 | Stop-Process
     const nm = PS_ALIAS[name] || name, bk = PIPE_BIND[nm];
+    // a cmdlet with its own pipeline binding (PS_PIPE: the network views, ConvertFrom-SecureString in 79-cmds-netlog)
+    if (PS_PIPE[nm]) return psQuiet(seg, PS_PIPE[nm](ctx, rest, seg, input));
     // one call per object; objects the calls return come out as one list (Get-ChildItem ... | Get-FileHash), and each object's error prints
     if (bk && input.objs && PS_CMDS[nm]) { let r = null; const E = []; for (const o of input.objs) { const v = o[bk]; if (v == null || v === '') continue; const x = PS_CMDS[nm](ctx, (bk === 'Id' || /netfirewall/.test(nm) ? ['-' + bk, String(v)] : [String(v)]).concat(rest), seg); if (x && x.cls === 'err') { E.push(x.text); continue; } if (x && x.objs && r && r.objs) r = Object.assign({}, r, { objs: r.objs.concat(x.objs) }); else if (x && x.text != null && r && r.text != null) r = { text: r.text + '\n' + x.text }; else if (x) r = x; } if (E.length) r = r ? Object.assign({}, r, { errs: E.join('') }) : { text: E.join(''), cls: 'err' }; return psQuiet(seg, r); }
     if ((nm === 'select-string') && (input.objs || input.text != null)) return selectString(ctx, rest, seg, input.objs && input.objs.some(o => o.FullName) ? input : { text: input.text != null ? input.text : formatObjs(input, ctx.kind) });
@@ -4009,7 +4040,7 @@ function pipeStage(ctx, name, rest, seg, input) {
       const keyFor = w => keysOf().find(c => c.toLowerCase() === w.toLowerCase()) || w;
       if (pp.first != null) objs = objs.slice(0, Math.max(0, parseInt(pp.first, 10) || 0));
       if (pp.last != null) objs = objs.slice(-Math.max(1, parseInt(pp.last, 10) || 1));
-      if (pp.expandproperty != null) { const k = keyFor(String(pp.expandproperty)); return { text: objs.map(o => o[k] == null ? '' : String(o[k])).join('\n') }; }
+      if (pp.expandproperty != null) { const k = keyFor(String(pp.expandproperty)); return { text: objs.flatMap(o => Array.isArray(o[k]) ? o[k] : [o[k]]).map(v => v == null ? '' : String(v)).join('\n') }; }
       const want = String(pp.property != null && pp.property !== true ? pp.property : pp._.join(',')).split(',').map(s => s.trim()).filter(Boolean);
       if (!want.length || want.includes('*')) return Object.assign({}, input, { objs, cols: want.includes('*') ? keysOf() : input.cols, view: want.includes('*') ? 'list' : input.view });
       const cols = want.map(keyFor);
@@ -4033,6 +4064,7 @@ function pipeStage(ctx, name, rest, seg, input) {
     // script block {$_.Status -eq 'Running' -and ...} or simplified syntax (Where-Object Status -eq Running, Where-Object Installed) (74-cmds-r3)
     if ((name === 'where-object' || name === 'where' || name === '?') && input.objs) return whereFilter(ctx, seg, input);
     if ((name === 'foreach-object' || name === 'foreach' || name === '%') && (input.objs || input.text != null)) return foreachObj(ctx, seg, input);
+    if (nm === 'export-csv') return exportCsv(ctx, seg, input);   // the objects, every property, as a CSV file (79-cmds-netlog)
     if (name === 'out-null') return null;
     if (name === 'out-file' || name === 'set-content' || name === 'add-content') {
       const pp = psParams(rest); const target = String(pp.filepath || pp.path || pp._[0] || '');
@@ -4054,6 +4086,8 @@ function unknownCommand(ctx, word, seg) {
 }
 /* the command an error id names: a compiled cmdlet's class, or the name itself for a script function or a CIM (cdxml) command (filled in 72-cmds-more) */
 const CMDLET_FQ = {};
+// a cmdlet's pipeline stage, for one whose piped objects bind in its own way: name -> (ctx, rest, seg, input) => result
+const PS_PIPE = {};
 function psError(cmdlet, msg, seg, cat, target, fqid) {
   return { text: cmdlet + ' : ' + msg + '\nAt line:1 char:1\n+ ' + seg + '\n+ ' + '~'.repeat(Math.min(seg.length, 60)) + '\n    + CategoryInfo          : ' + (cat || 'InvalidOperation') + ': (' + (target || cmdlet) + ':String) [' + cmdlet + '], ' + (fqid || 'Exception') + '\n    + FullyQualifiedErrorId : ' + (fqid || 'Exception') + ',' + (CMDLET_FQ[cmdlet] || 'Microsoft.PowerShell.Commands.' + cmdlet.replace('-', '') + 'Command') + '\n', cls: 'err' };
 }
@@ -4203,6 +4237,16 @@ function netResolve(n) {
   n = String(n || '').toLowerCase(); if (/^\d+\.\d+\.\d+\.\d+$/.test(n)) return n; if (n === 'localhost') return '127.0.0.1'; if (n === hostnameUpper().toLowerCase()) return S.network.ip;
   const h = fsGet('C:\\Windows\\System32\\drivers\\etc\\hosts'), m = h && h.text && h.text.split(/\r?\n/).map(l => l.replace(/#.*/, '').trim().split(/\s+/)).find(x => x.slice(1).some(y => y.toLowerCase() === n));
   return m ? m[0] : null;
+}
+// the neighbor cache on this machine's adapter: arp -a and Get-NetNeighbor (79-cmds-netlog) read it; a type left out is static
+function arpRows() { return [[netGw(), '02-1a-2b-3c-4d-01', 'dynamic'], [S.network.ip.replace(/\d+$/, '255'), 'ff-ff-ff-ff-ff-ff'], ['224.0.0.22', '01-00-5e-00-00-16'], ['224.0.0.251', '01-00-5e-00-00-fb'], ['224.0.0.252', '01-00-5e-00-00-fc'], ['239.255.255.250', '01-00-5e-7f-ff-fa'], ['255.255.255.255', 'ff-ff-ff-ff-ff-ff']]; }
+/* the sessions quser lists and logoff ends: yours (1, console), and a disconnected Remote Desktop session (2, 3, ...) for each
+   planted account that can sign in remotely; S.sessionsEnded names the accounts whose session logoff ended, and the others keep their IDs */
+function quserSessions() {
+  const rdu = groupByName('Remote Desktop Users'), ended = S.sessionsEnded || [];
+  return [{ user: S.currentUser, name: 'console', id: 1, state: 'Active', idle: 'none', at: Date.now() - 6e5, own: true }]
+    .concat(Object.values(S.users).filter(u => u.planted && u.lastLogon && rdu && rdu.members.some(m => sameName(m, u.name))).map((u, i) => ({ user: u.name, name: '', id: i + 2, state: 'Disc', idle: '1:12', at: u.lastLogon })))
+    .filter(s => s.own || !ended.some(n => sameName(n, s.user)));
 }
 const PRIVS = 'IncreaseQuota:Adjust memory quotas for a process|Security:Manage auditing and security log|TakeOwnership:Take ownership of files or other objects|LoadDriver:Load and unload device drivers|SystemProfile:Profile system performance|Systemtime:Change the system time|ProfileSingleProcess:Profile single process|IncreaseBasePriority:Increase scheduling priority|CreatePagefile:Create a pagefile|Backup:Back up files and directories|Restore:Restore files and directories|Shutdown:Shut down the system|Debug:Debug programs|SystemEnvironment:Modify firmware environment values|ChangeNotify:Bypass traverse checking|RemoteShutdown:Force shutdown from a remote system|Undock:Remove computer from docking station|ManageVolume:Perform volume maintenance tasks|Impersonate:Impersonate a client after authentication|CreateGlobal:Create global objects|IncreaseWorkingSet:Increase a process working set|TimeZone:Change the time zone|CreateSymbolicLink:Create symbolic links|DelegateSessionUserImpersonate:Obtain an impersonation token for another user in the same session';
 const SVC_DEPS = { Spooler: 'RPCSS,http', RemoteRegistry: 'RPCSS', TermService: 'RPCSS', WinRM: 'RPCSS,HTTP', W3SVC: 'WAS,HTTP', LanmanServer: 'SamSS,Srv2', EventLog: '' };
@@ -4455,7 +4499,7 @@ const CMDS = {
   arp: (ctx, a) => {
     if (a.some(x => /^-d$/i.test(x))) return ctx.admin ? { text: '' } : { text: 'The ARP entry deletion failed: The requested operation requires elevation.', cls: 'err' };
     if (!a.some(x => /^-[ag]$/i.test(x))) return { text: '\nDisplays and modifies the IP-to-Physical address translation tables used by\naddress resolution protocol (ARP).\n\nARP -s inet_addr eth_addr [if_addr]\nARP -d inet_addr [if_addr]\nARP -a [inet_addr] [-N if_addr] [-v]', cls: 'err' };
-    return { text: '\nInterface: ' + S.network.ip + ' --- 0xc\n  Internet Address      Physical Address      Type\n' + [[netGw(), '02-1a-2b-3c-4d-01', 'dynamic'], [S.network.ip.replace(/\d+$/, '255'), 'ff-ff-ff-ff-ff-ff'], ['224.0.0.22', '01-00-5e-00-00-16'], ['224.0.0.251', '01-00-5e-00-00-fb'], ['224.0.0.252', '01-00-5e-00-00-fc'], ['239.255.255.250', '01-00-5e-7f-ff-fa'], ['255.255.255.255', 'ff-ff-ff-ff-ff-ff']].map(r => '  ' + padR(r[0], 22) + padR(r[1], 22) + (r[2] || 'static')).join('\n') };
+    return { text: '\nInterface: ' + S.network.ip + ' --- 0xc\n  Internet Address      Physical Address      Type\n' + arpRows().map(r => '  ' + padR(r[0], 22) + padR(r[1], 22) + (r[2] || 'static')).join('\n') };
   },
   telnet: (ctx, a, seg) => {
     if (!featOn('TelnetClient')) return unknownCommand(ctx, 'telnet', seg); // the Telnet Client feature installs telnet.exe
@@ -4464,9 +4508,9 @@ const CMDS = {
     if (ip && netSelf(ip) && listeningPorts().some(l => l.port === port && !l.udp)) return { text: '[Range] Connected to ' + a[0] + ' on port ' + port + '. The interactive session is outside this trainer.' };
     return { text: 'Connecting To ' + a[0] + '...Could not open connection to the host, on port ' + port + ': Connect failed', cls: 'err' };
   },
-  // sessions on this machine: yours, plus a disconnected Remote Desktop session for a planted account that can sign in remotely
+  // sessions on this machine (quserSessions): yours, plus a disconnected Remote Desktop session for a planted account that can sign in remotely
   quser: () => {
-    const rdu = groupByName('Remote Desktop Users'), L = [['>' + S.currentUser, 'console', 1, 'Active', 'none', Date.now() - 6e5]].concat(Object.values(S.users).filter(u => u.planted && u.lastLogon && rdu && rdu.members.some(m => sameName(m, u.name))).map((u, i) => [' ' + u.name, '', i + 2, 'Disc', '1:12', u.lastLogon]));
+    const L = quserSessions().map(s => [(s.own ? '>' : ' ') + s.user, s.name, s.id, s.state, s.idle, s.at]);
     return { text: ' USERNAME              SESSIONNAME        ID  STATE   IDLE TIME  LOGON TIME\n' + L.map(r => padR(r[0], 23) + padR(r[1], 19) + padL(r[2], 2) + '  ' + padR(r[3], 6) + padL(r[4], 10) + '   ' + winDateTime(r[5])).join('\n') };
   },
   query: (ctx, a) => /^user$/i.test(a[0] || '') ? CMDS.quser(ctx, a.slice(1)) : { text: '[Range] Only "query user" is simulated.' },
@@ -4790,7 +4834,8 @@ function psParams(a) {
 function psBool(v) { return v === true || /^\$?true$/i.test(String(v)) || String(v) === '1'; }
 // a mandatory parameter left out: the console asks for it (psPrompt, 74-cmds-r3); the default set's name is the one it asks for
 function psMissing(cmdlet, names, seg) { const n = String(names).split(' ')[0], sig = psSig(cmdlet.toLowerCase()); return psPrompt(cmdlet, sig && sig.man.some(m => sameName(m, n)) ? sig.man[0] : n); }
-function secPw(p, seg) { const m = /ConvertTo-SecureString\s+(?:-String\s+)?["']?([^"'\s)]+)/i.exec(seg); return m ? m[1] : p.password == null || p.password === true ? null : String(p.password); }
+// a quoted password keeps its spaces and doubled single quotes (the form a Read-Host answer arrives in, 79-cmds-netlog)
+function secPw(p, seg) { const m = /ConvertTo-SecureString\s+(?:-String\s+)?(?:'((?:[^']|'')*)'|"([^"]*)"|([^"'\s)]+))/i.exec(seg); return m ? (m[1] != null ? m[1].replace(/''/g, "'") : m[2] != null ? m[2] : m[3]) : p.password == null || p.password === true ? null : String(p.password); }
 function psAccess(cmdlet, seg) { return psError(cmdlet, 'Access denied.', seg, 'PermissionDenied', 'Root', 'AccessDeniedException'); }
 /* Server Manager names (Get-, Install-, and Uninstall-WindowsFeature exist on Windows Server only): [id, name, display name, depth].
    An optional feature's id ties a row to the features tree; an '@' id keeps its state in S.srvFeat (Microsoft Defender Antivirus
@@ -4966,7 +5011,7 @@ const PS_CMDS = {
     const p = psParams(a), ports = p.localport != null && p.localport !== true ? String(p.localport).split(',').map(Number) : null;
     const L = listeningPorts().filter(l => !l.udp).map(l => ({ LocalAddress: '0.0.0.0', LocalPort: l.port, RemoteAddress: '0.0.0.0', RemotePort: 0, State: 'Listen', AppliedSetting: '', OwningProcess: l.pid })).concat([{ LocalAddress: S.network.ip, LocalPort: 50122, RemoteAddress: '203.0.113.40', RemotePort: 443, State: 'Established', AppliedSetting: 'Internet', OwningProcess: 3312 }]).filter(o => (p.state == null || sameName(o.State, p.state)) && (!ports || ports.includes(o.LocalPort)));
     if (!L.length) return psError('Get-NetTCPConnection', 'No matching MSFT_NetTCPConnection objects found by CIM query for instances of the ROOT/StandardCimv2/MSFT_NetTCPConnection class on the  CIM server: SELECT * FROM MSFT_NetTCPConnection. Verify query parameters and retry.', seg, 'ObjectNotFound', 'MSFT_NetTCPConnection', 'CmdletizationQuery_NotFound');
-    return { render: r => '\nLocalAddress                        LocalPort RemoteAddress                       RemotePort State       AppliedSetting OwningProcess\n------------                        --------- -------------                       ---------- -----       -------------- -------------\n' + r.objs.map(o => padR(o.LocalAddress, 36) + padL(o.LocalPort, 9) + ' ' + padR(o.RemoteAddress, 36) + padL(o.RemotePort, 10) + ' ' + padR(o.State, 12) + padR(o.AppliedSetting, 15) + o.OwningProcess).join('\n') + '\n', objs: L, cols: Object.keys(L[0]) };
+    return { render: r => '\nLocalAddress                        LocalPort RemoteAddress                       RemotePort State       AppliedSetting OwningProcess\n------------                        --------- -------------                       ---------- -----       -------------- -------------\n' + r.objs.map(o => padR(o.LocalAddress, 36) + padL(o.LocalPort, 9) + ' ' + padR(o.RemoteAddress, 36) + padL(o.RemotePort, 10) + ' ' + padR(o.State, 12) + padR(o.AppliedSetting, 15) + o.OwningProcess).join('\n') + '\n', objs: L, cols: Object.keys(L[0]), type: 'Microsoft.Management.Infrastructure.CimInstance#ROOT/StandardCimv2/MSFT_NetTCPConnection' };
   },
   'get-hotfix': () => { const L = S.hotfixes.concat((S.update.installed || []).map(x => ({ kb: x.kb, desc: 'Update', date: x.date }))).map(x => ({ Source: hostnameUpper(), Description: x.desc || 'Security Update', HotFixID: x.kb, InstalledBy: 'NT AUTHORITY\\SYSTEM', InstalledOn: x.date + ' 12:00:00 AM' })); return { render: r => '\nSource        Description      HotFixID      InstalledBy          InstalledOn\n------        -----------      --------      -----------          -----------\n' + r.objs.map(o => padR(o.Source, 14) + padR(o.Description, 17) + padR(o.HotFixID, 14) + padR(o.InstalledBy, 21) + o.InstalledOn).join('\n') + '\n', objs: L, cols: Object.keys(L[0]) }; },
   // a standard window sees N/A for the exclusion lists, as Windows shows it
@@ -5049,7 +5094,7 @@ const PS_CMDS = {
   },
   // simulated cmdlets with the module each ships in; NAME.exe lists the program
   'get-command': (ctx, a, seg) => {
-    const p = psParams(a), names = String(p.name != null && p.name !== true ? p.name : p._.join(',') || '*').split(',').map(s => s.trim()).filter(Boolean), M = [[/LocalUser|LocalGroup/, 'Cmdlet', '1.0.0.0', 'Microsoft.PowerShell.LocalAccounts'], [/NetFirewall/, 'Function', '2.0.0.0', 'NetSecurity'], [/-Mp/, 'Function', '1.0', 'ConfigDefender'], [/ScheduledTask/, 'Function', '1.0.0.0', 'ScheduledTasks'], [/Smb/, 'Function', '2.0.0.0', 'SmbShare'], [/OptionalFeature|Capability/, 'Cmdlet', '3.0', 'Dism'], [/BitLocker/, 'Function', '1.0.0.0', 'BitLocker'], [/-Tpm/, 'Cmdlet', '2.0.0.0', 'TrustedPlatformModule'], [/SecureBoot/, 'Cmdlet', '2.0.0.0', 'SecureBoot'], [/CimInstance/, 'Cmdlet', '1.0.0.0', 'CimCmdlets'], [/WinEvent/, 'Cmdlet', '3.0.0.0', 'Microsoft.PowerShell.Diagnostics'], [/Authenticode/, 'Cmdlet', '3.0.0.0', 'Microsoft.PowerShell.Security'], [/FileHash|Format-Hex/, 'Function', '3.1.0.0', 'Microsoft.PowerShell.Utility'], [/Select-String/, 'Cmdlet', '3.1.0.0', 'Microsoft.PowerShell.Utility'], [/WindowsFeature/, 'Cmdlet', '2.0.0.0', 'ServerManager'], [/NetTCP|NetUDP|NetConnection/, 'Function', '1.0.0.0', 'NetTCPIP'], [/DnsName/, 'Cmdlet', '1.0.0.0', 'DnsClient'], [/Where-|Get-Help|Get-Command|Get-History/, 'Cmdlet', '3.0.0.0', 'Microsoft.PowerShell.Core'], [/ExecutionPolicy/, 'Cmdlet', '3.0.0.0', 'Microsoft.PowerShell.Security'], [/-Object|-List|-Table|-Output|-Alias|-Host/, 'Cmdlet', '3.1.0.0', 'Microsoft.PowerShell.Utility'], [/./, 'Cmdlet', '3.1.0.0', 'Microsoft.PowerShell.Management']];
+    const p = psParams(a), names = String(p.name != null && p.name !== true ? p.name : p._.join(',') || '*').split(',').map(s => s.trim()).filter(Boolean), M = [[/LocalUser|LocalGroup/, 'Cmdlet', '1.0.0.0', 'Microsoft.PowerShell.LocalAccounts'], [/NetFirewall/, 'Function', '2.0.0.0', 'NetSecurity'], [/-Mp/, 'Function', '1.0', 'ConfigDefender'], [/ScheduledTask/, 'Function', '1.0.0.0', 'ScheduledTasks'], [/Smb/, 'Function', '2.0.0.0', 'SmbShare'], [/OptionalFeature|Capability/, 'Cmdlet', '3.0', 'Dism'], [/BitLocker/, 'Function', '1.0.0.0', 'BitLocker'], [/-Tpm/, 'Cmdlet', '2.0.0.0', 'TrustedPlatformModule'], [/SecureBoot/, 'Cmdlet', '2.0.0.0', 'SecureBoot'], [/CimInstance/, 'Cmdlet', '1.0.0.0', 'CimCmdlets'], [/WinEvent/, 'Cmdlet', '3.0.0.0', 'Microsoft.PowerShell.Diagnostics'], [/Authenticode/, 'Cmdlet', '3.0.0.0', 'Microsoft.PowerShell.Security'], [/FileHash|Format-Hex/, 'Function', '3.1.0.0', 'Microsoft.PowerShell.Utility'], [/Select-String/, 'Cmdlet', '3.1.0.0', 'Microsoft.PowerShell.Utility'], [/WindowsFeature/, 'Cmdlet', '2.0.0.0', 'ServerManager'], [/NetTCP|NetUDP|NetConnection|NetIPAddress|NetRoute|NetNeighbor/, 'Function', '1.0.0.0', 'NetTCPIP'], [/NetAdapter/, 'Function', '2.0.0.0', 'NetAdapter'], [/DnsName/, 'Cmdlet', '1.0.0.0', 'DnsClient'], [/DnsClient/, 'Function', '1.0.0.0', 'DnsClient'], [/Transcript/, 'Cmdlet', '3.0.0.0', 'Microsoft.PowerShell.Host'], [/-Csv$|Read-Host/, 'Cmdlet', '3.1.0.0', 'Microsoft.PowerShell.Utility'], [/Where-|Get-Help|Get-Command|Get-History/, 'Cmdlet', '3.0.0.0', 'Microsoft.PowerShell.Core'], [/ExecutionPolicy|SecureString/, 'Cmdlet', '3.0.0.0', 'Microsoft.PowerShell.Security'], [/-Object|-List|-Table|-Output|-Alias|-Host/, 'Cmdlet', '3.1.0.0', 'Microsoft.PowerShell.Utility'], [/./, 'Cmdlet', '3.1.0.0', 'Microsoft.PowerShell.Management']];
     const find = n => PS_NAMES.filter(x => globRe(n).test(x)).map(x => [M.find(m => m[0].test(x))[1], x, ...M.find(m => m[0].test(x)).slice(2)]).concat(CMD_NAMES.map(x => x + '.exe').filter(x => globRe(n).test(x) && fsGet('C:\\Windows\\System32\\' + x)).map(x => fsGet('C:\\Windows\\System32\\' + x).n).map(x => ['Application', x, '10.0.' + osBuild().split('.')[0] + '.1', 'C:\\Windows\\system32\\' + x]));
     // -Name takes a list (Get-Command A,B); an unmatched name prints Get-Command's own error, and the rest still list
     const errs = [], rows = [];
@@ -6568,14 +6613,47 @@ function psExpand(t, s) {
     const prop = m[3] && sameName(m[2], 'profile') && !m[1] ? Object.keys(psProfile()).find(k => sameName(k, m[3].slice(1))) : null;
     let v = m[1] ? psEnv(t, m[2]) : prop ? psProfile()[prop] : psVarGet(t, m[2]);
     // $u.Name, $users.Count: a property of what the variable holds (a method call or an index stays for the stage)
-    if (m[3] && !m[1] && !prop && !q && v !== undefined && !/[([]/.test(s[i + m[0].length] || '')) { out += psQuote(m[3].split('.').slice(1).reduce((x, k) => psProp(x, k), v && v.r ? psValueOf(v.r) : v)); i += m[0].length - 1; start = false; continue; }
+    if (m[3] && !m[1] && !prop && !q && v !== undefined && !/[([]/.test(s[i + m[0].length] || '')) { out += psQuote(m[3].split('.').slice(1).reduce((x, k) => psProp(x, k), v && v.r && v._secure == null ? psValueOf(v.r) : v)); i += m[0].length - 1; start = false; continue; }
     if (!m[1] && !prop && start && !q && /^profile$/i.test(m[2])) v = undefined;
+    // a SecureString that Read-Host -AsSecureString gave ($pw = Read-Host -AsSecureString, 79-cmds-netlog) goes in as one only
+    // where a parameter takes a SecureString (-Password $pw); anywhere else it is its type name, as PowerShell prints it.
+    // termWrite turns either back into $pw, so an error that echoes the line shows it as typed (termRun restores t.rhSub after the statement)
+    if (v && v._secure != null && !q && !start && !m[3]) { const put = psSecureSlot(out, s.slice(i + m[0].length)) ? "(ConvertTo-SecureString '" + String(v._secure).replace(/'/g, "''") + "' -AsPlainText -Force)" : "'System.Security.SecureString'"; t.rhSub = (t.rhSub || []).concat([[put, m[0]]]); out += put; i += m[0].length - 1; continue; }
     if (v && typeof v === 'object' && !q && (v.r || start && [].concat(v).some(x => x && typeof x === 'object'))) v = undefined;
     if (v === undefined && !q) { out += ch; start = false; continue; }
     out += q ? psStr(v) : psQuote(v);
     i += m[0].length - (prop || !m[3] ? 0 : m[3].length) - 1; start = false;
   }
   return out;
+}
+// does the next argument of the command being typed (the line so far) bind to a SecureString parameter? It is the value
+// after -Password or -Password:, or the next positional argument when that position takes one (ConvertFrom-SecureString $pw).
+// rest is the line after the variable: a variable alone in a group, as in ($pw), ( $pw ), (($pw)), and $($pw), is the
+// group's value, so the group's own slot decides
+function psSecureSlot(sofar, rest) {
+  const st = [0], ob = []; let q = null;
+  for (let i = 0; i < sofar.length; i++) {
+    const c = sofar[i];
+    if (q) { if (c === q) q = null; continue; }
+    if (c === '"' || c === "'") q = c; else if ('({'.includes(c)) { st.push(i + 1); ob.push([c, i]); } else if (')}'.includes(c)) { if (st.length > 1) { st.pop(); ob.pop(); } } else if ('|;'.includes(c)) st[st.length - 1] = i + 1;
+  }
+  const g = ob[ob.length - 1], close = rest != null && g && g[0] === '(' && !sofar.slice(g[1] + 1).trim() && /^\s*\)/.exec(rest);
+  if (close) return psSecureSlot(sofar.slice(0, g[1]).replace(/[$@]$/, ''), rest.slice(close[0].length));
+  const stage = sofar.slice(st[st.length - 1]).replace(/^\s+/, ''), w = (tokenize(stage)[0] || '').toLowerCase(), n = PS_ALIAS[w] || w;
+  // the cmdlet's own parameters only: a cmdlet without -Password (Write-Output -Password $pw) gets the type name
+  const sig = psSig(n), own = Object.assign({}, sig && sig.vals, PS_ARG[n]), SS = k => Object.keys(own).some(x => sameName(x, k) && own[x] === PT.SS);
+  const a = psArgSplit(stage), last = a[a.length - 1];
+  if (!/\s$/.test(stage)) { const m = last && /^-([A-Za-z][\w-]*):$/.exec(last); return !!m && SS(m[1]); }
+  let named = [], pos = 0;
+  for (let i = 0; i < a.length; i++) {
+    const m = /^-([A-Za-z][\w-]*)(:.*)?$/s.exec(a[i]);
+    if (!m) { pos++; continue; }
+    if (m[2] != null || PS_SWITCHES_ALL.test(m[1].toLowerCase()) || sig && sig.sw.some(x => sameName(x, m[1]))) { named.push(m[1]); continue; }
+    if (i === a.length - 1) return SS(m[1]);
+    named.push(m[1]); i++;
+  }
+  const free = sig ? sig.pos.filter(x => !named.some(y => sameName(x, y))) : [];
+  return free[pos] != null && SS(free[pos]);
 }
 // the text between an opening bracket at i and its match, and the index after it
 function psGroup(s, i, open, close) {
@@ -6589,7 +6667,8 @@ function psStatement(t, s) {
   if ((m = /^\$(env:)?([A-Za-z_]\w*)\s*=(?!=)\s*([\s\S]+)$/i.exec(s))) {
     const rhs = m[3].trim(); if (m[1]) { t.env = t.env || {}; t.env[m[2]] = String(psEvalText(t, rhs)); return true; }
     t.vars = t.vars || {};
-    if (/^[A-Za-z]/.test(rhs) && psIsCommand(rhs.split(/\s/)[0])) { const r = psRun(t, rhs); t.vars[m[2]] = r ? { r } : null; }
+    // a command, or a variable piped into one ($enc = $pw | ConvertFrom-SecureString), runs as a pipeline
+    if (/^[A-Za-z]/.test(rhs) && psIsCommand(rhs.split(/\s/)[0]) || /^\$[A-Za-z_]\w*\s*\|/.test(rhs)) { const r = psRun(t, rhs); t.vars[m[2]] = r ? { r } : null; }
     else t.vars[m[2]] = psEvalText(t, rhs);
     return true;
   }
@@ -6683,6 +6762,7 @@ function psLex(s) {
     if ((m = /^\d+(\.\d+)?/.exec(r))) { T.push({ t: 'num', v: parseFloat(m[0]), at }); i += m[0].length; continue; }
     if (r.startsWith('@(') || r.startsWith('$(')) { T.push({ t: 'p', v: '(', at: at + 1 }); i += 2; continue; }
     if ((m = /^[A-Za-z_][\w-]*/.exec(r))) { T.push({ t: 'word', v: m[0], at }); i += m[0].length; continue; }
+    if (r.startsWith('..')) { T.push({ t: 'p', v: '..', at }); i += 2; continue; }
     T.push({ t: 'p', v: c, at }); i++;
   }
   return T;
@@ -6697,7 +6777,13 @@ function psEval(t, src, cur) {
   const not = () => { if (op('not') || p('!')) { i++; return !psTruthy(not()); } return cmp(); };
   const cmp = () => { let l = list(); while (T[i] && T[i].t === 'op' && !/^(and|or|xor|not)$/.test(T[i].v)) { const o = T[i++].v; l = psCmp(l, o, list()); } return l; };
   const list = () => { const v = add(); if (!p(',')) return v; const a = [v]; while (p(',')) { i++; a.push(add()); } return a; };
-  const add = () => { let l = post(); while (p('+')) { i++; const r = post(); l = typeof l === 'number' && typeof r === 'number' ? l + r : Array.isArray(l) ? l.concat(r) : String(l == null ? '' : l) + String(r == null ? '' : r); } return l; };
+  const add = () => { let l = rng(); while (p('+')) { i++; const r = rng(); l =typeof l === 'number' && typeof r === 'number' ? l + r : Array.isArray(l) ? l.concat(r) : String(l == null ? '' : l) + String(r == null ? '' : r); } return l; };
+  // 1..16: the whole numbers from one end to the other, either way round
+  const rng = () => {
+    const l = post(); if (!p('..')) return l; i++; const r = post(), a = psNum(l), b = psNum(r);
+    if (a == null || b == null || Math.abs(b - a) > 100000) throw new Error('range');
+    const x = Math.round(a), y = Math.round(b), out = []; for (let n = x; ; n += x <= y ? 1 : -1) { out.push(n); if (n === y) break; } return out;
+  };
   const post = () => {
     let v = prim();
     while (p('.') || p('[')) {
@@ -6710,7 +6796,7 @@ function psEval(t, src, cur) {
   const prim = () => {
     const k = T[i++]; if (!k) return null;
     if (k.t === 'str') return k.v; if (k.t === 'dstr') return psDstr(t, k.v, cur); if (k.t === 'num') return k.v;
-    if (k.t === 'var') { if (k.env) return psEnv(t, k.v); const n = k.v.toLowerCase(); if (n === '_' || n === 'psitem') return cur; if (n === 'true' || n === 'false') return n === 'true'; if (n === 'null') return null; const v = psVarGet(t, k.v); return v && v.r ? psValueOf(v.r) : v; }
+    if (k.t === 'var') { if (k.env) return psEnv(t, k.v); const n = k.v.toLowerCase(); if (n === '_' || n === 'psitem') return cur; if (n === 'true' || n === 'false') return n === 'true'; if (n === 'null') return null; const v = psVarGet(t, k.v); return v && v.r && v._secure == null ? psValueOf(v.r) : v; }
     if (k.t === 'p' && k.v === '(') {
       const g = psGroup(src, k.at, '(', ')') || [src.slice(k.at + 1), src.length], skip = () => { while (T[i] && T[i].at < g[1]) i++; };
       if (T[i] && T[i].t === 'word' && psIsCommand(T[i].v)) { const v = psValueOf(psRun(t, psSubst(g[0], cur))); skip(); return v; }
@@ -6719,12 +6805,35 @@ function psEval(t, src, cur) {
       const v = p(')') ? [] : or(); if (p(')')) i++; return v;
     }
     if (k.t === 'p' && k.v === '-') { const v = prim(); return typeof v === 'number' ? -v : v; }
+    // [byte[]](1..16), [int]$s, [string]$n: a cast converts the value after it (a type alone, as in [datetime]::Now, has none)
+    const ty = k.t === 'p' && k.v === '[' && /^\[\s*([A-Za-z][\w.]*)\s*(\[\])?\s*\]/.exec(src.slice(k.at));
+    if (ty) {
+      while (T[i] && T[i].at < k.at + ty[0].length) i++;
+      const nx = T[i]; if (!nx || !(/^(str|dstr|num|var)$/.test(nx.t) || nx.t === 'p' && ['(', '-', '['].includes(nx.v))) return null;
+      return psCast(ty[1], !!ty[2], post());
+    }
     if (k.t === 'p' && k.v === '{') { let d = 1; while (T[i] && d) { if (p('{')) d++; else if (p('}')) d--; i++; } return null; }
     return k.t === 'word' ? k.v : null;   // a bare word (Where-Object Status -eq Running) is a string
   };
   try { return or(); } catch (e) { return null; }
 }
 function psEvalText(t, s) { return psEval(t, s, undefined); }
+// a cast to a number, a string, or a Boolean (an array type converts each item); a value that will not convert stops the
+// expression, and other types keep the value as it is
+function psCast(type, arr, v) {
+  const n = type.toLowerCase().replace(/^system\./, ''), R = { byte: [0, 255], sbyte: [-128, 127], int16: [-32768, 32767], uint16: [0, 65535], int: [-2147483648, 2147483647], int32: [-2147483648, 2147483647], uint32: [0, 4294967295], long: [-Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER], int64: [-Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER] }[n];
+  const one = x => {
+    if (R) { const y = psNum(typeof x === 'boolean' ? +x : x); if (y == null || Math.round(y) < R[0] || Math.round(y) > R[1]) throw new Error('cast'); return Math.round(y); }
+    if (/^(double|single|float|decimal)$/.test(n)) { const y = psNum(x); if (y == null) throw new Error('cast'); return y; }
+    if (n === 'string') return psStr(x);
+    if (n === 'char') { if (typeof x === 'number' && x >= 0 && x <= 65535) return String.fromCharCode(x); if (typeof x === 'string' && x.length === 1) return x; throw new Error('cast'); }
+    if (/^(bool|boolean)$/.test(n)) return psTruthy(x);
+    return x;
+  };
+  if (arr) return [].concat(v == null ? [] : v).map(one);
+  if (Array.isArray(v)) { if (/^string$/.test(n)) return v.map(psStr).join(' '); if (R || /^(double|single|float|decimal)$/.test(n)) throw new Error('cast'); return v; }
+  return one(v);
+}
 // a condition or a list: a command (Test-Path X, Get-LocalUser) runs; anything else is an expression
 function psCond(t, c) { const w = c.trim(); return /^[A-Za-z]/.test(w) && psIsCommand(w.split(/\s/)[0]) ? psValueOf(psRun(t, w)) : psEvalText(t, w); }
 // split at a separator outside quotes and brackets
@@ -7428,6 +7537,461 @@ Object.assign(PS_CMDS, { 'register-scheduledtask': registerTask, 'new-scheduledt
 ['Register-ScheduledTask', 'New-ScheduledTaskAction', 'New-ScheduledTaskTrigger'].forEach(n => { CMDLET_FQ[n] = n; });
 CMD_NAMES.push('dism');
 PS_NAMES.push('Register-ScheduledTask', 'New-ScheduledTaskAction', 'New-ScheduledTaskTrigger');
+
+/* ===== 79-cmds-netlog: the network views (Get-NetIPAddress, Get-NetAdapter, Get-DnsClientServerAddress, Get-NetRoute,
+   Get-NetNeighbor), the change log's before-and-after record (Start-Transcript, Stop-Transcript, Export-Csv, Import-Csv,
+   Compare-Object), SMB sessions (Get-SmbSession, Close-SmbSession), logoff, and Read-Host ===== */
+
+/* ---------- parameters: each cmdlet's own names, typed in full or as an unambiguous prefix, as PowerShell binds them ---------- */
+const NL_COMMON = ['ErrorAction', 'WarningAction', 'InformationAction', 'ErrorVariable', 'WarningVariable', 'InformationVariable', 'OutVariable', 'OutBuffer', 'PipelineVariable'];
+const NL_COMMON_SW = ['Verbose', 'Debug', 'WhatIf', 'Confirm'];
+const nlCls = c => CMDLET_FQ[c] || CMDLET_CLS(c);
+// a value as typed, with its quotes removed ($env:COMPUTERNAME arrives quoted inside a path: C:\takeover\'PC'.txt)
+const nlVal = x => (x == null ? null : tokenize(String(x)).join(' '));
+/* spec: { vals: ['Name:Type', ...], sw: [...], pos: [...], alias: { alias: Name } } -> { v: { Name: raw }, sw: { Name: true }, err }
+   With ctx, a value in ( ) runs first and its result binds: -IPAddress (Get-NetRoute -DestinationPrefix 0.0.0.0/0).NextHop
+   (an object parameter, such as Compare-Object's, evaluates its own value) */
+function nlArgs(cmdlet, seg, spec, ctx) {
+  const a = psArgSplit(seg), type = {}, V = (spec.vals || []).map(x => { const [n, t] = x.split(':'); type[n] = t || 'System.String'; return n; }).concat(NL_COMMON);
+  const W = (spec.sw || []).concat(NL_COMMON_SW), all = V.concat(W), out = { v: {}, sw: {}, pos: [] }, cls = nlCls(cmdlet);
+  for (let i = 0; i < a.length; i++) {
+    const m = /^-([A-Za-z][\w-]*)(?::([\s\S]*))?$/.exec(a[i]);
+    if (!m) { out.pos.push(a[i]); continue; }
+    const al = spec.alias && Object.keys(spec.alias).find(x => sameName(x, m[1])), ex = al ? spec.alias[al] : all.find(x => sameName(x, m[1]));
+    const hits = ex ? [ex] : all.filter(x => x.toLowerCase().startsWith(m[1].toLowerCase()));
+    if (hits.length > 1) return { err: psErrX(cmdlet, "Parameter cannot be processed because the parameter name '" + m[1] + "' is ambiguous. Possible matches include: " + hits.map(x => '-' + x).join(' ') + '.', seg, 'InvalidArgument', ':', 'ParameterBindingException', 'AmbiguousParameter,' + cls) };
+    if (!hits.length) return { err: psNoParam(cmdlet, m[1], seg, cls) };
+    const k = hits[0];
+    if (W.includes(k)) { out.sw[k] = m[2] == null || psBool(m[2]); continue; }
+    if (m[2] != null) { out.v[k] = m[2]; continue; }
+    if (a[i + 1] == null || /^-[A-Za-z]/.test(a[i + 1])) return { err: psErrX(cmdlet, "Missing an argument for parameter '" + k + "'. Specify a parameter of type '" + (type[k] || 'System.String') + "' and try again.", seg, 'InvalidArgument', ':', 'ParameterBindingException', 'MissingArgument,' + cls) };
+    out.v[k] = a[++i];
+  }
+  const free = (spec.pos || []).filter(n => out.v[n] == null);
+  if (out.pos.length > free.length) return { err: psErrX(cmdlet, "A positional parameter cannot be found that accepts argument '" + unq(out.pos[free.length]) + "'.", seg, 'InvalidArgument', ':', 'ParameterBindingException', 'PositionalParameterNotFound,' + cls) };
+  out.pos.forEach((x, i) => { out.v[free[i]] = x; });
+  if (ctx) for (const k of Object.keys(out.v)) {
+    const raw = out.v[k]; if (!/^[$@]?\(/.test(raw) || /Object|SecureString/.test(type[k] || '')) continue;
+    const L = [].concat(psEval(ctx.t, raw)).filter(x => x != null);
+    if (!L.length) return { err: psErrX(cmdlet, "Cannot validate argument on parameter '" + k + "'. The argument is null. Provide a valid value for the argument, and then try running the command again.", seg, 'InvalidData', ':', 'ParameterBindingValidationException', 'ParameterArgumentValidationError,' + cls, seg.indexOf(raw) + 1, raw.length) };
+    out.v[k] = L.map(psStr).join(',');
+  }
+  return out;
+}
+// objects piped in bind by property name, as the CIM cmdlets bind them: each object's InterfaceIndex (ifIndex) and
+// InterfaceAlias (ifAlias) pick its own rows (Get-NetAdapter -Name Ethernet | Get-NetIPAddress). A value typed on the line
+// wins, and the index alone names the interface (the alias binds when the line gives the index)
+function nlBound(p, bound) { const k = bound && ['InterfaceIndex', 'InterfaceAlias'].find(x => bound[x] != null && p.v[x] == null); if (k) p.v[k] = bound[k]; return p; }
+function nlNotBound(cmdlet, what, seg) { return psErrX(cmdlet, 'The input object cannot be bound to any parameters for the command either because the command does not take pipeline input or the input and its properties do not match any of the parameters that take pipeline input.', seg, 'InvalidArgument', what + ':PSObject', 'ParameterBindingException', 'InputObjectNotBound,' + nlCls(cmdlet)).text; }
+function nlPipeIf(cmdlet, fn) {
+  return (ctx, rest, seg, input) => {
+    const one = x => x != null && x !== '' ? String(x) : null, E = []; let r = null;
+    const items = input.objs || String(input.text == null ? '' : input.text).split('\n').filter(s => s.trim());
+    for (const o of items) {
+      const idx = typeof o === 'object' ? one(o.InterfaceIndex != null ? o.InterfaceIndex : o.ifIndex) : null, al = typeof o === 'object' ? one(o.InterfaceAlias != null ? o.InterfaceAlias : o.ifAlias) : null;
+      if (idx == null && al == null) { E.push(nlNotBound(cmdlet, typeof o === 'object' ? psStr(o) : o.trim(), seg)); continue; }
+      const b = {}; if (idx != null) b.InterfaceIndex = idx; if (al != null) b.InterfaceAlias = al;
+      const x = fn(ctx, rest, seg, b); if (!x) continue;
+      if (x.cls === 'err') { E.push(x.text); continue; }
+      if (x.errs) E.push(x.errs);
+      r = r ? Object.assign({}, r, { objs: r.objs.concat(x.objs || []) }) : Object.assign({}, x, { errs: undefined });
+    }
+    if (r) delete r.errs;
+    return E.length ? (r ? Object.assign(r, { errs: E.join('') }) : { text: E.join(''), cls: 'err' }) : r;
+  };
+}
+
+/* ---------- CIM queries: a filter value (a comma list; wildcards allowed) keeps the objects it matches. A plain value that
+   matches none prints the CIM error, and the objects the other values matched still list ---------- */
+const CIM_T = c => 'Microsoft.Management.Infrastructure.CimInstance#ROOT/StandardCimv2/MSFT_' + c;
+function cimNone(cmdlet, cls, prop, val, seg) { return psErrX(cmdlet, 'No MSFT_' + cls + " objects found with property '" + prop + "' equal to '" + val + "'.  Verify the value of the property and retry.", seg, 'ObjectNotFound', val + ':String', 'CimJobException', 'CmdletizationQuery_NotFound_' + prop + ',' + cmdlet); }
+function cimPick(cmdlet, cls, list, filters, seg) {
+  let L = list; const errs = [];
+  for (const [prop, raw, norm] of filters) {
+    if (raw == null) continue;
+    const keep = new Set();
+    for (const w0 of String(nlVal(raw)).split(',').map(x => x.trim()).filter(Boolean)) {
+      const w = norm ? norm(w0) : w0, re = psLikeRe(w), hit = L.filter(o => re.test(String(o[prop])));
+      if (!hit.length && !/[*?[]/.test(w)) errs.push(cimNone(cmdlet, cls, prop, w0, seg).text);
+      hit.forEach(o => keep.add(o));
+    }
+    L = L.filter(o => keep.has(o));
+  }
+  return { L, errs: errs.join('') };
+}
+function cimOut(r, shape) { if (!r.L.length) return r.errs ? { text: r.errs, cls: 'err' } : null; const o = Object.assign({ objs: r.L }, shape); if (r.errs) o.errs = r.errs; return o; }
+// -AddressFamily takes IPv4 or IPv6 (2 and 23 are the same values as numbers)
+const famNorm = x => (x === '2' ? 'IPv4' : x === '23' ? 'IPv6' : x);
+function famCheck(cmdlet, ns, raw, seg) {
+  if (raw == null) return null;
+  const bad = String(nlVal(raw)).split(',').map(s => s.trim()).find(x => !/^(ipv4|ipv6|2|23)$/i.test(x));
+  return bad == null ? null : psErrX(cmdlet, "Cannot process argument transformation on parameter 'AddressFamily'. Cannot convert value \"" + bad + '" to type "Microsoft.PowerShell.Cmdletization.GeneratedTypes.' + ns + '.AddressFamily[]". Error: "Unable to match the identifier name ' + bad + ' to a valid enumerator name. Specify one of the following enumerator names and try again:\nIPv4, IPv6"', seg, 'InvalidData', ':', 'ParameterBindingArgumentTransformationException', 'ParameterArgumentTransformationError,' + cmdlet);
+}
+// the lab's addresses live in the active store (DHCP gives the IPv4 one); the persistent store holds none
+const activeOnly = raw => raw == null || /^activestore$/i.test(nlVal(raw));
+
+/* ---------- the network views: the adapter, addresses, routes, DNS servers, and neighbors that ipconfig /all, route print,
+   and arp -a show (interface 12, its MAC, the DHCP address, and the gateway, which is also the DNS server) ---------- */
+const NIC = { idx: 12, alias: 'Ethernet', desc: 'Range Systems Gigabit Ethernet Adapter' }, LOOP = { idx: 1, alias: 'Loopback Pseudo-Interface 1' };
+const IF_ALIAS = { ifIndex: 'InterfaceIndex', ifAlias: 'InterfaceAlias' };
+function netIpObjs() {
+  const inf = 'Infinite ([TimeSpan]::MaxValue)', mk = (a, f, fam, len, po, so, life) => ({ IPAddress: a, InterfaceIndex: f.idx, InterfaceAlias: f.alias, AddressFamily: fam, Type: 'Unicast', PrefixLength: len, PrefixOrigin: po, SuffixOrigin: so, AddressState: 'Preferred', ValidLifetime: life, PreferredLifetime: life, SkipAsSource: 'False', PolicyStore: 'ActiveStore', ifIndex: f.idx });
+  return [mk(LL6, NIC, 'IPv6', 64, 'WellKnown', 'Link', inf), mk('::1', LOOP, 'IPv6', 128, 'WellKnown', 'WellKnown', inf), mk(S.network.ip, NIC, 'IPv4', 24, 'Dhcp', 'Dhcp', '23:12:45'), mk('127.0.0.1', LOOP, 'IPv4', 8, 'WellKnown', 'WellKnown', inf)];
+}
+function getNetIPAddress(ctx, a, seg, bound) {
+  const C = 'Get-NetIPAddress', G = 'Microsoft.PowerShell.Cmdletization.GeneratedTypes.NetIPAddress.';
+  const p = nlArgs(C, seg, { vals: ['IPAddress:System.String[]', 'InterfaceIndex:System.UInt32[]', 'InterfaceAlias:System.String[]', 'AddressFamily:' + G + 'AddressFamily[]', 'Type:' + G + 'Type[]', 'PrefixLength:System.Byte[]', 'PrefixOrigin:' + G + 'PrefixOrigin[]', 'SuffixOrigin:' + G + 'SuffixOrigin[]', 'AddressState:' + G + 'AddressState[]', 'PolicyStore:System.String', 'CimSession:Microsoft.Management.Infrastructure.CimSession[]', 'ThrottleLimit:System.Int32'], sw: ['IncludeAllCompartments', 'AsJob'], pos: ['IPAddress'], alias: IF_ALIAS }, ctx);
+  if (p.err) return p.err; nlBound(p, bound);
+  const fe = famCheck(C, 'NetIPAddress', p.v.AddressFamily, seg); if (fe) return fe;
+  if (!activeOnly(p.v.PolicyStore)) return null;
+  const r = cimPick(C, 'NetIPAddress', netIpObjs(), [['IPAddress', p.v.IPAddress], ['InterfaceIndex', p.v.InterfaceIndex], ['InterfaceAlias', p.v.InterfaceAlias], ['AddressFamily', p.v.AddressFamily, famNorm], ['Type', p.v.Type], ['PrefixLength', p.v.PrefixLength], ['PrefixOrigin', p.v.PrefixOrigin], ['SuffixOrigin', p.v.SuffixOrigin], ['AddressState', p.v.AddressState]], seg);
+  return cimOut(r, { cols: ['ifIndex', 'IPAddress', 'PrefixLength', 'PrefixOrigin', 'SuffixOrigin', 'AddressState', 'PolicyStore'], lcols: ['IPAddress', 'InterfaceIndex', 'InterfaceAlias', 'AddressFamily', 'Type', 'PrefixLength', 'PrefixOrigin', 'SuffixOrigin', 'AddressState', 'ValidLifetime', 'PreferredLifetime', 'SkipAsSource', 'PolicyStore'], view: 'list', type: CIM_T('NetIPAddress') });
+}
+// the adapter sits on a switch access port, so Windows sees untagged frames: VlanID 0 (the switch assigns the VLAN)
+function netAdapterObjs() {
+  return [{ Name: NIC.alias, InterfaceDescription: NIC.desc, ifIndex: NIC.idx, Status: 'Up', MacAddress: S.network.mac, LinkSpeed: '1 Gbps', InterfaceIndex: NIC.idx, MediaType: '802.3', PhysicalMediaType: '802.3', InterfaceOperationalStatus: 'Up', AdminStatus: 'Up', 'LinkSpeed(Mbps)': 1000, MediaConnectionState: 'Connected', ConnectorPresent: 'True', VlanID: 0, MtuSize: 1500, FullDuplex: 'True', DriverInformation: 'Driver Date 2025-03-14 Version 12.19.2.45 NDIS 6.89', DriverFileName: 'rsgbe68.sys', NdisVersion: '6.89', ifOperStatus: 'Up', ifAlias: NIC.alias, InterfaceName: 'ethernet_32777', Virtual: 'False' }];
+}
+function getNetAdapter(ctx, a, seg) {
+  const C = 'Get-NetAdapter', p = nlArgs(C, seg, { vals: ['Name:System.String[]', 'InterfaceDescription:System.String[]', 'InterfaceIndex:System.UInt32[]', 'CimSession:Microsoft.Management.Infrastructure.CimSession[]', 'ThrottleLimit:System.Int32'], sw: ['IncludeHidden', 'Physical', 'AsJob'], pos: ['Name'], alias: { ifAlias: 'Name', InterfaceAlias: 'Name', ifDesc: 'InterfaceDescription', ifIndex: 'InterfaceIndex' } }, ctx);
+  if (p.err) return p.err;
+  const r = cimPick(C, 'NetAdapter', netAdapterObjs(), [['Name', p.v.Name], ['InterfaceDescription', p.v.InterfaceDescription], ['InterfaceIndex', p.v.InterfaceIndex]], seg);
+  return cimOut(r, { cols: ['Name', 'InterfaceDescription', 'ifIndex', 'Status', 'MacAddress', 'LinkSpeed'], lcols: ['Name', 'InterfaceDescription', 'InterfaceIndex', 'MacAddress', 'MediaType', 'PhysicalMediaType', 'InterfaceOperationalStatus', 'AdminStatus', 'LinkSpeed(Mbps)', 'MediaConnectionState', 'ConnectorPresent', 'DriverInformation', 'DriverFileName', 'NdisVersion', 'ifOperStatus', 'ifAlias', 'InterfaceName'], view: 'table', type: CIM_T('NetAdapter') });
+}
+// a list property prints as {a, b} and still gives its items to -ExpandProperty and (...).ServerAddresses
+const listProp = L => Object.defineProperty(L, 'toString', { value() { return '{' + this.join(', ') + '}'; } });
+function dnsServerObjs() {
+  const o = (f, fam, L) => ({ InterfaceAlias: f.alias, InterfaceIndex: f.idx, AddressFamily: fam, ServerAddresses: listProp(L) });
+  return [o(NIC, 'IPv4', [netGw()]), o(NIC, 'IPv6', []), o(LOOP, 'IPv4', []), o(LOOP, 'IPv6', ['fec0:0:0:ffff::1', 'fec0:0:0:ffff::2', 'fec0:0:0:ffff::3'])];
+}
+function getDnsClientServerAddress(ctx, a, seg, bound) {
+  const C = 'Get-DnsClientServerAddress', p = nlArgs(C, seg, { vals: ['InterfaceAlias:System.String[]', 'InterfaceIndex:System.UInt32[]', 'AddressFamily:Microsoft.PowerShell.Cmdletization.GeneratedTypes.DnsClientServerAddress.AddressFamily[]', 'CimSession:Microsoft.Management.Infrastructure.CimSession[]', 'ThrottleLimit:System.Int32'], sw: ['AsJob'], pos: ['InterfaceAlias'], alias: IF_ALIAS }, ctx);
+  if (p.err) return p.err; nlBound(p, bound);
+  const fe = famCheck(C, 'DnsClientServerAddress', p.v.AddressFamily, seg); if (fe) return fe;
+  const r = cimPick(C, 'DNSClientServerAddress', dnsServerObjs(), [['InterfaceAlias', p.v.InterfaceAlias], ['InterfaceIndex', p.v.InterfaceIndex], ['AddressFamily', p.v.AddressFamily, famNorm]], seg);
+  // the default table splits the Interface Index and Address Family headers over two lines
+  return cimOut(r, { cols: ['InterfaceAlias', 'InterfaceIndex', 'AddressFamily', 'ServerAddresses'], view: 'table', type: 'Microsoft.Management.Infrastructure.CimInstance#ROOT/StandardCimv2/MSFT_DNSClientServerAddress',
+    render: x => '\nInterfaceAlias               Interface Address ServerAddresses\n                             Index     Family\n--------------               --------- ------- ---------------\n' + x.objs.map(o => padR(o.InterfaceAlias, 28) + ' ' + padL(o.InterfaceIndex, 9) + ' ' + padR(o.AddressFamily, 7) + ' ' + String(o.ServerAddresses)).join('\n') + '\n' });
+}
+// route print's metric is RouteMetric + ifMetric: 0 + 25 for the default route, 256 + 25 = 281 on link, 256 + 75 = 331 on loopback
+function netRouteObjs() {
+  const ip = S.network.ip, net = ip.replace(/\d+$/, '0'), bc = ip.replace(/\d+$/, '255');
+  const r = (f, dst, hop, rm, fam, proto) => ({ ifIndex: f.idx, DestinationPrefix: dst, NextHop: hop, RouteMetric: rm, ifMetric: f === NIC ? 25 : 75, PolicyStore: 'ActiveStore', InterfaceAlias: f.alias, InterfaceIndex: f.idx, AddressFamily: fam, Protocol: proto || 'Local', Publish: 'No', State: 'Alive' });
+  const v4 = (f, dst) => r(f, dst, '0.0.0.0', 256, 'IPv4'), v6 = (f, dst) => r(f, dst, '::', 256, 'IPv6');
+  return [v4(NIC, '255.255.255.255/32'), v4(LOOP, '255.255.255.255/32'), v4(NIC, '224.0.0.0/4'), v4(LOOP, '224.0.0.0/4'), v4(LOOP, '127.255.255.255/32'), v4(LOOP, '127.0.0.1/32'), v4(LOOP, '127.0.0.0/8'), v4(NIC, bc + '/32'), v4(NIC, ip + '/32'), v4(NIC, net + '/24'), r(NIC, '0.0.0.0/0', netGw(), 0, 'IPv4', 'NetMgmt'),
+    v6(NIC, 'ff00::/8'), v6(LOOP, 'ff00::/8'), v6(NIC, LL6.replace(/%\d+$/, '') + '/128'), v6(NIC, 'fe80::/64'), v6(LOOP, '::1/128')];
+}
+function getNetRoute(ctx, a, seg, bound) {
+  const C = 'Get-NetRoute', p = nlArgs(C, seg, { vals: ['DestinationPrefix:System.String[]', 'InterfaceIndex:System.UInt32[]', 'InterfaceAlias:System.String[]', 'NextHop:System.String[]', 'AddressFamily:Microsoft.PowerShell.Cmdletization.GeneratedTypes.NetRoute.AddressFamily[]', 'RouteMetric:System.UInt16[]', 'Protocol:Microsoft.PowerShell.Cmdletization.GeneratedTypes.NetRoute.Protocol[]', 'PolicyStore:System.String', 'CimSession:Microsoft.Management.Infrastructure.CimSession[]', 'ThrottleLimit:System.Int32'], sw: ['IncludeAllCompartments', 'AsJob'], pos: ['DestinationPrefix'], alias: IF_ALIAS }, ctx);
+  if (p.err) return p.err; nlBound(p, bound);
+  const fe = famCheck(C, 'NetRoute', p.v.AddressFamily, seg); if (fe) return fe;
+  if (!activeOnly(p.v.PolicyStore)) return null;
+  const r = cimPick(C, 'NetRoute', netRouteObjs(), [['DestinationPrefix', p.v.DestinationPrefix], ['InterfaceIndex', p.v.InterfaceIndex], ['InterfaceAlias', p.v.InterfaceAlias], ['NextHop', p.v.NextHop], ['AddressFamily', p.v.AddressFamily, famNorm], ['RouteMetric', p.v.RouteMetric], ['Protocol', p.v.Protocol]], seg);
+  return cimOut(r, { cols: ['ifIndex', 'DestinationPrefix', 'NextHop', 'RouteMetric', 'ifMetric', 'PolicyStore'], lcols: ['DestinationPrefix', 'NextHop', 'InterfaceAlias', 'InterfaceIndex', 'AddressFamily', 'RouteMetric', 'ifMetric', 'Protocol', 'Publish', 'State', 'PolicyStore'], view: 'table', type: CIM_T('NetRoute') });
+}
+// arp -a's entries (arpRows, 70-terminal), newest address first, beside the IPv6 multicast groups the adapter joins
+// (ff02::1:ffb2:1c4d is the solicited-node group of the link-local address)
+function netNeighborObjs() {
+  const v6 = [['ff02::1:ffb2:1c4d', '33-33-FF-B2-1C-4D'], ['ff02::1:3', '33-33-00-01-00-03'], ['ff02::1:2', '33-33-00-01-00-02'], ['ff02::fb', '33-33-00-00-00-FB'], ['ff02::16', '33-33-00-00-00-16'], ['ff02::c', '33-33-00-00-00-0C'], ['ff02::2', '33-33-00-00-00-02'], ['ff02::1', '33-33-00-00-00-01']].map(x => [x[0], x[1], 'Permanent', 'IPv6']);
+  const v4 = arpRows().slice().reverse().map(x => [x[0], x[1].toUpperCase(), x[2] === 'dynamic' ? 'Reachable' : 'Permanent', 'IPv4']);
+  return v6.concat(v4).map(x => ({ ifIndex: NIC.idx, IPAddress: x[0], LinkLayerAddress: x[1], State: x[2], PolicyStore: 'ActiveStore', InterfaceAlias: NIC.alias, InterfaceIndex: NIC.idx, AddressFamily: x[3] }));
+}
+function getNetNeighbor(ctx, a, seg, bound) {
+  const C = 'Get-NetNeighbor', p = nlArgs(C, seg, { vals: ['IPAddress:System.String[]', 'InterfaceIndex:System.UInt32[]', 'InterfaceAlias:System.String[]', 'LinkLayerAddress:System.String[]', 'State:Microsoft.PowerShell.Cmdletization.GeneratedTypes.NetNeighbor.State[]', 'AddressFamily:Microsoft.PowerShell.Cmdletization.GeneratedTypes.NetNeighbor.AddressFamily[]', 'PolicyStore:System.String', 'CimSession:Microsoft.Management.Infrastructure.CimSession[]', 'ThrottleLimit:System.Int32'], sw: ['IncludeAllCompartments', 'AsJob'], pos: ['IPAddress'], alias: IF_ALIAS }, ctx);
+  if (p.err) return p.err; nlBound(p, bound);
+  const fe = famCheck(C, 'NetNeighbor', p.v.AddressFamily, seg); if (fe) return fe;
+  if (!activeOnly(p.v.PolicyStore)) return null;
+  const r = cimPick(C, 'NetNeighbor', netNeighborObjs(), [['IPAddress', p.v.IPAddress], ['InterfaceIndex', p.v.InterfaceIndex], ['InterfaceAlias', p.v.InterfaceAlias], ['LinkLayerAddress', p.v.LinkLayerAddress], ['State', p.v.State], ['AddressFamily', p.v.AddressFamily, famNorm]], seg);
+  return cimOut(r, { cols: ['ifIndex', 'IPAddress', 'LinkLayerAddress', 'State', 'PolicyStore'], lcols: ['IPAddress', 'InterfaceAlias', 'InterfaceIndex', 'AddressFamily', 'LinkLayerAddress', 'State', 'PolicyStore'], view: 'table', type: CIM_T('NetNeighbor') });
+}
+
+/* ---------- SMB sessions: net session lists none on this lab (70-terminal), so Get-SmbSession finds none, and
+   Close-SmbSession, like net session /delete, has none to close ---------- */
+function smbSessions() { return []; }
+const SMB_SESS = { vals: ['SessionId:System.UInt64[]', 'ClientComputerName:System.String[]', 'ClientUserName:System.String[]', 'ScopeName:System.String[]', 'ClusterNodeName:System.String[]', 'SmbInstance:Microsoft.PowerShell.Cmdletization.GeneratedTypes.SmbSession.SmbInstance', 'CimSession:Microsoft.Management.Infrastructure.CimSession[]', 'ThrottleLimit:System.Int32'], pos: ['SessionId'] };
+function smbSessionPick(C, ctx, seg, force) {
+  const p = nlArgs(C, seg, Object.assign({ sw: ['IncludeHidden', 'AsJob'].concat(force ? ['Force', 'PassThru'] : []) }, SMB_SESS), ctx);
+  if (p.err) return { done: p.err };
+  if (!ctx.admin) return { done: psError(C, 'Access is denied.', seg, 'PermissionDenied', 'MSFT_SmbSession', 'Windows System Error 5') };
+  return { r: cimPick(C, 'SmbSession', smbSessions(), [['SessionId', p.v.SessionId], ['ClientComputerName', p.v.ClientComputerName], ['ClientUserName', p.v.ClientUserName], ['ScopeName', p.v.ScopeName]], seg) };
+}
+function getSmbSession(ctx, a, seg) {
+  const x = smbSessionPick('Get-SmbSession', ctx, seg, false); if (x.done) return x.done;
+  return cimOut(x.r, { cols: ['SessionId', 'ClientComputerName', 'ClientUserName', 'NumOpens'], view: 'table', type: 'Microsoft.Management.Infrastructure.CimInstance#ROOT/Microsoft/Windows/SMB/MSFT_SmbSession' });
+}
+function closeSmbSession(ctx, a, seg) {
+  const x = smbSessionPick('Close-SmbSession', ctx, seg, true); if (x.done) return x.done;
+  return x.r.errs ? { text: x.r.errs, cls: 'err' } : null;
+}
+
+/* ---------- logoff: ends a session quser lists (quserSessions, 70-terminal). Your own session (no ID, 1, or console)
+   signs out, as shutdown /l does; another account's session needs an elevated window ---------- */
+const LOGOFF_USAGE = 'Terminates a session.\n\nLOGOFF [sessionname | sessionid] [/SERVER:servername] [/V] [/VM]\n\n  sessionname         The name of the session.\n  sessionid           The ID of the session.\n  /SERVER:servername  Specifies the Remote Desktop server containing the user\n                      session to log off (default is current).\n  /V                  Displays information about the actions performed.\n  /VM                 Logs off a session on server or within virtual machine.\n                      The ID of the session needs to be specified.';
+function logoffCmd(ctx, a) {
+  if (a.some(x => /^\/\?$/.test(x))) return { text: LOGOFF_USAGE };
+  const sw = a.filter(x => /^\//.test(x)), words = a.filter(x => !/^\//.test(x)), v = sw.some(x => /^\/v$/i.test(x)), srv = sw.map(x => /^\/server:(.+)$/i.exec(x)).find(Boolean);
+  if (words.length > 1 || sw.some(x => !/^\/(v|vm|server:.+)$/i.test(x))) return { text: 'Invalid parameter(s)\n' + LOGOFF_USAGE, cls: 'err' };
+  if (srv && !netSelf(srv[1])) return { text: 'Error opening Terminal server ' + srv[1] + '\nError [1722]:The RPC server is unavailable.\n' + NET_NOTE, cls: 'err' };
+  const L = quserSessions(), w = words[0], num = /^\d+$/.test(w || '');
+  const s = w == null ? L[0] : num ? L.find(x => String(x.id) === w) : L.find(x => x.name && sameName(x.name, w));
+  if (!s) return { text: num ? 'Could not logoff session ID ' + w + ', Error code 7022\nError [7022]:The specified session cannot be found.' : 'No session exists for ' + w, cls: 'err' };
+  const info = v ? 'Logging off session ID ' + s.id : '';
+  if (s.own) { setTimeout(() => signOut(), 600); return { text: info }; }
+  if (!ctx.admin) return { text: 'Could not logoff session ID ' + s.id + ', Error code 5\nError [5]:Access is denied.', cls: 'err' };
+  mutate(st => { st.sessionsEnded = (st.sessionsEnded || []).concat([s.user]); });
+  return { text: info };
+}
+
+/* ---------- the change log's record: Start-Transcript keeps every command this tab runs and what it printed, in a file;
+   Export-Csv saves a baseline with every property; Import-Csv reads it back as objects; Compare-Object shows the change ---------- */
+const TX_BAR = '**********************';
+function txStamp(d) { const z = n => String(n).padStart(2, '0'); return d.getFullYear() + z(d.getMonth() + 1) + z(d.getDate()) + z(d.getHours()) + z(d.getMinutes()) + z(d.getSeconds()); }
+function txHeader() {
+  const H = hostnameUpper(), u = H + '\\' + S.currentUser, b = osBuild();
+  return [TX_BAR, 'Windows PowerShell transcript start', 'Start time: ' + txStamp(new Date()), 'Username: ' + u, 'RunAs User: ' + u, 'Configuration Name: ', 'Machine: ' + H + ' (Microsoft Windows NT 10.0.' + b.split('.')[0] + '.0)', 'Host Application: C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe', 'Process ID: 7244', 'PSVersion: 5.1.' + b, 'PSEdition: Desktop', 'PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.' + b, 'BuildVersion: 10.0.' + b, 'CLRVersion: 4.0.30319.42000', 'WSManStackVersion: 3.0', 'PSRemotingProtocolVersion: 2.3', 'SerializationVersion: 1.1.0.1', TX_BAR].join('\r\n') + '\r\n';
+}
+// a terminal line while a transcript runs: termKey starts the capture, termWrite fills it, and txFlush adds it to each file
+function txStart(t) { if (t.tx && t.tx.length) t.txCap = []; }
+function txAppend(path, s) { const e = fsGet(path); fsWrite(path, (e && e.text != null ? e.text : '') + s.replace(/\r?\n/g, '\r\n')); }
+function txFlush(t) { const s = t.txCap ? t.txCap.join('') : ''; t.txCap = null; if (s && t.tx && t.tx.length) mutate(() => t.tx.forEach(p => txAppend(p, s))); }
+function startTranscript(ctx, a, seg) {
+  const C = 'Start-Transcript', X = 'Microsoft.PowerShell.Commands.StartTranscriptCommand', t = ctx.t;
+  const p = nlArgs(C, seg, { vals: ['Path:System.String', 'LiteralPath:System.String', 'OutputDirectory:System.String'], sw: ['Append', 'Force', 'NoClobber', 'IncludeInvocationHeader'], pos: ['Path'], alias: { PSPath: 'LiteralPath' } }, ctx);
+  if (p.err) return p.err;
+  const raw = nlVal(p.v.Path != null ? p.v.Path : p.v.LiteralPath), dir = p.v.OutputDirectory != null ? fsResolve(t.cwd, nlVal(p.v.OutputDirectory)) : psHome() + '\\Documents';
+  // without a path: Documents\PowerShell_transcript.HOST.<8 characters>.<time>.txt; a missing folder is created
+  const path = raw ? fsResolve(t.cwd, raw) : dir + '\\PowerShell_transcript.' + hostnameUpper() + '.' + Math.random().toString(36).slice(2, 10).padEnd(8, '0') + '.' + txStamp(new Date()) + '.txt', e = fsGet(path);
+  if (e && e.t === 'd' || !ctx.admin && /^c:\\(windows|program files)/i.test(path)) return psErrX(C, "Access to the path '" + path + "' is denied.", seg, 'NotSpecified', ':', 'UnauthorizedAccessException', 'System.UnauthorizedAccessException,' + X);
+  if (e && p.sw.NoClobber && !p.sw.Append) return psErrX(C, "The file '" + path + "' already exists.", seg, 'ResourceExists', path + ':String', 'IOException', 'NoClobber,' + X);
+  mutate(() => fsWrite(path, (p.sw.Append && e && e.text != null ? e.text : '') + txHeader() + 'Transcript started, output file is ' + path + '\r\n'));
+  t.tx = (t.tx || []).concat([path]);
+  return { text: 'Transcript started, output file is ' + path };
+}
+function stopTranscript(ctx, a, seg) {
+  const C = 'Stop-Transcript', t = ctx.t, p = nlArgs(C, seg, {}); if (p.err) return p.err;
+  if (!t.tx || !t.tx.length) return psErrX(C, 'An error occurred stopping transcription: The host is not currently transcribing.', seg, 'InvalidOperation', ':', 'PSInvalidOperationException', 'InvalidOperation,Microsoft.PowerShell.Commands.StopTranscriptCommand');
+  // the file keeps this line (PS ...> Stop-Transcript), then the closing block
+  const path = t.tx[t.tx.length - 1], cap = t.txCap ? t.txCap.join('') : '';
+  mutate(() => { if (cap) t.tx.forEach(x => txAppend(x, cap)); txAppend(path, TX_BAR + '\nWindows PowerShell transcript end\nEnd time: ' + txStamp(new Date()) + '\n' + TX_BAR + '\n'); });
+  t.tx = t.tx.slice(0, -1); t.txCap = t.tx.length ? [] : null;
+  return { text: 'Transcript stopped, output file is ' + path };
+}
+const CSV_SPEC = { vals: ['Path:System.String', 'LiteralPath:System.String', 'Delimiter:System.Char', 'Encoding:System.String', 'InputObject:System.Management.Automation.PSObject'], sw: ['Append', 'Force', 'NoClobber', 'NoTypeInformation', 'UseCulture'], pos: ['Path', 'Delimiter'], alias: { NTI: 'NoTypeInformation', PSPath: 'LiteralPath', LP: 'LiteralPath' } };
+// a list property writes its type name, as Export-Csv does
+function csvCell(v) { const s = v == null ? '' : Array.isArray(v) ? (v.every(x => typeof x === 'string') ? 'System.String[]' : 'System.Object[]') : v === true ? 'True' : v === false ? 'False' : String(v); return '"' + s.replace(/"/g, '""') + '"'; }
+// ... | Export-Csv PATH [-NoTypeInformation]: a header row with the first object's properties, then one row per object
+function exportCsv(ctx, seg, input) {
+  const C = 'Export-Csv', X = 'Microsoft.PowerShell.Commands.ExportCsvCommand', p = nlArgs(C, seg, CSV_SPEC, ctx); if (p.err) return p.err;
+  if ((p.v.Path != null) === (p.v.LiteralPath != null)) return psErrX(C, 'You must specify either the -Path or -LiteralPath parameters, but not both.', seg, 'InvalidData', ':', 'InvalidOperationException', 'CannotSpecifyPathAndLiteralPath,' + X);
+  const path = fsResolve(ctx.t.cwd, nlVal(p.v.Path != null ? p.v.Path : p.v.LiteralPath)), e = fsGet(path), err = (m, exc) => psErrX(C, m, seg, 'OpenError', ':', exc, 'FileOpenFailure,' + X);
+  if (e && e.t === 'f' && p.sw.NoClobber && !p.sw.Append) return psErrX(C, "The file '" + path + "' already exists.", seg, 'ResourceExists', path + ':String', 'IOException', 'NoClobber,' + X);
+  if (e && e.t === 'd' || !ctx.admin && /^c:\\(windows|program files)/i.test(path)) return err("Access to the path '" + path + "' is denied.", 'UnauthorizedAccessException');
+  if (!fsIsDir(fsParent(path))) return err("Could not find a part of the path '" + path + "'.", 'DirectoryNotFoundException');
+  // text (a program's lines) exports each string's one property, Length
+  const objs = input.objs ? input.objs : String(input.text == null ? '' : input.text).split('\n').filter(Boolean).map(s => ({ Length: s.length }));
+  const d = p.v.Delimiter != null ? (nlVal(p.v.Delimiter) || ',')[0] : ',', keys = objs.length ? Object.keys(objs[0]).filter(k => k[0] !== '_') : [];
+  const add = p.sw.Append && e && e.text, lines = [];
+  if (!add && objs.length) { if (!p.sw.NoTypeInformation) lines.push('#TYPE ' + (input.type || (input.objs ? 'System.Management.Automation.PSCustomObject' : 'System.String'))); lines.push(keys.map(csvCell).join(d)); }
+  objs.forEach(o => lines.push(keys.map(k => csvCell(o[k])).join(d)));
+  mutate(() => fsWrite(path, (add ? e.text : '') + lines.map(l => l + '\r\n').join('')));
+  return null;
+}
+// Export-Csv typed alone asks for its input, as the console does; -InputObject (an expression) gives it
+function exportCsvCmd(ctx, a, seg) {
+  const p = nlArgs('Export-Csv', seg, CSV_SPEC, ctx); if (p.err) return p.err;
+  if (p.v.InputObject == null) return psPrompt('Export-Csv', 'InputObject');
+  const v = psEval(ctx.t, p.v.InputObject), L = [].concat(v == null ? [] : v);
+  return exportCsv(ctx, seg, L.length && typeof L[0] === 'object' ? { objs: L } : { text: L.map(psStr).join('\n') });
+}
+// fields in double quotes keep the delimiter, doubled quotes, and line breaks; a blank line is skipped
+function csvRows(text, d) {
+  const rows = []; let row = [], cur = '', q = false, any = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; continue; }
+    if (c === '"') { q = true; any = true; continue; }
+    if (c === d) { row.push(cur); cur = ''; any = true; continue; }
+    if (c === '\r') continue;
+    if (c === '\n') { row.push(cur); if (any || row.length > 1 || row[0] !== '') rows.push(row); row = []; cur = ''; any = false; continue; }
+    cur += c;
+  }
+  if (cur !== '' || row.length || any) { row.push(cur); rows.push(row); }
+  return rows;
+}
+// Import-Csv PATH: one object per row, each value a string; a #TYPE line names the objects' type (CSV:...)
+function importCsv(ctx, a, seg) {
+  const C = 'Import-Csv', X = 'Microsoft.PowerShell.Commands.ImportCsvCommand';
+  const p = nlArgs(C, seg, { vals: ['Path:System.String[]', 'LiteralPath:System.String[]', 'Delimiter:System.Char', 'Header:System.String[]', 'Encoding:System.String'], sw: ['UseCulture'], pos: ['Path', 'Delimiter'], alias: { PSPath: 'LiteralPath', LP: 'LiteralPath' } }, ctx);
+  if (p.err) return p.err;
+  const raw = p.v.Path != null ? p.v.Path : p.v.LiteralPath; if (raw == null) return psPrompt(C, 'Path');
+  const path = fsResolve(ctx.t.cwd, nlVal(raw)), e = fsGet(path);
+  if (!e) return psErrX(C, "Could not find file '" + path + "'.", seg, 'OpenError', ':', 'FileNotFoundException', 'FileOpenFailure,' + X);
+  if (e.t === 'd') return psErrX(C, "Access to the path '" + path + "' is denied.", seg, 'OpenError', ':', 'UnauthorizedAccessException', 'FileOpenFailure,' + X);
+  const d = p.v.Delimiter != null ? (nlVal(p.v.Delimiter) || ',')[0] : ',', rows = csvRows(String(e.text == null ? '' : e.text).replace(/^\uFEFF/, ''), d);
+  let type = 'System.Management.Automation.PSCustomObject';
+  if (rows.length && rows[0].length === 1 && /^#TYPE\s/.test(rows[0][0])) type = 'CSV:' + rows.shift()[0].replace(/^#TYPE\s+/, '');
+  const head = p.v.Header != null ? String(nlVal(p.v.Header)).split(',').map(s => s.trim()) : rows.shift();
+  if (!head || !rows.length) return null;
+  const names = head.map((h, i) => (h === '' ? 'H' + (i + 1) : h));
+  const objs = rows.map(r => { const o = {}; names.forEach((n, i) => { o[n] = r[i] == null ? null : r[i]; }); return o; });
+  return { objs, cols: names, view: names.length <= 4 ? 'table' : 'list', type };
+}
+/* Compare-Object REFERENCE DIFFERENCE: => marks an item only the difference has, <= one only the reference has, and
+   == (with -IncludeEqual) one in both; empty output means the two match. A port read from a CSV file (text) equals the
+   same port as a number. Each reference item matches one difference item. */
+function compareObject(ctx, a, seg) {
+  const C = 'Compare-Object', X = 'Microsoft.PowerShell.Commands.CompareObjectCommand';
+  const p = nlArgs(C, seg, { vals: ['ReferenceObject:System.Management.Automation.PSObject[]', 'DifferenceObject:System.Management.Automation.PSObject[]', 'Property:System.Object[]', 'SyncWindow:System.Int32', 'Culture:System.String'], sw: ['IncludeEqual', 'ExcludeDifferent', 'PassThru', 'CaseSensitive'], pos: ['ReferenceObject', 'DifferenceObject'] }, ctx);
+  if (p.err) return p.err;
+  const side = {};
+  for (const k of ['ReferenceObject', 'DifferenceObject']) {
+    if (p.v[k] == null) return psPrompt(C, k);
+    const v = psEval(ctx.t, p.v[k]);
+    if (v == null) { const at = seg.indexOf(p.v[k]); return psErrX(C, "Cannot bind argument to parameter '" + k + "' because it is null.", seg, 'InvalidData', ':', 'ParameterBindingValidationException', 'ParameterArgumentValidationErrorNullNotAllowed,' + X, at + 1, p.v[k].length); }
+    side[k] = [].concat(v);
+  }
+  const props = p.v.Property != null ? psSplitTop(String(nlVal(p.v.Property)), ',').map(s => s.trim()).filter(Boolean) : null, cs = !!p.sw.CaseSensitive;
+  const isObj = x => x != null && typeof x === 'object' && !Array.isArray(x);
+  const objStr = o => '@{' + Object.keys(o).filter(k => k[0] !== '_').map(k => k + '=' + psStr(o[k])).join('; ') + '}';
+  const keyStr = v => { if (v == null) return ''; const s = isObj(v) ? objStr(v) : Array.isArray(v) ? v.map(psStr).join(' ') : psStr(v), n = psNum(s); return n != null ? 'n:' + n : 's:' + (cs ? s : s.toLowerCase()); };
+  const keyOf = x => (props ? props.map(k => keyStr(psProp(x, k))).join('\u0001') : keyStr(x));
+  const pool = side.ReferenceObject.map(x => ({ x, k: keyOf(x), used: false })), eq = [], only = [];
+  side.DifferenceObject.forEach(x => { const k = keyOf(x), m = pool.find(r => !r.used && r.k === k); if (m) { m.used = true; eq.push(x); } else only.push(x); });
+  const rows = [].concat(p.sw.IncludeEqual ? eq.map(x => [x, '==']) : [], p.sw.ExcludeDifferent ? [] : only.map(x => [x, '=>']).concat(pool.filter(r => !r.used).map(r => [r.x, '<='])));
+  if (!rows.length) return null;
+  if (props) {
+    const objs = rows.map(([x, s]) => { const o = {}; props.forEach(k => { o[isObj(x) ? Object.keys(x).find(y => sameName(y, k)) || k : k] = psProp(x, k); }); o.SideIndicator = s; return o; });
+    const cols = Object.keys(objs[0]); return { objs, cols, view: cols.length <= 4 ? 'table' : 'list' };
+  }
+  if (p.sw.PassThru) {
+    if (!rows.every(([x]) => isObj(x))) return { text: rows.map(([x]) => psStr(x)).join('\n') };
+    const objs = rows.map(([x, s]) => Object.assign({}, x, { SideIndicator: s })), cols = Object.keys(objs[0]).filter(k => k[0] !== '_'); return { objs, cols, view: cols.length <= 4 ? 'table' : 'list' };
+  }
+  return { objs: rows.map(([x, s]) => ({ InputObject: isObj(x) ? objStr(x) : x, SideIndicator: s })), cols: ['InputObject', 'SideIndicator'], view: 'table' };
+}
+
+/* ---------- Read-Host: the line waits for the answer. The prompt (-Prompt, or the first word) ends in ": ", and
+   -AsSecureString masks each character with *. The statement then runs with the answer where Read-Host stood.
+   A SecureString (psSecure) prints System.Security.SecureString, its Length is the answer's length, and only a parameter
+   that takes a SecureString reads the answer (psExpand, 74-cmds-r3), so Set-LocalUser and New-LocalUser check it against
+   the password policy as usual ---------- */
+// (piped, it is one object with its Length, so Export-Csv and Format-List show Length as PowerShell does)
+function psSecure(v) {
+  const T = 'System.Security.SecureString', n = String(v).length, one = { Length: n }, o = { Length: n };
+  Object.defineProperty(one, 'r', { value: { text: T } });
+  Object.defineProperty(o, 'r', { value: { objs: [one], type: T, sslen: n, render: () => T + '\n' } });
+  Object.defineProperty(o, '_secure', { value: String(v) });
+  return o;
+}
+// each Read-Host that runs as a command: inside ( ), at the start of the statement, or after $name =
+function readHostFind(s) {
+  const out = []; let q = null;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (q) { if (c === q) q = null; continue; }
+    if (c === '"' || c === "'") { q = c; continue; }
+    if (!/^read-host(?![\w-])/i.test(s.slice(i, i + 10)) || i > 0 && !/[\s(=]/.test(s[i - 1])) continue;
+    const before = s.slice(0, i).replace(/\s+$/, ''), j = before.length - 1;
+    if (s[j] === '(') { const g = psGroup(s, j, '(', ')'); if (!g) continue; out.push({ at: j, end: g[1], args: g[0].replace(/^\s*read-host/i, ''), group: true }); i = g[1] - 1; continue; }
+    const asg = /^\$(env:)?([A-Za-z_]\w*)\s*=$/i.exec(before);
+    if (before !== '' && !asg) continue;
+    const cmd = psSplitTop(s.slice(i), '|')[0];
+    out.push({ at: i, end: i + cmd.length, args: cmd.replace(/^read-host/i, ''), assign: asg && cmd.length === s.length - i ? { env: !!asg[1], name: asg[2] } : null });
+    i += cmd.length - 1;
+  }
+  return out.map(o => {
+    const w = psArgSplit('x ' + o.args); let secure = false, prompt = null;
+    for (let k = 0; k < w.length; k++) { if (/^-as/i.test(w[k])) secure = true; else if (/^-p/i.test(w[k])) prompt = nlVal(w[++k]); else if (!/^-/.test(w[k]) && prompt == null) prompt = nlVal(w[k]); }
+    return Object.assign(o, { secure, prompt });
+  });
+}
+// termRun asks before each statement: { wait } holds the line for the answer, { line } runs the line with the answers in
+// place, { done } stored the answer in a variable, and null runs the statement as typed
+function readHostPrep(t, part, rest) {
+  if (t.cap || !/read-host/i.test(part)) return null;
+  const occ = readHostFind(part); if (!occ.length) return null;
+  // PowerShell finds the command before it binds the arguments: an unknown command answers "not recognized" first
+  const w = (/^(?:\$(?:env:)?\w+\s*=\s*)?([^\s(]+)/.exec(part) || [])[1] || '';
+  if (/^[A-Za-z]/.test(w) && !/^(if|foreach|while|for|switch|return)$/i.test(w) && !findCmd('ps', w.toLowerCase())) return null;
+  const ans = t.readAns || [];
+  if (ans.length < occ.length) { const o = occ[ans.length]; t.read = { rest, ans, prompt: o.prompt != null ? o.prompt + ': ' : '', secure: o.secure }; t.readAns = null; return { wait: true }; }
+  t.readAns = ans.slice(occ.length);
+  const q = v => "'" + String(v).replace(/'/g, "''") + "'";
+  if (occ.length === 1 && occ[0].assign) {
+    const o = occ[0], x = o.assign, v = ans[0];
+    if (x.env) { t.env = t.env || {}; t.env[x.name] = o.secure ? 'System.Security.SecureString' : v; } else { t.vars = t.vars || {}; t.vars[x.name] = o.secure ? psSecure(v) : v; }
+    return { done: true };
+  }
+  // sub pairs each stand-in with the text it replaced, so an error that echoes the statement shows Read-Host (termWrite).
+  // A secure answer waits in a variable for this statement only (tmp; termRun clears it), so it binds as a SecureString
+  let line = part; const sub = [], tmp = [];
+  for (let k = occ.length - 1; k >= 0; k--) {
+    const o = occ[k], v = ans[k];
+    let put = o.group ? q(v) : 'Write-Output ' + q(v);
+    if (o.secure) { const n = '__rh' + k; t.vars = t.vars || {}; t.vars[n] = psSecure(v); tmp.push(n); put = '$' + n; }
+    sub.push([put, line.slice(o.at, o.end)]); line = line.slice(0, o.at) + put + line.slice(o.end);
+  }
+  return { line, sub, tmp };
+}
+// Enter while Read-Host waits: the prompt line shows the answer (masked for -AsSecureString), then the held line runs
+function readHostAnswer(t, raw) {
+  const r = t.read; if (!r) return; t.read = null;
+  txStart(t);
+  termWrite(t, r.prompt + (r.secure ? '*'.repeat(raw.length) : raw) + '\n');
+  t.readAns = r.ans.concat([raw]);
+  try { termRun(t, r.rest); } finally { t.readAns = null; }
+  txFlush(t);
+}
+/* ConvertFrom-SecureString: the SecureString as encrypted hex. By default DPAPI encrypts it with this account's key (a new
+   salt each run, so each run prints new text); -Key or -SecureKey gives the AES form. The text holds no part of the answer */
+const hexRand = n => Array.from({ length: n }, () => (Math.random() * 256 | 0).toString(16).padStart(2, '0')).join('');
+const hexLe32 = n => [n & 255, n >> 8 & 255, n >> 16 & 255, n >>> 24 & 255].map(b => b.toString(16).padStart(2, '0')).join('');
+function dpapiHex(len) {
+  const data = (Math.floor(2 * len / 16) + 1) * 16, mk = sha256Hex(utf8Bytes('masterkey ' + hostnameUpper() + '\\' + S.currentUser)).toLowerCase().slice(0, 32);
+  return '01000000d08c9ddf0115d1118c7a00c04fc297eb01000000' + mk + '00000000' + '02000000' + '0000' + '10660000' + '00010000' + '20000000' + hexRand(32) + '00000000' + '0e800000' + '00020000' + '20000000' + hexRand(32) + hexLe32(data) + hexRand(data) + '40000000' + hexRand(64);
+}
+function aesKeyText(len) {
+  const iv = btoa(String.fromCharCode.apply(null, Array.from({ length: 16 }, () => Math.random() * 256 | 0))), body = '2|' + iv + '|' + hexRand((Math.floor(2 * len / 16) + 1) * 16);
+  return '76492d1116743f0423413b16050a5345' + btoa(Array.from(body).map(c => c + '\0').join(''));
+}
+const CFSS = { vals: ['SecureString:System.Security.SecureString', 'SecureKey:System.Security.SecureString', 'Key:System.Byte[]'], pos: ['SecureString', 'SecureKey'] };
+function cfssOut(C, p, len, seg) {
+  if (p.v.Key != null && p.v.SecureKey != null) return psErrX(C, 'Parameter set cannot be resolved using the specified named parameters.', seg, 'InvalidArgument', ':', 'ParameterBindingException', 'AmbiguousParameterSet,' + CMDLET_CLS(C));
+  return { text: p.v.Key != null || p.v.SecureKey != null ? aesKeyText(len) : dpapiHex(len) };
+}
+// a SecureString argument arrives as the stand-in psExpand gives a SecureString parameter; anything else is text
+function cfssCmd(ctx, a, seg) {
+  const C = 'ConvertFrom-SecureString', p = nlArgs(C, seg, CFSS, ctx); if (p.err) return p.err;
+  const raw = p.v.SecureString; if (raw == null) return psPrompt(C, 'SecureString');
+  const pw = /^\([\s(]*ConvertTo-SecureString\s/i.test(raw) ? secPw({}, raw) : null;
+  if (pw == null) return psErrX(C, "Cannot bind parameter 'SecureString'. Cannot convert the \"" + psStr(psEval(ctx.t, raw)) + '" value of type "System.String" to type "System.Security.SecureString".', seg, 'InvalidArgument', ':', 'ParameterBindingException', 'CannotConvertArgumentNoMessage,' + CMDLET_CLS(C));
+  return cfssOut(C, p, pw.length, seg);
+}
+// ... | ConvertFrom-SecureString: a SecureString binds from the pipeline (sslen marks one); text has no parameter to bind to
+function cfssPipe(ctx, rest, seg, input) {
+  const C = 'ConvertFrom-SecureString', p = nlArgs(C, seg, CFSS, ctx); if (p.err) return p.err;
+  if (p.v.SecureString != null) return cfssCmd(ctx, rest, seg);
+  if (input.sslen != null) return cfssOut(C, p, input.sslen, seg);
+  const items = input.objs || String(input.text == null ? '' : input.text).split('\n').filter(s => s.trim());
+  return items.length ? { text: items.map(o => nlNotBound(C, typeof o === 'object' ? psStr(o) : o.trim(), seg)).join(''), cls: 'err' } : null;
+}
+
+/* ---------- registration ---------- */
+Object.assign(CMDS, { logoff: logoffCmd });
+Object.assign(PS_CMDS, {
+  'get-netipaddress': getNetIPAddress, 'get-netadapter': getNetAdapter, 'get-dnsclientserveraddress': getDnsClientServerAddress, 'get-netroute': getNetRoute, 'get-netneighbor': getNetNeighbor,
+  'start-transcript': startTranscript, 'stop-transcript': stopTranscript, 'export-csv': exportCsvCmd, 'import-csv': importCsv, 'compare-object': compareObject,
+  'get-smbsession': getSmbSession, 'close-smbsession': closeSmbSession, 'convertfrom-securestring': cfssCmd
+});
+Object.assign(PS_PIPE, {
+  'get-netipaddress': nlPipeIf('Get-NetIPAddress', getNetIPAddress), 'get-dnsclientserveraddress': nlPipeIf('Get-DnsClientServerAddress', getDnsClientServerAddress),
+  'get-netroute': nlPipeIf('Get-NetRoute', getNetRoute), 'get-netneighbor': nlPipeIf('Get-NetNeighbor', getNetNeighbor), 'convertfrom-securestring': cfssPipe
+});
+PS_SIG['convertfrom-securestring'] = 'SecureString:SS,SecureKey:SS,Key:System.Byte[]|SecureString,SecureKey|SecureString|';
+Object.assign(PS_ALIAS, { epcsv: 'export-csv', ipcsv: 'import-csv', compare: 'compare-object', diff: 'compare-object' });
+Object.assign(PS_ARG, { 'export-csv': { InputObject: 'System.Management.Automation.PSObject', Path: T_STR, LiteralPath: T_STR, NoTypeInformation: null, Append: null, NoClobber: null, UseCulture: null }, 'compare-object': { ReferenceObject: 'System.Management.Automation.PSObject[]', DifferenceObject: 'System.Management.Automation.PSObject[]' } });
+['Get-NetIPAddress', 'Get-NetAdapter', 'Get-DnsClientServerAddress', 'Get-NetRoute', 'Get-NetNeighbor', 'Get-SmbSession', 'Close-SmbSession'].forEach(n => { CMDLET_FQ[n] = n; });
+CMD_NAMES.push('logoff');
+PS_NAMES.push('Get-NetIPAddress', 'Get-NetAdapter', 'Get-DnsClientServerAddress', 'Get-NetRoute', 'Get-NetNeighbor', 'Start-Transcript', 'Stop-Transcript', 'Export-Csv', 'Import-Csv', 'Compare-Object', 'Get-SmbSession', 'Close-SmbSession', 'ConvertFrom-SecureString');
 
 /* ===== 85-scenarios: the three practice labs (state builders, scenario brief, investigation questions, checks, availability checks) ===== */
 function investigationFile(n, q) { return 'Investigation ' + n + '\r\n\r\n' + q.text.replace(/(.{1,72})(\s+|$)/g, '$1\r\n') + '\r\n' + (q.hint ? ('(' + q.hint + ')').replace(/(.{1,72})(\s+|$)/g, '$1\r\n') + '\r\n' : '\r\n') + 'ANSWER: \r\n'; }

@@ -41,6 +41,10 @@
       0-1 standalone or member workstation, 2-3 standalone or member server, 4-5 domain controller
   CMD> dsregcmd /status   (AzureAdJoined and DomainJoined show who else can push settings to this server)
   PS> Get-WindowsFeature AD-Domain-Services,DNS,DHCP,Web-Server,Web-Ftp-Server | Select-Object Name,Installed
+  PS> Get-ADDomainController -Filter * | Select-Object Name,IPv4Address,Site,IsGlobalCatalog   (domain controller)
+  PS> Get-ADReplicationSubnet -Filter * | Select-Object Name,Site   (domain controller: the address ranges AD knows, by site)
+  CMD> repadmin /replsummary   (domain controller: the fails column reads 0 in a healthy domain: check it before any change every DC copies)
+  CMD> dcdiag /q   (domain controller, elevated: prints only errors, so a quiet run means a healthy DC)
   WHY: Read the brief: removing a user, role, or service it requires is an
        availability failure. Evidence first: answer the investigation
        questions before any change (Defense Ladder f1).
@@ -107,6 +111,8 @@
   CMD> net user Administrator /active:no
   PS> Set-ADUser -Identity Administrator -PasswordNeverExpires $false
   PS> Get-LapsADPassword -Identity PHN-LAB-07 -AsPlainText   (Windows LAPS: each computer's own local Administrator password, rotated and readable only by granted groups)
+  PS> Reset-LapsPassword   (on the managed computer, as administrator: rotates its local Administrator password now)
+  PS> Set-LapsADPasswordExpirationTime -Identity PHN-LAB-07   (from any admin PC: PHN-LAB-07 rotates at its next LAPS cycle, hourly by default)
   WHY: Well-known names invite brute force. Disable Guest; keep Administrator
        enabled only when the brief uses it, with a strong password. Match SID
        -500 (Administrator) and -501 (Guest) to catch renames.
@@ -473,6 +479,8 @@
   PS> Get-SmbShareAccess -Name "Records"
   PS> Revoke-SmbShareAccess -Name "Records" -AccountName Everyone -Force
   PS> Grant-SmbShareAccess -Name "Records" -AccountName "PHN\Records" -AccessRight Change -Force
+  PS> Get-SmbSession | Select-Object ClientUserName,ClientComputerName   (who holds a session to this server's shares, and from which computer)
+  PS> Close-SmbSession -ClientUserName 'PHN\baduser' -Force   (once B-02 disables the account; unsaved changes in files open over the session are lost)
   CMD> auditpol /set /subcategory:"File Share" /success:enable /failure:enable
   WHY: An unexpected share is a data exfiltration path. Check the ACLs on the
        shares you must keep. Event 5142 names who added a share once File
@@ -594,6 +602,10 @@
   AREA: Secure configuration
   GUI: gpmc.msc (Group Policy Management) on a DC; gpedit.msc on a member server
   PS> Get-GPO -All | Select-Object DisplayName,GpoStatus,ModificationTime
+  PS> New-Item C:\takeover\gpo -ItemType Directory -Force
+  PS> icacls C:\takeover\gpo /inheritance:r /grant:r "Administrators:(OI)(CI)F" "SYSTEM:(OI)(CI)F"   (keeps the backups to admins and SYSTEM, as the Windows 11 drill's B-00 does for C:\takeover)
+  PS> Backup-GPO -All -Path C:\takeover\gpo   (saves every GPO before you change one)
+  PS> Restore-GPO -Name <name> -Path C:\takeover\gpo   (puts one GPO back from that backup)
   PS> Get-GPOReport -All -ReportType Html -Path C:\Temp\gpo.html
   CMD> reg query HKLM\SOFTWARE\Policies /s
   CMD> gpupdate /force
@@ -940,12 +952,15 @@
   PS> Get-ADUser -Filter {AdminCount -eq 1} | Select-Object Name
   PS> Get-ADUser -Filter {TrustedForDelegation -eq $true} | Select-Object Name
   PS> Get-ADComputer -Filter {TrustedForDelegation -eq $true} | Select-Object Name   (computers with unconstrained delegation: the domain controllers belong here, any other is a finding)
+  CMD> ntdsutil "set dsrm password" "reset password on server null" q q   (on each DC: a new password for DSRM, the DC's local recovery Administrator; each q leaves one menu)
   WHY: Disabled Kerberos pre-auth invites AS-REP roasting, a user-account SPN
        invites Kerberoasting, and stale admins or never-expiring passwords hold
        quiet persistence. One cmdlet finds each flag; one fixes it.
   NOTE: SPNs belong on long-password service accounts or group managed service
         accounts. A new password breaks the service until entered in
         services.msc, Log On tab (SQL Server Configuration Manager for SQL).
+        Rotate the DSRM password whenever you reset krbtgt and the Tier 0
+        passwords (Defense Ladder se7).
 
 [A-11] SMB and LDAP signing
   AREA: Secure configuration

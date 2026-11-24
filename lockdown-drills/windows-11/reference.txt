@@ -38,6 +38,10 @@
   AREA: Investigation (forensics basics)
   GUI: open the scenario brief (the documented requirements for this machine) and write down authorized users, admins, required services, and anything forbidden
   CMD> dsregcmd /status   (AzureAdJoined and DomainJoined show who else can push settings to this PC)
+  PS> New-Item C:\takeover -ItemType Directory -Force
+  PS> icacls C:\takeover /inheritance:r /grant:r "Administrators:(OI)(CI)F" "SYSTEM:(OI)(CI)F"   (admins and SYSTEM only: /inheritance:r drops the inherited Authenticated Users Modify, and /grant:r replaces what the two accounts held)
+  PS> Start-Transcript C:\takeover\$env:COMPUTERNAME.txt -Append   (records this PowerShell window's commands and output in a file named for this PC)
+  PS> Get-NetTCPConnection -State Listen | Export-Csv C:\takeover\listen.csv -NoTypeInformation   (the listening-port baseline, saved before any change)
   WHY: Removing a user, role, or service the business needs is an availability
        failure. Read the brief, then answer the investigation questions before
        any change (Defense Ladder f1).
@@ -72,6 +76,8 @@
   CMD> net user baduser /active:no
   PS> Disable-LocalUser -Name "baduser"
   PS> Enable-LocalUser -Name keola   (undo a disable once the brief confirms the account belongs)
+  PS> quser   (read the ID column: one row per signed-in session)
+  PS> logoff ID   (ID is the session the brief rules out; ending it ends the disabled or demoted user's old token too. Both commands: Pro and higher; on Home, sign the user out from Task Manager > Users)
   WHY: Deleting removes the login path and the profile's persistence hooks.
        Remove only accounts the brief leaves out; when the brief is unclear,
        disable first (/active:no) and ask the owner.
@@ -93,8 +99,8 @@
   WHY: An admin can switch off every other control. Least privilege is the
        single highest-value idea in system hardening. Demote users the brief
        calls standard; promote only its listed admins.
-  NOTE: A signed-in demoted user keeps admin rights until signing out: Task
-        Manager, Users, Sign out.
+  NOTE: A signed-in demoted user keeps admin rights until signing out: end the
+        session as in B-02.
   ALSO: Backup Operators, Remote Desktop Users, and Remote Management Users
         also grant power where they exist; compare each with the brief
         (Get-LocalGroup lists every group).
@@ -120,6 +126,7 @@
   AREA: Account management
   PS> Get-LocalUser | Select-Object Name,Enabled,PasswordLastSet,PasswordExpires
   CMD> net user keoni *
+  PS> Set-LocalUser -Name keoni -Password (Read-Host -AsSecureString 'New password')   (the PowerShell twin: Read-Host hides the typed password and keeps it out of the history)
   PS> Get-LocalUser | Where-Object { $_.Enabled -and $_.Name -ne $env:USERNAME } | Set-LocalUser -PasswordNeverExpires $false
   CMD> net user keoni /logonpasswordchg:yes
   WHY: Weak, shared, or blank passwords are the top way in. Password never
@@ -674,11 +681,15 @@
 [I-19] Network checks: address, route, neighbors, names, path, and port
   AREA: Secure configuration
   CMD> ipconfig /all
+  CMD> hostname   (this PC's name)
+  PS> Get-NetIPAddress; Get-NetAdapter; Get-DnsClientServerAddress   (the PowerShell split of ipconfig /all: addresses, adapters with MAC and link speed, and DNS servers)
   CMD> ipconfig /release   (for a 169.254.x.x address: drop it, then renew)
   CMD> ipconfig /renew   (asks DHCP for a fresh lease)
   CMD> route print -4
+  PS> Get-NetRoute   (the twin of route print)
   CMD> ping <gateway>
   CMD> arp -a
+  PS> Get-NetNeighbor   (the twin of arp -a)
   CMD> nslookup <name>
   PS> Resolve-DnsName <name>
   CMD> ipconfig /displaydns
@@ -946,6 +957,8 @@
   PS> Get-NetFirewallProfile | Select-Object Name,Enabled
   PS> Get-LocalGroupMember Administrators
   CMD> netstat -abno
+  PS> Compare-Object (Import-Csv C:\takeover\listen.csv).LocalPort (Get-NetTCPConnection -State Listen).LocalPort   (against the B-00 baseline: <= marks a port only the baseline had, => a new one, and empty output means nothing changed)
+  PS> Stop-Transcript   (in the B-00 window: closes the record at hand-off)
   WHY: A change log of what, when, and why lets you reverse a breaking change in
        thirty seconds instead of thirty minutes. Real incident response runs on
        the same record.
