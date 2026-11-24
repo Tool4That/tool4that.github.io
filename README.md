@@ -18,8 +18,7 @@ Live at https://freeapp4that.store/ (primary) and https://tool4that.github.io/ (
 | [Trouble Tickets](https://freeapp4that.store/net-drills/trouble-tickets/) | Net Drills: diagnose the root cause from real device output. |
 | [Windows 11 Lockdown](https://freeapp4that.store/lockdown-drills/windows-11/) | Lockdown Drills: Windows 11 baseline hardening, beginner to advanced, with a command reference (.txt). |
 | [Windows Server Lockdown](https://freeapp4that.store/lockdown-drills/windows-server/) | Lockdown Drills: Windows Server baseline hardening, beginner to advanced, with a command reference (.txt). |
-| [Linux Mint Lockdown](https://freeapp4that.store/lockdown-drills/linux-mint/) | Lockdown Drills: Linux Mint baseline hardening, beginner to advanced, with a command reference (.txt). |
-| [Ubuntu Lockdown](https://freeapp4that.store/lockdown-drills/ubuntu/) | Lockdown Drills: Ubuntu baseline hardening, beginner to advanced, with a command reference (.txt). |
+| [Debian Family Lockdown](https://freeapp4that.store/lockdown-drills/debian-family/) | Lockdown Drills: Ubuntu and Linux Mint baseline hardening in one trainer with a distribution switch, beginner to advanced, with a command reference (.txt). |
 | [FreeBSD Lockdown](https://freeapp4that.store/lockdown-drills/freebsd/) | Lockdown Drills: FreeBSD baseline hardening, beginner to advanced, with a command reference (.txt). |
 | [Cisco IOS Lockdown](https://freeapp4that.store/lockdown-drills/cisco-ios/) | Lockdown Drills: Cisco IOS baseline hardening, beginner to advanced, with a command reference (.txt). |
 | [Windows Range](https://freeapp4that.store/lockdown-range/windows/) | Lockdown Range: a Windows 11 / Server 2025 hardening lab in the browser (real panels, cmd and PowerShell, live Progress Check), with a solution walkthrough (.txt). |

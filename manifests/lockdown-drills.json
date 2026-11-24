@@ -52,39 +52,20 @@
       "download_as": "windows-server-lockdown.html"
     },
     {
-      "slug": "lockdown-drills/linux-mint",
+      "slug": "lockdown-drills/debian-family",
       "match": [
-        "(?<![a-z])mint(?![a-z])"
+        "debian"
       ],
-      "name": "Linux Mint Lockdown",
-      "tagline": "Lock down the desktop.",
-      "description": "Linux Mint baseline hardening in three levels: Doorman, Watchman, and Hunter. A command reference explains why each step matters.",
+      "name": "Debian Family Lockdown",
+      "tagline": "Lock down Ubuntu and Linux Mint.",
+      "description": "Ubuntu and Linux Mint baseline hardening in three levels: Doorman, Watchman, and Hunter. A switch shows each distribution's steps, and a command reference explains why each step matters.",
       "badges": [
         "Linux",
         "Hardening",
         "Offline",
         "Private"
       ],
-      "download_as": "linux-mint-lockdown.html"
-    },
-    {
-      "slug": "lockdown-drills/ubuntu",
-      "match": [
-        "ubuntu"
-      ],
-      "exclude": [
-        "(?<![a-z])mint(?![a-z])"
-      ],
-      "name": "Ubuntu Lockdown",
-      "tagline": "Lock down Ubuntu.",
-      "description": "Ubuntu baseline hardening in three levels: Doorman, Watchman, and Hunter. A command reference explains why each step matters.",
-      "badges": [
-        "Linux",
-        "Hardening",
-        "Offline",
-        "Private"
-      ],
-      "download_as": "ubuntu-lockdown.html"
+      "download_as": "debian-family-lockdown.html"
     },
     {
       "slug": "lockdown-drills/freebsd",

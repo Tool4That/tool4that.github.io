@@ -1,35 +1,41 @@
 ================================================================================
- 04: LINUX MINT HARDENING: SOLUTION WALKTHROUGH
-     Linux Mint 22.3 (Cinnamon), Ubuntu 24.04 base
- Training reference for virtual machines you own or are authorized to change.
+ 04: DEBIAN-FAMILY HARDENING: SOLUTION WALKTHROUGH
+     Ubuntu 24.04 LTS (GNOME), with 26.04 notes, and Linux Mint 22.3 (Cinnamon)
+ Training reference for systems you own or are authorized to change. Practice
+ hands-on in the Linux Range (https://freeapp4that.store/lockdown-range/linux/)
+ and, on a real machine, with Cyber PUG (https://freeapp4that.store/cyber-pug/).
  Three levels: L1 Doorman, L2 Watchman, L3 Hunter. Every item = COMMAND, WHY,
  NOTE, and the hardening AREA it belongs to; ALSO adds a second caution when
  an item needs one. No scripts by design: type it, read it, explain it. Item
  IDs match the Lockdown Drills trainer for this OS.
+ One reference for both distributions: a line marked [Ubuntu] or [Linux Mint]
+ applies to that distribution, and every unmarked line applies to both.
  Unofficial training, independent of and unendorsed by the makers of the systems it names.
 
- HARDENING AREAS (CIS Critical Security Controls v8.1)
-   Account management ........ CIS Control 5
-   Access control ............ CIS Control 6
-   Secure configuration ...... CIS Control 4 (software inventory: Control 2)
-   Patching .................. CIS Control 7
-   Malware defenses .......... CIS Control 10
-   Audit logging ............. CIS Control 8
-   Also tagged: Data protection (CIS Control 3); Investigation (forensics
-   basics: answer questions and preserve evidence before you change things).
+ HARDENING AREAS
+   Account management
+   Access control
+   Secure configuration (software inventory included)
+   Patching
+   Malware defenses
+   Audit logging
+   Also tagged: Data protection; Investigation (forensics basics: answer
+   questions and preserve evidence before you change things).
 ================================================================================
 
 ------------------------------ DOORMAN -----------------------------------------
- Lock the doors. Users, admins, passwords, lockout, firewall, updates, junk
- software, obvious services, the Login Window. Mint is Ubuntu LTS underneath
- (see Version notes), with its own GUI tools on top.
+ Ubuntu: Lock the doors. Users, admins, passwords, lockout, firewall, updates,
+ snaps and junk software, obvious services, GDM auto-login and screen lock.
+ Linux Mint: Lock the doors. Users, admins, passwords, lockout, firewall,
+ updates, junk software, obvious services, the Login Window. Mint is Ubuntu LTS
+ underneath (see Version notes), with its own GUI tools on top.
  Learn it first: Defense Ladder s3, Debian-family hardening.
    https://freeapp4that.store/defense-ladder/#sophomore/s3
 --------------------------------------------------------------------------------
 [B-00] Scenario brief and evidence first
   AREA: Investigation (forensics basics)
   GUI: open the scenario brief (the documented requirements for this machine) and write down authorized users, admins, required services, and anything forbidden
-  $ sudo timeshift --create --comments "before hardening"   (practice VMs)
+  [Linux Mint] $ sudo timeshift --create --comments "before hardening"   (practice VMs)
   $ mkdir -p ~/audit/day1 && cd ~/audit/day1 && touch changes.txt && pwd   (one folder for evidence and backups; log each change with what, why, and how to undo it)
   $ sudo cp -a /etc/login.defs /etc/login.defs.bak   (copy each file before you edit it; -a keeps the owner, mode, and time)
   $ sudo rsync -a /home/ /mnt/backup/home/   (copies the home folders to a mounted backup drive; a backup counts once a test restore works)
@@ -37,21 +43,28 @@
   WHY: Authorized users, admins, and required services decide what is a fix
        and what breaks the business. Evidence first: answer the investigation
        questions before any change (Defense Ladder f1).
-  NOTE: Unfamiliar differs from unauthorized: trace and ask before removing
+  [Ubuntu] NOTE: Unfamiliar differs from unauthorized: trace and ask before removing
+        agents (Defense Ladder s1). Before PAM, sudoers, or SSH edits, keep a
+        root shell (sudo -i) open to fix lockout typos.
+  [Ubuntu] ALSO: Start B-08's upgrade now in another terminal. B-05 and B-09 wait for
+        its apt lock, so do the apt-free items first and read its result near
+        the end.
+  [Linux Mint] NOTE: Unfamiliar differs from unauthorized: trace and ask before removing
         agents (Defense Ladder s1). PAM, sudoers, or SSH typos lock you out:
         keep a root terminal (sudo -i) open.
-  ALSO: Snapshot practice VMs first (Mint's free undo). Start B-08's upgrade
+  [Linux Mint] ALSO: Snapshot practice VMs first (Mint's free undo). Start B-08's upgrade
         now in another terminal; check it near the end. Do apt-free items
         while B-05 and B-09 wait for apt's lock.
 
 [B-01] List human users, admins, and UID-0 accounts
-  AREA: Account management (CIS Control 5)
+  AREA: Account management
   $ awk -F: '$3>=1000 && $3<65534 {print $1" uid="$3" shell="$7}' /etc/passwd
   $ awk -F: '$3==0 {print $1}' /etc/passwd
   $ getent group sudo admin adm wheel docker lxd disk
   $ awk -F: -v g="$(getent group sudo | cut -d: -f3)" '$4==g {print $1" has sudo as its primary group"}' /etc/passwd
   $ whoami; id   (the account you work as, and its groups, before you judge anyone else's)
-  GUI: Menu, Administration, Users and Groups.
+  [Ubuntu] GUI: Settings, System, Users (Unlock first).
+  [Linux Mint] GUI: Menu, Administration, Users and Groups.
   WHY: An extra UID-0 user is a second root. Members of sudo (or wheel) and
        admin (default sudoers grants %admin) hold root-level power; adm
        members read logs.
@@ -61,7 +74,7 @@
         host filesystem or read raw disks.
 
 [B-02] Remove or disable an unauthorized user
-  AREA: Account management (CIS Control 5)
+  AREA: Account management
   $ id -u baduser                             (0 means a hidden root: skip the next two lines and follow the NOTE)
   $ sudo usermod -L -e 1 baduser; ps -o pid,unit,cmd -u baduser
   $ sudo loginctl disable-linger baduser; sudo loginctl terminate-user baduser; sudo pkill -KILL -u baduser; pgrep -u baduser
@@ -83,42 +96,49 @@
         that home is its own.
 
 [B-03] Fix admin group membership
-  AREA: Account management (CIS Control 5)
+  AREA: Account management
   $ sudo gpasswd -d ikaika sudo
   $ sudo loginctl terminate-user ikaika      (ends the open sessions, which keep the old groups)
   $ sudo usermod -aG sudo keoni
   $ groups keoni
   $ sudo adduser keola   (when the brief lists an account this machine lacks: it sets a password and creates the home; the low-level form is sudo useradd -m -s /bin/bash keola, then sudo passwd keola)
   $ sudo addgroup yearbook && sudo gpasswd -M malia,keola yearbook   (when the brief names a group and its members; -M sets the whole member list)
-  GUI: Users and Groups: Account Type Standard or Administrator (Administrator =
+  [Ubuntu] GUI: Settings, System, Users: Administrator toggle (adds or removes the sudo
+       group).
+  [Linux Mint] GUI: Users and Groups: Account Type Standard or Administrator (Administrator =
        sudo group); the Groups row opens a tick list of every other group.
   WHY: Least privilege. -aG appends; -G alone replaces existing groups. Open
        sessions keep their starting groups: removed admins keep sudo until
        each session ends; new members gain it at next sign-in.
 
 [B-04] Passwords: strong, forced change, no empties, root locked
-  AREA: Account management (CIS Control 5)
+  AREA: Account management
   $ sudo passwd keoni
   $ sudo chage -d 0 keoni
   $ awk -F: '$3>=1000 && $3<65534 {print $1}' /etc/passwd | grep -vx "${SUDO_USER:-$USER}" | xargs -r -n1 sudo chage -d 0     (every human account except yours)
   $ sudo awk -F: '$2=="" {print $1" HAS NO PASSWORD"}' /etc/shadow
   $ awk -F: '$2!="x" {print $1" has something other than x in /etc/passwd field 2"}' /etc/passwd
-  $ getent group nopasswdlogin; sudo gpasswd -d <user> nopasswdlogin
+  [Linux Mint] $ getent group nopasswdlogin; sudo gpasswd -d <user> nopasswdlogin
   $ sudo passwd -l root
   $ sudo passwd -S root                      (expect: root L)
-  WHY: An empty /etc/shadow password or /etc/passwd field 2 means sign-in with
+  [Ubuntu] WHY: Empty field 2 in /etc/shadow or /etc/passwd means Enter logs in; pam_unix
+       reads /etc/shadow only when /etc/passwd holds x (fix: sudo pwconv, which
+       carries an empty field into /etc/shadow, then sudo passwd <user> or sudo
+       passwd -l <user>). Locked root forces accountable sudo over shared
+       passwords.
+  [Linux Mint] WHY: An empty /etc/shadow password or /etc/passwd field 2 means sign-in with
        Enter; sudo pwconv moves field 2, even an empty one, into /etc/shadow, so
        follow it with sudo passwd <user> or sudo passwd -l <user>. Locked root
        forces accountable sudo over a shared root password.
   NOTE: Record changed passwords safely (on paper, in a lab). Keep your own
         sign-in password unless the brief says otherwise; leave service and
         key-only accounts out of the bulk chage line.
-  ALSO: Mint's login screen signs in every nopasswdlogin member without a
+  [Linux Mint] ALSO: Mint's login screen signs in every nopasswdlogin member without a
         password, and passwd leaves that membership in place, so check the
         group.
 
 [B-05] Password aging and quality
-  AREA: Account management (CIS Control 5)
+  AREA: Account management
   $ sudo sed -i 's/^PASS_MAX_DAYS.*/PASS_MAX_DAYS\t60/' /etc/login.defs
   $ sudo sed -i 's/^PASS_MIN_DAYS.*/PASS_MIN_DAYS\t1/' /etc/login.defs
   $ sudo sed -i 's/^PASS_WARN_AGE.*/PASS_WARN_AGE\t7/' /etc/login.defs
@@ -142,20 +162,21 @@
        enforces complexity at each change, and remember= blocks reuse. Confirm
        with pwscore, which tests a password without changing one.
   NOTE: The scenario brief sets the numbers; these commands show one sample
-        brief. The CIS Benchmark asks for a minlen of 14 or more, a history of
-        24 or more, a maximum age of 365 days or fewer, a minimum age of 1 day
-        or more, and a UMASK of 027 or stricter; Defense Ladder s2 compares the
-        CIS and NIST rulebooks, and s3 applies them on Linux. Leave obscure in
-        place. Numbers on the pam_pwquality.so line override pwquality.conf, so
-        keep them in the conf file and leave the PAM line at retry=3. Install
-        libpam-pwquality before any hand edit to a common-* file (B-06): after
-        one, pam-auth-update stops updating those files while apt still reports
-        success, so the grep is the proof. Open a root shell before the loop: an
-        account whose last change is older than the new maximum must change its
-        password at its next sign-in, yours included.
+        brief. A widely used hardening baseline asks for a minlen of 14 or
+        more, a history of 24 or more, a maximum age of 365 days or fewer, a
+        minimum age of 1 day or more, and a UMASK of 027 or stricter; Defense
+        Ladder s2 compares two published password rule sets, and s3 applies
+        them on Linux. Leave obscure in place. Numbers on the pam_pwquality.so
+        line override pwquality.conf, so keep them in the conf file and leave
+        the PAM line at retry=3. Install libpam-pwquality before any hand edit
+        to a common-* file (B-06): after one, pam-auth-update stops updating
+        those files while apt still reports success, so the grep is the proof.
+        Open a root shell before the loop: an account whose last change is
+        older than the new maximum must change its password at its next
+        sign-in, yours included.
 
 [B-06] Account lockout with pam_faillock
-  AREA: Account management (CIS Control 5)
+  AREA: Account management
   $ sudo nano /etc/security/faillock.conf
       deny = 5   unlock_time = 1800   fail_interval = 900   audit
   $ sudo nano /etc/pam.d/common-auth          (order matters)
@@ -188,7 +209,7 @@
         it alone.
 
 [B-07] Firewall with ufw
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   $ sudo apt install -y ufw
   $ sudo ufw default deny incoming
   $ sudo ufw default allow outgoing
@@ -196,28 +217,49 @@
   $ sudo ufw enable
   $ sudo ufw logging on
   $ sudo ufw status verbose
-  GUI: Menu, Preferences, Firewall Configuration (gufw): Status On, Incoming
+  [Linux Mint] GUI: Menu, Preferences, Firewall Configuration (gufw): Status On, Incoming
        Deny, Outgoing Allow.
   WHY: Default-deny inbound covers the service you have not found yet.
   NOTE: Only allow 22/tcp if the brief requires SSH. Add rules for required
         services (80/tcp, 443/tcp, 21/tcp).
 
-[B-08] Updates: now and automatic (Update Manager)
-  AREA: Patching (CIS Control 7)
-  GUI: Update Manager (shield icon), Refresh, Select All, Install Updates
-  GUI: Update Manager, Edit, Preferences, Automation: Apply updates automatically On, Remove obsolete kernels On; Other Updates: Update Flatpaks automatically On
-  $ sudo mintupdate-cli upgrade -r -y --keep-configuration
-  $ sudo mintupdate-automation upgrade enable   (the terminal form of Update Manager's Automation switch; systemctl is-enabled mintupdate-automation-upgrade.timer then reads enabled)
-  $ systemctl is-enabled mintupdate-automation-upgrade.timer; test -e /var/lib/linuxmint/mintupdate-automatic-upgrades-enabled && echo flag-on
-  $ grep -qx -- '--keep-configuration' /etc/mintupdate-automatic-upgrades.conf 2>/dev/null || echo '--keep-configuration' | sudo tee -a /etc/mintupdate-automatic-upgrades.conf
+[B-08] [Ubuntu] Updates: now and automatic
+[B-08] [Linux Mint] Updates: now and automatic (Update Manager)
+  AREA: Patching
+  [Linux Mint] GUI: Update Manager (shield icon), Refresh, Select All, Install Updates
+  [Linux Mint] GUI: Update Manager, Edit, Preferences, Automation: Apply updates automatically On, Remove obsolete kernels On; Other Updates: Update Flatpaks automatically On
+  [Linux Mint] $ sudo mintupdate-cli upgrade -r -y --keep-configuration
+  [Linux Mint] $ sudo mintupdate-automation upgrade enable   (the terminal form of Update Manager's Automation switch; systemctl is-enabled mintupdate-automation-upgrade.timer then reads enabled)
+  [Linux Mint] $ systemctl is-enabled mintupdate-automation-upgrade.timer; test -e /var/lib/linuxmint/mintupdate-automatic-upgrades-enabled && echo flag-on
+  [Linux Mint] $ grep -qx -- '--keep-configuration' /etc/mintupdate-automatic-upgrades.conf 2>/dev/null || echo '--keep-configuration' | sudo tee -a /etc/mintupdate-automatic-upgrades.conf
   $ sudo apt update && sudo apt upgrade -y
   $ apt list --upgradable
+  [Ubuntu] $ sudo apt full-upgrade                     (when upgrade lists packages kept back; read the REMOVED list)
   $ uname -r   (the running kernel; after a kernel update, the new version runs once you reboot)
-  $ sudo flatpak update -y
-  $ apt-mark showhold; cat /etc/mintupdate.blacklist 2>/dev/null
-  $ sudo apt-mark unhold <package>   (only when the brief allows updating it; apt-mark showhold lists the holds)
-  $ sudo unattended-upgrade --dry-run -d 2>&1 | grep 'Allowed origins'   (on Mint the origins name Linuxmint and the Mint codename, so they skip Ubuntu's noble-security pocket; Update Manager's automation patches it)
-  WHY: Two separate goals: patched now, and configured to keep patching. Mint's
+  [Ubuntu] $ sudo snap refresh
+  [Ubuntu] $ snap list; apt-mark showhold              (held in the Notes column, or a held package, freezes updates)
+  [Ubuntu] $ sudo snap refresh --unhold <name>; sudo apt-mark unhold <package>
+  [Ubuntu] $ apt-config dump | grep -E '^APT::Periodic::(Update-Package-Lists|Unattended-Upgrade) '
+      APT::Periodic::Update-Package-Lists "1";   APT::Periodic::Unattended-Upgrade "1";
+  [Ubuntu] $ systemctl is-enabled apt-daily.timer apt-daily-upgrade.timer
+  [Ubuntu] $ sudo apt install -y unattended-upgrades && sudo dpkg-reconfigure -plow unattended-upgrades
+  [Ubuntu] $ sudo unattended-upgrade --dry-run -d 2>&1 | grep 'Allowed origins'     (expect an Ubuntu noble-security origin)
+  [Ubuntu] GUI: Software and Updates, Updates: Automatically check for updates Daily; When there are security updates: Download and install automatically
+  [Ubuntu] WHY: unattended-upgrades is preinstalled, run by apt-daily and
+       apt-daily-upgrade timers. Check for Update-Package-Lists or
+       Unattended-Upgrade at 0, the package removed, or automatic checks set
+       to Never; apt-config shows what apt uses.
+  [Ubuntu] NOTE: apt reads every apt.conf.d file, so a later file can reset either to
+        0. After a kernel update, uname -r shows the old kernel until reboot;
+        /var/run/reboot-required marks one due.
+  [Ubuntu] ALSO: Snaps update themselves; snap refresh forces it now. Close Firefox
+        first: running snaps update once closed. 'Deferred due to phasing'
+        packages are Ubuntu's staged rollout; a later run installs them.
+  [Linux Mint] $ sudo flatpak update -y
+  [Linux Mint] $ apt-mark showhold; cat /etc/mintupdate.blacklist 2>/dev/null
+  [Linux Mint] $ sudo apt-mark unhold <package>   (only when the brief allows updating it; apt-mark showhold lists the holds)
+  [Linux Mint] $ sudo unattended-upgrade --dry-run -d 2>&1 | grep 'Allowed origins'   (on Mint the origins name Linuxmint and the Mint codename, so they skip Ubuntu's noble-security pocket; Update Manager's automation patches it)
+  [Linux Mint] WHY: Two separate goals: patched now, and configured to keep patching. Mint's
        automation runs only when both the timer and its flag file exist, and
        Flatpak apps update outside apt. -r refreshes the lists first, and
        --keep-configuration keeps your hardened configuration files when a
@@ -228,41 +270,53 @@
        Allowed origins). The daily job runs mintupdate-cli upgrade -r -y plus
        each line of /etc/mintupdate-automatic-upgrades.conf, so put
        --keep-configuration on its own line there too.
-  NOTE: If Update Manager shows a broken mirror, fix Software Sources (I-11). A
+  [Linux Mint] NOTE: If Update Manager shows a broken mirror, fix Software Sources (I-11). A
         held package or a line in /etc/mintupdate.blacklist freezes that update
         even after everything else upgrades: sudo apt-mark unhold <package>, and
         remove the line with sudoedit.
 
 [B-09] Remove unapproved software
-  AREA: Secure configuration: software (CIS Controls 2 and 4)
+  AREA: Secure configuration: software
   $ apt list --installed 2>/dev/null | grep -Ei 'nmap|zenmap|john|hydra|medusa|wireshark|tshark|aircrack|ophcrack|netcat|ncat|socat|telnetd|nikto|metasploit|hashcat|sqlmap|doona|torrent|deluge|amule|scanmem|gameconqueror|minetest|aisleriot|mahjongg|sudoku|freeciv|wesnoth'
   $ dpkg-query -W -f='${db:Status-Abbrev}\t${binary:Package}\t${Section}\t${binary:Summary}\n' | awk -F'\t' '$1 ~ /^ii/' | grep -iE 'games|crack|brute|sniff|exploit|scanner|torrent|peer-to-peer'
   $ zgrep -hE '^(Start-Date|Commandline)' /var/log/apt/history.log*
   $ dpkg -l | grep -i <name>
   $ sudo apt purge --auto-remove nmap
   $ ls -la /usr/local/bin /usr/local/sbin /opt
-  $ flatpak list
-  $ flatpak remotes   (flathub is Mint's default; any other remote needs a reason in the brief)
-  $ flatpak uninstall -y <application-id>
-  GUI: Software Manager (mintinstall), Installed
+  [Ubuntu] $ sudo snap list
+  [Ubuntu] $ sudo snap remove <name>
+  [Ubuntu] GUI: App Center, Manage
+  [Linux Mint] $ flatpak list
+  [Linux Mint] $ flatpak remotes   (flathub is Mint's default; any other remote needs a reason in the brief)
+  [Linux Mint] $ flatpak uninstall -y <application-id>
+  [Linux Mint] GUI: Software Manager (mintinstall), Installed
   WHY: Hacking tools, games, and P2P clients are acceptable-use violations and
        attack surface. Description search finds tools by purpose, Section
        lists games, apt's history.log dates installs, and /usr/local holds
        hand-placed files.
-  NOTE: Skip -y and read the REMOVED list first: --auto-remove also removes
+  [Ubuntu] NOTE: Required vsftpd, apache2, samba, openssh-server, and mysql stay;
+        Watchman I-12 hardens them. Keep pam_pwquality's dictionary
+        (cracklib-runtime, libcrack2) and netcat-openbsd (purging removes
+        ubuntu-minimal). Snaps like Firefox appear only in snap list.
+  [Ubuntu] ALSO: Desktop-installed transmission-gtk is still P2P; the brief decides.
+        Skip -y and read apt's REMOVED list: --auto-remove also removes
+        packages marked unneeded. Purge only dpkg-listed names; apt stops at
+        unknown ones.
+  [Linux Mint] NOTE: Skip -y and read the REMOVED list first: --auto-remove also removes
         every package already marked as no longer required. Purge only what
         dpkg lists; apt stops at any unknown name.
-  ALSO: Required packages (vsftpd, apache2, samba, openssh-server, mysql)
+  [Linux Mint] ALSO: Required packages (vsftpd, apache2, samba, openssh-server, mysql)
         stay; Watchman I-12 hardens them. Keep the stock cracklib-runtime and
         libcrack2 (pam_pwquality's dictionary), netcat-openbsd, and
         /etc/apt/preferences.d/nosnap.pref, which blocks snapd. apt misses
         Flatpak apps.
 
 [B-10] Find unapproved media files
-  AREA: Data protection (CIS Control 3)
+  AREA: Data protection
   $ sudo find /home /root /tmp /var /dev/shm /srv /opt /mnt /media /usr/local -xdev -type f \( -iname '*.mp3' -o -iname '*.mp4' -o -iname '*.m4a' -o -iname '*.mov' -o -iname '*.avi' -o -iname '*.mkv' -o -iname '*.webm' -o -iname '*.wmv' -o -iname '*.flv' -o -iname '*.mpg' -o -iname '*.mpeg' -o -iname '*.wav' -o -iname '*.flac' -o -iname '*.ogg' -o -iname '*.aac' -o -iname '*.wma' \) -not -path '/var/lib/snapd/*' -not -path '/var/lib/flatpak/*' -printf '%u\t%s\t%p\n' 2>/dev/null
   $ sudo find /home /root /tmp /var/tmp /dev/shm /srv /opt -xdev -type f -size +32k -exec file --mime-type {} + 2>/dev/null | grep -E ': (audio|video)/'
-  $ sudo updatedb && sudo locate -i '*.mp3'   (a quick second look; the index skips /tmp, /dev/shm, and /media, so find stays the proof)
+  [Ubuntu] $ sudo apt install -y plocate && sudo updatedb && sudo locate -i '*.mp3'   (a quick second look; the index skips /tmp, /dev/shm, and /media, so find stays the proof)
+  [Linux Mint] $ sudo updatedb && sudo locate -i '*.mp3'   (a quick second look; the index skips /tmp, /dev/shm, and /media, so find stays the proof)
   $ sudo sha256sum '<path>'; sudo rm -- '<reviewed path>'
   $ sudo mkdir -p /root/quarantine && sudo mv -- '<reviewed path>' /root/quarantine/   (keeps the file as evidence when the brief asks for it, out of the user's reach)
   WHY: Many acceptable-use policies ban personal media; the search also
@@ -278,7 +332,7 @@
         and /dev/shm.
 
 [B-11] Services: what runs, what listens
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   $ systemctl list-units --type=service --state=running
   $ sudo ss -tulpn
   $ systemctl list-sockets --no-pager
@@ -294,29 +348,41 @@
         list-sockets pairs each socket with its service; disable both. I-07
         traces an unknown listener to its unit and package.
 
-[B-12] Login Window: auto-login, guest sessions, screen lock
-  AREA: Secure configuration (CIS Control 4)
-  GUI: Menu, Administration, Login Window, Users: Guest sessions, Allow guest sessions Off; Automatic login, Username empty
-  $ /usr/sbin/lightdm --show-config 2>&1 | grep -E 'allow-guest|autologin'
-  $ sudo nano /etc/lightdm/lightdm.conf
+[B-12] [Ubuntu] GDM auto-login and screen lock
+[B-12] [Linux Mint] Login Window: auto-login, guest sessions, screen lock
+  AREA: Secure configuration
+  [Ubuntu] $ sudo nano /etc/gdm3/custom.conf
+      [daemon]   AutomaticLoginEnable=false
+  [Ubuntu] GUI: Settings, System, Users, Automatic Login Off
+  [Ubuntu] $ gsettings set org.gnome.desktop.screensaver lock-enabled true
+  [Ubuntu] $ gsettings set org.gnome.desktop.screensaver lock-delay 0
+  [Ubuntu] $ gsettings set org.gnome.desktop.session idle-delay 300
+  [Ubuntu] GUI: Settings, Privacy and Security, Screen Lock: Automatic Screen Lock On; blank screen after 5 minutes
+  [Ubuntu] WHY: Auto-login means physical access is root in ten seconds; an unlocked idle
+       desktop is the same thing a few minutes later.
+  [Ubuntu] NOTE: gsettings changes the current user only; repeat for each authorized user
+        or use the GUI as each.
+  [Linux Mint] GUI: Menu, Administration, Login Window, Users: Guest sessions, Allow guest sessions Off; Automatic login, Username empty
+  [Linux Mint] $ /usr/sbin/lightdm --show-config 2>&1 | grep -E 'allow-guest|autologin'
+  [Linux Mint] $ sudo nano /etc/lightdm/lightdm.conf
       [Seat:*]   autologin-user=   allow-guest=false
-  $ gsettings set org.cinnamon.desktop.screensaver lock-enabled true
-  $ gsettings set org.cinnamon.desktop.screensaver lock-delay 0
-  $ gsettings set org.cinnamon.desktop.session idle-delay 300
-  GUI: Menu, Preferences, Screensaver: Lock the computer when put to sleep On, Delay before locking 0
-  WHY: Auto-login or a guest session means physical access is root in ten
+  [Linux Mint] $ gsettings set org.cinnamon.desktop.screensaver lock-enabled true
+  [Linux Mint] $ gsettings set org.cinnamon.desktop.screensaver lock-delay 0
+  [Linux Mint] $ gsettings set org.cinnamon.desktop.session idle-delay 300
+  [Linux Mint] GUI: Menu, Preferences, Screensaver: Lock the computer when put to sleep On, Delay before locking 0
+  [Linux Mint] WHY: Auto-login or a guest session means physical access is root in ten
        seconds; an unlocked idle desktop is the same thing a few minutes
        later.
-  NOTE: Guest sessions come from LightDM, so passwd -l guest reports an
+  [Linux Mint] NOTE: Guest sessions come from LightDM, so passwd -l guest reports an
         unknown user. The Login Window's Guest sessions section appears only
         when the guest-account tool is installed.
-  ALSO: /etc/lightdm/lightdm.conf is read last and overrides the
+  [Linux Mint] ALSO: /etc/lightdm/lightdm.conf is read last and overrides the
         lightdm.conf.d drop-ins; --show-config prints the value in force and
         its file. gsettings changes the current user only; repeat it per
         authorized user.
 
 [B-13] Find plaintext credential files and unapproved archives
-  AREA: Data protection (CIS Control 3)
+  AREA: Data protection
   $ sudo grep -rIil --exclude-dir=.cache --exclude-dir=.mozilla --exclude-dir=snap --exclude-dir=flatpak -E 'passw(or)?d|credential|secret|api[_-]?key|BEGIN [A-Z ]*PRIVATE KEY' /home /root /tmp /var/tmp /dev/shm /srv /opt /var/www 2>/dev/null
   $ sudo find /home /root /tmp /var/tmp /dev/shm /srv /opt -xdev -type f \( -iname '*.zip' -o -iname '*.7z' -o -iname '*.rar' -o -iname '*.tar' -o -iname '*.tgz' -o -iname '*.tar.gz' -o -iname '*.tar.xz' -o -iname '*.txt' \) -printf '%u\t%TY-%Tm-%Td\t%p\n' 2>/dev/null
   $ sudo unzip -l '<file.zip>'; sudo python3 -m zipfile -l '<file.zip>'; sudo tar -tvf '<file.tar.gz>'
@@ -338,7 +404,7 @@
    https://freeapp4that.store/defense-ladder/#junior/j3
 --------------------------------------------------------------------------------
 [I-01] SSH hardening, only when SSH is required
-  AREA: Access control (CIS Control 6)
+  AREA: Access control
   $ sudo grep -rniE '^[[:space:]]*(Include|Match|PermitRootLogin|PermitEmptyPasswords|PermitUserEnvironment|PasswordAuthentication|AllowUsers)' /etc/ssh/sshd_config /etc/ssh/sshd_config.d/
   $ sudo less /etc/ssh/sshd_config   (read the whole file before you edit it; / searches, n finds the next match, q quits)
   $ ssh-keygen -t ed25519 -C '<user>@<laptop>'; ssh-copy-id <user>@<server>   (on the admin's own machine, before PasswordAuthentication no; then test a key login)
@@ -369,7 +435,7 @@
         directory: /run/sshd', run sudo mkdir -p /run/sshd and test again.
 
 [I-02] sudoers audit
-  AREA: Access control (CIS Control 6)
+  AREA: Access control
   $ sudo grep -R -nE 'NOPASSWD|!authenticate|ALL=\(ALL' /etc/sudoers /etc/sudoers.d/
   $ sudo visudo
   $ sudo visudo -f /etc/sudoers.d/<file>
@@ -386,7 +452,7 @@
         Defaults entries.
 
 [I-03] Cron, at and systemd timers
-  AREA: Malware defenses (CIS Control 10)
+  AREA: Malware defenses
   $ cat /etc/crontab /etc/anacrontab 2>/dev/null; sudo ls -la /etc/cron.d /etc/cron.hourly /etc/cron.daily /etc/cron.weekly /etc/cron.monthly /var/spool/cron/crontabs
   $ sudo dpkg --verify cron cron-daemon-common
   $ dpkg -S /etc/cron.d/* /etc/cron.hourly/* /etc/cron.daily/* /etc/cron.weekly/* /etc/cron.monthly/* 2>&1 | grep 'no path found'
@@ -406,7 +472,7 @@
         against. dpkg -S marks hand-placed drop-ins with 'no path found'.
 
 [I-04] Shell and startup persistence
-  AREA: Malware defenses (CIS Control 10)
+  AREA: Malware defenses
   $ grep -R -nE 'alias|nc |ncat|bash -i|/dev/tcp|curl .*\| *sh|wget .*\| *sh' /etc/profile /etc/bash.bashrc /etc/profile.d/ /home/*/.bashrc /home/*/.profile /root/.bashrc 2>/dev/null
   $ cat /etc/rc.local 2>/dev/null; ls -la /etc/init.d/ /etc/systemd/system/
   $ systemctl list-unit-files --state=enabled
@@ -415,7 +481,7 @@
        opens, including the one you use to fix things.
 
 [I-05] Critical file permissions, world-writable, SUID
-  AREA: Access control (CIS Control 6)
+  AREA: Access control
   $ sudo chown root:shadow /etc/shadow /etc/gshadow && sudo chmod 640 /etc/shadow /etc/gshadow
   $ sudo chown root:root /etc/passwd /etc/group && sudo chmod 644 /etc/passwd /etc/group
   $ sudo chown root:root /etc/sudoers && sudo chmod 440 /etc/sudoers
@@ -440,7 +506,7 @@
         and mode. update-grub keeps your grub.cfg mode.
 
 [I-06] Hosts file and name resolution
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   $ cat /etc/hosts
   $ resolvectl status 2>/dev/null | grep -i 'DNS Servers'
   $ ip -br a; ip route   (addresses and the default route; explain anything the brief leaves out)
@@ -449,11 +515,13 @@
   $ traceroute -n security.ubuntu.com   (hop 1 should be the gateway the brief names; a different first hop means a changed route; sudo apt install traceroute when it is missing, or use tracepath)
   $ dig +short <name>; dig -x <address>   (what DNS answers, to compare with /etc/hosts; sudo apt install bind9-dnsutils when dig is missing)
   $ nmcli connection show   (saved network profiles; an unknown VPN or Wi-Fi profile needs an explanation)
-  WHY: Redirecting packages.linuxmint.com or security.ubuntu.com to 127.0.0.1
+  [Ubuntu] WHY: Redirecting security.ubuntu.com or archive.ubuntu.com to 127.0.0.1 breaks
+       updates silently.
+  [Linux Mint] WHY: Redirecting packages.linuxmint.com or security.ubuntu.com to 127.0.0.1
        breaks updates silently.
 
 [I-07] Processes and connections: find the backdoor
-  AREA: Malware defenses (CIS Control 10)
+  AREA: Malware defenses
   $ ps -eo pid,ppid,user,cmd --sort=-%cpu | head -25
   $ top   (live CPU use; a miner sits at the top of the list; q quits)
   $ ps -ef | grep -Ei 'nc |ncat|socat|bash -i|python.* -c|perl -e|xmrig|miner' | grep -v grep
@@ -477,7 +545,7 @@
         cmdline; an exe path ending in (deleted) is a finding.
 
 [I-08] AppArmor enforcing
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   $ sudo apt install -y apparmor-utils
   $ sudo systemctl enable --now apparmor
   $ sudo aa-status
@@ -492,7 +560,7 @@
         required apps after.
 
 [I-09] Logging and audit
-  AREA: Audit logging (CIS Control 8)
+  AREA: Audit logging
   $ systemctl status rsyslog --no-pager
   $ df -h /var   (a full /var stops the logs; keep space free before you turn auditing up)
   $ sudo apt install -y auditd && sudo systemctl enable --now auditd
@@ -523,7 +591,7 @@
         install), use journalctl.
 
 [I-10] Account hygiene: shells, system accounts, odd groups
-  AREA: Account management (CIS Control 5)
+  AREA: Account management
   $ grep -vE 'nologin|/bin/false|/bin/sync' /etc/passwd
   $ sudo usermod -s /usr/sbin/nologin <system-account>
   $ sudo chage -l keoni
@@ -539,22 +607,36 @@
   ALSO: gpasswd keeps /etc/group and /etc/gshadow in step; a hand edit can
         split them.
 
-[I-11] Software Sources hygiene
-  AREA: Patching (CIS Control 7)
-  $ cat /etc/apt/sources.list.d/official-package-repositories.list /etc/apt/sources.list.d/*.list 2>/dev/null
-  GUI: Menu, Administration, Software Sources: Official repositories, PPAs, Additional repositories
+[I-11] [Ubuntu] Apt sources hygiene (deb822 .sources files)
+[I-11] [Linux Mint] Software Sources hygiene
+  AREA: Patching
+  [Ubuntu] $ cat /etc/apt/sources.list.d/ubuntu.sources
+  [Ubuntu] $ ls -l /etc/apt/sources.list.d/; cat /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list 2>/dev/null
+  [Linux Mint] $ cat /etc/apt/sources.list.d/official-package-repositories.list /etc/apt/sources.list.d/*.list 2>/dev/null
+  [Linux Mint] GUI: Menu, Administration, Software Sources: Official repositories, PPAs, Additional repositories
   $ ls -l /etc/apt/trusted.gpg.d/ /etc/apt/keyrings/ /etc/apt/preferences.d/ 2>/dev/null
   $ apt-cache policy | grep -- '-security'      (expect 500 lines for noble-security; apt policy prints the same table)
+  [Ubuntu] $ sudo add-apt-repository --remove ppa:evil/ppa
   $ sudo apt update
-  WHY: A malicious repository or key means apt upgrade installs the attacker's
+  [Ubuntu] WHY: A malicious repository or key means apt upgrade installs the attacker's
+       packages. Keep the official archive.ubuntu.com and security.ubuntu.com
+       entries; remove unknown PPAs and the keys their Signed-By fields point
+       to.
+  [Ubuntu] NOTE: /etc/apt/sources.list may hold only a comment. Each repository is one
+        stanza (Types, URIs, Suites, Components, and Signed-By) in a .sources
+        file under /etc/apt/sources.list.d/.
+  [Ubuntu] ALSO: An Enabled: no line in a stanza, or a pin in /etc/apt/preferences.d,
+        quietly switches off the security pocket (noble-security). apt-cache
+        policy reveals either one.
+  [Linux Mint] WHY: A malicious repository or key means apt upgrade installs the attacker's
        packages. Keep the official packages.linuxmint.com, archive.ubuntu.com,
        and security.ubuntu.com lines; remove unknown PPAs and keys.
-  NOTE: nosnap.pref in preferences.d is Mint's own and stays. A pin in
+  [Linux Mint] NOTE: nosnap.pref in preferences.d is Mint's own and stays. A pin in
         preferences.d that lowers noble-security switches security updates off
         quietly; apt-cache policy shows it.
 
 [I-12] Harden required services instead of removing them
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
       vsftpd  /etc/vsftpd.conf: anonymous_enable=NO  local_enable=YES  write_enable=NO  chroot_local_user=YES  ssl_enable=YES
   $ sudo systemctl restart vsftpd && systemctl is-active vsftpd
   $ openssl s_client -connect 127.0.0.1:21 -starttls ftp -brief </dev/null; grep -x root /etc/ftpusers
@@ -585,10 +667,12 @@
         run sudo apt install curl.
 
 [I-13] Browser protections (Firefox and Chromium)
-  AREA: Secure configuration (CIS Control 4)
-  $ dpkg -l firefox chromium 2>/dev/null | grep '^ii'
+  AREA: Secure configuration
+  [Ubuntu] $ snap list firefox chromium 2>/dev/null; pgrep -a firefox
+  [Linux Mint] $ dpkg -l firefox chromium 2>/dev/null | grep '^ii'
   $ sudo mkdir -p /etc/firefox/policies
-  $ sudo cp -n /usr/lib/firefox/distribution/policies.json /etc/firefox/policies/ 2>/dev/null
+  [Ubuntu] $ sudo cp -n /snap/firefox/current/usr/lib/firefox/distribution/policies.json /etc/firefox/policies/ 2>/dev/null
+  [Linux Mint] $ sudo cp -n /usr/lib/firefox/distribution/policies.json /etc/firefox/policies/ 2>/dev/null
   $ sudo nano /etc/firefox/policies/policies.json      (add these keys inside "policies")
       "DisableSecurityBypass": {"SafeBrowsing": true},   "PopupBlocking": {"Default": true, "Locked": true},
       "HttpsOnlyMode": "force_enabled",
@@ -599,7 +683,8 @@
   $ python3 -m json.tool /etc/firefox/policies/policies.json >/dev/null && echo valid
   GUI: Firefox, about:policies: the Active tab lists each policy, and the Errors tab stays empty
   $ sudo find /home /root -type f \( -name prefs.js -o -name user.js \) -path '*firefox*' -exec grep -HE 'safebrowsing|https_only_mode|disable_open_during_load|xpinstall' {} + 2>/dev/null
-  $ sudo mkdir -p /etc/chromium/policies/managed && echo '{"SafeBrowsingProtectionLevel": 2}' | sudo tee /etc/chromium/policies/managed/hardening.json
+  [Ubuntu] $ sudo mkdir -p /etc/chromium-browser/policies/managed && echo '{"SafeBrowsingProtectionLevel": 2}' | sudo tee /etc/chromium-browser/policies/managed/hardening.json
+  [Linux Mint] $ sudo mkdir -p /etc/chromium/policies/managed && echo '{"SafeBrowsingProtectionLevel": 2}' | sudo tee /etc/chromium/policies/managed/hardening.json
   GUI: Chromium, chrome://policy, Reload policies: SafeBrowsingProtectionLevel 2, status OK
   WHY: Safe Browsing blocks known phishing and malware pages and downloads,
        HTTPS-Only Mode asks before loading an unencrypted page, and the add-on
@@ -607,7 +692,15 @@
        locks a setting for every user; a Settings checkbox covers one profile. A
        user.js line restores its value at every start, so a protection turned
        off there is a persistence finding.
-  NOTE: /etc/firefox/policies/policies.json replaces the shipped copy: cp that
+  [Ubuntu] NOTE: Firefox reads /etc/firefox/policies/policies.json in place of its own
+        copy, so cp brings the shipped policies along first; a new file needs
+        the wrapper {"policies": { ... }}. Write "enabled" rather than
+        "force_enabled" when the brief names a site that works over HTTP alone.
+        Restart the browser. The Chromium snap reads policies from
+        /etc/chromium-browser/policies. Updates come from sudo snap refresh
+        (B-08), so Help, About Firefox reports the version only; close the
+        browser first, because snap updates a running app only after it closes.
+  [Linux Mint] NOTE: /etc/firefox/policies/policies.json replaces the shipped copy: cp that
         copy there first, keeping the {"policies": { ... }} wrapper. Use
         "HttpsOnlyMode": "enabled" rather than "force_enabled" for an
         HTTP-only named site; restart Firefox.
@@ -620,7 +713,7 @@
    https://freeapp4that.store/defense-ladder/#senior/se1
 --------------------------------------------------------------------------------
 [A-01] Kernel and network hardening with sysctl
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   $ sudo nano /etc/sysctl.d/99-hardening.conf
       net.ipv4.ip_forward = 0
       net.ipv4.conf.all.accept_redirects = 0    net.ipv4.conf.default.accept_redirects = 0
@@ -654,7 +747,7 @@
         value and each interface value for rp_filter, so read both back.
 
 [A-02] Rootkits, tampered packages, malware
-  AREA: Malware defenses (CIS Control 10)
+  AREA: Malware defenses
   $ sudo apt install -y rkhunter chkrootkit debsums clamav
   $ sudo debsums -c; sudo debsums -ce
   $ sudo rkhunter --propupd && sudo rkhunter --check --sk
@@ -677,7 +770,7 @@
         with --no-install-recommends skips postfix and port 25.
 
 [A-03] The lsattr trap, core dumps, Ctrl-Alt-Del
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   $ sudo lsattr /etc/passwd /etc/shadow /etc/sudoers /etc/ssh/sshd_config
   $ sudo chattr -i /etc/passwd
   $ sudo nano /etc/security/limits.conf
@@ -694,7 +787,7 @@
         'Authentication token manipulation error'.
 
 [A-04] PAM deep dive
-  AREA: Access control (CIS Control 6)
+  AREA: Access control
       required: must pass, keep going. requisite: must pass, stop on fail. sufficient: pass means done. optional.
   $ grep -nE 'nullok|pam_permit|pam_succeed_if' /etc/pam.d/common-auth /etc/pam.d/sudo /etc/pam.d/login /etc/pam.d/sshd
   $ sudo sed -i 's/ nullok//g' /etc/pam.d/common-auth
@@ -733,7 +826,7 @@
         deleted.
 
 [A-06] Firewall depth: ufw internals, IPv6, unneeded daemons
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   $ sudo ufw status numbered; sudo ufw delete <n>
   $ sudo ufw show added; sudo ufw show raw | less   (added lists your rules as typed; raw is the full loaded set, before.rules included)
   $ grep IPV6 /etc/default/ufw
@@ -743,7 +836,22 @@
   WHY: A rule planted in before.rules never shows in ufw status. IPv6 off in ufw
        leaves half the stack unfiltered.
 
-[A-07] Version notes: Linux Mint 22.3 and its Ubuntu base
+[A-07] [Ubuntu] Version notes: Ubuntu 24.04 LTS, 26.04 LTS and Debian 13
+      This page targets Ubuntu 24.04 LTS (noble) with GNOME 46.
+      24.04 ssh: socket-activated. ssh.socket holds port 22, so disable --now ssh alone leaves it listening; after a Port or ListenAddress change run systemctl daemon-reload, then systemctl restart ssh.socket
+      24.04 apt: deb822 sources in /etc/apt/sources.list.d/ubuntu.sources; /etc/apt/sources.list is only a pointer
+      24.04 AppArmor: unprivileged user namespaces are restricted, and many shipped profiles are in unconfined mode just to grant userns; never aa-enforce /etc/apparmor.d/*
+      24.04 Settings (GNOME 46): Users under System; Screen Lock under Privacy and Security; App Center replaces Ubuntu Software
+      24.04 also: pam_faillock (no pam_tally2), yescrypt hashes, unattended-upgrades on by default, systemd-timesyncd, Firefox as a snap, rsyslog, last and lastlog
+      26.04 LTS: sudo-rs is the default sudo (original sudo kept as sudo.ws); Rust coreutils (GNU cp, mv, rm kept); chrony with NTS replaces systemd-timesyncd on new installs; apt 3 (apt-key removed); Software and Updates app no longer installed by default
+      26.04 time: chronyc tracking shows Leap status Normal and a small System time offset while chrony keeps the clock; on 24.04, timedatectl status shows the same
+      26.04 sysctl: /etc/sysctl.conf is absent and skipped at boot; kernel settings live in /etc/sysctl.d/*.conf, and Ubuntu's defaults move to /usr/lib/sysctl.d/55-*.conf
+      Debian 13 (trixie): sudo group (not wheel), gdm3; may lack ufw, rsyslog, and unattended-upgrades (apt install them); no snaps; lastlog2 and wtmpdb replace lastlog and last; systemd-sysctl skips /etc/sysctl.conf
+      All of them: AppArmor present, /etc/ssh/sshd_config.d/ includes override the main file
+  [Ubuntu] WHY: Knowing the defaults stops two wastes: hunting for a tool never
+       installed, and calling a normal default a finding. Every other item holds
+       across these releases; the differences live here.
+[A-07] [Linux Mint] Version notes: Linux Mint 22.3 and its Ubuntu base
       Mint 22.3 "Zena" = Ubuntu 24.04 (noble) package base, Cinnamon 6.6: apt, pam_faillock, yescrypt hashes, AppArmor and ufw behave as on Ubuntu 24.04
       openssh-server (when installed) is socket-activated: ssh.socket holds port 22, so disable it too; after a Port or ListenAddress change run systemctl daemon-reload, then systemctl restart ssh.socket
       The noble AppArmor package ships some profiles in unconfined mode on purpose (they only grant user namespaces): never aa-enforce /etc/apparmor.d/*
@@ -752,18 +860,19 @@
       No snapd (nosnap.pref); Flatpak is enabled: flatpak list
       Timeshift is preinstalled: snapshot first on practice VMs
       Mint sources: /etc/apt/sources.list.d/official-package-repositories.list (zena and noble lines)
-  WHY: Knowing which tools Mint ships keeps you from hunting for a GNOME setting
+  [Linux Mint] WHY: Knowing which tools Mint ships keeps you from hunting for a GNOME setting
        that is not there, and from treating Mint's own files as findings.
 
 [A-08] Verify loop, every thirty minutes
   $ sudo ss -tulpn; getent group sudo admin; awk -F: '$3==0' /etc/passwd
   $ sudo ufw status verbose; sudo aa-status | head -3; systemctl is-active auditd
-  $ sudo awk -F: '$2==""' /etc/shadow; awk -F: '$2!="x"' /etc/passwd; getent group nopasswdlogin; sudo lsattr /etc/passwd /etc/shadow
+  [Ubuntu] $ sudo awk -F: '$2==""' /etc/shadow; awk -F: '$2!="x"' /etc/passwd; sudo lsattr /etc/passwd /etc/shadow
+  [Linux Mint] $ sudo awk -F: '$2==""' /etc/shadow; awk -F: '$2!="x"' /etc/passwd; getent group nopasswdlogin; sudo lsattr /etc/passwd /etc/shadow
   WHY: Cron and timers undo fixes. Re-checking catches the undo, and anything
        you broke, before a user does.
 
 [A-09] Lockout the managed way: pam-auth-update profiles
-  AREA: Account management (CIS Control 5)
+  AREA: Account management
   $ ls /usr/share/pam-configs/; grep '^Module:' /var/lib/pam/auth
   $ sudo nano /usr/share/pam-configs/faillock
       Name: Enable pam_faillock to deny access
@@ -797,7 +906,7 @@
         open. Indent module lines under Auth: or Account: fields.
 
 [A-10] Self-audit with Lynis
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   $ sudo apt install -y lynis
   $ sudo lynis audit system --quick
   $ sudo grep -E '^(warning|suggestion)' /var/log/lynis-report.dat
@@ -811,7 +920,7 @@
         from the report.
 
 [A-11] Investigate a live process: /proc, tracers, and hidden PIDs
-  AREA: Malware defenses (CIS Control 10)
+  AREA: Malware defenses
   $ sudo ls -l /proc/<pid>/exe   (a [kworker] or other kernel-thread name with a program file is a disguise)
   $ tr '\0' ' ' < /proc/<pid>/cmdline; grep -E 'Name|PPid|Uid' /proc/<pid>/status
   $ sudo cat /proc/<pid>/environ | tr '\0' '\n'   (LD_PRELOAD here loads a library ahead of all others)
@@ -831,7 +940,12 @@
        file, open files, mapped libraries, and starting environment. A tracer
        then shows what it does right now, such as the address it calls and the
        files it reads. Record each answer, stop it, then remove its starter.
-  NOTE: Yama's kernel.yama.ptrace_scope is 1 on Linux Mint, so a plain user may
+  [Ubuntu] NOTE: Yama's kernel.yama.ptrace_scope is 1 on Ubuntu, so a plain user may
+        trace only its own children: attach with sudo. A real kernel thread
+        shows PPid 2 and an empty exe link. A PID that unhide finds and ps
+        leaves out points at a changed ps (sudo debsums -s) or a rootkit.
+        ltrace, inotify-tools, and unhide install from universe.
+  [Linux Mint] NOTE: Yama's kernel.yama.ptrace_scope is 1 on Linux Mint, so a plain user may
         trace only its own children: attach with sudo. A real kernel thread
         shows PPid 2 and an empty exe link. A PID that unhide finds and ps
         leaves out points at a changed ps (sudo debsums -s) or a rootkit.
@@ -893,15 +1007,21 @@
                      immutable flag is the usual cause, and a reinstall leaves
                      it in place.
 
-  Brief: Timeshift is used for backups on this workstation.
-  Action: Run sudo apt purge timeshift because backups are not a security
+  [Ubuntu] Brief: Approved software: Firefox is the school browser.
+  [Ubuntu] Action: Run sudo snap remove firefox because snaps are not in the apt list of
+          approved packages.
+  [Ubuntu] Call: BREAKS IT. Firefox on Ubuntu is a snap. Required software stays; audit
+                   snap list for unapproved apps instead.
+
+  [Linux Mint] Brief: Timeshift is used for backups on this workstation.
+  [Linux Mint] Action: Run sudo apt purge timeshift because backups are not a security
           control.
-  Call: BREAKS IT. Required software per the brief. Leave it; snapshots are also
+  [Linux Mint] Call: BREAKS IT. Required software per the brief. Leave it; snapshots are also
                    your own undo button.
 
-  Brief: The yearbook class installs approved apps through Flatpak.
-  Action: Run sudo apt purge flatpak to remove an unneeded package manager.
-  Call: BREAKS IT. Required tooling. Audit flatpak list for unapproved apps
+  [Linux Mint] Brief: The yearbook class installs approved apps through Flatpak.
+  [Linux Mint] Action: Run sudo apt purge flatpak to remove an unneeded package manager.
+  [Linux Mint] Call: BREAKS IT. Required tooling. Audit flatpak list for unapproved apps
                    instead.
 
   Brief: Lock an account after three failed sign-ins until an admin releases it.
@@ -911,9 +1031,25 @@
                      pam_faillock lines are in common-auth (grep -n pam_faillock
                      /etc/pam.d/common-auth); locking starts only with them.
 
-  Brief: Every account must need a password to sign in.
-  Action: Set a password with sudo passwd for each account, then move on.
-  Call: CHECK FIRST. On Mint, members of nopasswdlogin still sign in at the
+  [Ubuntu] Brief: Ubuntu desktop: add account lockout to common-auth by hand.
+  [Ubuntu] Action: Insert the authfail and authsucc lines after the existing [success=2
+          default=ignore] pam_unix.so line and leave the 2 as it is.
+  [Ubuntu] Call: BREAKS IT. The 2 now jumps past authfail and authsucc onto the pam_sss
+                   and pam_deny lines, so every correct password fails. Set it
+                   to [success=1], or use pam-auth-update (A-09).
+
+  [Ubuntu] Brief: No hacking tools are allowed on this machine.
+  [Ubuntu] Action: Run sudo apt purge -y netcat-openbsd because netcat is on the banned
+          list.
+  [Ubuntu] Call: CHECK FIRST. netcat-openbsd is stock on Ubuntu and part of
+                     ubuntu-minimal, so the purge also removes that metapackage.
+                     Read the REMOVED list without -y, keep the stock nc unless
+                     the brief bans it by name, and hunt copies outside packages
+                     (A-02).
+
+  [Linux Mint] Brief: Every account must need a password to sign in.
+  [Linux Mint] Action: Set a password with sudo passwd for each account, then move on.
+  [Linux Mint] Call: CHECK FIRST. On Mint, members of nopasswdlogin still sign in at the
                      login screen with no password, and passwd leaves that
                      membership in place. Run getent group nopasswdlogin and
                      remove each member with sudo gpasswd -d.
@@ -1016,6 +1152,12 @@
        Set it to 0 and apply with sysctl --system.
 
 ------------------------------ OFFICIAL SOURCES --------------------------------
+  Ubuntu 24.04 LTS release notes
+    https://documentation.ubuntu.com/release-notes/24.04/
+  Ubuntu 26.04 LTS summary for LTS users
+    https://documentation.ubuntu.com/release-notes/26.04/summary-for-lts-users/
+  Ubuntu Server documentation: automatic updates
+    https://ubuntu.com/server/docs/how-to/software/automatic-updates/
   Linux Mint documentation
     https://linuxmint.com/documentation.php
   Linux Mint 22.3 Cinnamon: new features
@@ -1024,13 +1166,9 @@
     https://ubuntu.com/security
   Ubuntu Server documentation: firewall (ufw)
     https://ubuntu.com/server/docs/how-to/security/firewalls/
-  pam_faillock manual (Ubuntu 24.04)
-    https://manpages.ubuntu.com/manpages/noble/man8/pam_faillock.8.html
   sshd socket-based activation (Ubuntu)
     https://discourse.ubuntu.com/t/sshd-now-uses-socket-based-activation-ubuntu-22-10-and-later/30189
-  CIS Critical Security Controls v8.1
-    https://www.cisecurity.org/controls/v8
-  CIS Benchmarks
-    https://www.cisecurity.org/cis-benchmarks
+  pam_faillock manual (Ubuntu 24.04)
+    https://manpages.ubuntu.com/manpages/noble/man8/pam_faillock.8.html
 
 ================================================================================

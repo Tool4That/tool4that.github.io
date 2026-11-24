@@ -188,6 +188,14 @@ How progress is measured:
   are, the Progress Check shows it in red with its restore step, and Finish
   waits until it works again, because an outage is an incident you fix before
   you are done.
+- Hints: the Progress Check's to-do list (Recruit shows it, and the Coach
+  menu offers it at any level) gives each open check a hint that opens in
+  steps set by the level. Recruit: the hardening area and the principle,
+  then the command. Operator: the principle, then the commands to look up
+  (each one links to its Command Atlas entry at the Tool4That hub), then
+  the command. Captain and Level 4: the principle, then the commands to
+  look up; the full command lines are in this walkthrough. A check whose
+  hint names a setting alone opens that hint as its second step.
 
 2. THE ROUTINE (CHECKLIST)
 --------------------------

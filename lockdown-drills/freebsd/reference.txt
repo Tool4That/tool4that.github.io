@@ -1,7 +1,10 @@
 ================================================================================
- 06: FREEBSD HARDENING: SOLUTION WALKTHROUGH
+ 05: FREEBSD HARDENING: SOLUTION WALKTHROUGH
      FreeBSD 15.1, with 14.x notes
- Training reference for virtual machines you own or are authorized to change.
+ Training reference for systems you own or are authorized to change. Learn and
+ practice with Defense Ladder se1, FreeBSD
+ (https://freeapp4that.store/defense-ladder/#senior/se1) and, on a real machine,
+ with Cyber PUG (https://freeapp4that.store/cyber-pug/).
  Three levels: L1 Doorman, L2 Watchman, L3 Hunter. Every item = COMMAND, WHY,
  NOTE, and the hardening AREA it belongs to; ALSO adds a second caution when
  an item needs one. No scripts by design: type it, read it, explain it. Item
@@ -21,15 +24,15 @@
    saving. ee is the friendlier editor in base (Esc opens its menu), and
    vipw opens vi too, unless the EDITOR variable names another editor.
 
- HARDENING AREAS (CIS Critical Security Controls v8.1)
-   Account management ........ CIS Control 5
-   Access control ............ CIS Control 6
-   Secure configuration ...... CIS Control 4 (software inventory: Control 2)
-   Patching .................. CIS Control 7
-   Malware defenses .......... CIS Control 10
-   Audit logging ............. CIS Control 8
-   Also tagged: Data protection (CIS Control 3); Investigation (forensics
-   basics: answer questions and preserve evidence before you change things).
+ HARDENING AREAS
+   Account management
+   Access control
+   Secure configuration (software inventory included)
+   Patching
+   Malware defenses
+   Audit logging
+   Also tagged: Data protection; Investigation (forensics basics: answer
+   questions and preserve evidence before you change things).
 ================================================================================
 
 ------------------------------ DOORMAN -----------------------------------------
@@ -53,7 +56,7 @@
         second root shell open before editing pam, login.conf, or sshd_config.
 
 [B-01] List users, UID 0 accounts, and the wheel group
-  AREA: Account management (CIS Control 5)
+  AREA: Account management
   # pw usershow -a | awk -F: '$3>=1000 && $3<65534 {print $1" uid="$3" shell="$10}'
   # cat /etc/passwd     (same 7 fields as Linux; the third is the UID)
   # awk -F: '$3==0 {print $1}' /etc/passwd
@@ -67,7 +70,7 @@
         is a finding.
 
 [B-02] Remove, lock, or add a user to match the brief
-  AREA: Account management (CIS Control 5)
+  AREA: Account management
   # pw userdel -n baduser -r
   # pw lock baduser
   # pw unlock baduser
@@ -80,7 +83,7 @@
   NOTE: Check ps -U baduser first and kill their processes. The brief decides.
 
 [B-03] Fix wheel membership
-  AREA: Account management (CIS Control 5)
+  AREA: Account management
   # pw groupmod wheel -d ikaika
   # pw groupmod wheel -m keoni
   # pw groupshow wheel
@@ -90,7 +93,7 @@
        file too (I-02).
 
 [B-04] Passwords: strong, forced change, no empties
-  AREA: Account management (CIS Control 5)
+  AREA: Account management
   # passwd keoni
   # pw usermod keoni -p +0d
   # awk -F: '$2=="" {print $1" HAS NO PASSWORD"}' /etc/master.passwd
@@ -103,7 +106,7 @@
         instead.
 
 [B-05] Password policy: login.conf and pam_passwdqc
-  AREA: Account management (CIS Control 5)
+  AREA: Account management
   # vi /etc/login.conf
       default:  ... :passwordtime=60d:\   (each capability on its own line, ending in :\)
   # cap_mkdb /etc/login.conf
@@ -115,17 +118,17 @@
        allows 10 for 4-class, 12 for 3-class, fewer classes disabled.
        login.conf's minpasswordlen and mixpasswordcase are reserved and
        unimplemented.
-  NOTE: The scenario brief sets the numbers; these lines show one sample brief.
-        The CIS Benchmarks used in the other drills ask for 14 or more
-        characters and a maximum age of 365 days or fewer. This step opens vi: i
-        inserts, Esc stops inserting, :wq then Enter saves and quits, and :q!
-        leaves without saving. ee is the friendlier base editor (Esc opens its
-        menu); vipw opens vi too unless EDITOR names another editor. Users must
-        belong to the class you edited (default, unless pw usermod -L set
+  NOTE: The scenario brief sets the numbers; these lines show one sample
+        brief. The baseline used in the other drills asks for 14 or more
+        characters and a maximum age of 365 days or fewer. This step opens vi:
+        i inserts, Esc stops inserting, :wq then Enter saves and quits, and
+        :q! leaves without saving. ee is the friendlier base editor (Esc opens
+        its menu); vipw opens vi too unless EDITOR names another editor. Users
+        must belong to the class you edited (default, unless pw usermod -L set
         another).
 
 [B-06] Lockout: login.conf retries and blocklistd for sshd
-  AREA: Account management (CIS Control 5)
+  AREA: Account management
   # vi /etc/login.conf
       default:  ... :login-retries=5:  :login-backoff=10:   (same file, same continuation style)
   # cap_mkdb /etc/login.conf
@@ -138,14 +141,14 @@
        blocklistd blocks an IP in pf after repeated sshd failures, the brute
        force that actually happens.
   NOTE: The scenario brief sets the numbers; these lines show one sample. The
-        CIS Benchmarks in other drills lock an account after 5 or fewer
+        baseline in the other drills locks an account after 5 or fewer
         failures, for 15 minutes or more.
   ALSO: blocklistd needs the B-07 pf anchor before it blocks anything. Older
         releases call it blacklistd and rename every knob to match (see
         Version notes); use one set of names throughout.
 
 [B-07] Firewall: pf
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   # ifconfig | grep -B1 'inet '           (find the interface name, e.g. vtnet0 or em0)
   # vi /etc/pf.conf
       ext_if="vtnet0"
@@ -171,7 +174,7 @@
         with pfctl -f. pfctl -e turns filtering on and prints pf enabled.
 
 [B-08] Updates: base system and packages
-  AREA: Patching (CIS Control 7)
+  AREA: Patching
   # pkg which /bin/sh            (names a FreeBSD- base package only on a pkgbase install)
   # freebsd-update fetch install            (classic install: base system and kernel)
   # pkg update && pkg upgrade -y            (packages; on a pkgbase install, the base system too)
@@ -184,7 +187,7 @@
   NOTE: A kernel update needs a reboot to take effect; save work first.
 
 [B-09] Remove unapproved software
-  AREA: Secure configuration: software (CIS Controls 2 and 4)
+  AREA: Secure configuration: software
   # pkg info
   # pkg info | grep -Ei 'nmap|john|hydra|medusa|wireshark|aircrack|netcat|socat|nikto|metasploit|hashcat|sqlmap|torrent|transmission|game'
   # pkg delete -y nmap
@@ -196,7 +199,7 @@
         them in I-12.
 
 [B-10] Find unapproved media files
-  AREA: Data protection (CIS Control 3)
+  AREA: Data protection
   # find / -type f \( -iname '*.mp3' -o -iname '*.mp4' -o -iname '*.wav' -o -iname '*.mkv' -o -iname '*.avi' -o -iname '*.flac' -o -iname '*.mov' -o -iname '*.m4a' \) -not -path '/usr/*' 2>/dev/null
   WHY: Many acceptable-use policies ban personal media on work machines, and the
        search also surfaces hidden directories in /home, /tmp and /var/tmp.
@@ -204,7 +207,7 @@
         question.
 
 [B-11] Services: rc.conf, inetd, what listens
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   # service -e
   # sysrc -a | grep -i enable
   # sockstat -46l
@@ -219,7 +222,7 @@
         rc.conf AND stop the running service.
 
 [B-12] Console, tmp and syslog hardening in rc.conf and ttys
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   # vi /etc/ttys
       console  none  unknown  off  insecure
   # sysrc clear_tmp_enable=YES
@@ -246,7 +249,7 @@
  https://freeapp4that.store/defense-ladder/#senior/se1
 --------------------------------------------------------------------------------
 [I-01] sshd hardening, only when SSH is required
-  AREA: Access control (CIS Control 6)
+  AREA: Access control
   # vi /etc/ssh/sshd_config
       PermitRootLogin no        PermitEmptyPasswords no     MaxAuthTries 3
       LoginGraceTime 30         X11Forwarding no            UseBlocklist yes
@@ -265,7 +268,7 @@
         until the next reboot while sshd_enable stays NO.
 
 [I-02] sudo and doas audit
-  AREA: Access control (CIS Control 6)
+  AREA: Access control
   # pkg info sudo doas 2>/dev/null
   # grep -R -nE 'NOPASSWD|!authenticate|ALL=\(ALL' /usr/local/etc/sudoers /usr/local/etc/sudoers.d/ 2>/dev/null
   # visudo
@@ -276,7 +279,7 @@
        syntax; vi does not.
 
 [I-03] Cron, at and periodic
-  AREA: Malware defenses (CIS Control 10)
+  AREA: Malware defenses
   # cat /etc/crontab; ls -la /var/cron/tabs/
   # for u in $(cut -d: -f1 /etc/passwd); do crontab -l -u "$u" 2>/dev/null | sed "s/^/$u: /"; done
   # cat /etc/periodic.conf 2>/dev/null; ls /etc/periodic/daily /usr/local/etc/periodic/* 2>/dev/null
@@ -287,7 +290,7 @@
        run daily, weekly and monthly from root's crontab.
 
 [I-04] Startup and shell persistence
-  AREA: Malware defenses (CIS Control 10)
+  AREA: Malware defenses
   # cat /etc/rc.conf /etc/rc.conf.d/* /etc/rc.local 2>/dev/null
   # ls -la /etc/rc.d/ /usr/local/etc/rc.d/
   # grep -nE 'alias|nc |ncat|socat|/dev/tcp|curl .*\| *sh|fetch .*\| *sh' /etc/csh.cshrc /etc/profile /root/.cshrc /root/.profile /root/.shrc /home/*/.cshrc /home/*/.profile /home/*/.shrc 2>/dev/null
@@ -297,7 +300,7 @@
   NOTE: fetch is FreeBSD's curl; look for it in the same places.
 
 [I-05] Password database permissions, world-writable, SUID
-  AREA: Access control (CIS Control 6)
+  AREA: Access control
   # ls -l /etc/master.passwd /etc/spwd.db /etc/passwd /etc/pwd.db /etc/group
   # chmod 600 /etc/master.passwd /etc/spwd.db; chown root:wheel /etc/master.passwd /etc/spwd.db
   # chmod 644 /etc/passwd /etc/pwd.db /etc/group
@@ -316,7 +319,7 @@
         save, and rebuilds the databases; use it to set toor's hash back to *.
 
 [I-06] File flags: the chattr of FreeBSD
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   # ls -lo /etc/master.passwd /etc/passwd /etc/group /etc/rc.conf /etc/ssh/sshd_config
   # chflags noschg /etc/master.passwd
   # chflags -R noschg /tmp/evil && rm -rf /tmp/evil
@@ -330,7 +333,7 @@
         is 0 or -1.
 
 [I-07] Processes and connections: find the backdoor
-  AREA: Malware defenses (CIS Control 10)
+  AREA: Malware defenses
   # ps -ax -o pid,ppid,user,command | head -40
   # ps -ax | grep -Ei 'nc |ncat|socat|sh -i|python.* -c|perl -e|xmrig|miner' | grep -v grep
   # sockstat -46 -c
@@ -341,14 +344,14 @@
        shell files).
 
 [I-08] Hosts file and resolver
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   # cat /etc/hosts
   # cat /etc/resolv.conf
   WHY: Redirecting update.freebsd.org or pkg.freebsd.org to 127.0.0.1 breaks
        updates silently.
 
 [I-09] Logging and the audit daemon
-  AREA: Audit logging (CIS Control 8)
+  AREA: Audit logging
   # tail -40 /var/log/auth.log; tail /var/log/messages; tail /var/log/security
   # last | head; lastlogin; w
   # cat /etc/syslog.conf
@@ -361,7 +364,7 @@
        every exec. praudit makes the trail readable.
 
 [I-10] Account hygiene: shells, classes, operator group, SSH keys
-  AREA: Account management (CIS Control 5)
+  AREA: Account management
   # grep -vE 'nologin|/bin/false|/usr/sbin/nologin' /etc/passwd
   # pw usermod www -s /usr/sbin/nologin
   # pw usershow keoni -P
@@ -372,7 +375,7 @@
        the login class, which decides the login.conf policy.
 
 [I-11] pkg repository hygiene
-  AREA: Patching (CIS Control 7)
+  AREA: Patching
   # cat /etc/pkg/FreeBSD.conf /usr/local/etc/pkg/repos/*.conf 2>/dev/null
   # pkg -vv | grep -A6 Repositories
   # pkg update -f
@@ -382,7 +385,7 @@
        with signature_type fingerprints.
 
 [I-12] Harden required services instead of removing them
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
       FTP (only if required): anonymous login off, local users chrooted, TLS where the server supports it; a packaged FTP server keeps its config under /usr/local/etc
       apache24: /usr/local/etc/apache24/httpd.conf: ServerTokens Prod  ServerSignature Off  TraceEnable Off; Options -Indexes in the DocumentRoot block; apachectl configtest && service apache24 restart
       samba: /usr/local/etc/smb4.conf [global]: map to guest = Never  restrict anonymous = 2; testparm && service samba_server restart
@@ -400,7 +403,7 @@
  https://freeapp4that.store/defense-ladder/#senior/se1
 --------------------------------------------------------------------------------
 [A-01] Kernel and network hardening with sysctl
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   # vi /etc/sysctl.conf
       security.bsd.see_other_uids=0        security.bsd.see_other_gids=0
       security.bsd.unprivileged_read_msgbuf=0   security.bsd.unprivileged_proc_debug=0
@@ -419,7 +422,7 @@
         single-user reboot.
 
 [A-02] Package integrity, vulnerable packages, rootkits
-  AREA: Malware defenses (CIS Control 10)
+  AREA: Malware defenses
   # pkg check -s -a
   # freebsd-update IDS     (classic install: base files that differ from the release)
   # pkg audit -F
@@ -438,7 +441,7 @@
         On a pkgbase install, pkg check -s -a covers the base too.
 
 [A-03] PAM deep dive
-  AREA: Access control (CIS Control 6)
+  AREA: Access control
       Files: /etc/pam.d/system (shared), login, sshd, su, passwd, sudo (under /usr/local/etc/pam.d for ports)
   # grep -nE 'pam_permit|nullok|pam_rootok' /etc/pam.d/* /usr/local/etc/pam.d/* 2>/dev/null
   # grep -n pam_unix /etc/pam.d/passwd /etc/pam.d/system
@@ -462,7 +465,7 @@
        auth.log holds su and ssh history.
 
 [A-05] pf depth
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   # pfctl -vnf /etc/pf.conf
   # pfctl -sr; pfctl -ss | head; pfctl -sa | head -40
   # pfctl -sA; pfctl -a '*' -sr
@@ -647,9 +650,5 @@
     https://man.freebsd.org/cgi/man.cgi?query=pw&sektion=8
   login.conf(5) manual
     https://man.freebsd.org/cgi/man.cgi?query=login.conf&sektion=5
-  CIS Critical Security Controls v8.1
-    https://www.cisecurity.org/controls/v8
-  CIS Benchmarks
-    https://www.cisecurity.org/cis-benchmarks
 
 ================================================================================

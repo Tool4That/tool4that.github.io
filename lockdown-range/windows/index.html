@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VMExSVXFNq8E2HvOOru2k7Jjnka+DX1eqdo+p00O354='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-kDZ2tvHJA3n0htk+BMeYMuM4dgijN5k6rjT4499z34Q='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/lockdown-range/windows/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%96%A5%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -606,6 +606,7 @@ table.lv .dim{color:#888}
 .coach{ display:flex; flex-wrap:wrap; gap:.4rem; align-items:center; font-size:.82rem; margin:.3rem 0 .6rem; max-width:100%; }
 .coach select{ font:inherit; font-size:.82rem; padding:.15rem .3rem; border-radius:6px; border:1px solid var(--line); background:var(--panel, #fff); color:var(--ink); max-width:100%; }
 .hintstep{ display:block; margin-top:.25rem; font-size:.85rem; }
+.hintref a{ color:inherit; text-decoration:underline; }
 .dbr-hints{ font-size:.9rem; margin:.3rem 0; }
 .dbr-reflect{ display:block; margin-top:.8rem; } .dbr-reflect textarea{ width:100%; min-height:3.2em; font:inherit; font-size:.92rem; border:1px solid var(--line); border-radius:6px; padding:.4rem .5rem; background:var(--panel, #fff); color:var(--ink); }
 .dbr-copy{ margin-top:.5rem; display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; font-size:.85rem; }
@@ -1289,7 +1290,9 @@ function setFeature(id, on) {
   const setAll = (n, v) => { n.on = v; n.kids.forEach(k => setAll(k, v)); };
   // turning a feature back on restores its payload (Uninstall-WindowsFeature -Remove marked it removed)
   if (on) { const keep = n => { delete n.removed; n.kids.forEach(keep); }; keep(f); }
-  if (on) { f.on = true; if (f.kids.length && !f.kids.some(k => k.on)) f.kids.forEach(k => { if (!k.optional) k.on = true; }); }
+  // turning on a feature whose parts are all off also turns on the parts Windows selects with it: every part except
+  // FTP Server, which stays a choice of its own (so putting the web server back leaves FTP off)
+  if (on) { f.on = true; if (f.kids.length && !f.kids.some(k => k.on)) f.kids.forEach(k => { if (!k.optional && k.id !== 'IIS-FTPServer') k.on = true; }); }
   else setAll(f, false);
   // parents: on if any kid on
   const fixParents = (list) => { list.forEach(n => { if (n.kids.length) { fixParents(n.kids); if (n.kids.some(k => k.on)) n.on = true; } }); };
@@ -4104,8 +4107,79 @@ function startTypeText(st) { return st === 'Disabled' ? '4   DISABLED' : st === 
 // sc OPERATION without a service name: [the description lines, what follows [service name] in the usage line]
 const SC_USAGE = { qc: [['Queries the configuration information for a service.'], ' <bufferSize>'], qtriggerinfo: [['Queries the trigger parameters of a service.'], ' <bufferSize>'], start: [['Starts a service running.'], ' <arg1> <arg2> ...'], stop: [['Sends a STOP control request to a service.'], ''], delete: [['Deletes a service entry from the registry.', 'If the service is running, or another process has an', 'open handle to the service, the service is simply marked', 'for deletion.'], ''] };
 const SC_CONFIG_USAGE = 'DESCRIPTION:\n        Modifies a service entry in the registry and Service Database.\nUSAGE:\n        sc <server> config [service name] <option1> <option2>...\n\nOPTIONS:\nNOTE: The option name includes the equal sign.\n      A space is required between the equal sign and the value.\n start= <boot|system|auto|demand|disabled|delayed-auto>';
+const SC_SDSHOW_USAGE = 'DESCRIPTION:\n        Displays a service\'s security descriptor in SDDL format.\nUSAGE:\n        sc <server> sdshow <service name>';
+const SC_SDSET_USAGE = 'DESCRIPTION:\n        Sets a service\'s security descriptor.\nUSAGE:\n        sc <server> sdset <service name> <SD in SDDL format>';
 // stopping Remote Desktop Services drops its listener, but the Remote Desktop setting (fDenyTSConnections) stays as it was, as on Windows
 function stopServiceModel(s) { s.status = 'Stopped'; }
+/* ---------- service security descriptors: sc sdshow and sc sdset write them, accesschk -c reads them ----------
+   A service keeps its descriptor in SDDL. s.sddl holds the D: part (who may do what) once it differs from the standard
+   one, SVC_SD, and s.sacl the S: part (auditing) once it differs from SVC_SACL. The two-letter rights are the service
+   access rights: CC query config, DC change config, LC query status, SW enumerate dependents, RP start, WP stop,
+   DT pause and continue, LO interrogate, CR user-defined control, SD delete, RC read control, WD write DAC, and
+   WO write owner. The standard descriptor gives SYSTEM (SY) start, stop, and read; Administrators (BA) everything; and
+   interactive (IU) and service (SU) sign-ins read only. */
+const SVC_SD = 'D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWLOCRRC;;;IU)(A;;CCLCSWLOCRRC;;;SU)';
+const SVC_SACL = 'S:(AU;FA;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;WD)';
+const SVC_BITS = { CC: 0x1, DC: 0x2, LC: 0x4, SW: 0x8, RP: 0x10, WP: 0x20, DT: 0x40, LO: 0x80, CR: 0x100, SD: 0x10000, RC: 0x20000, WD: 0x40000, WO: 0x80000, GA: 0xF01FF, GR: 0x2008D, GW: 0x20002, GX: 0x20170 };
+const SVC_ALL = 0xF01FF, SVC_WRITE = 0x2 | 0x10000 | 0x40000 | 0x80000, SVC_READ = 0x1 | 0x4 | 0x8 | 0x80 | 0x20000;
+const SVC_ORDER = ['CC', 'DC', 'LC', 'SW', 'RP', 'WP', 'DT', 'LO', 'CR', 'SD', 'RC', 'WD', 'WO'];
+// the names accesschk -v prints, in its order
+const SVC_RIGHT_NAMES = [[0x4, 'SERVICE_QUERY_STATUS'], [0x1, 'SERVICE_QUERY_CONFIG'], [0x2, 'SERVICE_CHANGE_CONFIG'], [0x80, 'SERVICE_INTERROGATE'], [0x8, 'SERVICE_ENUMERATE_DEPENDENTS'], [0x40, 'SERVICE_PAUSE_CONTINUE'], [0x10, 'SERVICE_START'], [0x20, 'SERVICE_STOP'], [0x100, 'SERVICE_USER_DEFINED_CONTROL'], [0x10000, 'DELETE'], [0x20000, 'READ_CONTROL'], [0x40000, 'WRITE_DAC'], [0x80000, 'WRITE_OWNER']];
+// SDDL's two-letter account names, and the well-known SIDs that mean the same accounts
+const SDDL_SID = { SY: 'NT AUTHORITY\\SYSTEM', BA: 'BUILTIN\\Administrators', AU: 'NT AUTHORITY\\Authenticated Users', IU: 'NT AUTHORITY\\INTERACTIVE', SU: 'NT AUTHORITY\\SERVICE', WD: 'Everyone', BU: 'BUILTIN\\Users', PU: 'BUILTIN\\Power Users', BG: 'BUILTIN\\Guests', BO: 'BUILTIN\\Backup Operators', RD: 'BUILTIN\\Remote Desktop Users', LS: 'NT AUTHORITY\\LOCAL SERVICE', NS: 'NT AUTHORITY\\NETWORK SERVICE', NU: 'NT AUTHORITY\\NETWORK', AN: 'NT AUTHORITY\\ANONYMOUS LOGON', CO: 'CREATOR OWNER' };
+const SDDL_RAW = { 'S-1-1-0': 'WD', 'S-1-3-0': 'CO', 'S-1-5-2': 'NU', 'S-1-5-4': 'IU', 'S-1-5-6': 'SU', 'S-1-5-7': 'AN', 'S-1-5-11': 'AU', 'S-1-5-18': 'SY', 'S-1-5-19': 'LS', 'S-1-5-20': 'NS', 'S-1-5-32-544': 'BA', 'S-1-5-32-545': 'BU', 'S-1-5-32-546': 'BG', 'S-1-5-32-547': 'PU', 'S-1-5-32-551': 'BO', 'S-1-5-32-555': 'RD' };
+const SDDL_ERR = { 87: 'The parameter is incorrect.', 1336: 'The access control list (ACL) structure is invalid.', 1337: 'The security ID structure is invalid.' };
+/* read an SDDL string the way sc sdset does: O: and G: (accepted, the owner stays), D: and S: with their entries.
+   Returns { d, s }, each { flags, aces: [{ type, fl, mask, sid, who }] } when the string holds that part, or { err }:
+   87 for text that is no descriptor, 1336 for a malformed entry, 1337 for an account SDDL cannot name */
+function sddlParse(text) {
+  let s = String(text == null ? '' : text).trim(); const out = {};
+  if (!s) return { err: 87 };
+  const sidOf = t => { const u = t.toUpperCase(); return SDDL_SID[u] ? u : SDDL_RAW[u] || (/^S-1-\d+(-\d+)+$/.test(u) ? u : null); };
+  while (s) {
+    let m = /^[OG]:([A-Za-z]{2}|S-1-[\d-]+)/i.exec(s);
+    if (m) { if (!sidOf(m[1])) return { err: 1337 }; s = s.slice(m[0].length); continue; }
+    m = /^([DS]):((?:PAI|PAR|P|AR|AI|NO_ACCESS_CONTROL)*)((?:\([^()]*\))*)/i.exec(s);
+    if (!m) return { err: /^[DS]:/i.test(s) ? 1336 : 87 };
+    const dacl = m[1].toUpperCase() === 'D', aces = [];
+    for (const raw of m[3].match(/\([^()]*\)/g) || []) {
+      const f = raw.slice(1, -1).split(';'); if (f.length !== 6) return { err: 1336 };
+      const type = f[0].toUpperCase(), fl = f[1].toUpperCase(), rights = f[2].toUpperCase();
+      if (!(dacl ? /^[AD]$/ : /^(AU|AL)$/).test(type) || !/^(CI|OI|NP|IO|ID|SA|FA)*$/.test(fl) || f[3] || f[4]) return { err: 1336 };
+      let mask = 0;
+      if (/^0X[0-9A-F]+$/.test(rights)) mask = parseInt(rights, 16);
+      else { if (rights.length % 2) return { err: 1336 }; for (let i = 0; i < rights.length; i += 2) { const b = SVC_BITS[rights.substr(i, 2)]; if (!b) return { err: 1336 }; mask |= b; } }
+      const sid = sidOf(f[5]); if (!sid) return { err: 1337 };
+      aces.push({ type, fl, mask, sid, who: SDDL_SID[sid] || sid });
+    }
+    out[dacl ? 'd' : 's'] = { flags: m[2].toUpperCase(), aces };
+    s = s.slice(m[0].length);
+  }
+  return out;
+}
+/* one part back as text, the way sc sdshow prints it: rights in SDDL's order, accounts by their two-letter names */
+function sddlText(letter, part) {
+  const rights = mask => (mask & SVC_ALL) === SVC_ALL ? SVC_ORDER.join('') : SVC_ORDER.filter(k => mask & SVC_BITS[k]).join('');
+  return letter + ':' + part.flags + part.aces.map(a => '(' + a.type + ';' + a.fl + ';' + rights(a.mask) + ';;;' + a.sid + ')').join('');
+}
+function svcDacl(s) { return sddlParse(s.sddl || SVC_SD).d.aces; }
+/* the rights a set of accounts ends up with: entries apply in order, and a deny entry closes the rights still open */
+function svcAccess(aces, who) {
+  let allow = 0, deny = 0;
+  aces.forEach(a => { if (!who.some(w => sameName(w, a.who) || sameName(w, a.who.replace(/^.*\\/, '')))) return; if (a.type === 'D') deny |= a.mask & ~allow; else allow |= a.mask & ~deny; });
+  return allow;
+}
+/* whoever a descriptor leaves short of control: SYSTEM starts and stops the service, and Administrators manage it */
+function svcSdLocksOut(aces) {
+  if ((svcAccess(aces, [SDDL_SID.BA, SDDL_SID.AU, SDDL_SID.WD, SDDL_SID.IU]) & SVC_ALL) !== SVC_ALL) return 'Administrators';
+  return (svcAccess(aces, [SDDL_SID.SY, SDDL_SID.AU, SDDL_SID.WD]) & 0x20035) === 0x20035 ? '' : 'SYSTEM';
+}
+/* a sound descriptor: SYSTEM and Administrators hold control, and every other account's entries stop short of the
+   rights that change the service (change config, delete, write DAC, write owner) */
+function svcSdSound(s) {
+  const aces = svcDacl(s);
+  return !svcSdLocksOut(aces) && !aces.some(a => a.type === 'A' && a.sid !== 'SY' && a.sid !== 'BA' && (a.mask & SVC_WRITE));
+}
 function listeningPorts() {
   const L = [{ port: 135, pid: 924, proc: 'svchost.exe' }, { port: 445, pid: 4, proc: 'System' }, { port: 139, pid: 4, proc: 'System' }, { port: 5040, pid: 1044, proc: 'svchost.exe' }];
   const on = n => S.services[n] && S.services[n].status === 'Running';
@@ -4541,16 +4615,31 @@ const CMDS = {
     // query options in any order: type= service, state= all | inactive (the option name includes the equal sign; a space separates it from the value)
     let st = null; if (op === 'query') { const o = {}, left = []; for (let i = 1; i < a.length; i++) { if (/^\w+=$/.test(a[i])) { o[a[i].slice(0, -1).toLowerCase()] = String(a[++i] || '').toLowerCase(); } else left.push(a[i]); } if (o.state != null || o.type != null) { st = o.state || 'active'; name = left[0]; if (o.type && !/^(service|own|share|all)$/.test(o.type)) return { text: '' }; } }
     if (op === 'query' && !name) return { text: serviceList().filter(s => st === 'all' || (st === 'inactive') === (s.status !== 'Running')).map(s => serviceQueryBlock(s).replace('SERVICE_NAME: ' + s.name, 'SERVICE_NAME: ' + s.name + '\nDISPLAY_NAME: ' + s.display)).join('\n') };
-    if (!op) return { text: 'DESCRIPTION:\n        SC is a command line program used for communicating with the\n        Service Control Manager and services.\nUSAGE:\n        sc <server> [command] [service name] <option1> <option2>...\n\n        query-----------Queries the status for a service.\n        qc--------------Queries the configuration information for a service.\n        config----------Changes the configuration of a service (persistent).\n        start-----------Starts a service.\n        stop------------Sends a STOP request to a service.\n        delete----------Deletes a service (from the registry).' };
+    if (!op) return { text: 'DESCRIPTION:\n        SC is a command line program used for communicating with the\n        Service Control Manager and services.\nUSAGE:\n        sc <server> [command] [service name] <option1> <option2>...\n\n        query-----------Queries the status for a service.\n        qc--------------Queries the configuration information for a service.\n        config----------Changes the configuration of a service (persistent).\n        start-----------Starts a service.\n        stop------------Sends a STOP request to a service.\n        delete----------Deletes a service (from the registry).\n        sdshow----------Displays a service\'s security descriptor.\n        sdset-----------Sets a service\'s security descriptor.' };
     // an operation typed without its service name prints that operation's description and usage, as sc does
     if (!name && op === 'config') return { text: SC_CONFIG_USAGE, cls: 'err' };
+    if (!name && op === 'sdshow') return { text: SC_SDSHOW_USAGE, cls: 'err' };
+    if (op === 'sdset' && a.length < 3) return { text: SC_SDSET_USAGE, cls: 'err' };
     if (!name && SC_USAGE[op]) return { text: 'DESCRIPTION:\n' + SC_USAGE[op][0].map(l => '        ' + l).join('\n') + '\nUSAGE:\n        sc <server> ' + op + ' [service name]' + SC_USAGE[op][1], cls: 'err' };
     const s = serviceByName(name || '');
     if (!s) return { text: '[SC] ' + (op === 'query' ? 'EnumQueryServicesStatus:OpenService' : op === 'qc' ? 'OpenService' : 'OpenService') + ' FAILED 1060:\n\nThe specified service does not exist as an installed service.\n', cls: 'err' };
     if (op === 'query') return { text: serviceQueryBlock(s) };
     if (op === 'qc') { const dep = s.planted ? [''] : (SVC_DEPS[s.name] != null ? SVC_DEPS[s.name] : 'RpcSs').split(','); return { text: '[SC] QueryServiceConfig SUCCESS\n\nSERVICE_NAME: ' + s.name + '\n        TYPE               : ' + serviceQueryBlock(s).split('\n')[1].slice(29) + '\n        START_TYPE         : ' + startTypeText(s.start) + '\n        ERROR_CONTROL      : 1   NORMAL\n        BINARY_PATH_NAME   : ' + s.path + '\n        LOAD_ORDER_GROUP   : ' + (s.name === 'Spooler' ? 'SpoolerGroup' : '') + '\n        TAG                : 0\n        DISPLAY_NAME       : ' + s.display + '\n        DEPENDENCIES       : ' + dep.join('\n                           : ') + '\n        SERVICE_START_NAME : ' + (s.logon === 'Local System' ? 'LocalSystem' : 'NT AUTHORITY\\' + s.logon.replace(' ', '')) + '\n' }; }
     if (op === 'qtriggerinfo') return { text: '[SC] QueryServiceConfig2 SUCCESS\n\nSERVICE_NAME: ' + s.name + '\n\n' + (s.name === 'RemoteRegistry' ? '        START SERVICE\n          NETWORK EVENT                : 1ce20aba-9851-4421-9430-1ddeb766e809 [RPC INTERFACE EVENT]\n            DATA                       : 338cd001-2244-31f1-aaaa-900038001003\n' : s.trigger ? '[Range] Trigger details are modeled for RemoteRegistry only.\n' : '        The service has not registered for any start or stop triggers.\n') };
-    if (needAdmin(ctx) || (PROTECTED_SVC.includes(s.name) && ['config', 'stop', 'delete'].includes(op))) return { text: '[SC] OpenService FAILED 5:\n\nAccess is denied.\n', cls: 'err' };
+    // sdshow: any signed-in account reads the D: part; an elevated window also reads the audit (S:) part
+    if (op === 'sdshow') return { text: '\n' + (s.sddl || SVC_SD) + (needAdmin(ctx) ? '' : s.sacl || SVC_SACL) + '\n' };
+    if (needAdmin(ctx) || (PROTECTED_SVC.includes(s.name) && ['config', 'stop', 'delete', 'sdset'].includes(op))) return { text: '[SC] OpenService FAILED 5:\n\nAccess is denied.\n', cls: 'err' };
+    if (op === 'sdset') {
+      const sd = sddlParse(a.slice(2).join(' '));
+      if (sd.err) return { text: '[SC] ConvertStringSecurityDescriptorToSecurityDescriptor FAILED ' + sd.err + ':\n\n' + SDDL_ERR[sd.err] + '\n', cls: 'err' };
+      const out = sd.d ? svcSdLocksOut(sd.d.aces) : '';
+      if (out) return { text: '[Range] This descriptor leaves ' + out + ' short of control of the service, and on a real machine that locks the service away from its own managers. The trainer keeps the current descriptor. Keep these two entries in the one you set: (A;;CCLCSWRPWPDTLOCRRC;;;SY) for SYSTEM and (A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA) for Administrators.', cls: 'err' };
+      mutate(() => {
+        if (sd.d) { const t = sddlText('D', sd.d); if (t === SVC_SD) delete s.sddl; else s.sddl = t; }
+        if (sd.s) { const t = sddlText('S', sd.s); if (t === SVC_SACL) delete s.sacl; else s.sacl = t; }
+      });
+      return { text: '[SC] SetServiceObjectSecurity SUCCESS' };
+    }
     if (op === 'config') {
       const i = a.findIndex(x => /^start=/i.test(x)); const v = i < 0 || a[i].length > 6 ? '' : String(a[i + 1] || '').toLowerCase();
       const use = '\n' + SC_CONFIG_USAGE;
@@ -4562,7 +4651,7 @@ const CMDS = {
     if (op === 'start') { if (s.status === 'Running') return { text: '[SC] StartService FAILED 1056:\n\nAn instance of the service is already running.\n', cls: 'err' }; if (s.start === 'Disabled') return { text: '[SC] StartService FAILED 1058:\n\nThe service cannot be started, either because it is disabled or because it has no enabled devices associated with it.\n', cls: 'err' }; mutate(() => { s.status = 'Running'; }); return { text: serviceQueryBlock(s).replace('4  RUNNING', '2  START_PENDING') }; }
     if (op === 'delete' && s.school) return { text: '[Range] ' + s.display + ' is a school service the Scenario Brief names, so the trainer keeps it installed. Read the brief first: a service it requires keeps running, and a service you need to turn off is disabled instead of deleted (sc.exe config ' + s.name + ' start= disabled).', cls: 'err' };
     if (op === 'delete') { if (!s.planted) return { text: '[SC] DeleteService FAILED 1072:\n\nThe specified service has been marked for deletion.\n[Range] Built-in services cannot be deleted here; disable them instead (sc.exe config NAME start= disabled).', cls: 'err' }; mutate(st => { delete st.services[s.name]; }); return { text: '[SC] DeleteService SUCCESS' }; }
-    return { text: '[Range] "sc ' + op + '" is not simulated. Use query, qc, config, start, stop or delete.' };
+    return { text: '[Range] "sc ' + op + '" is not simulated. Use query, qc, config, start, stop, delete, sdshow, or sdset.' };
   },
   /* ----- schtasks ----- */
   schtasks: (ctx, a, seg) => {
@@ -7079,6 +7168,15 @@ function accPrincipalMatch(who, principal) {
   if (sameName(who, want)) return true;
   return who === 'Everyone' || who === 'NT AUTHORITY\\Authenticated Users';
 }
+/* the accounts whose entries count for a named account on a service: itself, the groups a local user belongs to, and
+   Authenticated Users and Everyone for every account that signs in (Everyone alone for Guests and anonymous sign-ins) */
+function accTokens(principal) {
+  const p = aclWho(principal) || String(principal), bare = p.replace(/^.*\\/, ''), u = userByName(bare);
+  if (sameName(p, SDDL_SID.WD)) return [p];
+  if (sameName(bare, 'Guests') || sameName(bare, 'ANONYMOUS LOGON')) return [p, SDDL_SID.WD];
+  const mine = sameName(p, SDDL_SID.SY) ? [SDDL_SID.BA] : u && !groupByName(bare) ? userGroups(u.name).map(g => 'BUILTIN\\' + g) : [];
+  return [p].concat(mine, [SDDL_SID.AU, SDDL_SID.WD]);
+}
 function accesschkCmd(ctx, a) {
   const { flags, words } = sysArgs(a);
   const svc = flags.has('c'), writeOnly = flags.has('w'), recurse = flags.has('s');
@@ -7086,23 +7184,30 @@ function accesschkCmd(ctx, a) {
   if (words._star) { object = '*'; principal = words[0] || null; }
   else if (words.length >= 2) { principal = words[0]; object = words[1]; }
   else if (words.length === 1) object = words[0];
-  // service mode: the access the named account has to each service, read from the folder that holds its program
+  /* service mode: each service's own security descriptor (svcDacl), the one sc sdshow prints. With an account, one
+     line per service gives that account's effective access; without one, each service lists the accounts its
+     descriptor names. R is read access and W is write access (change config, delete, write DAC, or write owner);
+     -v adds the rights by name, -w keeps write access only, -r read access only, and -n the services with neither. */
   if (svc) {
-    const want = object && object !== '*' ? object : '*';
-    const list = serviceList().filter(s => globRe(want.replace(/\.exe$/i, '')).test(s.name) || globRe(want).test(s.display));
-    if (!list.length) return { text: 'No matching services were found.' };
+    const want = object && object !== '*' ? object : '*', verbose = flags.has('v');
+    const list = serviceList().filter(s => globRe(want.replace(/\.exe$/i, '')).test(s.name) || globRe(want).test(s.display)).sort((x, y) => x.name.toLowerCase() < y.name.toLowerCase() ? -1 : 1);
+    const mark = m => ((m & SVC_READ) ? 'R' : ' ') + ((m & SVC_WRITE) ? 'W' : ' ');
+    const keep = m => !(writeOnly && !(m & SVC_WRITE)) && !(flags.has('r') && !(m & SVC_READ)) && !(flags.has('n') && (m & (SVC_READ | SVC_WRITE)));
+    const rights = m => verbose ? ((m & SVC_ALL) === SVC_ALL ? ['SERVICE_ALL_ACCESS'] : SVC_RIGHT_NAMES.filter(r => m & r[0]).map(r => r[1])).map(r => '\t' + r) : [];
     const out = [];
     list.forEach(s => {
-      const img = sysSig(s.path), e = img.e, dir = e ? aclOf(fsParent(e.p)) : [], own = e ? aclOf(e.p) : [];
-      const canWrite = own.concat(dir).some(x => !/\(IO\)/.test(x.fl) && accPrincipalMatch(x.who, principal) && aclCanWrite(x.perm));
-      if (writeOnly && !canWrite) return;
-      out.push((canWrite ? 'RW  ' : 'R   ') + s.name);
+      const aces = svcDacl(s);
+      if (principal) { const m = svcAccess(aces, accTokens(principal)); if (keep(m)) out.push(mark(m) + ' ' + s.name, ...rights(m)); return; }
+      const rows = [];
+      aces.forEach(a => { if (!rows.includes(a.who)) rows.push(a.who); });
+      const lines = [];
+      rows.forEach(who => { const m = svcAccess(aces.filter(a => a.who === who), [who]); if (keep(m)) lines.push('  ' + mark(m) + ' ' + who, ...rights(m)); });
+      if (lines.length) out.push(s.name, ...(verbose ? ['  Medium Mandatory Level (Default) [No-Write-Up]'] : []), ...lines);
     });
-    if (!out.length) return { text: writeOnly ? 'No services grant write access to ' + (principal || 'the account') + '.' : 'No matching services were found.' };
-    return { text: out.join('\n') };
+    return { text: out.length ? out.join('\n') : 'No matching objects found.' };
   }
   // file/folder mode
-  if (!object) return { text: 'accesschk [-w][-s][-c] [user-or-group] <file, directory, or service>\n    -w  show only objects the account can write\n    -s  recurse subdirectories\n    -c  the name is a Windows service (* for all)' };
+  if (!object) return { text: 'accesschk [-s][-r][-w][-n][-v][-c] [user-or-group] <file, directory, or service>\n    -c  the name is a Windows service (* for all)\n    -n  show only objects that have no access\n    -r  show only objects that have read access\n    -s  recurse subdirectories\n    -v  verbose: list each right by name\n    -w  show only objects that have write access' };
   const base = fsGet(fsResolve(ctx.t.cwd, object));
   if (!base && !/[*?]/.test(object)) return { text: 'No matching files were found.' };
   let targets = [];
@@ -7453,6 +7558,8 @@ const CK = {
   remoteAssist: pts => ({ id: 'remote-assist', title: 'Remote Assistance turned off and its firewall rules disabled', pts, cat: AREA.config, test: s => !(s.remoteAssist == null ? s.edition !== 'server' : s.remoteAssist) && !s.firewall.rules.some(r => r.group === 'Remote Assistance' && r.enabled), hint: 'SystemPropertiesRemote > Remote > clear "Allow Remote Assistance connections to this computer" (that also turns off its firewall rules). In PowerShell, Get-NetFirewallRule -DisplayGroup "Remote Assistance" lists the rules, and Disable-NetFirewallRule -Group "@FirewallAPI.dll,-33002" turns them all off.', fix: 'SystemPropertiesRemote > Remote > clear "Allow Remote Assistance connections to this computer"   |   reg add "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Remote Assistance" /v fAllowToGetHelp /t REG_DWORD /d 0 /f, then Disable-NetFirewallRule -Group "@FirewallAPI.dll,-33002"', why: 'Remote Assistance lets a helper on the network see and control this screen once a user accepts an invitation, a favorite opening for fake support callers. The brief rules out remote access here.', learn: [LEARN.dl('sophomore', 's2', 'Windows 11 hardening')] }),
   savedCred: (target, acct, pts) => ({ id: 'cred-' + target.toLowerCase(), title: 'Saved password for ' + target + ' (' + acct + ') deleted', pts, cat: AREA.access, test: s => !(s.creds || []).some(c => c.target.toLowerCase().indexOf(target.toLowerCase()) >= 0), hint: 'cmdkey /list shows the passwords Windows saved for your account (Credential Manager). One signs in to ' + target + ' as ' + acct + ', the account you removed. Delete it: cmdkey /delete:' + target, fix: 'cmdkey /list, then cmdkey /delete:' + target, why: 'A saved password still opens ' + target + ' as ' + acct + ' for anyone who signs in as you, even after the account here is gone.', learn: [LEARN.drill('B-16', 'Find files that store passwords')] }),
   folderAcl: (path, who, user, pts) => ({ id: 'acl-' + path.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + who.toLowerCase(), title: who + ' removed from the NTFS permissions on ' + path, pts, cat: AREA.access, test: s => !!s.fs[fsKey(path)] && !aclOf(path).some(x => x.who === who), hint: 'icacls ' + path + ' lists the folder\'s permissions: ' + who + ' has (F), full control. Entries marked (I) come from the parent folder. File Explorer > the folder > Properties lists the same entries. Remove ' + who + ', then give the ' + user + ' account Modify: icacls "' + path + '" /remove ' + who + ', then icacls "' + path + '" /grant "' + user + ':(OI)(CI)M"', fix: 'icacls "' + path + '" /remove ' + who + ', then icacls "' + path + '" /grant "' + user + ':(OI)(CI)M"', why: 'Full control for ' + who + ' lets any account read, change, or delete these records and even rewrite who may open them. Grant access to the people the brief names.', learn: [LEARN.drill('A-07', 'NTFS permissions'), LEARN.dl('sophomore', 's2', 'Windows 11 hardening')] }),
+  // a required service whose security descriptor lets a broad group change it: any descriptor that keeps SYSTEM and Administrators in control and leaves every other account read, start, or stop at most passes
+  svcAcl: (name, label, who, pts) => ({ id: 'svcacl-' + name, title: 'Weak permission on the ' + name + ' service fixed (SYSTEM and Administrators alone can change it)', pts, cat: AREA.access, test: s => !!s.services[name] && svcSdSound(s.services[name]), hint: 'accesschk -accepteula -uwcqv "' + who + '" * lists each service that ' + who + ' can change (Sysinternals), and sc.exe sdshow ' + name + ' prints that service\'s security descriptor, one (A;;rights;;;account) entry per account. The entry that ends in ;;;AU (' + who + ') carries DC (change config), WD (write DAC), and WO (write owner). Set the standard descriptor back, and keep ' + label + ' running: sc.exe sdset ' + name + ' "' + SVC_SD + '"', fix: 'sc.exe sdset ' + name + ' "' + SVC_SD + '"', why: 'An account that can change a service that runs as SYSTEM can point it at its own program, which then runs as SYSTEM.', learn: [LEARN.dl('senior', 'se7', 'Windows: credentials and the domain attack surface')] }),
   answer: (n, answers, pts) => ({ id: 'investigation-' + n, title: 'Investigation ' + n + ' answered', pts, cat: AREA.inv, investigation: true, test: s => answerOk('C:\\Users\\' + CUR.login.user + '\\Desktop\\Investigation ' + n + '.txt', answers), hint: 'Open "Investigation ' + n + '.txt" on the Desktop, put the answer after ANSWER: and press Ctrl+S.', fix: 'Answer: ' + answers[0], why: 'Investigating first makes you read the machine before you change it.' })
 };
 /* ---------- availability checks: harm to what the Scenario Brief says the organization needs ----------
@@ -7466,6 +7573,8 @@ const AVAIL = {
   wu: () => ({ id: 'avail-wu', title: 'Windows Update service disabled', need: 'Windows Update can install updates', test: s => !s.services.wuauserv || s.services.wuauserv.start === 'Disabled', why: 'Disabling Windows Update stops every future security fix.', restore: 'Set Windows Update back to Manual: sc.exe config wuauserv start= demand (or services.msc > Windows Update > Startup type: Manual).' }),
   rdpReq: () => ({ id: 'avail-rdp', title: 'Remote Desktop disabled on a server that requires it', need: 'Remote Desktop stays on for the administrators', test: s => !rdpEffective() || !(s.services.TermService && s.services.TermService.status === 'Running'), why: 'Administrators manage this server over RDP.', restore: 'Turn Remote Desktop back on: SystemPropertiesRemote > Allow remote connections to this computer, or reg add "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f. Set any Remote Desktop policy you changed in gpedit.msc back to Not Configured, and start Remote Desktop Services: sc.exe start TermService.' }),
   web: () => ({ id: 'avail-web', title: 'Web server (IIS) stopped, removed, or blocked by the firewall', need: 'The company portal (IIS) stays reachable on port 80', test: s => !featOn('IIS-WebServer') || !(s.services.W3SVC && s.services.W3SVC.status === 'Running') || !(ruleByName('World Wide Web Services (HTTP Traffic-In)') && ruleByName('World Wide Web Services (HTTP Traffic-In)').enabled), why: 'The company portal must stay reachable on port 80.', restore: 'Bring the portal back: turn Internet Information Services back on in optionalfeatures, start the web service (sc.exe start W3SVC), and turn its firewall rule back on: netsh advfirewall firewall set rule name="World Wide Web Services (HTTP Traffic-In)" new enable=yes.' }),
+  // the same need where the brief also sets who may change a service: a disabled web service fails at the next restart, so it counts as an outage too
+  webKept: () => { const w = AVAIL.web(), base = w.test; return Object.assign(w, { title: 'Web server (IIS) stopped, disabled, removed, or blocked by the firewall', test: s => base(s) || s.services.W3SVC.start === 'Disabled', restore: 'Bring the portal back: turn Internet Information Services back on in optionalfeatures, set the web service to Automatic and start it (sc.exe config W3SVC start= auto, then sc.exe start W3SVC), and turn its firewall rule back on: netsh advfirewall firewall set rule name="World Wide Web Services (HTTP Traffic-In)" new enable=yes.' }); },
   shares: names => ({ id: 'avail-share', title: 'Required file share removed (' + names.join(', ') + ')', need: 'Required file shares stay shared (' + names.join(', ') + ')', which: s => names.filter(n => !(s.shares || defaultShares(s.edition)).some(x => sameName(x.name, n))).join(', '), test: s => names.some(n => !(s.shares || defaultShares(s.edition)).some(x => sameName(x.name, n))), why: 'The Scenario Brief says the office works from these shares.', restore: 'Share the folder again: ' + names.map(n => 'net share ' + n + '=C:\\Shares\\' + n).join(' or ') + ' (in PowerShell: New-SmbShare -Name ' + names[0] + ' -Path C:\\Shares\\' + names[0] + ').' }),
   // the account still reads the folder: an entry for it, one of its groups, Everyone, or Authenticated Users (inherit-only entries leave the folder itself out)
   folderAccess: (path, user) => ({ id: 'avail-acl-' + user, accts: [user], title: user + ' lost Modify access to ' + path, need: user + ' keeps Modify access to ' + path, test: s => { const u = userByName(user); if (!u || !s.fs[fsKey(path)]) return false; const mine = [hostnameUpper() + '\\' + u.name, 'Everyone', 'NT AUTHORITY\\Authenticated Users'].concat(userGroups(u.name).map(g => 'BUILTIN\\' + g)); return !aclOf(path).some(x => mine.includes(x.who) && !/\(IO\)/.test(x.fl) && x.perm.split(',').some(r => r === 'F' || r === 'M')); }, why: 'The Scenario Brief says the HR clerk keeps Modify on this folder to update the records. Removing Everyone must leave that person Modify, through an entry of their own or one of their groups.', restore: 'Give ' + user + ' Modify again: icacls "' + path + '" /grant "' + user + ':(OI)(CI)M" (or the folder\'s Properties > Security > Edit > Add).' })
@@ -7589,7 +7698,7 @@ const SCENARIOS = [
     availability: [AVAIL.users(['coachk', 'tavita', 'hiro', 'pua', 'mele', 'keahi']), AVAIL.admins(['coachk']), AVAIL.self(), AVAIL.svc('mpssvc', 'Windows Defender Firewall'), AVAIL.svc('WinDefend', 'Microsoft Defender Antivirus'), AVAIL.wu()]
   },
   {
-    id: 'captain', level: 3, rev: 3, name: 'Captain', title: 'Honua Logistics — portal server', edition: 'server', hostname: 'HONUA-SRV1', ip: '10.20.9.10',
+    id: 'captain', level: 3, rev: 4, name: 'Captain', title: 'Honua Logistics — portal server', edition: 'server', hostname: 'HONUA-SRV1', ip: '10.20.9.10',
     login: { user: 'labuser', password: 'Hard!2026' },
     brief: {
       company: 'Honua Logistics, a freight forwarder with a small office on Sand Island',
@@ -7597,7 +7706,7 @@ const SCENARIOS = [
       admins: ['labuser (you) - password: Hard!2026', 'kahale', 'Administrator (built-in; must stay enabled on this server)'],
       users: ['dispatch1', 'dispatch2', 'hrclerk', 'opsmgr'],
       services: ['Remote Desktop MUST stay enabled (with Network Level Authentication) and reachable through the firewall.', 'The IIS web portal (World Wide Web Publishing Service) must stay running and allowed on port 80.', 'FTP, SMB 1.0, and the Telnet client stay off this server.', 'Windows Update, Microsoft Defender, and the firewall must stay on.', 'The HR and Ops file shares must stay shared.'],
-      policy: ['Only the Authorized Administrators may be in the Administrators or Backup Operators groups.', 'Guest must be disabled. Passwords: at least 12 characters, complex, 5 remembered, a maximum age of 30 to 90 days, and a minimum age of 1 day or more; "Password never expires" cleared on every account. Passwords are stored as one-way hashes only (reversible encryption off).', 'Account lockout (after 10 or fewer failed attempts, for 15 minutes or more), logon auditing, and account-management auditing are required.', 'NTLMv2 only (LAN Manager authentication level 5); the last signed-in user name stays hidden; UAC stays on.', 'Remove unauthorized software and unauthorized scheduled jobs.', 'Microsoft Defender scans every folder on this server, with every exclusion removed.', 'Everyone loses its full control of the HR folder (C:\\Shares\\HR); the HR clerk keeps Modify.', 'Delete any password saved for an account you remove.']
+      policy: ['Only the Authorized Administrators may be in the Administrators or Backup Operators groups.', 'Guest must be disabled. Passwords: at least 12 characters, complex, 5 remembered, a maximum age of 30 to 90 days, and a minimum age of 1 day or more; "Password never expires" cleared on every account. Passwords are stored as one-way hashes only (reversible encryption off).', 'Account lockout (after 10 or fewer failed attempts, for 15 minutes or more), logon auditing, and account-management auditing are required.', 'NTLMv2 only (LAN Manager authentication level 5); the last signed-in user name stays hidden; UAC stays on.', 'Remove unauthorized software and unauthorized scheduled jobs.', 'Microsoft Defender scans every folder on this server, with every exclusion removed.', 'Everyone loses its full control of the HR folder (C:\\Shares\\HR); the HR clerk keeps Modify.', 'Changing a service is for SYSTEM and the Administrators group alone; every other account reads a service at most.', 'Delete any password saved for an account you remove.']
     },
     users: [
       { name: 'labuser', password: 'Hard!2026', fullName: 'Lab User', groups: ['Administrators', 'Users', 'Remote Desktop Users'] },
@@ -7610,7 +7719,8 @@ const SCENARIOS = [
     ],
     investigations: [
       { text: 'Which account is a member of the Administrators group but is NOT listed in the Scenario Brief as an authorized administrator?', hint: 'Hint: net localgroup Administrators, or lusrmgr.msc > Groups > Administrators', answers: ['backup_admin'] },
-      { text: 'A scheduled task runs a script from C:\\Users\\Public. What is the name of that task?', hint: 'Hint: schtasks /query /fo LIST /v | findstr /i "TaskName Task.To.Run"', answers: ['IISLogCleaner'] }
+      { text: 'A scheduled task runs a script from C:\\Users\\Public. What is the name of that task?', hint: 'Hint: schtasks /query /fo LIST /v | findstr /i "TaskName Task.To.Run"', answers: ['IISLogCleaner'] },
+      { text: 'One service on this server lets every signed-in account change its configuration. What is the name of that service? Record it before you fix the permission.', hint: 'Hint: accesschk -accepteula -uwcqv "Authenticated Users" * lists the services that Authenticated Users can change (a Sysinternals tool; any terminal window runs it).', answers: ['W3SVC', 'World Wide Web Publishing Service'] }
     ],
     // the previous administrator created backup_admin, which later put hrclerk in Backup Operators; failed network sign-ins test the built-in Administrator
     history: [['Security', 4720, 61, 10, 3, { by: 'Administrator', user: 'backup_admin' }], ['Security', 4732, 61, 10, 4, { by: 'Administrator', user: 'backup_admin', group: 'Administrators' }], ['Security', 4732, 61, 10, 4, { by: 'Administrator', user: 'backup_admin', group: 'Remote Desktop Users' }], ['Security', 4732, 40, 14, 10, { by: 'backup_admin', user: 'hrclerk', group: 'Backup Operators' }], ['Security', 4719, 35, 1, 50, { by: 'backup_admin', cat: 'Logon/Logoff', sub: 'Logon', guid: '{0cce9215-69ae-11d9-bed3-505054503030}', change: 'Success removed, Failure removed' }], ['Security', 4625, 36, 3, 12, { user: 'administrator', ip: '203.0.113.77' }], ['Security', 4625, 36, 3, 13, { user: 'administrator', ip: '203.0.113.77' }], ['Security', 4625, 36, 3, 14, { user: 'administrator', ip: '203.0.113.77' }]],
@@ -7637,9 +7747,11 @@ const SCENARIOS = [
       st.procs = [{ name: 'orh.exe', pid: 4412, mem: '9,212 K', port: 4444, planted: true, user: 'backup_admin', cmd: 'C:\\Users\\Public\\Libraries\\orh.exe -l 4444' }, { name: 'shm.exe', pid: 4420, mem: '15,780 K', planted: true, cmd: 'C:\\Users\\Public\\Libraries\\shm.exe' }];
       // the HR folder grants Everyone full control on top of what it inherits from C:\
       st.acl = { 'c:\\shares\\hr': { prot: false, aces: [['Everyone', '(OI)(CI)', 'F']] } };
+      // the web service carries one entry beyond the standard descriptor: Authenticated Users with every right
+      st.services.W3SVC.sddl = SVC_SD + '(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;AU)';
     },
-    checks: [CK.userGone('backup_admin', 5), CK.privGroup('Backup Operators', 'hrclerk', 3), CK.noNeverExpires('dispatch2', 3), CK.guest(3), CK.minLen(3, 12), CK.complexity(3), CK.history(3), CK.maxAge(3), CK.minAge(2), CK.reversible(2), CK.lockout(3), CK.audit('LogonEvents', 'Audit logon events', 3), CK.audit('AccountManagement', 'Audit account management', 3), CK.lastUser(2), CK.lmAuth(3), CK.uac(3), CK.firewall(4), CK.rogueRule('Ops Remote Helper (TCP-In)', 3), CK.ftpGone(3), CK.feature('SMB1Protocol', 'SMB 1.0/CIFS File Sharing Support', 3), CK.feature('TelnetClient', 'Telnet Client', 2), CK.rdpNla(4), CK.defender(4), CK.exclusion('C:\\Users\\Public\\Libraries', 4), CK.updates(3), CK.taskGone('IISLogCleaner', 3), CK.svcGone('SrvHealthMon', 'Server Health Monitor', 3, [LEARN.dl('senior', 'se7', 'Windows: credentials and the domain attack surface')]), CK.programs(['PortProbe Toolkit', 'TorrentBolt 3.1'], 3), CK.savedCred('HONUA-NAS01', 'backup_admin', 2), CK.folderAcl('C:\\Shares\\HR', 'Everyone', 'hrclerk', 3), CK.answer(1, ['backup_admin'], 4), CK.answer(2, ['IISLogCleaner'], 5)],
-    availability: [AVAIL.users(['kahale', 'dispatch1', 'dispatch2', 'hrclerk', 'opsmgr', 'Administrator']), AVAIL.admins(['kahale', 'Administrator']), AVAIL.self(), AVAIL.rdpReq(), AVAIL.web(), AVAIL.shares(['HR', 'Ops']), AVAIL.folderAccess('C:\\Shares\\HR', 'hrclerk'), AVAIL.svc('mpssvc', 'Windows Defender Firewall'), AVAIL.svc('WinDefend', 'Microsoft Defender Antivirus'), AVAIL.wu()]
+    checks: [CK.userGone('backup_admin', 4), CK.privGroup('Backup Operators', 'hrclerk', 3), CK.noNeverExpires('dispatch2', 3), CK.guest(3), CK.minLen(3, 12), CK.complexity(3), CK.history(3), CK.maxAge(3), CK.minAge(2), CK.reversible(2), CK.lockout(3), CK.audit('LogonEvents', 'Audit logon events', 3), CK.audit('AccountManagement', 'Audit account management', 3), CK.lastUser(2), CK.lmAuth(3), CK.uac(3), CK.firewall(3), CK.rogueRule('Ops Remote Helper (TCP-In)', 3), CK.ftpGone(3), CK.feature('SMB1Protocol', 'SMB 1.0/CIFS File Sharing Support', 3), CK.feature('TelnetClient', 'Telnet Client', 2), CK.rdpNla(3), CK.defender(3), CK.exclusion('C:\\Users\\Public\\Libraries', 3), CK.updates(3), CK.taskGone('IISLogCleaner', 3), CK.svcGone('SrvHealthMon', 'Server Health Monitor', 3, [LEARN.dl('senior', 'se7', 'Windows: credentials and the domain attack surface')]), CK.programs(['PortProbe Toolkit', 'TorrentBolt 3.1'], 3), CK.savedCred('HONUA-NAS01', 'backup_admin', 2), CK.folderAcl('C:\\Shares\\HR', 'Everyone', 'hrclerk', 3), CK.svcAcl('W3SVC', 'World Wide Web Publishing Service', 'Authenticated Users', 3), CK.answer(1, ['backup_admin'], 4), CK.answer(2, ['IISLogCleaner'], 4), CK.answer(3, ['W3SVC', 'World Wide Web Publishing Service'], 3)],
+    availability: [AVAIL.users(['kahale', 'dispatch1', 'dispatch2', 'hrclerk', 'opsmgr', 'Administrator']), AVAIL.admins(['kahale', 'Administrator']), AVAIL.self(), AVAIL.rdpReq(), AVAIL.webKept(), AVAIL.shares(['HR', 'Ops']), AVAIL.folderAccess('C:\\Shares\\HR', 'hrclerk'), AVAIL.svc('mpssvc', 'Windows Defender Firewall'), AVAIL.svc('WinDefend', 'Microsoft Defender Antivirus'), AVAIL.wu()]
   }
 ];
 SCENARIOS.forEach(sc => { const sum = sc.checks.reduce((a, c) => a + c.pts, 0); if (sum !== 100) throw new Error('scenario ' + sc.id + ' totals ' + sum + ' points'); });
@@ -8056,6 +8168,12 @@ function advAreas() {
   return Object.keys(by).map(k => Object.assign({ area: k }, by[k])).sort((a, b) => (a.ok / a.n) - (b.ok / b.n) || a.area.localeCompare(b.area));
 }
 
+/* Hint references: the commands each check's hint names, with their Command Atlas ids. Generated by
+   curriculum/cli/range_hint_refs.js from the command index; edit the index and rerun it, never this file.
+   cmds: [command name, Command Atlas id]. checks: scenario id, then check id, then indexes into cmds.
+   kinds: a Level 4 template, then [index into cmds, the text that names the command in a hint or fix]. */
+const HINT_REFS = {"cmds":[["lusrmgr.msc","windows/lusrmgr.msc"],["net user","windows/net user"],["net localgroup","windows/net localgroup"],["Set-LocalUser","windows/Set-LocalUser"],["secpol.msc","windows/secpol.msc"],["net accounts","windows/net accounts"],["auditpol","windows/auditpol"],["netsh advfirewall set","windows/netsh advfirewall set"],["Set-MpPreference","windows/Set-MpPreference"],["services.msc","windows/services.msc"],["sc stop","windows/sc stop"],["sc config","windows/sc config"],["taskschd.msc","windows/taskschd.msc"],["schtasks","windows/schtasks"],["sc qc","windows/sc qc"],["sc delete","windows/sc delete"],["appwiz.cpl","windows/appwiz.cpl"],["Get-ChildItem","windows/Get-ChildItem"],["del","windows/del"],["reg add","windows/reg add"],["wf.msc","windows/wf.msc"],["netsh advfirewall firewall","windows/netsh advfirewall firewall"],["net share","windows/net share"],["reg query","windows/reg query"],["gpedit.msc","windows/gpedit.msc"],["systempropertiesremote","windows/systempropertiesremote"],["Get-NetFirewallRule","windows/Get-NetFirewallRule"],["Disable-NetFirewallRule","windows/Disable-NetFirewallRule"],["optionalfeatures","windows/optionalfeatures"],["Disable-WindowsOptionalFeature","windows/Disable-WindowsOptionalFeature"],["shell:common startup","windows/shell:common startup"],["shell:startup","windows/shell:startup"],["Get-CimInstance","windows/Get-CimInstance"],["secedit","windows/secedit"],["Get-WindowsFeature","windows/Get-WindowsFeature"],["Uninstall-WindowsFeature","windows/Uninstall-WindowsFeature"],["Get-MpPreference","windows/Get-MpPreference"],["Remove-MpPreference","windows/Remove-MpPreference"],["cmdkey","windows/cmdkey"],["icacls","windows/icacls"],["accesschk","windows/accesschk"],["sc sdshow","windows/sc sdshow"],["sc sdset","windows/sc sdset"],["Get-SmbShare","windows/Get-SmbShare"]],"checks":{"recruit":{"user-dwight":[0,1],"user-techsupport":[0,1],"demote-moana":[0,2],"guest":[0,1],"pwexp-kekoa":[0,3],"minpwlen":[4,5],"complexity":[4],"lockout":[4,5],"audit-LogonEvents":[4,6],"firewall":[7],"defender":[8],"svc-RemoteRegistry":[9,10,11],"task-SystemUpdaterSvc":[12,13],"rsvc-WinSysHelper":[9,14,10,11,15],"programs":[16],"media":[17,18]},"operator":{"user-svc_backup":[0,1],"demote-hiro":[0,2],"blankpw-pua":[0,1],"guest":[0,1],"minpwlen":[4,5],"complexity":[4],"history":[4,5],"maxage":[4,5],"minage":[4,5],"lockout":[4,5],"audit-LogonEvents":[4,6],"audit-AccountManagement":[4,6],"lastuser":[4,19],"cad":[4],"blankpw-console":[4,19],"uac":[19],"firewall":[7],"rule-Remote Helper (TCP-In)":[20,21],"share-tools":[22],"defender":[8],"autorun":[23,19,24],"svc-RemoteRegistry":[9,10,11],"rdp-off":[19],"remote-assist":[25,26,27],"feat-TelnetClient":[28,29],"feat-SMB1Protocol":[28,29],"programs":[16],"media":[17,18],"task-DriverCleanupSvc":[12,13],"startup-robotsynclnk":[30,31,32]},"captain":{"user-backup_admin":[0,1],"grp-backup-operators-hrclerk":[2,0],"pwexp-dispatch2":[0,3],"guest":[0,1],"minpwlen":[4,5],"complexity":[4],"history":[4,5],"maxage":[4,5],"minage":[4,5],"reversible":[4,33],"lockout":[4,5],"audit-LogonEvents":[4,6],"audit-AccountManagement":[4,6],"lastuser":[4,19],"lmauth":[4],"uac":[19],"firewall":[7],"rule-Ops Remote Helper (TCP-In)":[20,21],"ftp":[34,35],"feat-SMB1Protocol":[28,29],"feat-TelnetClient":[28,29],"rdp-nla":[19],"defender":[8],"defender-exclusion":[36,37],"task-IISLogCleaner":[12,13],"rsvc-SrvHealthMon":[9,14,10,11,15],"programs":[16],"cred-honua-nas01":[38],"acl-c-shares-hr-everyone":[39],"svcacl-W3SVC":[40,41,42]}},"kinds":{"auditacct":[[4,"secpol.msc"],[6,"auditpol"]],"auditlogon":[[4,"secpol.msc"],[6,"auditpol"]],"autorun":[[23,"reg query"],[19,"reg add"],[24,"gpedit.msc"]],"backupops":[[2,"net localgroup"],[0,"lusrmgr.msc"]],"blankconsole":[[4,"secpol.msc"],[19,"reg add"]],"blankpw":[[1,"net user"],[0,"lusrmgr.msc"]],"cad":[[4,"secpol.msc"]],"complexity":[[4,"secpol.msc"]],"defender":[[8,"Set-MpPreference"]],"demote":[[0,"lusrmgr.msc"],[2,"net localgroup"]],"exclusion":[[36,"Get-MpPreference"],[37,"Remove-MpPreference"]],"firewall":[[7,"netsh advfirewall set"]],"folder-acl":[[39,"icacls"]],"ftp":[[34,"Get-WindowsFeature"],[35,"Uninstall-WindowsFeature"]],"guest":[[0,"lusrmgr.msc"],[1,"net user"]],"history":[[4,"secpol.msc"],[5,"net accounts"]],"intruder":[[0,"lusrmgr.msc"],[1,"net user"]],"lastuser":[[4,"secpol.msc"],[19,"reg add"]],"lmauth":[[4,"secpol.msc"]],"lockout":[[4,"secpol.msc"],[5,"net accounts"]],"maxage":[[4,"secpol.msc"],[5,"net accounts"]],"media":[[17,"Get-ChildItem"],[18,"del"]],"minage":[[4,"secpol.msc"],[5,"net accounts"]],"minlen":[[4,"secpol.msc"],[5,"net accounts"]],"neverexpires":[[0,"lusrmgr.msc"],[3,"Set-LocalUser"]],"programs":[[16,"appwiz.cpl"]],"rdp-nla":[[19,"reg add"]],"rdp-off":[[19,"reg add"]],"remote-assist":[[25,"SystemPropertiesRemote"],[26,"Get-NetFirewallRule"],[27,"Disable-NetFirewallRule"]],"remote-registry":[[9,"services.msc"],[10,"sc.exe stop"],[11,"sc.exe config"]],"reversible":[[4,"secpol.msc"],[33,"secedit"]],"rogue-rule":[[20,"wf.msc"],[21,"netsh advfirewall firewall"]],"rogue-service":[[9,"services.msc"],[14,"sc.exe qc"],[10,"sc.exe stop"],[11,"sc.exe config"],[15,"sc.exe delete"]],"rogue-share":[[22,"net share"],[43,"Get-SmbShare"]],"rogue-task":[[12,"taskschd.msc"],[13,"schtasks"]],"savedcred":[[38,"cmdkey"]],"smb1":[[28,"optionalfeatures"],[29,"Disable-WindowsOptionalFeature"]],"startup-lnk":[[30,"shell:common startup"],[31,"shell:startup"],[32,"Get-CimInstance"]],"telnet":[[28,"optionalfeatures"],[29,"Disable-WindowsOptionalFeature"]],"uac":[[19,"reg add"]]}};
+
 /* ===== 90-ui: scenario selection, progress check, debrief, help, reset, theme, persistence, screen scaling ===== */
 const STORE_KEY = 'lockdown-range-windows-v3';
 const THEME_KEY = 'lockdown-range-theme';
@@ -8141,10 +8259,44 @@ function evaluate() {
 const COACH = [['level', 'Match the level'], ['todo', 'To-do list with hints'], ['areas', 'Remaining by area'], ['passed', 'Passed checks only']];
 function coachMode(lvl) { const v = STORE.coach; const m = COACH.some(x => x[0] === v) ? v : 'level'; return m === 'level' ? (lvl === 1 ? 'todo' : lvl === 2 ? 'areas' : 'passed') : m; }
 function coachLabel(mode) { return (COACH.find(x => x[0] === mode) || COACH[0])[1]; }
+/* Hints. S.hints[check id] keeps the deepest step shown this attempt: 1 = the hardening area and the principle, 3 = the
+   reference (the commands to look up, each linked to its Command Atlas entry), and 2 = the console path or command.
+   The scenario level sets the steps (HINT_PLAN): Recruit opens the principle, then the command; Operator the principle,
+   the reference, then the command; Captain and Level 4 the principle, then the reference. A check without reference
+   data opens its command in the reference's place. Depth runs 1, 3, 2 (HINT_DEPTH), so a saved 2 reads as command
+   shown at every level, and that command stays on show for the rest of the attempt. */
+const HINT_DEPTH = { 1: 1, 3: 2, 2: 3 };
+const HINT_PLAN = { 1: [1, 2], 2: [1, 3, 2], 3: [1, 3], 4: [1, 3] };
+const ATLAS_URL = 'https://freeapp4that.store/command-atlas/#cmd=';
+/* the commands a check's hint names, as [name, Command Atlas id], from HINT_REFS (89-hint-refs.js): by check id on
+   Levels 1 to 3; on Level 4 by the check's template, keeping the ones this layout's hint or fix names */
+function hintRefs(c) {
+  const out = [], add = i => { const r = HINT_REFS.cmds[i]; if (r && !out.includes(r)) out.push(r); };
+  if (CUR.layout) { const text = c.hint + '\n' + c.fix; (HINT_REFS.kinds[c.kind || c.id] || []).forEach(([i, t]) => { if (text.includes(t)) add(i); }); }
+  else ((HINT_REFS.checks[CUR.id] || {})[c.id] || []).forEach(add);
+  return out;
+}
+function hintPlan(c) { return hintRefs(c).length ? HINT_PLAN[CUR.level] || HINT_PLAN[1] : HINT_PLAN[1]; }
 function hintStep(id) { return (S && S.hints && S.hints[id]) || 0; }
-function setHintStep(id, n) { S.hints = S.hints || {}; if ((S.hints[id] || 0) < n) { S.hints[id] = n; persistNow(); } }
+/* the step the hint button opens next: 3 or 2, or 0 when every step of this level is open */
+function hintNext(c) { const d = HINT_DEPTH[hintStep(c.id)] || 0; return hintPlan(c).find(s => HINT_DEPTH[s] > d) || 0; }
+function setHintStep(id, n) { S.hints = S.hints || {}; if ((HINT_DEPTH[S.hints[id]] || 0) < HINT_DEPTH[n]) { S.hints[id] = n; persistNow(); } }
 function hintCount() { const hs = (S && S.hints) || {}; return Object.keys(hs).filter(k => hs[k] > 0).length; }
-function hintCommands() { const hs = (S && S.hints) || {}; return Object.keys(hs).filter(k => hs[k] >= 2).length; }
+function hintCommands() { const hs = (S && S.hints) || {}; return Object.keys(hs).filter(k => hs[k] === 2).length; }
+function hintReferences() { const hs = (S && S.hints) || {}; return Object.keys(hs).filter(k => hs[k] === 3).length; }
+/* how far the hints of this attempt went, in the Debrief's words: Recruit counts commands; Operator counts references
+   and commands; Captain and Level 4 count references, plus any command a check without reference data showed */
+function hintTally(shown) {
+  const c = hintCommands() + ' with the command' + shown, r = hintReferences() + ' with the reference' + shown;
+  return CUR.level <= 1 ? c : CUR.level === 2 || hintCommands() ? r + ' and ' + c : r;
+}
+function hintMark(st) { return st === 2 ? 'command shown' : st === 3 ? 'reference shown' : 'principle'; }
+/* the reference step: the names to look up as plain text, each a link to its Command Atlas entry */
+function hintRefLine(c) {
+  const refs = hintRefs(c), line = h('span', { class: 'hintstep hintref' }, 'Look up in Command Atlas: ');
+  refs.forEach((r, i) => { if (i) line.append(refs.length === 2 ? ' and ' : i === refs.length - 1 ? ', and ' : ', '); line.append(h('a', { href: ATLAS_URL + encodeURIComponent(r[1]), target: '_blank', rel: 'noopener', text: r[0] })); });
+  return line;
+}
 const HINT_OPEN = new Set();
 function coachControl(lvl) {
   const sel = h('select', { id: 'coach-sel' }); COACH.forEach(([v, t]) => { const o = h('option', { value: v, text: t }); if ((STORE.coach || 'level') === v) o.selected = true; sel.appendChild(o); });
@@ -8269,11 +8421,12 @@ function renderReport() {
     const tl = h('ul');
     CUR.checks.filter(c => !LAST.earned.includes(c)).forEach(c => {
       const li = h('li', { class: 'todo' }, h('span', { text: '○ ' + c.title }), h('span', { class: 'pts', text: c.pts + ' pts' }));
-      const step = hintStep(c.id), open = HINT_OPEN.has(c.id);
-      const hb = h('button', { type: 'button', class: 'hint-btn', text: !open ? 'Show hint' : step < 2 ? 'Show the command' : 'Hide hint', 'aria-expanded': String(open) });
+      const step = hintStep(c.id), open = HINT_OPEN.has(c.id), next = hintNext(c);
+      const hb = h('button', { type: 'button', class: 'hint-btn', dataset: { hint: c.id }, text: !open ? 'Show hint' : next === 3 ? 'Show what to look up' : next === 2 ? 'Show the command' : 'Hide hint', 'aria-expanded': String(open) });
       const hint = h('div', { class: 'hint', hidden: !open }, h('span', { class: 'hintstep', text: c.cat + ': ' + c.why }));
-      if (step >= 2) hint.appendChild(h('span', { class: 'hintstep', text: 'Hint: ' + c.hint }));
-      hb.addEventListener('click', () => { if (!open) { HINT_OPEN.add(c.id); setHintStep(c.id, 1); } else if (step < 2) { setHintStep(c.id, 2); } else { HINT_OPEN.delete(c.id); } renderReport(); const nb = Array.from($$('.hint-btn')).find(b => b.closest('li') && b.closest('li').textContent.includes(c.title)); if (nb) nb.focus(); });
+      if (HINT_DEPTH[step] >= 2 && hintPlan(c).includes(3)) hint.appendChild(hintRefLine(c));
+      if (step === 2) hint.appendChild(h('span', { class: 'hintstep', text: 'Hint: ' + c.hint }));
+      hb.addEventListener('click', () => { if (!open) { HINT_OPEN.add(c.id); setHintStep(c.id, 1); } else if (next) { setHintStep(c.id, next); } else { HINT_OPEN.delete(c.id); } renderReport(); const nb = Array.from($$('.hint-btn')).find(b => b.closest('li') && b.closest('li').textContent.includes(c.title)); if (nb) nb.focus(); });
       li.append(hb, hint); tl.appendChild(li);
     });
     body.appendChild(tl);
@@ -8312,7 +8465,7 @@ function loadScenario(id, fresh, code) {
   if (!fresh && rec && rec.S && rec.S.hostname === sc.hostname && rec.S.users && (rec.S.rev || 0) === (sc.rev || 0) && (rec.S.layout || null) === (sc.layout || null)) st = rec.S;
   if (!st) st = buildLab(sc);
   S = st;
-  UI.uacGranted = false; UI.pendingLogin = null;
+  UI.uacGranted = false; UI.pendingLogin = null; HINT_OPEN.clear();   // every hint starts closed on the machine that loads
   WM.wins = []; WM.active = null; TERM.tabs = []; TERM.win = null;
   STORE.sel = sc.id; storage.set(STORE_KEY, STORE);
   renderLevels();
@@ -8358,20 +8511,20 @@ function openDebrief() {
   tbl.appendChild(h('thead', {}, h('tr', {}, h('th', { text: '' }), h('th', { text: 'Check' }), h('th', { text: 'Pts' }), h('th', { text: 'Fix' }), h('th', { text: 'Why it matters' }))));
   const tb = h('tbody');
   const learnIt = c => !c.learn ? null : h('div', {}, 'Learn it: ', c.learn.map(LEARN.link).map((l, i) => [i ? '; ' : '', h('a', { href: l.href, target: '_blank', rel: 'noopener', style: 'color:var(--accent)', text: l.text })]));
-  CUR.checks.forEach(c => { const ok = LAST.earned.includes(c); const st = hintStep(c.id); tb.appendChild(h('tr', {}, h('td', { class: ok ? 'ok' : 'ko', text: ok ? '✓' : '✗' }), h('td', { text: c.title }), h('td', { class: 'pts', text: String(c.pts) }), h('td', { class: 'fix', text: c.fix }), h('td', { class: 'why' }, c.why, learnIt(c), st ? h('span', { class: 'hintmark', text: st >= 2 ? ' (hint: command shown)' : ' (hint: principle)' }) : null))); });
+  CUR.checks.forEach(c => { const ok = LAST.earned.includes(c); const st = hintStep(c.id); tb.appendChild(h('tr', {}, h('td', { class: ok ? 'ok' : 'ko', text: ok ? '✓' : '✗' }), h('td', { text: c.title }), h('td', { class: 'pts', text: String(c.pts) }), h('td', { class: 'fix', text: c.fix }), h('td', { class: 'why' }, c.why, learnIt(c), st ? h('span', { class: 'hintmark', text: ' (hint: ' + hintMark(st) + ')' }) : null))); });
   CUR.availability.forEach(p => { const hit = LAST.failed.includes(p); tb.appendChild(h('tr', {}, h('td', { class: hit ? 'ko' : 'ok', text: hit ? '✗' : '✓' }), h('td', { text: 'Availability check: ' + (hit ? availName(p) : availNeed(p)) }), h('td', { text: hit ? 'must fix' : '—' }), h('td', { class: 'fix', text: hit ? 'Restore: ' + availRestore(p) : availBroke(p) ? 'Broken' + (brokeNames(p) ? ' (' + brokeNames(p) + ')' : '') + ', then restored. ' + fillName(p.restore, brokeNames(p)) : 'Kept working the whole time.' }), h('td', { class: 'why', text: p.why }))); });
   tbl.appendChild(tb);
   const sum = h('p', { class: 'sum', text: 'Score ' + LAST.total + ' / ' + LAST.max + '  ·  ' + LAST.earned.length + ' of ' + CUR.checks.length + ' checks passed  ·  ' + availSummary() + '  ·  Time ' + fmtElapsed(S.elapsed || 0) + (CUR.layout ? '  ·  Layout code ' + CUR.layout : '') });
   // Level 4: the hardening areas in the where-to-invest-next style (Strong: every check passed; Revisit: the misses, weakest first)
   const areas = !CUR.layout ? null : (() => { const box = h('div', { class: 'dbr-areas' }, h('h3', { text: 'Hardening areas: where to invest next' }), h('p', { text: 'Layout ' + CUR.layout + ' built this machine. Enter the same code to try it again, or build a new layout to practice on a different machine.' })); const ul = h('ul'); advAreas().forEach(a => ul.appendChild(h('li', {}, h('b', { class: a.ok === a.n ? 'rate-strong' : 'rate-revisit', text: a.ok === a.n ? 'Strong' : 'Revisit' }), ' ' + a.area + ': ' + a.ok + ' of ' + a.n + (a.ok === a.n ? ' passed.' : ' passed. Still open: ' + a.miss.join('; ') + '.')))); box.appendChild(ul); return box; })();
   const rec = STORE.scen[CUR.id] || (STORE.scen[CUR.id] = { best: 0 });
-  const hints = h('p', { class: 'dbr-hints', text: 'Hints this attempt: ' + hintCount() + ' of ' + CUR.checks.length + ' checks (' + hintCommands() + ' with the command shown). Coach: ' + coachLabel(coachMode(CUR.level)) + '. A pass with no hints on a fresh attempt is the one that counts.' });
+  const hints = h('p', { class: 'dbr-hints', text: 'Hints this attempt: ' + hintCount() + ' of ' + CUR.checks.length + ' checks (' + hintTally(' shown') + '). Coach: ' + coachLabel(coachMode(CUR.level)) + '. A pass with no hints on a fresh attempt is the one that counts.' });
   const ta = h('textarea', { id: 'dbr-reflect' }); ta.value = rec.reflect || ''; ta.addEventListener('input', () => { rec.reflect = ta.value; storage.set(STORE_KEY, STORE); });
   const refl = h('label', { class: 'dbr-reflect' }, h('span', { text: 'What broke, and what will you do first next time? (saved with this scenario)' }), ta);
   const cp = h('button', { type: 'button', class: 'rbtn', id: 'dbr-copy', text: 'Copy debrief as text' }); const st = h('span', { role: 'status' }); const out = h('textarea', { hidden: true, 'aria-label': 'Debrief as text' }); out.readOnly = true;
-  const debriefText = () => { const lines = ['Lockdown Range: Windows - ' + CUR.title + ' (' + CUR.name + ')', 'Progress ' + LAST.total + ' / ' + LAST.max + ' - checks passed ' + LAST.earned.length + ' of ' + CUR.checks.length + ' - availability: ' + availSummary() + ' - time ' + fmtElapsed(S.elapsed || 0) + ' - hints ' + hintCount() + ' (' + hintCommands() + ' with the command) - coach: ' + coachLabel(coachMode(CUR.level))].concat(CUR.layout ? [ADV_LABEL + ' - layout code ' + CUR.layout + ' (enter it in Level 4 to build this same machine)'] : [], ['']);
+  const debriefText = () => { const lines = ['Lockdown Range: Windows - ' + CUR.title + ' (' + CUR.name + ')', 'Progress ' + LAST.total + ' / ' + LAST.max + ' - checks passed ' + LAST.earned.length + ' of ' + CUR.checks.length + ' - availability: ' + availSummary() + ' - time ' + fmtElapsed(S.elapsed || 0) + ' - hints ' + hintCount() + ' (' + hintTally('') + ') - coach: ' + coachLabel(coachMode(CUR.level))].concat(CUR.layout ? [ADV_LABEL + ' - layout code ' + CUR.layout + ' (enter it in Level 4 to build this same machine)'] : [], ['']);
     if (CUR.layout) { advAreas().forEach(a => lines.push((a.ok === a.n ? 'Strong: ' : 'Revisit: ') + a.area + ' ' + a.ok + ' of ' + a.n)); lines.push(''); }
-    CUR.checks.forEach(c => { const s2 = hintStep(c.id); lines.push((LAST.earned.includes(c) ? '[x] ' : '[ ] ') + c.title + ' (' + c.pts + ' pts)' + (s2 ? '  [hint: ' + (s2 >= 2 ? 'command shown' : 'principle') + ']' : '')); });
+    CUR.checks.forEach(c => { const s2 = hintStep(c.id); lines.push((LAST.earned.includes(c) ? '[x] ' : '[ ] ') + c.title + ' (' + c.pts + ' pts)' + (s2 ? '  [hint: ' + hintMark(s2) + ']' : '')); });
     CUR.availability.forEach(p => lines.push((LAST.failed.includes(p) ? '[!] ' : availBroke(p) ? '[restored] ' : '[ok] ') + 'Availability: ' + (LAST.failed.includes(p) ? availName(p) + ' (must fix)' : availNeed(p) + (availBroke(p) ? ' (Revisit: ' + (brokeNames(p) ? brokeNames(p) + ' ' : '') + 'broken, then restored)' : ' (Strong: kept working)'))));
     if (rec.reflect) lines.push('', 'What broke, and what I will do first next time:', rec.reflect); return lines.join('\n') + '\n'; };
   cp.addEventListener('click', () => { const txt = debriefText(); const show = () => { out.hidden = false; out.value = txt; st.textContent = 'Select the text below and copy it.'; }; if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(() => { st.textContent = 'Copied.'; }, show); else show(); });
@@ -8382,10 +8535,10 @@ function openHelp() {
   const sec = (t, items) => { body.appendChild(h('h3', { text: t })); const ul = h('ul'); items.forEach(i => ul.appendChild(h('li', { text: i }))); body.appendChild(ul); };
   sec('The routine', ['Pick a scenario (header pills) and let it boot. Sign in with the lab account shown under the password box (labuser / Easy!2026 on Recruit, Medium!2026 on Operator, and Hard!2026 on Captain).', 'Open Scenario Brief.txt on the Desktop. Write down the authorized administrators, users, and required services: you must keep those available.', 'The brief sets the password and lockout numbers, and the matching check titles repeat them: Recruit shows them as you work, and every level shows them in the Debrief.','Answer the investigation questions (open each Investigation N.txt on the Desktop in Notepad, type after ANSWER:, press Ctrl+S).', 'Start Windows Update early (Settings > Windows Update > Resume updates > Check for updates > Install all) and keep working while it installs; restart once near the end.', 'Work through the hardening areas (aligned with the CIS Critical Security Controls v8): account management, access control, secure configuration (services, firewall, features, software), patching, malware defenses, audit logging, and data protection (media files).', 'Watch the Progress Check. Finish / Debrief shows every miss with its fix and why it matters.', 'Availability counts too. Breaking something the Scenario Brief requires (an authorized user, an administrator, or a required service) keeps your points where they are and shows a must-fix item in red with its restore step. Finish waits until it works again, because an outage is an incident you fix before you are done.']);
   sec('Getting to the tools', ['Start > Run (or Alt+R) and type: lusrmgr.msc, secpol.msc, gpedit.msc, services.msc, taskschd.msc, wf.msc, eventvwr.msc, appwiz.cpl, optionalfeatures, SystemPropertiesRemote (Remote Desktop and Remote Assistance), UserAccountControlSettings (the UAC slider), msinfo32, tpm.msc, winver, shell:startup, shell:common startup, control, ms-settings:', 'Start > type the name to search. Enter opens it; Ctrl+Shift+Enter runs it as administrator.', 'Right-click a taskbar or Start tile for "Run as administrator". Terminal commands that change the machine need an administrator window (net, sc.exe, schtasks, netsh, auditpol, icacls).', 'Windows+R cannot be captured by a web page; Alt+R opens Run here.']);
-  sec('Sysinternals from the command line', ['Five signed Sysinternals tools run in Command Prompt or PowerShell, each against this machine; pass -accepteula the first time.', 'sigcheck -u -e C:\\Windows\\System32 lists unsigned executables; add -h for hashes.', 'autorunsc -a * -s -h -m lists every auto-start entry with its signature, hiding the verified Microsoft ones; add -c for CSV.', 'accesschk -uwcqv "Authenticated Users" * shows the services a standard account can change; accesschk -s -w Users "C:\\Program Files" shows writable files and folders.', 'streams -s C:\\Users\\Public lists alternate data streams; -d deletes them.', 'tcpvcon -a -c lists every TCP and UDP endpoint with its owning process.']);
+  sec('Sysinternals from the command line', ['Five signed Sysinternals tools run in Command Prompt or PowerShell, each against this machine; pass -accepteula the first time.', 'sigcheck -u -e C:\\Windows\\System32 lists unsigned executables; add -h for hashes.', 'autorunsc -a * -s -h -m lists every auto-start entry with its signature, hiding the verified Microsoft ones; add -c for CSV.', 'accesschk -uwcqv "Authenticated Users" * shows the services a standard account can change; accesschk -s -w Users "C:\\Program Files" shows writable files and folders.', 'A service keeps its permissions in a security descriptor: sc.exe sdshow NAME prints it, sc.exe sdset NAME "D:..." sets it, and accesschk -c reads it. Each (A;;rights;;;account) entry names one account: SY is SYSTEM, BA is Administrators, and AU is Authenticated Users; DC, WD, and WO are the rights that change a service.', 'streams -s C:\\Users\\Public lists alternate data streams; -d deletes them.', 'tcpvcon -a -c lists every TCP and UDP endpoint with its owning process.']);
   sec('Keyboard', ['Windows: title bar focused + arrow keys moves, Shift+arrows resizes, Alt+F4 closes.', 'Terminal: Up/Down history, Tab completes, Ctrl+L clears, Ctrl+C cancels.', 'Desktop icons: arrows to move, Enter opens, Delete sends to the Recycle Bin.', 'Esc closes menus and dialogs.']);
   sec('What the simulation covers', ['A faithful subset of ' + VERSIONS.win11.family + ' (version ' + VERSIONS.win11.version + ') and ' + VERSIONS.server.family + ': the panels and commands an administrator uses to harden a standalone machine. Nothing touches your real computer.', 'Outside the simulation: Registry Editor, Task Manager, real program windows, the Microsoft Store, and networking beyond this machine.', 'Progress and the machine state save in this browser. Reset lab reverts to the original snapshot.', 'Setting names and commands follow Microsoft Learn (Windows security policy settings reference, Windows Commands reference) and the CIS Critical Security Controls v8.', 'Practice only on machines you own or are authorized to manage.']);
-  sec('Coach and hints', ['Coach, at the top of the Progress Check, sets how much the panel shows. Pick the to-do list with hints, the remaining count per area, or passed checks only.', 'A hint opens in two steps: the hardening area and the principle, then the console path or command.','Your best score remembers how many hints it took. A pass with no hints on a fresh attempt is the one that counts.']);
+  sec('Coach and hints', ['Coach, at the top of the Progress Check, sets how much the panel shows. Pick the to-do list with hints, the remaining count per area, or passed checks only.', 'A hint opens in steps set by the scenario level. Recruit: the hardening area and the principle, then the console path or command.', 'Operator: the principle, then the commands to look up, each one a link to its Command Atlas entry at the Tool4That hub, then the console path or command.', 'Captain and Level 4: the principle, then the commands to look up. The full command stays in the solution walkthrough. A check whose hint names a console path alone opens that path as its second step.','Your best score remembers how many hints it took. A pass with no hints on a fresh attempt is the one that counts.']);
   sec(ADV_LABEL, ['Extra credit for learners who finished Recruit, Operator, and Captain. It sits outside the three tiers and stays open to everyone. Sign in as labuser / ' + ADV_PW + '.', 'Each attempt builds a different machine from a six-character layout code: a computer-lab desktop, a teacher laptop, a front-office PC, or a file and portal server at Pōhinahina High School, with its own accounts, address, faults, and decoys. The faults come only from what Levels 1 to 3 teach.', 'The Scenario Brief is built from the same code, so its lists of authorized people, required services, and policy numbers are the ground truth. Read it first: some items that look odd are required.', 'New layout builds a different machine. Enter a layout code builds the machine a teacher or a friend names, the same one in any browser. The code shows in the Progress Check, the Debrief, and the copied debrief.', 'Level 4 keeps one best score for the level as a whole, plus the last layout code.']);
   sec('After you try', ['Solution walkthrough for every scenario: the Walkthrough .txt button on this tool’s card at the Tool4That hub downloads it as windows-range-walkthrough.txt, and its Level 4 section works layout ' + ADV_EXAMPLE + ' in full. Try each scenario on your own first, then read it to see what you missed.']);
   pageModal({ title: 'How to use Windows Range', body, buttons: [{ label: 'Close', value: 'close', primary: true }] });

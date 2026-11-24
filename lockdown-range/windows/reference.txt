@@ -65,12 +65,17 @@ touches the real computer. Progress is saved in the browser; "Reset lab"
 restores the scenario's original state and keeps the best score (like reverting
 a VM snapshot).
 
-Levels: 1 Recruit lists every check as a to-do with hints that open in two steps
-(the hardening area and the principle, then the console path or command); 2
-Operator shows only the remaining count per hardening area; 3 Captain shows
-nothing but the checks already passed. The Coach control at the top of the
-Progress Check picks any of the three for any level, and the best score
-remembers how many hints it took.
+Levels: 1 Recruit lists every check as a to-do with hints; 2 Operator shows only
+the remaining count per hardening area; 3 Captain shows nothing but the checks
+already passed. The Coach control at the top of the Progress Check picks any of
+the three for any level, and the best score remembers how many hints it took.
+
+Hints open in steps set by the level. Recruit: the hardening area and the
+principle, then the console path or command. Operator: the principle, then the
+commands to look up (each one links to its Command Atlas entry at the Tool4That
+hub), then the console path or command. Captain and Level 4: the principle, then
+the commands to look up; the full command lines are in this walkthrough. A check
+whose hint names a console path alone opens that path as its second step.
 
 --------------------------------------------------------------------------------
 2. THE ROUTINE: POWER-ON TO PROGRESS CHECK
@@ -678,6 +683,8 @@ Scenario Brief summary
       removed.
     - Everyone loses its full control of the HR folder (C:\Shares\HR); the HR
       clerk keeps Modify.
+    - Changing a service is for SYSTEM and the Administrators group alone; every
+      other account reads a service at most.
     - Delete any password saved for an account you remove.
 
 Investigation questions
@@ -690,9 +697,16 @@ Investigation questions
       that task?
       ANSWER: IISLogCleaner
       (Hint: schtasks /query /fo LIST /v | findstr /i "TaskName Task.To.Run")
+  Q3  One service on this server lets every signed-in account change its
+      configuration. What is the name of that service? Record it before you fix
+      the permission.
+      ANSWER: W3SVC
+      (Hint: accesschk -accepteula -uwcqv "Authenticated Users" * lists the
+       services that Authenticated Users can change (a Sysinternals tool; any
+       terminal window runs it).)
 
 Checks (100 points)
-  [5]  Unauthorized user "backup_admin" removed
+  [4]  Unauthorized user "backup_admin" removed
        area: Account management
        fix: lusrmgr.msc > Users > backup_admin > Delete
        or:  net user backup_admin /delete
@@ -807,7 +821,7 @@ Checks (100 points)
             PromptOnSecureDesktop /d 1
        why: With UAC off, any program the user runs silently gets administrator
             power.
-  [4]  Windows Defender Firewall on for all profiles
+  [3]  Windows Defender Firewall on for all profiles
        area: Secure configuration
        fix: Windows Security > Firewall & network protection > Domain, Private,
             Public = On
@@ -840,7 +854,7 @@ Checks (100 points)
        fix: optionalfeatures > uncheck "Telnet Client"
        or:  Disable-WindowsOptionalFeature -Online -FeatureName TelnetClient
        why: Telnet sends every keystroke, passwords included, in clear text.
-  [4]  Remote Desktop requires Network Level Authentication
+  [3]  Remote Desktop requires Network Level Authentication
        area: Access control
        fix: Settings > System > Remote Desktop > check "Require devices to use
             Network Level Authentication"
@@ -849,13 +863,13 @@ Checks (100 points)
             /f
        why: NLA authenticates before a session is created, blocking pre-auth
             exploits.
-  [4]  Microsoft Defender real-time protection on
+  [3]  Microsoft Defender real-time protection on
        area: Malware defenses
        fix: Windows Security > Virus & threat protection > Manage settings >
             Real-time protection = On
        or:  Set-MpPreference -DisableRealtimeMonitoring $false
        why: With real-time protection off, malware runs unchallenged.
-  [4]  Microsoft Defender exclusion for C:\Users\Public\Libraries removed
+  [3]  Microsoft Defender exclusion for C:\Users\Public\Libraries removed
        area: Malware defenses
        fix: Windows Security > Virus & threat protection > Manage settings > Add
             or remove exclusions > C:\Users\Public\Libraries > Remove
@@ -901,10 +915,19 @@ Checks (100 points)
        why: Full control for Everyone lets any account read, change, or delete
             these records and even rewrite who may open them. Grant access to
             the people the brief names.
+  [3]  Weak permission on the W3SVC service fixed (SYSTEM and Administrators
+       alone can change it)
+       area: Access control
+       fix: sc.exe sdset W3SVC
+            "D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWLOCRRC;;;IU)(A;;CCLCSWLOCRRC;;;SU)"
+       why: An account that can change a service that runs as SYSTEM can point
+            it at its own program, which then runs as SYSTEM.
   [4]  Investigation 1 answered
        fix: Answer: backup_admin
-  [5]  Investigation 2 answered
+  [4]  Investigation 2 answered
        fix: Answer: IISLogCleaner
+  [3]  Investigation 3 answered
+       fix: Answer: W3SVC
 
 Availability checks (must fix: breaking one keeps your points, shows it in red
 with its restore step, and holds Finish until it works again)
@@ -931,9 +954,10 @@ with its restore step, and holds Finish until it works again)
                 fDenyTSConnections /t REG_DWORD /d 0 /f. Set any Remote Desktop
                 policy you changed in gpedit.msc back to Not Configured, and
                 start Remote Desktop Services: sc.exe start TermService.
-  - Web server (IIS) stopped, removed, or blocked by the firewall
+  - Web server (IIS) stopped, disabled, removed, or blocked by the firewall
        restore: Bring the portal back: turn Internet Information Services back
-                on in optionalfeatures, start the web service (sc.exe start
+                on in optionalfeatures, set the web service to Automatic and
+                start it (sc.exe config W3SVC start= auto, then sc.exe start
                 W3SVC), and turn its firewall rule back on: netsh advfirewall
                 firewall set rule name="World Wide Web Services (HTTP
                 Traffic-In)" new enable=yes.
@@ -1600,6 +1624,12 @@ Services and tasks
   sc.exe stop NAME, then sc.exe config NAME start= disabled
     (the space after = matters; sc.exe works in both shells)
   PowerShell: Get-Service; Set-Service -Name NAME -StartupType Disabled
+  accesschk -accepteula -uwcqv "Authenticated Users" *
+    (Sysinternals) lists the services that group can change
+  sc.exe sdshow NAME                  who may do what to the service (SDDL)
+  sc.exe sdset NAME "SDDL"            replaces it; the Captain scenario prints
+    the standard descriptor, which keeps SYSTEM (SY) and Administrators (BA)
+    in control and gives every other account read access
   schtasks /query /fo LIST /v | findstr /i "TaskName Task.To.Run"
   schtasks /delete /tn "NAME" /f
   schtasks /create /tn "NAME" /tr "\"PROGRAM\" ARGS" /sc daily /st 02:00

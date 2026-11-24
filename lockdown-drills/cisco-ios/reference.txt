@@ -2,6 +2,9 @@
  03: CISCO IOS HARDENING: SOLUTION WALKTHROUGH
      Cisco IOS 15.x routers and switches (Packet Tracer compatible)
  Training reference for lab devices you own or are authorized to change.
+ Practice hands-on in the Cisco Range
+ (https://freeapp4that.store/lockdown-range/cisco-ios/) and, on a real device,
+ with Cyber PUG (https://freeapp4that.store/cyber-pug/).
  Three levels: L1 Doorman, L2 Watchman, L3 Hunter. Every item = COMMAND, WHY,
  NOTE, and the hardening AREA it belongs to; ALSO adds a second caution when
  an item needs one. No scripts by design: type it, read it, explain it. Item
@@ -16,7 +19,7 @@
    Malware defenses
    Audit logging
    Also tagged: Data protection; Investigation (forensics basics).
-   The six areas and their CIS Controls: Defense Ladder, Sophomore s1.
+   The six areas: Defense Ladder, Sophomore s1.
      https://freeapp4that.store/defense-ladder/#sophomore/s1
    Evidence first: answer any investigation question before you change a device.
    Learn it: Defense Ladder, Freshman f1, How hands-on defense practice works.
@@ -845,9 +848,5 @@
     https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst2960/software/release/12-2_55_se/configuration/guide/scg_2960/swtrafc.html
   Catalyst 2960 configuration guide: VLANs and trunks
     https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst2960/software/release/12-2_55_se/configuration/guide/scg_2960/swvlan.html
-  CIS Critical Security Controls v8.1
-    https://www.cisecurity.org/controls/v8
-  CIS Benchmarks
-    https://www.cisecurity.org/cis-benchmarks
 
 ================================================================================

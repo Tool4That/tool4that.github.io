@@ -557,8 +557,7 @@
         {"tool": "lockdown-range/linux", "kind": "lab", "find": ["deluser", "userdel"]},
         {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["Get-LocalUser", "net user", "lusrmgr"]},
         {"tool": "lockdown-drills/windows-server", "kind": ["learn", "drill"], "find": ["Get-LocalUser", "net user", "Get-ADUser"]},
-        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["deluser", "userdel"]},
-        {"tool": "lockdown-drills/linux-mint", "kind": ["learn", "drill"], "find": ["deluser", "userdel"]},
+        {"tool": "lockdown-drills/debian-family", "kind": ["learn", "drill"], "find": ["deluser", "userdel"]},
         {"tool": "lockdown-drills/freebsd", "kind": ["learn", "drill"], "find": ["rmuser", "pw userdel"]}
       ],
       "refs": [
@@ -575,8 +574,7 @@
         {"tool": "lockdown-range/linux", "kind": "lab", "find": ["gpasswd", "sudo group"]},
         {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["net localgroup", "Remove-LocalGroupMember"]},
         {"tool": "lockdown-drills/windows-server", "kind": ["learn", "drill"], "find": ["net localgroup", "Remove-LocalGroupMember", "Domain Admins"]},
-        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["gpasswd", "sudo group"]},
-        {"tool": "lockdown-drills/linux-mint", "kind": ["learn", "drill"], "find": ["gpasswd", "sudo group"]},
+        {"tool": "lockdown-drills/debian-family", "kind": ["learn", "drill"], "find": ["gpasswd", "sudo group"]},
         {"tool": "lockdown-drills/freebsd", "kind": ["learn", "drill"], "find": ["wheel"]}
       ],
       "refs": [
@@ -593,8 +591,7 @@
         {"tool": "lockdown-range/linux", "kind": "lab", "find": ["PermitRootLogin"]},
         {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["Guest"]},
         {"tool": "lockdown-drills/windows-server", "kind": ["learn", "drill"], "find": ["Guest"]},
-        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["PermitRootLogin", "allow-guest"]},
-        {"tool": "lockdown-drills/linux-mint", "kind": ["learn", "drill"], "find": ["allow-guest", "PermitRootLogin"]},
+        {"tool": "lockdown-drills/debian-family", "kind": ["learn", "drill"], "find": ["PermitRootLogin", "allow-guest"]},
         {"tool": "lockdown-drills/freebsd", "kind": ["learn", "drill"], "find": ["PermitRootLogin"]}
       ],
       "refs": []
@@ -609,8 +606,7 @@
         {"tool": "lockdown-range/linux", "kind": "lab", "find": ["PASS_MAX_DAYS", "pam_pwquality", "minlen"]},
         {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["Minimum password length", "MinimumPasswordLength"]},
         {"tool": "lockdown-drills/windows-server", "kind": ["learn", "drill"], "find": ["Minimum password length", "MinimumPasswordLength"]},
-        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["PASS_MAX_DAYS", "pam_pwquality", "minlen"]},
-        {"tool": "lockdown-drills/linux-mint", "kind": ["learn", "drill"], "find": ["PASS_MAX_DAYS", "pam_pwquality", "minlen"]},
+        {"tool": "lockdown-drills/debian-family", "kind": ["learn", "drill"], "find": ["PASS_MAX_DAYS", "pam_pwquality", "minlen"]},
         {"tool": "lockdown-drills/freebsd", "kind": ["learn", "drill"], "find": ["login.conf", "passwdqc"]},
         {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › SSH only", "find": ["shorter than 10 characters"]},
         {"tool": "net-drills/config-audit", "kind": "fix", "where": "What's missing?", "find": ["Minimum password length"]}
@@ -629,8 +625,7 @@
         {"tool": "lockdown-range/linux", "kind": "lab", "find": ["faillock", "pam_tally2"]},
         {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["Account lockout", "lockout threshold"]},
         {"tool": "lockdown-drills/windows-server", "kind": ["learn", "drill"], "find": ["Account lockout", "lockout threshold"]},
-        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["faillock", "pam_tally2"]},
-        {"tool": "lockdown-drills/linux-mint", "kind": ["learn", "drill"], "find": ["faillock", "pam_tally2"]},
+        {"tool": "lockdown-drills/debian-family", "kind": ["learn", "drill"], "find": ["faillock", "pam_tally2"]},
         {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › SSH only", "find": ["Block logins for 120 s"]},
         {"tool": "net-drills/config-audit", "kind": "fix", "where": "What's missing?", "find": ["Brute-force protection"]}
       ],
@@ -645,8 +640,7 @@
       "prereqs": ["password-policy"],
       "locations": [
         {"tool": "lockdown-range/linux", "kind": "lab", "find": ["common-password", "/etc/pam.d"]},
-        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["common-password", "/etc/pam.d"]},
-        {"tool": "lockdown-drills/linux-mint", "kind": ["learn", "drill"], "find": ["common-password", "/etc/pam.d"]}
+        {"tool": "lockdown-drills/debian-family", "kind": ["learn", "drill"], "find": ["common-password", "/etc/pam.d"]}
       ],
       "refs": [
         {"title": "Linux man-pages: pam(8)", "url": "https://man7.org/linux/man-pages/man8/pam.8.html", "src": "vendor"}
@@ -675,7 +669,7 @@
         {"tool": "lockdown-range/windows", "kind": "lab", "find": ["auditpol", "audit policy"]},
         {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["auditpol", "audit policy"]},
         {"tool": "lockdown-drills/windows-server", "kind": ["learn", "drill"], "find": ["auditpol", "audit policy"]},
-        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["auditd"]}
+        {"tool": "lockdown-drills/debian-family", "kind": ["learn", "drill"], "find": ["auditd"]}
       ],
       "refs": [
         {"title": "Microsoft Learn: auditpol", "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/auditpol", "src": "vendor"}
@@ -732,8 +726,7 @@
         {"tool": "lockdown-range/linux", "kind": "lab", "find": ["systemctl"]},
         {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["services.msc", "Set-Service", "sc config"]},
         {"tool": "lockdown-drills/windows-server", "kind": ["learn", "drill"], "find": ["services.msc", "Set-Service", "sc config"]},
-        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["systemctl disable"]},
-        {"tool": "lockdown-drills/linux-mint", "kind": ["learn", "drill"], "find": ["systemctl disable"]},
+        {"tool": "lockdown-drills/debian-family", "kind": ["learn", "drill"], "find": ["systemctl disable"]},
         {"tool": "lockdown-drills/freebsd", "kind": ["learn", "drill"], "find": ["sysrc", "rc.conf"]},
         {"tool": "net-drills/config-audit", "kind": "fix", "where": "R1 edge router", "find": ["The web management server is on"]},
         {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › SSH only", "find": ["advertising the router with CDP"]}
@@ -765,8 +758,7 @@
         {"tool": "lockdown-range/windows", "kind": "lab", "find": ["appwiz"]},
         {"tool": "lockdown-range/linux", "kind": "lab", "find": ["apt purge", "apt-get purge", "apt remove"]},
         {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["appwiz", "Uninstall"]},
-        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["apt purge", "apt-get purge", "apt remove"]},
-        {"tool": "lockdown-drills/linux-mint", "kind": ["learn", "drill"], "find": ["apt purge", "apt-get purge", "apt remove"]},
+        {"tool": "lockdown-drills/debian-family", "kind": ["learn", "drill"], "find": ["apt purge", "apt-get purge", "apt remove"]},
         {"tool": "lockdown-drills/freebsd", "kind": ["learn", "drill"], "find": ["pkg delete", "pkg remove"]}
       ],
       "refs": [
@@ -783,8 +775,7 @@
         {"tool": "lockdown-range/linux", "kind": "lab", "find": ["apt upgrade", "apt-get upgrade", "unattended-upgrades"]},
         {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["Windows Update"]},
         {"tool": "lockdown-drills/windows-server", "kind": ["learn", "drill"], "find": ["Windows Update"]},
-        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["unattended-upgrades", "apt upgrade", "apt-get upgrade"]},
-        {"tool": "lockdown-drills/linux-mint", "kind": ["learn", "drill"], "find": ["unattended-upgrades", "apt upgrade", "apt-get upgrade", "mintupdate"]},
+        {"tool": "lockdown-drills/debian-family", "kind": ["learn", "drill"], "find": ["unattended-upgrades", "apt upgrade", "apt-get upgrade", "mintupdate"]},
         {"tool": "lockdown-drills/freebsd", "kind": ["learn", "drill"], "find": ["freebsd-update"]},
         {"tool": "defense-ladder", "kind": "learn", "find": ["patching", "patch"]}
       ],
@@ -802,8 +793,7 @@
         {"tool": "lockdown-range/linux", "kind": "lab", "find": ["crontab"]},
         {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["schtasks", "Task Scheduler"]},
         {"tool": "lockdown-drills/windows-server", "kind": ["learn", "drill"], "find": ["schtasks", "Task Scheduler"]},
-        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["crontab"]},
-        {"tool": "lockdown-drills/linux-mint", "kind": ["learn", "drill"], "find": ["crontab"]},
+        {"tool": "lockdown-drills/debian-family", "kind": ["learn", "drill"], "find": ["crontab"]},
         {"tool": "lockdown-drills/freebsd", "kind": ["learn", "drill"], "find": ["crontab"]}
       ],
       "refs": [
@@ -818,8 +808,7 @@
       "prereqs": [],
       "locations": [
         {"tool": "lockdown-range/linux", "kind": "lab", "find": ["chmod"]},
-        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["chmod"]},
-        {"tool": "lockdown-drills/linux-mint", "kind": ["learn", "drill"], "find": ["chmod"]},
+        {"tool": "lockdown-drills/debian-family", "kind": ["learn", "drill"], "find": ["chmod"]},
         {"tool": "lockdown-drills/freebsd", "kind": ["learn", "drill"], "find": ["chmod"]},
         {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["icacls"]}
       ],
@@ -837,8 +826,7 @@
         {"tool": "lockdown-range/linux", "kind": "lab", "find": ["ufw"]},
         {"tool": "lockdown-drills/windows-11", "kind": ["learn", "drill"], "find": ["advfirewall", "wf.msc", "Defender Firewall"]},
         {"tool": "lockdown-drills/windows-server", "kind": ["learn", "drill"], "find": ["advfirewall", "wf.msc", "Defender Firewall"]},
-        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["ufw"]},
-        {"tool": "lockdown-drills/linux-mint", "kind": ["learn", "drill"], "find": ["ufw"]},
+        {"tool": "lockdown-drills/debian-family", "kind": ["learn", "drill"], "find": ["ufw"]},
         {"tool": "lockdown-drills/freebsd", "kind": ["learn", "drill"], "find": ["pfctl", "pf.conf", "ipfw"]},
         {"tool": "defense-ladder", "kind": "learn", "find": ["firewall"]}
       ],
@@ -869,8 +857,7 @@
       "prereqs": ["ports", "builtin-accounts"],
       "locations": [
         {"tool": "lockdown-range/linux", "kind": "lab", "find": ["sshd_config"]},
-        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["sshd_config"]},
-        {"tool": "lockdown-drills/linux-mint", "kind": ["learn", "drill"], "find": ["sshd_config"]},
+        {"tool": "lockdown-drills/debian-family", "kind": ["learn", "drill"], "find": ["sshd_config"]},
         {"tool": "lockdown-drills/freebsd", "kind": ["learn", "drill"], "find": ["sshd_config"]}
       ],
       "refs": [
@@ -911,8 +898,7 @@
       "prereqs": [],
       "locations": [
         {"tool": "lockdown-range/linux", "kind": "lab", "find": ["nano"], "note": "A bash-like terminal with sudo, apt, systemctl, and nano."},
-        {"tool": "lockdown-drills/ubuntu", "kind": ["learn", "drill"], "find": ["sudo"]},
-        {"tool": "lockdown-drills/linux-mint", "kind": ["learn", "drill"], "find": ["sudo"]}
+        {"tool": "lockdown-drills/debian-family", "kind": ["learn", "drill"], "find": ["sudo"]}
       ],
       "refs": [
         {"title": "GNU Bash manual", "url": "https://www.gnu.org/software/bash/manual/bash.html", "src": "vendor"}

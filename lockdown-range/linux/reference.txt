@@ -74,12 +74,18 @@ the page touches your own computer. Progress is saved in the browser; "Reset
 lab" restores the scenario's original state and keeps the best score (like
 reverting a VM snapshot).
 
-Levels: 1 Recruit lists every check as a to-do with hints (two steps: the
-area and the principle, then the command); 2 Operator shows
+Levels: 1 Recruit lists every check as a to-do with hints; 2 Operator shows
 only the remaining count per hardening area; 3 Captain shows nothing but the
 checks you have passed. Level 4 (Advanced, extra credit, section 6) builds a
 new machine from each layout code and starts like Captain; the Coach control
 changes how much any level shows.
+
+Hints open in steps set by the level. Recruit: the hardening area and the
+principle, then the command. Operator: the principle, then the commands to
+look up (each one links to its Command Atlas entry at the Tool4That hub),
+then the command. Captain and Level 4: the principle, then the commands to
+look up; the full command lines are in this walkthrough. A check whose hint
+names a setting alone opens that hint as its second step.
 
 Versions: the machines follow Ubuntu 24.04.5 LTS "Noble Numbat" (kernel
 6.8.0-146-generic) and Linux Mint 22.3 "Zena" (Cinnamon 6.6, Ubuntu noble

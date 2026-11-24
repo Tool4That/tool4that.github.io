@@ -1,7 +1,10 @@
 ================================================================================
  02: WINDOWS SERVER HARDENING: SOLUTION WALKTHROUGH
      Windows Server 2025 (member server or domain controller)
- Training reference for virtual machines you own or are authorized to change.
+ Training reference for systems you own or are authorized to change. Practice
+ hands-on in the Windows Range
+ (https://freeapp4that.store/lockdown-range/windows/) and, on a real machine,
+ with Cyber PUG (https://freeapp4that.store/cyber-pug/).
  Three levels: L1 Doorman, L2 Watchman, L3 Hunter. Every item = COMMAND, WHY,
  NOTE, and the hardening AREA it belongs to; ALSO adds a second caution when
  an item needs one. No scripts by design: type it, read it, explain it. Item
@@ -13,15 +16,15 @@
  brackets, such as <name>, with a real one. GUI: lines walk through a window,
  and indented lines show values to set or read.
 
- HARDENING AREAS (CIS Critical Security Controls v8.1)
-   Account management ........ CIS Control 5
-   Access control ............ CIS Control 6
-   Secure configuration ...... CIS Control 4 (software inventory: Control 2)
-   Patching .................. CIS Control 7
-   Malware defenses .......... CIS Control 10
-   Audit logging ............. CIS Control 8
-   Also tagged: Data protection (CIS Control 3); Investigation (forensics
-   basics: answer questions and preserve evidence before you change things).
+ HARDENING AREAS
+   Account management
+   Access control
+   Secure configuration (software inventory included)
+   Patching
+   Malware defenses
+   Audit logging
+   Also tagged: Data protection; Investigation (forensics basics: answer
+   questions and preserve evidence before you change things).
 ================================================================================
 
 ------------------------------ DOORMAN -----------------------------------------
@@ -48,7 +51,7 @@
         Active Directory and Group Policy.
 
 [B-01] List users: local and domain
-  AREA: Account management (CIS Control 5)
+  AREA: Account management
   PS> Get-LocalUser | Select-Object Name,Enabled,PasswordRequired,LastLogon
   PS> Get-ADUser -Filter * -Properties Enabled,PasswordNeverExpires,PasswordNotRequired,LastLogonDate | Select-Object Name,Enabled,PasswordNeverExpires,PasswordNotRequired,LastLogonDate
   CMD> net user /domain
@@ -62,7 +65,7 @@
         their own right.
 
 [B-02] Remove or disable an unauthorized user
-  AREA: Account management (CIS Control 5)
+  AREA: Account management
   PS> Get-ScheduledTask | Where-Object { $_.Principal.UserId -like '*baduser' } | Select-Object TaskPath,TaskName
   PS> Get-CimInstance Win32_Service | Where-Object StartName -like '*baduser' | Select-Object Name,StartName,PathName
   PS> Disable-ADAccount -Identity baduser
@@ -81,7 +84,7 @@
         prohibited files, then remove it.
 
 [B-03] Audit the privileged groups
-  AREA: Account management (CIS Control 5)
+  AREA: Account management
   PS> Get-ADGroupMember "Domain Admins"; Get-ADGroupMember "Enterprise Admins"; Get-ADGroupMember "Schema Admins"; Get-ADGroupMember "Administrators"
   PS> Get-ADGroupMember "Account Operators"; Get-ADGroupMember "Server Operators"; Get-ADGroupMember "Backup Operators"; Get-ADGroupMember "DnsAdmins"
   PS> Remove-ADGroupMember -Identity "Domain Admins" -Members baduser -Confirm:$false
@@ -94,7 +97,7 @@
        with the brief; on a member server, check local Administrators.
 
 [B-04] Disable Guest; protect the built-in Administrator
-  AREA: Account management (CIS Control 5)
+  AREA: Account management
   PS> Get-LocalUser | Where-Object { $_.SID -like '*-50[01]' } | Select-Object Name,Enabled,SID   (member server)
   PS> Get-ADUser -Filter * | Where-Object { $_.SID -like '*-50[01]' } | Select-Object Name,Enabled,SID   (domain controller)
   CMD> whoami /user
@@ -114,7 +117,7 @@
         disabling and a strong password carry the protection.
 
 [B-05] Strong passwords and forced change
-  AREA: Account management (CIS Control 5)
+  AREA: Account management
   PS> Get-ADUser -Filter * -Properties PasswordLastSet,PasswordNeverExpires | Select-Object Name,Enabled,PasswordLastSet,PasswordNeverExpires
   PS> Set-ADAccountPassword -Identity keoni -Reset -NewPassword (Read-Host -AsSecureString 'New password')
   PS> Set-ADUser -Identity keoni -PasswordNeverExpires $false -PasswordNotRequired $false
@@ -136,7 +139,7 @@
         updating each service's Log On tab at the same time.
 
 [B-06] Password policy where it actually lives
-  AREA: Account management (CIS Control 5)
+  AREA: Account management
   PS> Get-ADDefaultDomainPasswordPolicy
   PS> Set-ADDefaultDomainPasswordPolicy -Identity (Get-ADDomain).DNSRoot -MinPasswordLength 12 -ComplexityEnabled $true -PasswordHistoryCount 24 -MinPasswordAge 1.00:00:00 -MaxPasswordAge 60.00:00:00 -ReversibleEncryptionEnabled $false
   GUI: gpmc.msc, Default Domain Policy, Computer Configuration, Policies, Windows Settings, Security Settings, Account Policies, Password Policy
@@ -146,12 +149,12 @@
        only. Passwords set while reversible encryption was on stay
        recoverable: reset them, and check accounts with Get-ADUser <name>
        -Properties AllowReversiblePasswordEncryption.
-  NOTE: The brief sets the numbers; these are one sample. CIS Benchmark: 14 or
-        more characters, history 24 or more, maximum age 1–365 days, minimum age
-        1 day or more.
+  NOTE: The brief sets the numbers; these are one sample. A widely used
+        hardening baseline: 14 or more characters, history 24 or more, maximum
+        age 1–365 days, minimum age 1 day or more.
 
 [B-07] Account lockout policy
-  AREA: Account management (CIS Control 5)
+  AREA: Account management
   PS> Set-ADDefaultDomainPasswordPolicy -Identity (Get-ADDomain).DNSRoot -LockoutThreshold 5 -LockoutDuration 00:30:00 -LockoutObservationWindow 00:30:00
   CMD> net accounts /lockoutthreshold:5 /lockoutduration:30 /lockoutwindow:30   (member server)
   PS> Search-ADAccount -LockedOut | Select-Object Name
@@ -159,16 +162,16 @@
   WHY: Turns an online brute force from thousands of guesses a minute into
        five per half hour. Search-ADAccount shows who is locked out right now,
        which is also an investigation clue.
-  NOTE: The brief sets the numbers. The CIS Benchmark asks for a threshold of
-        5 or fewer and above 0, and a duration and reset window of 15 minutes
-        or more.
+  NOTE: The brief sets the numbers. A widely used hardening baseline asks for
+        a threshold of 5 or fewer and above 0, and a duration and reset window
+        of 15 minutes or more.
   ALSO: A member server's local built-in Administrator locks only with Allow
         Administrator account lockout Enabled (AllowAdministratorLockout = 1,
         Hunter A-01), only for network sign-ins like Remote Desktop. Console
         sign-in stays available.
 
 [B-08] Firewall on for all profiles
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   PS> Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled True
   PS> Get-NetFirewallProfile -PolicyStore ActiveStore | Select-Object Name,Enabled,DefaultInboundAction
   CMD> netsh advfirewall set allprofiles state on
@@ -183,7 +186,7 @@
         values left at default (Block inbound). Watchman covers allow rules.
 
 [B-09] Windows Update on a server
-  AREA: Patching (CIS Control 7)
+  AREA: Patching
   CMD> sconfig   (option 5: Update setting = Automatic; option 6: Install Updates)
   GUI: Win+R, ms-settings:windowsupdate (Settings, Windows Update), Check for updates
   PS> Set-Service -Name wuauserv -StartupType Automatic; Start-Service wuauserv
@@ -204,7 +207,7 @@
         Disabled is the finding. Save work before any reboot.
 
 [B-10] Microsoft Defender on Server
-  AREA: Malware defenses (CIS Control 10)
+  AREA: Malware defenses
   PS> Get-MpComputerStatus | Select-Object AMServiceEnabled,RealTimeProtectionEnabled,AntivirusSignatureLastUpdated
   PS> Get-MpComputerStatus | Select-Object AMRunningMode
   PS> Install-WindowsFeature -Name Windows-Defender
@@ -226,7 +229,7 @@
         picks the product.
 
 [B-11] Remove unapproved software
-  AREA: Secure configuration: software (CIS Controls 2 and 4)
+  AREA: Secure configuration: software
   PS> Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*, HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*, Registry::HKEY_USERS\*\Software\Microsoft\Windows\CurrentVersion\Uninstall\* -ErrorAction SilentlyContinue | Select-Object DisplayName,DisplayVersion,Publisher,UninstallString | Sort-Object DisplayName
   GUI: Settings, Apps, Installed apps (or appwiz.cpl)
   WHY: Hacking tools, games, torrent clients, and remote-access tools are
@@ -239,7 +242,7 @@
         tools' separate Npcap install when the brief omits packet capture.
 
 [B-12] Find unapproved media and loose executables
-  AREA: Data protection (CIS Control 3)
+  AREA: Data protection
   PS> Get-ChildItem -Path C:\Users,C:\inetpub,C:\Shares -Recurse -Force -File -Include *.mp3,*.mp4,*.wav,*.avi,*.mkv,*.flac,*.mov,*.m4a,*.mpg,*.mpeg,*.ogg,*.flv,*.wma,*.aac -ErrorAction SilentlyContinue | Where-Object FullName -notmatch '\\AppData\\|^C:\\Users\\(All Users|Default User)\\' | Select-Object FullName
   CMD> dir /s /a /b C:\Users\*.mp3 C:\Users\*.mp4
   CMD> del /s /a C:\Users\*.mp3 C:\Users\*.mp4   (after dir /s /a /b lists the same files and the brief bans them; del also reaches AppData, where apps keep their own sounds, so check that list for AppData paths first)
@@ -261,7 +264,7 @@
         Keep Python and other runtimes the brief needs.
 
 [B-13] Stop obviously unsafe services
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   PS> Get-Service -Name ftpsvc,TermService,RemoteRegistry,SNMP -ErrorAction SilentlyContinue | Select-Object Name,Status,StartType
   PS> Stop-Service -Name RemoteRegistry; Set-Service -Name RemoteRegistry -StartupType Disabled
   PS> Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server' -Name fDenyTSConnections -Value 1
@@ -302,7 +305,7 @@
         Windows Security, Protection history show the path and time to record.
 
 [B-15] Create the users and groups the brief lists
-  AREA: Account management (CIS Control 5)
+  AREA: Account management
   PS> New-ADUser -Name 'kekoa' -SamAccountName 'kekoa' -AccountPassword (Read-Host -AsSecureString 'Password') -Enabled $true
   PS> New-ADGroup -Name 'Teachers' -GroupScope Global
   PS> Add-ADGroupMember -Identity 'Teachers' -Members kekoa
@@ -321,7 +324,7 @@
         to a global group) record each step.
 
 [B-16] Find files that store passwords
-  AREA: Data protection (CIS Control 3)
+  AREA: Data protection
   PS> Get-ChildItem -Path C:\Users,C:\inetpub,C:\Shares -Recurse -Force -File -Include *.txt,*.csv,*.ini,*.xml,*.log,*.ps1,*.bat -ErrorAction SilentlyContinue | Where-Object FullName -notmatch '\\AppData\\Local\\|^C:\\Users\\(All Users|Default User)\\' | Select-String -Pattern 'passw(or)?d|pwd|credential' -List | Select-Object Path,LineNumber,Line
   CMD> findstr /s /i /m /c:"password" C:\Users\*.txt C:\Users\*.csv C:\Users\*.ini
   PS> Get-ChildItem -Path C:\Users\*\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt -Force -ErrorAction SilentlyContinue | Select-String -Pattern 'net user|ConvertTo-SecureString|passw' | Select-Object Path,Line
@@ -347,7 +350,7 @@
  https://freeapp4that.store/defense-ladder/#junior/j2
 --------------------------------------------------------------------------------
 [I-01] Audit policy: turn the lights on
-  AREA: Audit logging (CIS Control 8)
+  AREA: Audit logging
   CMD> wevtutil sl Security /ms:201326592
   CMD> wevtutil gl Security   (maxSize shows the new limit)
   CMD> auditpol /backup /file:C:\Windows\Temp\audit-before.csv
@@ -357,18 +360,18 @@
   WHY: Without auditing, Event Viewer has nothing to tell you or an
        investigator. Logon, account management, and policy change are the key
        ones.
-  NOTE: On a DC the Default Domain Controllers Policy overrides local auditpol:
-        set it there or it reverts at the next gpupdate. Pick one route,
-        auditpol here or Advanced Audit Policy Configuration in Group Policy,
-        and leave secpol's basic Audit Policy node unset; Microsoft warns that
-        mixing the two gives unexpected results, so trust auditpol /get.
-        wevtutil raises the Security log to 192 MB first so the extra events
-        keep older evidence; auditpol /restore
-        /file:C:\Windows\Temp\audit-before.csv undoes the change. Fine-grained
-        subcategories, and trimming the noisiest ones, are A-08.
+  NOTE: On a DC the Default Domain Controllers Policy overrides local
+        auditpol: set it there or it reverts at the next gpupdate. Pick one
+        route, auditpol here or Advanced Audit Policy Configuration in Group
+        Policy, and leave secpol's basic Audit Policy node unset; mixing the
+        two gives unexpected results, so trust auditpol /get. wevtutil raises
+        the Security log to 192 MB first so the extra events keep older
+        evidence; auditpol /restore /file:C:\Windows\Temp\audit-before.csv
+        undoes the change. Fine-grained subcategories, and trimming the
+        noisiest ones, are A-08.
 
 [I-02] Security Options in secpol.msc
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   GUI: secpol.msc, Local Policies, Security Options
       Accounts: Limit local account use of blank passwords to console logon only = Enabled
       Devices: Prevent users from installing printer drivers = Enabled
@@ -382,7 +385,7 @@
       User Account Control: Run all administrators in Admin Approval Mode = Enabled
       Domain controller: LDAP server signing requirements = Require signing
       Domain member: Digitally encrypt or sign secure channel data (always) = Enabled
-  WHY: Classic CIS and STIG level-one settings. Each blocks a named attack:
+  WHY: Classic first-level baseline settings. Each blocks a named attack:
        blank-password remote logon, username harvesting, LM and NTLMv1
        cracking or relay, SMB relay, shutdown before sign-in, and UAC bypass.
   NOTE: The inactivity limit locks every idle session. A VM sends the required
@@ -393,7 +396,7 @@
         mixed domains.
 
 [I-03] UAC to Always notify
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   GUI: Win+R, UserAccountControlSettings: move the slider to the top, Always notify
   PS> Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name EnableLUA -Value 1 -Type DWord
   PS> Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name ConsentPromptBehaviorAdmin -Value 2 -Type DWord
@@ -415,7 +418,7 @@
         the slider at the next refresh; gpresult /scope computer /v shows it.
 
 [I-04] Service audit: what runs, from where
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   PS> Get-CimInstance Win32_Service | Select-Object Name,State,StartMode,StartName,PathName | Sort-Object Name
   PS> Get-Service | Where-Object Status -eq Running | Sort-Object DisplayName
   PS> Get-Service -Name EventLog,mpssvc,WinDefend | Select-Object Name,Status,StartType
@@ -442,7 +445,7 @@
         Uninstall-WindowsFeature -Name SNMP-Service.
 
 [I-05] Roles and features: remove what the brief does not need
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   PS> Get-WindowsFeature | Where-Object Installed | Select-Object Name,DisplayName
   PS> Uninstall-WindowsFeature -Name FS-SMB1,Telnet-Client,TFTP-Client,Simple-TCPIP,Print-LPD-Service
   PS> Uninstall-WindowsFeature -Name Web-Ftp-Server   (only when the brief leaves FTP out)
@@ -462,7 +465,7 @@
         RestartNeeded and batch the restarts.
 
 [I-06] Shares
-  AREA: Access control (CIS Control 6)
+  AREA: Access control
   PS> Get-SmbShare
   CMD> net share
   PS> Get-SmbShare | Where-Object { $_.Name -notmatch '^(ADMIN|IPC|PRINT|FAX)\$$' -and -not ($_.Name -match '^[A-Z]\$$' -and $_.Path -eq ($_.Name.Substring(0,1) + ':\')) } | Select-Object Name,Path,Description
@@ -482,7 +485,7 @@
         or a profile folder exposes user files.
 
 [I-07] Scheduled tasks
-  AREA: Malware defenses (CIS Control 10)
+  AREA: Malware defenses
   GUI: taskschd.msc, Task Scheduler Library: open each task's Triggers and Actions tabs; disable or delete a task the brief leaves unexplained
   PS> Get-ScheduledTask | Where-Object State -ne Disabled | Select-Object TaskPath,TaskName,State,Author,@{n='Run';e={($_.Actions | ForEach-Object { "$($_.Execute) $($_.Arguments)" }) -join '; '}},@{n='RunAs';e={$_.Principal.UserId}} | Format-Table -AutoSize -Wrap
   PS> (Get-ScheduledTask -TaskName "<name>").Actions | Select-Object Execute,Arguments
@@ -502,7 +505,7 @@
         removing: the XML keeps action, account, and author.
 
 [I-08] Startup items and Run keys
-  AREA: Malware defenses (CIS Control 10)
+  AREA: Malware defenses
   PS> Get-CimInstance Win32_StartupCommand | Select-Object Name,Command,Location,User
   PS> Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run'
   PS> Get-ItemProperty 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run'
@@ -514,14 +517,14 @@
   NOTE: Also check the RunOnce keys and the shell:startup folders.
 
 [I-09] Hosts file
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   PS> Get-Content C:\Windows\System32\drivers\etc\hosts
   GUI: notepad as admin, open the hosts file, delete every non-comment line except localhost
   WHY: Malware points update and antivirus domains at 127.0.0.1 or an attacker
        IP, so Defender and Windows Update silently fail.
 
 [I-10] Listening ports to process
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   CMD> netstat -abno
   PS> Get-NetTCPConnection -State Listen | Select-Object LocalAddress,LocalPort,OwningProcess,@{n='Path';e={(Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue).Path}} | Sort-Object LocalPort
   PS> Get-NetUDPEndpoint | Select-Object LocalAddress,LocalPort,OwningProcess | Sort-Object LocalPort
@@ -540,7 +543,7 @@
         key) and disable that, or it returns at the next trigger.
 
 [I-11] Remote Desktop hardening when RDP is required
-  AREA: Access control (CIS Control 6)
+  AREA: Access control
   PS> Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name UserAuthentication -Value 1
   PS> Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name SecurityLayer -Value 2
   PS> $ts='HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services'; if (-not (Test-Path $ts)) { New-Item -Path $ts -Force | Out-Null }
@@ -570,7 +573,7 @@
         any display language.
 
 [I-12] Firewall allow-rule review
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   GUI: wf.msc, Inbound Rules: sort by Group, then disable or delete an Allow rule the brief leaves unexplained
   PS> Get-NetFirewallRule -PolicyStore ActiveStore | Where-Object {$_.Enabled -eq 'True' -and $_.Direction -eq 'Inbound' -and $_.Action -eq 'Allow'} | Select-Object DisplayName,Profile | Sort-Object DisplayName
   PS> Get-NetFirewallRule -PolicyStore ActiveStore -Direction Outbound -Action Block -Enabled True | Select-Object DisplayName,Profile
@@ -588,7 +591,7 @@
         gives a new rule a stable handle for Remove-NetFirewallRule -Name later.
 
 [I-13] Group Policy: where server settings really come from
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   GUI: gpmc.msc (Group Policy Management) on a DC; gpedit.msc on a member server
   PS> Get-GPO -All | Select-Object DisplayName,GpoStatus,ModificationTime
   PS> Get-GPOReport -All -ReportType Html -Path C:\Temp\gpo.html
@@ -617,7 +620,7 @@
        one filter.
 
 [I-15] IIS and FTP hardening when the brief requires them
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   PS> Get-Website | Select-Object Name,State,PhysicalPath
   PS> Get-WebBinding
   GUI: inetmgr (IIS Manager), site, Authentication: Anonymous Authentication Disabled unless the brief says the site is public
@@ -637,7 +640,7 @@
         W3C Logging Service (w3logsvc); leave both at their defaults.
 
 [I-16] DNS and DHCP hygiene when the server runs them
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   PS> Get-DnsServerZone | Select-Object ZoneName,ZoneType,DynamicUpdate,SecureSecondaries
   PS> Get-DnsServerResourceRecord -ZoneName phn.k12.lan   (look for A and CNAME records missing from the brief)
   CMD> nslookup -type=mx phn.k12.lan
@@ -649,7 +652,7 @@
        in AD are rogue.
 
 [I-17] WinRM: encrypted, with Basic off
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   CMD> winrm get winrm/config/service
   CMD> winrm get winrm/config/client
   PS> $wr='HKLM:\SOFTWARE\Policies\Microsoft\Windows\WinRM\Service'; if (-not (Test-Path $wr)) { New-Item -Path $wr -Force | Out-Null }
@@ -668,7 +671,7 @@
         keeps WinRM running.
 
 [I-18] Apache on Windows when the brief requires it
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   PS> Get-CimInstance Win32_Service -Filter "Name LIKE 'Apache%'" | Select-Object Name,State,StartName,PathName
   GUI: notepad C:\Apache24\conf\httpd.conf (save a copy first), then set these lines
       ServerTokens Prod
@@ -691,7 +694,7 @@
         run C:\Apache24\bin\httpd.exe -k uninstall -n "Apache2.4".
 
 [I-19] Network checks: address, route, neighbors, names, path, and port
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   CMD> ipconfig /all
   CMD> route print -4
   CMD> ping <gateway>
@@ -719,7 +722,7 @@
  https://freeapp4that.store/defense-ladder/#senior/se7
 --------------------------------------------------------------------------------
 [A-01] Security policy as a file: secedit
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   CMD> secedit /export /cfg C:\Temp\secpol.cfg
       [System Access] MinimumPasswordAge = 1, MaximumPasswordAge = 60, MinimumPasswordLength = 12, PasswordComplexity = 1, PasswordHistorySize = 24, LockoutBadCount = 5, ResetLockoutCount = 30, LockoutDuration = 30, AllowAdministratorLockout = 1, ClearTextPassword = 0, EnableGuestAccount = 0
   CMD> secedit /configure /db C:\Windows\security\local.sdb /cfg C:\Temp\secpol.cfg /areas SECURITYPOLICY
@@ -731,7 +734,7 @@
         settings stay. Typos fail silently: verify with net accounts.
 
 [A-02] LSA and anonymous-access registry hardening
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   PS> $lsa='HKLM:\SYSTEM\CurrentControlSet\Control\Lsa'
   PS> Set-ItemProperty -Path $lsa -Name LimitBlankPasswordUse -Value 1 -Type DWord
   PS> Set-ItemProperty -Path $lsa -Name RestrictAnonymous -Value 1 -Type DWord
@@ -765,7 +768,7 @@
         Directory through remote SAM calls.
 
 [A-03] Credential-theft hardening: LLMNR, NetBIOS, WDigest
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   PS> if (-not (Test-Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient')) { New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient' -Force | Out-Null }
   PS> Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient' -Name EnableMulticast -Value 0 -Type DWord
   PS> Get-CimInstance Win32_NetworkAdapterConfiguration -Filter "IPEnabled=TRUE" | Invoke-CimMethod -MethodName SetTcpipNetbios -Arguments @{TcpipNetbiosOptions=2}
@@ -777,22 +780,22 @@
         client policies already in it stay (A-04 explains why).
 
 [A-04] AutoRun and AutoPlay off everywhere
-  AREA: Malware defenses (CIS Control 10)
+  AREA: Malware defenses
   PS> if (-not (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer')) { New-Item -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' -Force | Out-Null }
   CMD> reg export HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer C:\Backup\explorer-policies.reg   (back up the key before you change it)
   PS> Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' -Name NoDriveTypeAutoRun -Value 255 -Type DWord
   PS> Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' -Name NoAutorun -Value 1 -Type DWord
   CMD> reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer /v NoAutoplayfornonVolume /t REG_DWORD /d 1 /f
   CMD> reg delete HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer /v NoDriveTypeAutoRun /f   (rollback, only when the brief needs AutoPlay back: reg import C:\Backup\explorer-policies.reg restores the saved values; reg delete removes one the backup lacked)
-  WHY: USB-drop attacks. Conficker-era, still a CIS and STIG requirement.
-       NoAutoplayfornonVolume covers phones and cameras, which the drive-type
-       value leaves out.
+  WHY: USB-drop attacks. Conficker-era, and still a standard baseline
+       requirement. NoAutoplayfornonVolume covers phones and cameras, which
+       the drive-type value leaves out.
   NOTE: This Explorer key already holds other policies, and New-Item -Force on
         an existing key deletes every value in it. The Test-Path guard and reg
         add both keep them.
 
 [A-05] User Rights Assignment
-  AREA: Access control (CIS Control 6)
+  AREA: Access control
   GUI: secpol.msc, Local Policies, User Rights Assignment
       Access this computer from the network = Administrators, Authenticated Users (remove Everyone and Guest)
       Deny log on through Remote Desktop Services = Guest
@@ -818,7 +821,7 @@
         Changes apply at next sign-in and log 4704 and 4705.
 
 [A-06] Deep persistence and backdoor hunt
-  AREA: Malware defenses (CIS Control 10)
+  AREA: Malware defenses
   PS> Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId,CommandLine | Sort-Object Name
   CMD> quser   (who is signed in now, at the console or over Remote Desktop: capture it before you change anything)
   CMD> wevtutil epl Security E:\case\<host>-Sec.evtx   (export the logs before you change anything; repeat for System)
@@ -845,7 +848,7 @@
         Scheduler history, which starts off.
 
 [A-07] NTFS permissions
-  AREA: Access control (CIS Control 6)
+  AREA: Access control
   CMD> icacls "C:\SchoolData" /save C:\Windows\Temp\acl.txt /t /c
   CMD> icacls "C:\SchoolData"
   CMD> icacls "C:\SchoolData" /inheritance:r /grant:r "Administrators:(OI)(CI)F" "Users:(OI)(CI)RX" /t
@@ -864,7 +867,7 @@
         so read it before you trust it.
 
 [A-08] Fine-grained auditing and PowerShell logging
-  AREA: Audit logging (CIS Control 8)
+  AREA: Audit logging
   CMD> auditpol /set /subcategory:"Credential Validation" /success:enable /failure:enable
   CMD> auditpol /set /subcategory:"Logon" /success:enable /failure:enable
   CMD> auditpol /set /subcategory:"Account Lockout" /failure:enable
@@ -908,7 +911,7 @@
         script that ran.
 
 [A-09] Defender beyond on: exclusions, PUA, cloud, ASR
-  AREA: Malware defenses (CIS Control 10)
+  AREA: Malware defenses
   PS> Get-MpPreference | Select-Object ExclusionPath,ExclusionProcess,ExclusionExtension
   PS> Remove-MpPreference -ExclusionPath "C:\evil"
   CMD> reg query "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Exclusions" /s
@@ -926,7 +929,7 @@
         policy key) first, then remove the local one.
 
 [A-10] Active Directory attack surface: roastable and stale accounts
-  AREA: Account management (CIS Control 5)
+  AREA: Account management
   PS> Search-ADAccount -PasswordNeverExpires | Select-Object Name
   PS> Search-ADAccount -AccountInactive -TimeSpan 90.00:00:00 | Select-Object Name,LastLogonDate
   PS> Get-ADUser -Filter {PasswordNotRequired -eq $true} | Select-Object Name
@@ -945,7 +948,7 @@
         services.msc, Log On tab (SQL Server Configuration Manager for SQL).
 
 [A-11] SMB and LDAP signing
-  AREA: Secure configuration (CIS Control 4)
+  AREA: Secure configuration
   PS> Get-SmbServerConfiguration | Select-Object RequireSecuritySignature; Get-SmbClientConfiguration | Select-Object RequireSecuritySignature
   PS> Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\NTDS\Parameters' | Select-Object LDAPServerIntegrity,LdapEnforceChannelBinding
   PS> Set-SmbServerConfiguration -RequireSecuritySignature $true -EncryptData $true -Force
@@ -983,7 +986,7 @@
        default as a fix.
 
 [A-14] Windows Installer: AlwaysInstallElevated off
-  AREA: Access control (CIS Control 6)
+  AREA: Access control
   CMD> reg query HKLM\SOFTWARE\Policies\Microsoft\Windows\Installer
   CMD> reg query HKCU\SOFTWARE\Policies\Microsoft\Windows\Installer
   CMD> reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\Installer /v AlwaysInstallElevated /t REG_DWORD /d 0 /f
@@ -999,7 +1002,7 @@
         add creates missing keys and keeps existing values.
 
 [A-15] Encryption, boot integrity, and recovery: BitLocker, TPM, Secure Boot, and an image backup
-  AREA: Data protection (CIS Control 3)
+  AREA: Data protection
   GUI: msinfo32, System Summary: BIOS Mode UEFI and Secure Boot State On; tpm.msc: Specification Version 2.0
   PS> Confirm-SecureBootUEFI
   PS> Get-Tpm
@@ -1295,9 +1298,5 @@
     https://learn.microsoft.com/en-us/defender-endpoint/use-powershell-cmdlets-microsoft-defender-antivirus
   Get started with OpenSSH Server for Windows
     https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse
-  CIS Critical Security Controls v8.1
-    https://www.cisecurity.org/controls/v8
-  CIS Benchmarks
-    https://www.cisecurity.org/cis-benchmarks
 
 ================================================================================

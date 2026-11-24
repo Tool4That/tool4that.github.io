@@ -56,8 +56,8 @@
       "title": "Lockdown Drills",
       "category": "cyber",
       "section": "practice",
-      "description": "Baseline-hardening trainers for Windows 11, Windows Server, Linux Mint, Ubuntu, FreeBSD, and Cisco IOS, each in three levels: Doorman, Watchman, and Hunter. A plain-text command reference explains why each step matters.",
-      "note": "Unofficial training, independent of and unendorsed by the makers of the systems it names. Try commands on a practice virtual machine, not a computer you depend on."
+      "description": "Baseline-hardening trainers for Windows 11, Windows Server, the Debian family (Ubuntu and Linux Mint), FreeBSD, and Cisco IOS, each in three levels: Doorman, Watchman, and Hunter. A plain-text command reference explains why each step matters.",
+      "note": "Unofficial training, independent of and unendorsed by the makers of the systems it names. Practice hands-on in the Lockdown Range and, on a real machine you own or are authorized to change, with Cyber PUG."
     },
     {
       "slug": "lockdown-range",
@@ -131,7 +131,7 @@
       "icon": "path",
       "category": "cyber",
       "section": "learning",
-      "sha256": "92877dd90b9e4c77d737c02ec230c5cec18107d04b2d4fb6e2cf0a78f1fbff87",
+      "sha256": "01b48509b28690a0dbd7fb6d5511f588ebea9a9a5768b7c012d8d53a1a745996",
       "updated": "2026-11-23",
       "download_menu": true,
       "download_label": "Everything (all four grades)",
@@ -140,28 +140,28 @@
           "label": "Freshman only",
           "file": "defense-ladder/freshman.html",
           "download_as": "defense-ladder-freshman.html",
-          "sha256": "c487077615f6aa6ddb44f4abaff7cf61807d0bee534ae180e1efe0ccc48a905d",
+          "sha256": "c2e3450e222ba6f62f88e7eadbdade913a2293ab768cea794e52cc7dc2b5715f",
           "updated": "2026-11-23"
         },
         {
           "label": "Sophomore only",
           "file": "defense-ladder/sophomore.html",
           "download_as": "defense-ladder-sophomore.html",
-          "sha256": "84c726852ef6097f708453f53ef66ac4e463be9249ce81c8aec8bed573292174",
+          "sha256": "a057350a2426029f09728c436d23392452b7a45e6577f83be74c699d4229a411",
           "updated": "2026-11-23"
         },
         {
           "label": "Junior only",
           "file": "defense-ladder/junior.html",
           "download_as": "defense-ladder-junior.html",
-          "sha256": "81c8941db08474d9e24f2d54692f4a4fff472ce0db22a58303083c3cfe683e1e",
+          "sha256": "d5f0c4cf3b069cd4f2addc9bb4d2b95a5fadd16bff9e51d1613b311c987afb9b",
           "updated": "2026-11-23"
         },
         {
           "label": "Senior only",
           "file": "defense-ladder/senior.html",
           "download_as": "defense-ladder-senior.html",
-          "sha256": "dad289adc443ab7395e62d5a757b2bce3321a8fb991f6e35daad011250d90779",
+          "sha256": "6c6dd0f39723518c8404784756f76484d7dce489abedf7484ee00c7fb92e9384",
           "updated": "2026-11-23"
         }
       ],
@@ -266,7 +266,7 @@
           "download_as": "windows-11-lockdown-reference.txt"
         }
       ],
-      "sha256": "9d21bd0f7f2e96926c1ea3410b19a85fcca62857b68385c73d694e6cbce782bd",
+      "sha256": "2e28dc0ac5409640e5cc16ecf70c9ed8c74221480d216f70c7e50c6a82a76511",
       "updated": "2026-11-23"
     },
     {
@@ -292,59 +292,33 @@
           "download_as": "windows-server-lockdown-reference.txt"
         }
       ],
-      "sha256": "b8615fc05d17e9fb3a972c3dc9de07698dc3c57d6865aab14b388973d08c9610",
+      "sha256": "ca3ee4f1376bdd5532b359ee48ab98a951ad3752189ae0b3e28a46cd0834b3d3",
       "updated": "2026-11-23"
     },
     {
-      "slug": "lockdown-drills/linux-mint",
-      "name": "Linux Mint Lockdown",
-      "tagline": "Lock down the desktop.",
-      "description": "Linux Mint baseline hardening in three levels: Doorman, Watchman, and Hunter. A command reference explains why each step matters.",
+      "slug": "lockdown-drills/debian-family",
+      "category": "cyber",
+      "series": "lockdown-drills",
+      "icon": "lock",
+      "name": "Debian Family Lockdown",
+      "tagline": "Lock down Ubuntu and Linux Mint.",
+      "description": "Ubuntu and Linux Mint baseline hardening in three levels: Doorman, Watchman, and Hunter. A switch shows each distribution's steps, and a command reference explains why each step matters.",
       "badges": [
         "Linux",
         "Hardening",
         "Offline",
         "Private"
       ],
-      "file": "lockdown-drills/linux-mint/index.html",
-      "download_as": "linux-mint-lockdown.html",
-      "icon": "lock",
-      "category": "cyber",
-      "series": "lockdown-drills",
+      "file": "lockdown-drills/debian-family/index.html",
+      "download_as": "debian-family-lockdown.html",
       "extras": [
         {
           "label": "Reference .txt",
-          "file": "lockdown-drills/linux-mint/reference.txt",
-          "download_as": "linux-mint-lockdown-reference.txt"
+          "file": "lockdown-drills/debian-family/reference.txt",
+          "download_as": "debian-family-lockdown-reference.txt"
         }
       ],
-      "sha256": "757eda5f5114f5e9299cebe19e9114daa9e924af9d2cfe0e36b14bce5fca60ef",
-      "updated": "2026-11-23"
-    },
-    {
-      "slug": "lockdown-drills/ubuntu",
-      "name": "Ubuntu Lockdown",
-      "tagline": "Lock down Ubuntu.",
-      "description": "Ubuntu baseline hardening in three levels: Doorman, Watchman, and Hunter. A command reference explains why each step matters.",
-      "badges": [
-        "Linux",
-        "Hardening",
-        "Offline",
-        "Private"
-      ],
-      "file": "lockdown-drills/ubuntu/index.html",
-      "download_as": "ubuntu-lockdown.html",
-      "icon": "lock",
-      "category": "cyber",
-      "series": "lockdown-drills",
-      "extras": [
-        {
-          "label": "Reference .txt",
-          "file": "lockdown-drills/ubuntu/reference.txt",
-          "download_as": "ubuntu-lockdown-reference.txt"
-        }
-      ],
-      "sha256": "de82486df577d3ac62b6f666c169d0dd4eac7585cca2ec42d40f896310add055",
+      "sha256": "ae43175cf8004dedfc8d367fb74ec6122acc0563381c123787ff174dcacc2b69",
       "updated": "2026-11-23"
     },
     {
@@ -370,7 +344,7 @@
           "download_as": "freebsd-lockdown-reference.txt"
         }
       ],
-      "sha256": "fba0365f4766539080fef26a47ababa36e09f32575adfbfa5de3c2f1ed883864",
+      "sha256": "95979698e56761bbc9b3597b7772433a3964e80603c455e3c22d0aa5c60a267e",
       "updated": "2026-11-23"
     },
     {
@@ -389,7 +363,7 @@
       "icon": "lock",
       "category": "cyber",
       "series": "lockdown-drills",
-      "sha256": "efbcaa34a766732bc6c61c2939aab464421e42a19bf4b75a15eee06bb8ca4f1e",
+      "sha256": "c3e88cd6d1e619b1c23f8e858efa6a80b4bbb1a4dba52704386630398cc9003f",
       "updated": "2026-11-23",
       "extras": [
         {
@@ -422,7 +396,7 @@
           "download_as": "windows-range-walkthrough.txt"
         }
       ],
-      "sha256": "688a668c3b38e2023887d7c3a02ede1432c00a944d2459704c048e0abd844e87",
+      "sha256": "c54cfa531e949f0fddadcdc4733a35c578ad6785d36d8c237c787c1882efd4bd",
       "updated": "2026-11-23"
     },
     {
@@ -448,7 +422,7 @@
           "download_as": "linux-range-walkthrough.txt"
         }
       ],
-      "sha256": "f4351f51333a3e3650a4c2a69f8f8efd88a09dfbdcd7b106d732d5382cff944a",
+      "sha256": "7adf678754ab198138339688e51d0f6cc58e921af594b7d82fe242749c41b760",
       "updated": "2026-11-23"
     },
     {
@@ -474,7 +448,7 @@
           "download_as": "cisco-range-walkthrough.txt"
         }
       ],
-      "sha256": "7ba1d1bb58a0d9dc480b064e0ff7d2e75a9dfb1ac1b3a1179c8e77e0b48bc2cd",
+      "sha256": "46c188b62b0ee8d6eed6607b162a138a4584d67de84ebc52b718645d9ae3392a",
       "updated": "2026-11-23"
     },
     {
@@ -493,7 +467,7 @@
       "icon": "map",
       "category": "cyber",
       "section": "learning",
-      "sha256": "b16c0a7fb9e9e882015f66947a78aa16480a49258d609b98e4d0a7ba50ca82e0",
+      "sha256": "29ba4cf6de1414f4721f71104f0ea8bcb8d1ab4c1813b937288ef943f0d8146f",
       "updated": "2026-11-23"
     },
     {
@@ -512,7 +486,7 @@
       "icon": "terminal",
       "category": "cyber",
       "section": "learning",
-      "sha256": "8cd98958a6ad4e25b722b1d7c15da596bcd60e2631045aeb3933bf4553fd1fe9",
+      "sha256": "8e6b63bf216aa167f43cf9d99dceac4ac6773f42bc392b087d091586e390acfe",
       "updated": "2026-11-23"
     },
     {
