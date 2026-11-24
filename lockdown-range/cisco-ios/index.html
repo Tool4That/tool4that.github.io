@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-vfbUhD8s9IcsWZApeFiR8LwmnFn87Bmj2XV+EAMFdcU='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-xcOdpJzmRA30O9/IbFzdQikSNi9kG4+QkdZpqCXcDQo='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/lockdown-range/cisco-ios/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%96%A5%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -1559,6 +1559,8 @@ function promptOf(s) {
     case 'config-archive': return h + '(config-archive)#';
     case 'config-archive-log-cfg': return h + '(config-archive-log-cfg)#';
     case 'config-router': return h + '(config-router)#';
+    case 'config-applet': return h + '(config-applet)#';
+    case 'config-kron-occurrence': return h + '(config-kron-occurrence)#';
     default: return h + '#';
   }
 }
@@ -1708,6 +1710,8 @@ function treesFor(s) {
     case 'config-archive': return [ARCHIVE_TREE, CONFIG_TREE];
     case 'config-archive-log-cfg': return [ARCHLOG_TREE, CONFIG_TREE];
     case 'config-router': return [ROUTER_TREE, CONFIG_TREE];
+    case 'config-applet': return [APPLET_TREE, CONFIG_TREE];
+    case 'config-kron-occurrence': return [KRON_TREE, CONFIG_TREE];
   }
   return [EXEC_TREE];
 }
@@ -1935,7 +1939,7 @@ function openRemote(s, proto, ip, user) {
   const target = S.devices[p.dstDev];
   const rt = target.kind === 'pc' ? null : devRT(target.name);
   const acc = target.kind === 'pc' ? { ok: false } : vtyAccess(S, target.name, proto, srcIp);
-  if (!acc.ok || rt.quietUntil > Date.now()) { if (trying) sprint(s, trying); sprint(s, '% Connection refused by remote host'); return; }
+  if (!acc.ok || quietBlocks(target.running, rt, srcIp)) { if (trying) sprint(s, trying); sprint(s, '% Connection refused by remote host'); return; }
   const tcfg = target.running;
   if (proto === 'telnet') {
     sprint(s, trying + 'Open'); sprint(s, '');
@@ -1956,7 +1960,7 @@ function openRemote(s, proto, ip, user) {
     const askU = () => pend(s, 'Username: ', name => pend(s, 'Password: ', pw => {
       const u = userByName(tcfg, name);
       if (u && userPasswordOk(u, pw)) { attach(u.name); return; }
-      noteFailure(target, tcfg);
+      noteFailure(target, tcfg, name, srcIp, 23);
       sprint(s, '% Login invalid'); sprint(s, '');
       if (++tries >= 3) close(); else askU();
     }, { secret: true }));
@@ -1974,7 +1978,7 @@ function openRemote(s, proto, ip, user) {
       if (tcfg.bannerMotd) { sprint(s, tcfg.bannerMotd.replace(/^\n/, '').replace(/\n$/, '')); sprint(s, ''); }
       attach(u.name); return;
     }
-    noteFailure(target, tcfg);
+    noteFailure(target, tcfg, user, srcIp, 22);
     if (++tries >= (tcfg.sshRetries || 3)) { sprint(s, '% Login invalid'); close(); return; }
     askP();
   }, { secret: true });
@@ -1987,7 +1991,8 @@ function openRemote(s, proto, ip, user) {
     child.parent = s; s.child = child; child.user = userName; child.srcIp = srcIp; child.proto = proto; child.dialIp = ip;
     const u = userName ? userByName(tcfg, userName) : null;
     const L = tcfg.lines.vty[vtyN];
-    child.priv = u && u.privilege !== undefined && u.privilege !== null ? u.privilege : (L && L.privilege ? L.privilege : 1);
+    // with aaa new-model, the user's own privilege level needs aaa authorization exec default local
+    child.priv = u && u.privilege !== undefined && u.privilege !== null && aaaKeepsPriv(tcfg) ? u.privilege : (L && L.privilege ? L.privilege : 1);
     child.mode = child.priv >= 15 ? 'priv' : 'user';
     child.state = 'ready';
     if (src.kind === 'pc') { const arp = src.arp || (src.arp = []); const gw = p.hops.length ? p.hops[0] : ip; if (!arp.includes(gw)) arp.push(gw); }
@@ -2004,9 +2009,10 @@ function openPort(s, ip, port) {
   if (!p.ok || !p.dstDev) { sprint(s, trying); sprint(s, p.code === 'unreach' ? '% Destination unreachable; gateway or host down' : '% Connection timed out; remote host not responding'); return; }
   const t = S.devices[p.dstDev], cfg = t.kind === 'pc' ? null : t.running;
   let open = false, banner = null;
-  if (cfg && devRT(t.name).quietUntil <= Date.now()) {
+  if (cfg && !quietBlocks(cfg, devRT(t.name), srcIp)) {
     if (port === 22 && cfg.rsa && vtyAccess(S, t.name, 'ssh', srcIp, true).ok) { open = true; banner = 'SSH-' + (cfg.sshVersion === 2 ? '2.0' : cfg.sshVersion === 1 ? '1.5' : '1.99') + '-Cisco-1.25'; }
     else if ((cfg.httpServer && port === (cfg.httpPort || 80)) || (cfg.httpSecure && port === (cfg.httpsPort || 443))) open = true;
+    else if (tcpServiceOpen(t, port)) open = true;
   }
   if (!open) { sprint(s, trying); sprint(s, '% Connection refused by remote host'); return; }
   sprint(s, trying + 'Open');
@@ -2015,12 +2021,13 @@ function openPort(s, ip, port) {
   const job = { prompt: '', raw: true, handler: close, interrupt: close };
   s.pending = job; refreshPrompt(s.tab);
 }
-function noteFailure(target, tcfg) {
+function noteFailure(target, tcfg, user, srcIp, port) {
   const rt = devRT(target.name), now = Date.now();
   rt.failures.push(now);
+  noteLoginFail(target, tcfg, user, srcIp, port || 22);
   const lb = tcfg.loginBlock; if (!lb) return;
   rt.failures = rt.failures.filter(t => now - t <= lb.within * 1000);
-  if (rt.failures.length >= lb.attempts) { rt.quietUntil = now + lb.block * 1000; rt.failures = []; logMsg(target.name, '%SEC_LOGIN-1-QUIET_MODE_ON: Still timeleft for watching failures is 0 secs, [user: ] [Source: 0.0.0.0] [localport: 22] [Reason: Login Authentication Failed] [ACL: sl_def_acl] at ' + clockText(target, true).time + ' UTC ' + clockText(target).day + ' ' + clockText(target).mon + ' ' + clockText(target).date + ' ' + clockText(target).year); }
+  if (rt.failures.length >= lb.attempts) { rt.quietUntil = now + lb.block * 1000; rt.failures = []; logMsg(target.name, '%SEC_LOGIN-1-QUIET_MODE_ON: Still timeleft for watching failures is 0 secs, [user: ] [Source: 0.0.0.0] [localport: 22] [Reason: Login Authentication Failed] [ACL: ' + (tcfg.quietAcl || 'sl_def_acl') + '] at ' + clockText(target, true).time + ' UTC ' + clockText(target).day + ' ' + clockText(target).mon + ' ' + clockText(target).date + ' ' + clockText(target).year); }
 }
 function closeRemote(child, silent) {
   const parent = child.parent;
@@ -2077,7 +2084,7 @@ function cmdConfigure(ctx) {
   }
   enterConfig(s);
 }
-function saveConfig(dev) { dev.startup = clone(dev.running); dev.dirty = false; }
+function saveConfig(dev) { dev.startup = clone(dev.running); dev.dirty = false; archiveOnSave(dev); }
 function cmdCopyRunStart(ctx) {
   const s = ctx.s, dev = ctx.dev;
   pend(s, 'Destination filename [startup-config]? ', ans => {
@@ -2092,7 +2099,8 @@ function cmdCopyRunFlash(ctx) {
   pend(s, 'Destination filename [' + def + ']? ', ans => {
     const name = (ans || def).replace(/^flash0?:\/?/i, ''), text = showRunText(dev.running, dev), files = dev.flash || (dev.flash = []);
     const save = () => {
-      const i = files.findIndex(f => f.name === name), rec = { name: name, size: text.length };
+      // the text stays with the file, so more flash:NAME prints it
+      const i = files.findIndex(f => f.name === name), rec = { name: name, size: text.length, text: text };
       if (i >= 0) files[i] = rec; else files.push(rec);
       sprint(s, text.length + ' bytes copied in 0.452 secs (' + Math.floor(text.length / 0.452) + ' bytes/sec)');
       afterChange(); refreshPrompt(s.tab);
@@ -2625,19 +2633,35 @@ function cfgSnoopVlan(ctx) {
 function cfgCryptoGen(ctx) {
   const cfg = ctx.cfg, s = ctx.s, w = ctx.w;
   if (ctx.no) return;
+  // a labelled key (label NAME) needs no hostname or domain name and sits beside the other keys; a label already in
+  // use asks to replace that key, as the default-named key does. An unlabelled generate replaces the default-named
+  // key (a key without a label, n 0) and keeps every labelled key, so SSH stays on a key ip ssh rsa keypair-name names
+  const li = w.indexOf('label'), label = li >= 0 ? w[li + 1] : null;
   const def = ctx.dev.kind === 'switch' ? 'Switch' : 'Router';
-  if (cfg.hostname === def) { ctx.print('% Please define a hostname other than ' + def + '.'); return; }
-  if (!cfg.domainName) { ctx.print('% Please define a domain-name first.'); return; }
-  const name = cfg.hostname + '.' + cfg.domainName;
+  if (!label && cfg.hostname === def) { ctx.print('% Please define a hostname other than ' + def + '.'); return; }
+  if (!label && !cfg.domainName) { ctx.print('% Please define a domain-name first.'); return; }
+  const name = label || cfg.hostname + '.' + cfg.domainName;
   let bits = null;
   const mi = w.indexOf('modulus'); if (mi >= 0) bits = +w[mi + 1];
+  const defKey = () => { const keys = rsaKeys(cfg); return keys.find(k => k.name === name) || keys.find(k => !(k.n > 0)) || null; };
   const generate = b => {
     ctx.print('% Generating ' + b + ' bit RSA keys, keys will be non-exportable...');
     ctx.print('[OK] (elapsed time was ' + (b >= 2048 ? 1 : 0) + ' seconds)'); ctx.print('');
     const had = !!cfg.rsa;
-    cfg.rsa = { bits: b, name: name };
+    if (label) {
+      const keys = rsaKeys(cfg), old = keys.find(k => k.name === label);
+      cfg.rsa = null; cfg.rsaMore = keys.filter(k => k !== old).concat([{ bits: b, name: name, n: old ? old.n || 0 : keys.reduce((m, k) => Math.max(m, k.n || 0), 0) + 1 }]);
+      rsaPick(cfg);
+    } else {
+      const old = defKey(), others = rsaKeys(cfg).filter(k => k !== old);
+      if (others.length || cfg.sshKeypair) {
+        cfg.rsa = null; cfg.rsaMore = others.concat([{ bits: b, name: name, n: old ? old.n || 0 : 0 }]);
+        rsaPick(cfg);
+      } else cfg.rsa = { bits: b, name: name };
+    }
     ctx.dev.dirty = true;
-    if (!had) logMsg(ctx.dev.name, '%SSH-5-ENABLED: SSH 1.99 has been enabled');
+    if (had && !cfg.rsa) logMsg(ctx.dev.name, '%SSH-5-DISABLED: SSH 1.99 has been disabled');
+    if (!had && cfg.rsa) logMsg(ctx.dev.name, '%SSH-5-ENABLED: SSH 1.99 has been enabled');
     afterChange(); refreshPrompt(s.tab);
   };
   const start = () => {
@@ -2653,19 +2677,33 @@ function cfgCryptoGen(ctx) {
     });
     ask();
   };
-  if (cfg.rsa) {
-    ctx.print('% You already have RSA keys defined named ' + cfg.rsa.name + '.');
+  const clash = label ? rsaKeys(cfg).find(k => k.name === label) : defKey();
+  if (clash) {
+    ctx.print('% You already have RSA keys defined named ' + clash.name + '.');
     pend(s, '% Do you really want to replace them? [yes/no]: ', ans => { if (/^y(es)?$/i.test(ans)) start(); else refreshPrompt(s.tab); });
     return;
   }
   start();
 }
 function cfgCryptoZeroize(ctx) {
-  const cfg = ctx.cfg, s = ctx.s;
-  if (!cfg.rsa) { ctx.print('% No Signature RSA Keys found in configuration.'); return; }
+  const cfg = ctx.cfg, s = ctx.s, label = ctx.w[4], keys = rsaKeys(cfg); // crypto key zeroize rsa [LABEL]
+  // a label that names a key removes that key alone (the last key gone turns SSH off, as the bare command does)
+  if (label && keys.some(k => k.name === label)) {
+    ctx.print("% Keys to be removed are named '" + label + "'."); ctx.print('% All router certs issued using these keys will also be removed.');
+    pend(s, 'Do you really want to remove these keys? [yes/no]: ', ans => {
+      if (/^y(es)?$/i.test(ans)) {
+        const had = !!cfg.rsa; cfg.rsa = null; cfg.rsaMore = keys.filter(k => k.name !== label); rsaPick(cfg); ctx.dev.dirty = true;
+        if (!cfg.rsa && !cfg.rsaMore && cfg.sshVersion === 2) cfg.sshVersion = null;
+        if (had && !cfg.rsa) logMsg(ctx.dev.name, '%SSH-5-DISABLED: SSH 1.99 has been disabled'); afterChange();
+      }
+      refreshPrompt(s.tab);
+    });
+    return;
+  }
+  if (!keys.length) { ctx.print('% No Signature RSA Keys found in configuration.'); return; }
   ctx.print('% All RSA keys will be removed.'); ctx.print('% All router certs issued using these keys will also be removed.');
   pend(s, 'Do you really want to remove these keys? [yes/no]: ', ans => {
-    if (/^y(es)?$/i.test(ans)) { cfg.rsa = null; if (cfg.sshVersion === 2) cfg.sshVersion = null; ctx.dev.dirty = true; logMsg(ctx.dev.name, '%SSH-5-DISABLED: SSH 1.99 has been disabled'); afterChange(); }
+    if (/^y(es)?$/i.test(ans)) { const had = !!cfg.rsa; cfg.rsa = null; delete cfg.rsaMore; if (cfg.sshVersion === 2) cfg.sshVersion = null; ctx.dev.dirty = true; if (had) logMsg(ctx.dev.name, '%SSH-5-DISABLED: SSH 1.99 has been disabled'); afterChange(); }
     refreshPrompt(s.tab);
   });
 }
@@ -3744,6 +3782,9 @@ const RANGE_HINTS = [
   [/^\s*(enable|username\s+\S+)\s+algorithm-type\b/i, (ctx, line) => '[Range] This ' + (ctx.dev.kind === 'switch' ? 'switch runs IOS 15.0(2)SE4' : 'router runs IOS 15.1(4)M4') +
     ', which predates type 8 and type 9 secrets, so it rejects algorithm-type. Those secrets arrived in IOS 15.3(3)M, and the Defense Ladder\'s form, enable algorithm-type scrypt secret, works on IOS 15.3(3)M3 and later and on current IOS XE releases, where it stores a type 9 (scrypt) hash. Here, ' +
     (/^\s*username/i.test(line) ? 'username NAME secret' : 'enable secret') + ' stores a type 5 (MD5) hash.'],
+  [/^\s*verify\s+\/sha512\b/i, ctx => '[Range] This ' + (ctx.dev.kind === 'switch' ? 'switch runs IOS 15.0(2)SE4' : 'router runs IOS 15.1(4)M4') +
+    ', which predates verify /sha512, so it rejects the option. Here, verify /md5 FILE hashes the image; compare it with the MD5 the vendor publishes for that release' +
+    (ctx.dev.kind === 'switch' ? '.' : ', or run verify FILE to check the image\'s SHA-512 hash and digital signature.')],
   [/^\s*switchport\s+trunk\s+encapsulation\b/i, '[Range] A 2960 trunks with 802.1Q alone, so it lacks the switchport trunk encapsulation command. A multilayer switch such as a 3560 takes switchport trunk encapsulation dot1q before switchport mode trunk.'],
   [/^\s*(no\s+)?ip\s+routing\b/i, ctx => ctx.dev.kind === 'switch' ? '[Range] This 2960 runs its default Layer 2 template, so it lacks the ip routing command. A Layer 3 switch routes between its VLAN interfaces (interface vlan 10) once ip routing is on; a router does the same job with subinterfaces and routes from the start.' : null],
 ];
@@ -3836,9 +3877,11 @@ function showRunText(cfg, dev) {
   o.push('version ' + (sw ? '15.0' : '15.1'));
   // the 2960 ships with PAD off (no service pad); the routers run it until no service pad
   if (cfg.pad === undefined ? sw : !cfg.pad) o.push('no service pad');
+  o.push.apply(o, runSvcLines(cfg));
   o.push((cfg.tsLog ? 'service timestamps log ' + cfg.tsLog : 'no service timestamps log datetime msec'));
   o.push((cfg.tsDebug ? 'service timestamps debug ' + cfg.tsDebug : 'no service timestamps debug datetime msec'));
   o.push((cfg.pwEnc ? '' : 'no ') + 'service password-encryption');
+  o.push.apply(o, runSmallLines(cfg));
   o.push('!');
   o.push('hostname ' + cfg.hostname);
   o.push('!');
@@ -3852,7 +3895,8 @@ function showRunText(cfg, dev) {
   if (cfg.aaa) {
     o.push('aaa new-model'); o.push('!');
     const lists = Object.keys(cfg.aaa.lists || {});
-    if (lists.length) { for (const k of lists) o.push('aaa authentication login ' + k + ' ' + cfg.aaa.lists[k].join(' ')); o.push('!'); }
+    const authz = runAaaAuthzLines(cfg);
+    if (lists.length || authz.length) { for (const k of lists) o.push('aaa authentication login ' + k + ' ' + cfg.aaa.lists[k].join(' ')); o.push.apply(o, authz); o.push('!'); }
     o.push('aaa session-id common'); o.push('!');
   }
   if (cfg.tz) { o.push('clock timezone ' + cfg.tz.name + ' ' + cfg.tz.h + ' ' + cfg.tz.m); o.push('!'); }
@@ -3880,9 +3924,11 @@ function showRunText(cfg, dev) {
   }
   const g2 = [];
   if (!sw && cfg.noRouting) g2.push('no ip routing');
+  g2.push.apply(g2, runIpSvcLines(cfg, dev));
   if (!cfg.domainLookup) g2.push('no ip domain-lookup');
   if (cfg.domainName) g2.push('ip domain-name ' + cfg.domainName);
   if (cfg.loginBlock) g2.push('login block-for ' + cfg.loginBlock.block + ' attempts ' + cfg.loginBlock.attempts + ' within ' + cfg.loginBlock.within);
+  g2.push.apply(g2, runLoginLines(cfg));
   if (g2.length) { o.push.apply(o, g2); o.push('!'); }
   if (cfg.users.length) {
     for (const u of cfg.users) {
@@ -3913,6 +3959,7 @@ function showRunText(cfg, dev) {
   if (cfg.sshVersion) g3.push('ip ssh version ' + cfg.sshVersion);
   if (cfg.sshTimeout) g3.push('ip ssh time-out ' + cfg.sshTimeout);
   if (cfg.sshRetries !== null && cfg.sshRetries !== undefined) g3.push('ip ssh authentication-retries ' + cfg.sshRetries);
+  if (cfg.sshKeypair) g3.push('ip ssh rsa keypair-name ' + cfg.sshKeypair);
   if (!cfg.cdpRun) g3.push('no cdp run');
   if (cfg.lldpRun) g3.push('lldp run');
   if (g3.length) { o.push.apply(o, g3); o.push('!'); }
@@ -3974,6 +4021,7 @@ function showRunText(cfg, dev) {
     for (const g of sn.groups) o.push('snmp-server group ' + g.name + ' ' + g.ver + (g.level ? ' ' + g.level : ''));
     o.push('!');
   }
+  o.push.apply(o, runTailLines(cfg));
   // IOS groups the banners in this order (exec, login, motd) and closes the group with one '!'
   const g6 = [];
   if (cfg.bannerExec) g6.push(bannerLine('exec', cfg.bannerExec));
@@ -3996,6 +4044,7 @@ function showRunText(cfg, dev) {
     o.push('!');
   }
   if (cfg.ntp.length) { for (const n of cfg.ntp) o.push('ntp server ' + n); o.push('!'); }
+  o.push.apply(o, runEemLines(cfg));
   o.push('end');
   return o.join('\n') + '\n';
 }
@@ -4567,13 +4616,14 @@ function showAccessLists(ctx) {
   }
 }
 function showCryptoKey(ctx) {
-  const cfg = ctx.cfg;
-  if (!cfg.rsa) return;
-  const c = clockText(ctx.dev);
-  ctx.print('% Key pair was generated at: ' + c.time + ' ' + c.tz + ' ' + c.mon + ' ' + c.date + ' ' + c.year);
-  ctx.print('Key name: ' + cfg.rsa.name); ctx.print('Key type: RSA KEYS'); ctx.print(' Storage Device: not specified'); ctx.print(' Usage: General Purpose Key'); ctx.print(' Key is not exportable.'); ctx.print(' Key Data:');
-  const blob = fakeHashChars(cfg.rsa.name + cfg.rsa.bits, Math.min(400, cfg.rsa.bits / 4), 0x51).toUpperCase().replace(/[^0-9A-F]/g, '0');
-  for (let i = 0; i < blob.length; i += 72) ctx.print('  ' + blob.slice(i, i + 72).replace(/(.{8})/g, '$1 ').trim());
+  // every key pair, the default-named one and any labelled ones (rsaKeys, 74-ios-services.js)
+  for (const k of rsaKeys(ctx.cfg)) {
+    const c = clockText(ctx.dev);
+    ctx.print('% Key pair was generated at: ' + c.time + ' ' + c.tz + ' ' + c.mon + ' ' + c.date + ' ' + c.year);
+    ctx.print('Key name: ' + k.name); ctx.print('Key type: RSA KEYS'); ctx.print(' Storage Device: not specified'); ctx.print(' Usage: General Purpose Key'); ctx.print(' Key is not exportable.'); ctx.print(' Key Data:');
+    const blob = fakeHashChars(k.name + k.bits, Math.min(400, k.bits / 4), 0x51).toUpperCase().replace(/[^0-9A-F]/g, '0');
+    for (let i = 0; i < blob.length; i += 72) ctx.print('  ' + blob.slice(i, i + 72).replace(/(.{8})/g, '$1 ').trim());
+  }
 }
 function showDhcpSnooping(ctx) {
   const cfg = ctx.cfg;
@@ -4642,8 +4692,8 @@ function showStpInconsistent(ctx) {
 }
 function showLogin(ctx) {
   const lb = ctx.cfg.loginBlock, rt = devRT(ctx.dev.name);
-  if (!lb) { ctx.print('     No login delay has been applied.'); ctx.print('     No Quiet-Mode access list has been configured.'); ctx.print(''); ctx.print('     Router NOT enabled to watch for login Attacks'); return; }
-  ctx.print('     A default login delay of 1 second is applied.'); ctx.print('     No Quiet-Mode access list has been configured.'); ctx.print('');
+  if (!lb) { ctx.print('     No login delay has been applied.'); ctx.print(ctx.cfg.quietAcl ? '     Quiet-Mode access list ' + ctx.cfg.quietAcl + ' is applied.' : '     No Quiet-Mode access list has been configured.'); ctx.print(''); ctx.print('     Router NOT enabled to watch for login Attacks'); return; }
+  ctx.print('     A default login delay of 1 second is applied.'); ctx.print(ctx.cfg.quietAcl ? '     Quiet-Mode access list ' + ctx.cfg.quietAcl + ' is applied.' : '     No Quiet-Mode access list has been configured.'); ctx.print('');
   ctx.print('     Router enabled to watch for login Attacks.'); ctx.print('     If more than ' + lb.attempts + ' login failures occur in ' + lb.within + ' seconds or less,'); ctx.print('     logins will be disabled for ' + lb.block + ' seconds.'); ctx.print('');
   if (rt.quietUntil > Date.now()) { ctx.print('     Router presently in Quiet-Mode.'); ctx.print('     Will remain in Quiet-Mode for ' + Math.ceil((rt.quietUntil - Date.now()) / 1000) + ' seconds.'); }
   else { ctx.print('     Router presently in Normal-Mode.'); ctx.print('     Current Watch Window'); ctx.print('         Time remaining: ' + lb.within + ' seconds.'); ctx.print('         Login failures for current window: ' + rt.failures.length + '.'); ctx.print('     Total login failures: ' + rt.failures.length + '.'); }
@@ -4835,6 +4885,443 @@ SHOW_TREE.push(
 (() => {
   const ipNode = SHOW_TREE.find(n => n.k === 'ip'), arp = ipNode.c.find(n => n.k === 'arp');
   arp.c = [{ k: 'inspection', h: 'Show ARP Inspection', kind: 'switch', run: showDai, c: [{ k: 'vlan', h: 'Show ARP Inspection status for vlan', c: [{ a: 'WORD', label: 'WORD', h: 'vlan range', run: showDai }] }] }];
+})();
+
+/* ---- 74-ios-services.js ---- */
+/* ================= device services, sign-in controls, files, archives, and scheduled commands =================
+   The small TCP and UDP services, finger, BOOTP, source routing, TCP keepalives, Smart Install (vstack, switches),
+   TFTP service, the sign-in options (login on-failure, login quiet-mode, aaa authorization exec), a named SSH key
+   (ip ssh rsa keypair-name), more and verify, the configuration archive and the rollback timer (routers), EEM applets
+   (routers: the 2960 LAN Base image lacks EEM) and kron schedules, and the show commands that read them back. Each
+   setting that differs from the IOS default shows in show running-config. */
+
+/* ---- global service switches: the default stays out of the config, as on IOS ---- */
+const SVC_FLAGS = { 'tcp-keepalives-in': 'keepIn', 'tcp-keepalives-out': 'keepOut', 'tcp-small-servers': 'tcpSmall', 'udp-small-servers': 'udpSmall' };
+function cfgSvcFlag(ctx) { const k = SVC_FLAGS[ctx.node.k]; if (ctx.no) delete ctx.cfg[k]; else ctx.cfg[k] = true; }
+/* ip source-route and ip bootp server are on by default (the no form sets a flag); ip finger is off by default */
+function cfgSourceRoute(ctx) { if (ctx.no) ctx.cfg.noSrcRoute = true; else delete ctx.cfg.noSrcRoute; }
+function cfgBootp(ctx) { if (ctx.no) ctx.cfg.noBootp = true; else delete ctx.cfg.noBootp; }
+function cfgFinger(ctx) { if (ctx.no) delete ctx.cfg.finger; else ctx.cfg.finger = true; }
+/* vstack: the Smart Install client runs from the factory on the 2960 and listens on TCP 4786; no vstack turns it off */
+function cfgVstack(ctx) { if (ctx.no) ctx.cfg.noVstack = true; else delete ctx.cfg.noVstack; }
+const vstackOn = (dev, cfg) => dev.kind === 'switch' && !cfg.noVstack;
+/* tftp-server flash:FILE|nvram:startup-config [ACL]: one line per file; the no form names the file */
+function cfgTftpServer(ctx) {
+  const cfg = ctx.cfg, file = /^nvram:/i.test(ctx.w[1]) ? 'nvram:startup-config' : ctx.w[1], acl = ctx.w[2] || null, list = (cfg.tftp || []).filter(t => t.file.toLowerCase() !== file.toLowerCase());
+  if (!ctx.no) list.push(acl ? { file: file, acl: acl } : { file: file });
+  if (list.length) cfg.tftp = list; else delete cfg.tftp;
+}
+
+/* ---- sign-in options ---- */
+/* login on-failure log [every N]: a %SEC_LOGIN-4-LOGIN_FAILED message for each failure (or each Nth) */
+function cfgLoginFail(ctx) { if (ctx.no) delete ctx.cfg.loginFail; else ctx.cfg.loginFail = { every: ctx.w[3] === 'every' ? +ctx.w[4] : 1 }; }
+/* login quiet-mode access-class ACL: sources this ACL permits still sign in during a quiet period */
+function cfgQuietAcl(ctx) { if (ctx.no) delete ctx.cfg.quietAcl; else ctx.cfg.quietAcl = ctx.w[3]; }
+function quietBlocks(cfg, rt, srcIp) { return rt.quietUntil > Date.now() && !(cfg.quietAcl && srcIp && aclMatch(cfg.acls[cfg.quietAcl], srcIp)); }
+function noteLoginFail(target, tcfg, user, srcIp, port) {
+  const lf = tcfg.loginFail; if (!lf) return;
+  const rt = devRT(target.name); rt.failLogged = (rt.failLogged || 0) + 1;
+  if (rt.failLogged % (lf.every || 1)) return;
+  const c = clockText(target, true);
+  logMsg(target.name, '%SEC_LOGIN-4-LOGIN_FAILED: Login failed [user: ' + (user || '') + '] [Source: ' + (srcIp || '0.0.0.0') + '] [localport: ' + port + '] [Reason: Login Authentication Failed] at ' + c.time + ' ' + c.tz + ' ' + c.day + ' ' + c.mon + ' ' + c.date + ' ' + c.year);
+}
+/* aaa authorization exec default|NAME METHOD...: with aaa new-model, a local user's privilege level applies at an SSH or
+   Telnet sign-in only once the default list names local; without it the session starts at user EXEC */
+function cfgAaaAuthz(ctx) {
+  const aaa = ctx.cfg.aaa, list = ctx.w[3]; if (!aaa || !list) return;
+  const L = aaa.authExec || {};
+  if (ctx.no) delete L[list]; else L[list] = ctx.w.slice(4);
+  if (Object.keys(L).length) aaa.authExec = L; else delete aaa.authExec;
+}
+function aaaKeepsPriv(cfg) { return !cfg.aaa || !!(cfg.aaa.authExec && cfg.aaa.authExec.default && cfg.aaa.authExec.default.includes('local')); }
+const aaaExecMethods = n => [['if-authenticated', 'Succeed if user has authenticated.'], ['local', 'Use local database.'], ['none', 'No authorization (always succeeds).']]
+  .map(([k, h]) => ({ k: k, h: h, run: cfgAaaAuthz, c: n > 1 ? aaaExecMethods(n - 1) : undefined }));
+
+/* ---- RSA keys: one default-named key plus any labelled ones. cfg.rsa is the key SSH uses (the first key, or the one
+   ip ssh rsa keypair-name names); the others wait in cfg.rsaMore. A keypair-name without its key leaves SSH off. ---- */
+function rsaKeys(cfg) { return [cfg.rsa].concat(cfg.rsaMore || []).filter(Boolean).sort((a, b) => (a.n || 0) - (b.n || 0)); }
+function rsaPick(cfg) {
+  const keys = rsaKeys(cfg), kp = cfg.sshKeypair;
+  const act = kp ? keys.find(k => k.name === kp) || null : keys[0] || null;
+  cfg.rsa = act;
+  const more = keys.filter(k => k !== act);
+  if (more.length) cfg.rsaMore = more; else delete cfg.rsaMore;
+}
+function cfgSshKeypair(ctx) {
+  const cfg = ctx.cfg, had = !!cfg.rsa;
+  if (ctx.no) delete cfg.sshKeypair; else cfg.sshKeypair = ctx.w[4];
+  rsaPick(cfg);
+  if (had && !cfg.rsa) logMsg(ctx.dev.name, '%SSH-5-DISABLED: SSH 1.99 has been disabled');
+  if (!had && cfg.rsa) logMsg(ctx.dev.name, '%SSH-5-ENABLED: SSH 1.99 has been enabled');
+}
+
+/* ---- files: flash, NVRAM, and the running config ---- */
+/* the file a path names on this device: { name, size, text } (text null for a binary file), or null */
+function fileAt(dev, path) {
+  const p = String(path || ''), m = /^([a-z0-9]+):\/?(.*)$/i.exec(p), fs = m ? m[1].toLowerCase() : 'flash', base = m ? m[2] : p;
+  if (fs === 'system' && /^running-config$/i.test(base)) { const t = showRunText(dev.running, dev); return { name: base, size: t.length, text: t }; }
+  if (fs === 'nvram' && /^startup-config$/i.test(base)) { if (!dev.startup) return null; const t = showRunText(dev.startup, dev); return { name: base, size: t.length, text: t }; }
+  if (fs !== 'flash' && fs !== 'flash0') return null;
+  const low = base.toLowerCase();
+  const user = flashFiles(dev).find(f => f.name.toLowerCase() === low);
+  if (user) return { name: user.name, size: user.size, text: user.text === undefined ? null : user.text, old: user.text === undefined };
+  const image = dev.kind === 'switch' ? 'c2960-lanbasek9-mz.150-2.SE4.bin' : routerModel(dev).image;
+  if (low === image.toLowerCase()) return { name: image, size: dev.kind === 'switch' ? 4414921 : 33591768, text: null, image: true };
+  if (dev.kind === 'switch' && low === 'vlan.dat' && vlanDatSize(dev.running)) return { name: 'vlan.dat', size: vlanDatSize(dev.running), text: null };
+  if (dev.kind === 'router' && (low === 'sigdef-category.xml' || low === 'sigdef-default.xml')) return { name: base, size: low === 'sigdef-category.xml' ? 28282 : 227537, text: null };
+  return null;
+}
+function cmdMore(ctx) {
+  const path = ctx.w[1], f = fileAt(ctx.dev, path);
+  if (!f) { ctx.print('%Error opening ' + path + ' (File not found)'); return; }
+  if (f.old) { ctx.print('[Range] An earlier version of this page kept the size of ' + f.name + ' alone; copy the configuration to flash again to read it here.'); return; }
+  if (f.text === null) { ctx.print('[Range] ' + f.name + ' is a binary file: more prints its raw bytes on a real device. verify /md5 ' + path + ' hashes it.'); return; }
+  for (const l of f.text.replace(/\n$/, '').split('\n')) ctx.print(l);
+  ctx.print('');
+}
+/* a stable stand-in digest of a file (hex), seeded by its name, size, and text */
+function fileDigest(f, hexLen) {
+  let out = '';
+  for (let i = 0; out.length < hexLen; i++) out += (hash32(f.name + '|' + f.size + '|' + (f.text || '') + '|' + i, 0x5EED + i) >>> 0).toString(16).padStart(8, '0');
+  return out.slice(0, hexLen);
+}
+const VERIFY_NOTE = '[Range] The lab\'s image file is a stand-in, so this hash is the lab\'s own. On a real device, compare it with the hash the vendor publishes for that release.';
+function cmdVerifyMd5(ctx) {
+  const path = ctx.w[2], f = fileAt(ctx.dev, path);
+  if (!f) { ctx.print('%Error opening ' + path + ' (File not found)'); return; }
+  ctx.print('.'.repeat(Math.max(4, Math.min(72, Math.ceil(f.size / 480000)))) + 'Done!');
+  ctx.print('verify /md5 (' + path + ') = ' + fileDigest(f, 32));
+  if (f.image) ctx.print(VERIFY_NOTE);
+}
+/* verify FILE: on a signed router image, the SHA-2 hash and the digital signature check */
+function cmdVerify(ctx) {
+  const path = ctx.w[1], f = fileAt(ctx.dev, path);
+  if (!f) { ctx.print('%Error opening ' + path + ' (File not found)'); return; }
+  if (ctx.dev.kind === 'switch' || !f.image) { ctx.print('[Range] Here, verify without /md5 checks a signed router image; for ' + f.name + ', use verify /md5 ' + path + '.'); return; }
+  // the SHA-512 stand-in has its own seed, so it shares no prefix with the MD5 line below (verify /md5's value)
+  const sha = fileDigest({ name: f.name + '|sha512', size: f.size, text: f.text }, 128).toUpperCase(), rows = [0, 32, 64, 96].map(i => sha.slice(i, i + 32));
+  ctx.print('Starting image verification'); ctx.print('Hash Computation:    100% Done!'); ctx.print('');
+  for (const lbl of ['Computed Hash   SHA2: ', 'Embedded Hash   SHA2: ']) { ctx.print(lbl + rows[0]); for (const r of rows.slice(1)) ctx.print('                      ' + r); ctx.print(''); }
+  ctx.print('CCO Hash        MD5 : ' + fileDigest(f, 32).toUpperCase()); ctx.print('');
+  ctx.print('Digital signature successfully verified in file ' + path);
+  ctx.print(VERIFY_NOTE);
+}
+
+/* ---- the configuration archive: numbered copies in flash (archive path), made by write memory (with write-memory)
+   and by configure terminal revert; show archive lists them ---- */
+const ARCHIVE_MAX = 10;
+function archiveName(a, n) { const m = /^([a-z0-9]+:)\/?(.*)$/i.exec(a.path) || [null, 'flash:', a.path]; return { fs: m[1], base: m[2] + '-' + n }; }
+function archiveSave(dev) {
+  const a = dev.running.archive; if (!a || !a.path) return null;
+  const n = (dev.archiveSeq || 0) + 1, nm = archiveName(a, n), text = showRunText(dev.running, dev);
+  dev.archiveSeq = n;
+  const rec = { full: nm.fs + nm.base, cfg: clone(dev.running) }, list = dev.archives || (dev.archives = []);
+  list.push(rec);
+  while (list.length > ARCHIVE_MAX) {
+    const old = list.shift(), om = /^[a-z0-9]+:\/?(.*)$/i.exec(old.full);
+    if (om && dev.flash) dev.flash = dev.flash.filter(f => f.name !== om[1]);
+  }
+  if (/^flash0?:$/i.test(nm.fs)) { const files = dev.flash || (dev.flash = []); const i = files.findIndex(f => f.name === nm.base), f = { name: nm.base, size: text.length, text: text }; if (i >= 0) files[i] = f; else files.push(f); }
+  return rec;
+}
+function showArchive(ctx) {
+  const dev = ctx.dev, a = ctx.cfg.archive;
+  if (!a || !a.path) { ctx.print('Archive feature not enabled'); return; }
+  const list = dev.archives || [], n = dev.archiveSeq || 0, nm = archiveName(a, n + 1);
+  ctx.print('The maximum archive configurations allowed is ' + ARCHIVE_MAX + '.');
+  ctx.print('There are currently ' + list.length + ' archive configurations saved.');
+  ctx.print('The next archive file will be named ' + nm.fs + nm.base);
+  ctx.print(' Archive #  Name');
+  // IOS numbers the slots 1-10 and reuses them in turn; the newest copy is marked
+  const slots = {};
+  list.forEach((r, i) => { const k = ((n - list.length + i) % ARCHIVE_MAX) + 1; slots[k] = r.full + (i === list.length - 1 ? ' <- Most Recent' : ''); });
+  ctx.print('   0');
+  for (let k = 1; k <= ARCHIVE_MAX; k++) ctx.print(lpad(k, 4) + (slots[k] ? '       ' + slots[k] : ''));
+}
+/* the save commands also archive when archive has write-memory */
+function archiveOnSave(dev) { const a = dev.running && dev.running.archive; if (a && a.path && a['write-memory']) archiveSave(dev); }
+
+/* ---- Rollback Confirmed Change (routers): configure terminal revert timer N archives the running config, then
+   restores that copy after N minutes unless configure confirm keeps the change ---- */
+function revertWho(s) { return (s.line.type === 'con' ? 'console' : (s.user || 'vty' + s.line.n)) + '(Priv: ' + s.priv + ', View: 0)'; }
+function cmdConfigRevert(ctx) {
+  const dev = ctx.dev, s = ctx.s, a = ctx.cfg.archive, mins = +ctx.w[ctx.w.length - 1];
+  if (!a || !a.path) { ctx.print('[Range] configure terminal revert needs archive and path first: the rollback timer restores the copy it saves there.'); return; }
+  const rt = devRT(dev.name);
+  if (rt.revert) clearTimeout(rt.revert.timer);
+  const rec = archiveSave(dev);
+  logMsg(dev.name, '%ARCHIVE_DIFF-5-ROLLBK_CNFMD_CHG_BACKUP: Backing up current running config to ' + rec.full);
+  logMsg(dev.name, '%ARCHIVE_DIFF-5-ROLLBK_CNFMD_CHG_START_ABSTIMER: User: ' + revertWho(s) + ': Scheduled to rollback to config ' + rec.full + ' in ' + mins + ' minutes');
+  const bootAt = rt.bootAt;
+  rt.revert = { full: rec.full, timer: setTimeout(() => revertNow(dev, rec, bootAt), mins * 60000) };
+  enterConfig(s);
+}
+function revertNow(dev, rec, bootAt) {
+  const rt = devRT(dev.name);
+  if (S.devices[dev.name] !== dev || rt.bootAt !== bootAt || !rt.revert || rt.revert.full !== rec.full) return; // reloaded, reset, or confirmed
+  delete rt.revert;
+  const before = snapshotLinks(), vlans = dev.kind === 'switch' ? clone(dev.running.vlans) : null;
+  logMsg(dev.name, '%ARCHIVE_DIFF-5-ROLLBK_CNFMD_CHG_ROLLBACK_START: Attempting to rollback to config ' + rec.full);
+  dev.running = clone(rec.cfg);
+  if (vlans) dev.running.vlans = vlans;
+  dev.dirty = !dev.startup || cfgSig(dev.running) !== cfgSig(dev.startup);
+  announceChanges(before);
+  afterChange();
+}
+function cmdConfigConfirm(ctx) {
+  const rt = devRT(ctx.dev.name);
+  if (!rt.revert) { ctx.print('% No Rollback Confirmed Change pending'); return; }
+  clearTimeout(rt.revert.timer); delete rt.revert;
+  logMsg(ctx.dev.name, '%ARCHIVE_DIFF-5-ROLLBK_CNFMD_CHG_CONFIRM: User: ' + revertWho(ctx.s) + ': Rollback Confirmed Change: Configuration confirmed.');
+}
+
+/* ---- EEM applets (routers): event manager applet NAME opens (config-applet)# ---- */
+function eemOf(cfg) { return cfg.eem || (cfg.eem = []); }
+function cfgApplet(ctx) {
+  const cfg = ctx.cfg, name = ctx.w[3];
+  if (ctx.no) { if (cfg.eem) { cfg.eem = cfg.eem.filter(a => a.name !== name); if (!cfg.eem.length) delete cfg.eem; } return; }
+  const list = eemOf(cfg);
+  if (!list.some(a => a.name === name)) { const c = clockText(ctx.dev); list.push({ name: name, at: c.day + ' ' + c.mon + ' ' + lpad(c.date, 2) + ' ' + c.time + ' ' + c.year }); }
+  ctx.s.mode = 'config-applet'; ctx.s.ctx = { ifaces: [], lines: [], vlans: [], acl: null, applet: name };
+}
+function appletOf(ctx) { return ctx.cfg.eem && ctx.s.ctx.applet ? ctx.cfg.eem.find(a => a.name === ctx.s.ctx.applet) || null : null; }
+/* the words after the keyword, as typed (the applet description) */
+const restOf = (ctx, i) => ctx.line.slice(indexOfWord(ctx.line, i)).trim();
+/* IOS stores and prints full keywords. The tree's own words arrive full in ctx.w; in the free text after them, each
+   keyword position (every other word: keyword, then its value) takes the one keyword its prefix names. Quoted text,
+   values, and a word that names no keyword or several stay as typed, and expansion stops at the first such word.
+   EEM_ACT holds every IOS action keyword, so an action word expands only when IOS would accept it as unique ('re'
+   names regexp and reload, so it stays as typed); EEM_ACT_KW lists the keywords after the actions the lab expands. */
+const EEM_EV_KW = { cli: ['pattern', 'sync', 'skip', 'occurs', 'period', 'maxrun', 'tag'], syslog: ['pattern', 'occurs', 'period', 'priority', 'maxrun', 'tag'],
+  timer: ['time', 'name', 'maxrun', 'tag'], cron: ['cron-entry', 'name', 'maxrun', 'tag'] };
+const EEM_ACT = ['add', 'append', 'break', 'cli', 'cns-event', 'comment', 'context', 'continue', 'counter', 'decrement', 'divide', 'else',
+  'elseif', 'end', 'exit', 'file', 'foreach', 'force-switchover', 'gets', 'handle-error', 'if', 'increment', 'info', 'mail', 'multiply',
+  'policy', 'publish-event', 'puts', 'regexp', 'reload', 'set', 'snmp-object-value', 'snmp-trap', 'string', 'subtract', 'syslog', 'track',
+  'wait', 'while'];
+const EEM_ACT_KW = { cli: ['command', 'pattern'], syslog: ['priority', 'msg', 'facility'], mail: ['server', 'to', 'from', 'cc', 'subject', 'body'] };
+function eemWords(text) { return String(text || '').match(/"[^"]*"?|\S+/g) || []; }
+function eemKw(word, kws) {
+  if (!kws || /^"/.test(word)) return null;
+  const low = word.toLowerCase(), hit = kws.filter(k => k.startsWith(low));
+  return kws.includes(low) ? low : hit.length === 1 ? hit[0] : null;
+}
+function eemExpand(words, kws, from) {
+  for (let i = from; i < words.length; i += 2) { const k = eemKw(words[i], kws); if (!k) break; words[i] = k; }
+  return words;
+}
+function apEvent(ctx) {
+  const a = appletOf(ctx); if (!a) return;
+  if (ctx.no) { delete a.event; return; }
+  const w = ctx.w, head = w.slice(1, w[1] === 'timer' ? 3 : 2), kind = w[1] === 'timer' ? (w[2] === 'cron' ? 'cron' : 'timer') : w[1];
+  a.event = head.concat(eemExpand(eemWords(w.slice(head.length + 1).join(' ')), EEM_EV_KW[kind], 0)).join(' ');
+}
+function apDesc(ctx) { const a = appletOf(ctx); if (!a) return; if (ctx.no) delete a.desc; else a.desc = restOf(ctx, 1); }
+function apAction(ctx) {
+  const a = appletOf(ctx); if (!a) return;
+  const label = ctx.w[1], list = (a.actions || []).filter(x => x.label !== label);
+  if (!ctx.no) {
+    const words = eemWords(ctx.w[2]), type = words.length ? eemKw(words[0], EEM_ACT) : null;
+    if (type) { words[0] = type; eemExpand(words, EEM_ACT_KW[type], 1); }
+    list.push({ label: label, text: words.join(' ') });
+    list.sort((x, y) => (parseFloat(x.label) - parseFloat(y.label)) || (x.label < y.label ? -1 : 1));
+  }
+  if (list.length) a.actions = list; else delete a.actions;
+}
+function apExit(ctx) { ctx.s.mode = 'config'; ctx.s.ctx = { ifaces: [], lines: [], vlans: [], acl: null }; }
+const AP_LINE = h => [{ a: 'LINE', h: h, run: apEvent }];
+const APPLET_TREE = [
+  { k: 'description', h: 'Add or modify an applet description', inc: true, run: apDesc, c: [{ a: 'LINE', h: 'description', run: apDesc }] },
+  { k: 'event', h: 'Add or modify event information', inc: true, run: apEvent, c: [
+    { k: 'cli', h: 'CLI event', inc: true, run: apEvent, c: AP_LINE('Event pattern') },
+    { k: 'none', h: 'Manually run policy event', run: apEvent },
+    { k: 'syslog', h: 'Syslog event', inc: true, run: apEvent, c: AP_LINE('Syslog pattern') },
+    { k: 'timer', h: 'Timer event', inc: true, run: apEvent, c: [
+      { k: 'absolute', h: 'Absolute timer event', inc: true, run: apEvent, c: AP_LINE('Timer settings') },
+      { k: 'countdown', h: 'Countdown timer event', inc: true, run: apEvent, c: AP_LINE('Timer settings') },
+      { k: 'cron', h: 'Cron timer event', inc: true, run: apEvent, c: AP_LINE('Cron entry') },
+      { k: 'watchdog', h: 'Watchdog timer event', inc: true, run: apEvent, c: AP_LINE('Timer settings') }] }] },
+  { k: 'action', h: 'Add or modify an action statement', inc: true, run: apAction, c: [{ a: 'WORD', h: 'Action label', inc: true, run: apAction, c: [{ a: 'LINE', h: 'Action, such as cli command "show users"', run: apAction }] }] },
+  { k: 'exit', h: 'Exit from applet configuration mode', run: apExit },
+  { k: 'end', h: 'Exit from configure mode', run: cfgEnd },
+  { k: 'do', h: 'To run exec commands in config mode', inc: true, c: [{ a: 'LINE', h: 'Exec Command', run: cfgDo }] },
+];
+APPLET_TREE.push({ k: 'no', h: 'Negate a command or set its defaults', neg: true, c: APPLET_TREE });
+function eemType(ev) {
+  const w = String(ev || '').split(/\s+/);
+  return w[0] === 'timer' ? 'timer ' + (w[1] || '') : w[0] || 'none';
+}
+function showEemRegistered(ctx) {
+  const list = (ctx.cfg.eem || []).filter(a => a.event);
+  if (!list.length) { ctx.print('[Range] No Embedded Event Manager applets or scripts are registered on ' + ctx.cfg.hostname + '.'); return; }
+  ctx.print('No.  Class     Type    Event Type          Trap  Time Registered           Name');
+  list.forEach((a, i) => {
+    ctx.print(pad(i + 1, 5) + pad('applet', 10) + pad('user', 8) + pad(eemType(a.event), 20) + pad('Off', 6) + pad(a.at, 26) + a.name);
+    /* the event's settings after its type words, with each quoted pattern's spacing kept (event none prints its row alone) */
+    const detail = eemWords(a.event).slice(eemType(a.event).split(' ').length).join(' ');
+    if (detail) ctx.print(' ' + detail);
+    for (const x of a.actions || []) ctx.print(' action ' + x.label + ' ' + x.text);
+    ctx.print('');
+  });
+}
+
+/* ---- kron (the Command Scheduler): kron occurrence NAME at HH:MM|in [[DD:]HH:]MM oneshot|recurring opens
+   (config-kron-occurrence)#, where policy-list NAME names the commands it runs ---- */
+function cfgKronOcc(ctx) {
+  const cfg = ctx.cfg, w = ctx.w, name = w[2];
+  const rest = cfg.kron ? cfg.kron.filter(k => k.name !== name) : [];
+  if (ctx.no) { if (rest.length) cfg.kron = rest; else delete cfg.kron; return; }
+  const cur = (cfg.kron || []).find(k => k.name === name) || {};
+  const occ = { name: name, when: w[3] + ' ' + w[4], how: w[5] };
+  if (cur.policies) occ.policies = cur.policies;
+  cfg.kron = rest.concat([occ]);
+  ctx.s.mode = 'config-kron-occurrence'; ctx.s.ctx = { ifaces: [], lines: [], vlans: [], acl: null, kron: name };
+}
+function kronOf(ctx) { return ctx.cfg.kron && ctx.s.ctx.kron ? ctx.cfg.kron.find(k => k.name === ctx.s.ctx.kron) || null : null; }
+function krPolicy(ctx) {
+  const k = kronOf(ctx); if (!k) return;
+  const name = ctx.w[1], list = (k.policies || []).filter(p => p !== name);
+  if (!ctx.no) list.push(name);
+  if (list.length) k.policies = list; else delete k.policies;
+}
+const KRON_HOW = [{ k: 'oneshot', h: 'Schedule kron occurrence exactly once', run: cfgKronOcc }, { k: 'recurring', h: 'Schedule kron occurrence repeatedly', run: cfgKronOcc },
+  { k: 'system-startup', h: 'Schedule kron occurrence at system startup', run: cfgKronOcc }];
+const KRON_TREE = [
+  { k: 'policy-list', h: 'Policy list to be run by this occurrence', inc: true, run: krPolicy, c: [{ a: 'WORD', h: 'Name of a policy list', run: krPolicy }] },
+  { k: 'exit', h: 'Exit from kron occurrence configuration mode', run: apExit },
+  { k: 'end', h: 'Exit from configure mode', run: cfgEnd },
+  { k: 'do', h: 'To run exec commands in config mode', inc: true, c: [{ a: 'LINE', h: 'Exec Command', run: cfgDo }] },
+];
+KRON_TREE.push({ k: 'no', h: 'Negate a command or set its defaults', neg: true, c: KRON_TREE });
+
+/* ---- the ports the router itself listens on (show control-plane host open-ports) ---- */
+function openPorts(dev) {
+  const cfg = dev.running, out = [], add = (p, port, svc) => out.push([p, port, svc]);
+  if (cfg.rsa) add('tcp', 22, 'SSH-Server');
+  add('tcp', 23, 'Telnet');
+  if (cfg.finger) add('tcp', 79, 'Finger');
+  if (cfg.httpServer) add('tcp', cfg.httpPort || 80, 'HTTP CORE');
+  if (cfg.httpSecure) add('tcp', cfg.httpsPort || 443, 'HTTP CORE');
+  if (cfg.tcpSmall) for (const [p, n] of [[7, 'TCP Echo'], [9, 'TCP Discard'], [13, 'TCP Daytime'], [19, 'TCP Chargen']]) add('tcp', p, n);
+  if (cfg.udpSmall) for (const [p, n] of [[7, 'UDP Echo'], [9, 'UDP Discard'], [19, 'UDP Chargen']]) add('udp', p, n);
+  if (!cfg.noBootp || (cfg.dhcp && cfg.dhcp.pools.length)) add('udp', 67, 'DHCPD Receive');
+  if (cfg.tftp) add('udp', 69, 'TFTP');
+  if (cfg.ntp.length) add('udp', 123, 'NTP');
+  if (cfg.snmp && (cfg.snmp.comm.length || cfg.snmp.users.length)) { add('udp', 161, 'IP SNMP'); add('udp', 162, 'IP SNMP'); }
+  return out.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : a[1] - b[1]));
+}
+function showOpenPorts(ctx) {
+  ctx.print('Active internet connections (servers and established)');
+  ctx.print('Prot               Local Address             Foreign Address                  Service    State');
+  for (const [p, port, svc] of openPorts(ctx.dev)) ctx.print(' ' + p + lpad('*:' + port, 28) + lpad('*:0', 28) + lpad(svc, 25) + '   LISTEN');
+  ctx.print('');
+}
+/* TCP ports beyond SSH and the web server that answer a PC's telnet to a port: the small servers, finger, and Smart
+   Install (TCP 4786 on a switch until no vstack) */
+function tcpServiceOpen(dev, port) {
+  const cfg = dev.running;
+  return (cfg.tcpSmall && [7, 9, 13, 19].includes(port)) || (cfg.finger && port === 79) || (port === 4786 && vstackOn(dev, cfg));
+}
+
+/* ---- the other show commands ---- */
+/* a stand-in for IOS's empty output: the lab models sign-ins on the device alone (it has no radius-server command), so
+   every state shows the empty table. A later RADIUS model replaces this note with the server table (as the empty case
+   of showEemRegistered stands in for its blank list) */
+function showAaaServers(ctx) { ctx.print('[Range] ' + ctx.cfg.hostname + ' checks every sign-in on the device itself, so its server table is empty.'); }
+function showCryptoSession(ctx) {
+  ctx.print('Crypto session current status'); ctx.print('');
+  if (ctx.w[3] === 'detail') { ctx.print('Code: C - IKE Configuration mode, D - Dead Peer Detection'); ctx.print('K - Keepalives, N - NAT-traversal, T - cTCP encapsulation'); ctx.print('X - IKE Extended Authentication, F - IKE Fragmentation'); ctx.print(''); }
+}
+function showAuthenticity(ctx) {
+  const m = routerModel(ctx.dev);
+  for (const l of ['SYSTEM IMAGE', '------------', 'Image type                    : Production', '    Signer Information', '        Common Name           : CiscoSystems',
+    '        Organization Unit     : ' + m.series, '        Organization Name     : CiscoSystems', '    Certificate Serial Number : 509AC949', '    Hash Algorithm            : SHA512',
+    '    Signature Algorithm       : 2048-bit RSA', '    Key Version               : A', '    Verifier Information', '        Verifier Name         : ROMMON 2',
+    '        Verifier Version      : System Bootstrap, Version 15.0(1r)M15, RELEASE SOFTWARE (fc1)']) ctx.print(l);
+}
+function showVstackConfig(ctx) {
+  ctx.print(' Role: Client (SmartInstall ' + (vstackOn(ctx.dev, ctx.cfg) ? 'enabled' : 'disabled') + ')');
+  ctx.print(' Vstack Director IP address: 0.0.0.0');
+}
+
+/* ---- the running-config lines these settings add (showRunText calls each in its place) ---- */
+function runSvcLines(cfg) { return [cfg.keepIn ? 'service tcp-keepalives-in' : null, cfg.keepOut ? 'service tcp-keepalives-out' : null].filter(Boolean); }
+function runSmallLines(cfg) { return [cfg.udpSmall ? 'service udp-small-servers' : null, cfg.tcpSmall ? 'service tcp-small-servers' : null].filter(Boolean); }
+function runIpSvcLines(cfg, dev) {
+  return [cfg.noSrcRoute ? 'no ip source-route' : null, cfg.finger ? 'ip finger' : null, cfg.noBootp ? 'no ip bootp server' : null,
+    dev.kind === 'switch' && cfg.noVstack ? 'no vstack' : null].filter(Boolean);
+}
+function runLoginLines(cfg) {
+  return [cfg.quietAcl ? 'login quiet-mode access-class ' + cfg.quietAcl : null,
+    cfg.loginFail ? 'login on-failure log' + (cfg.loginFail.every > 1 ? ' every ' + cfg.loginFail.every : '') : null].filter(Boolean);
+}
+function runAaaAuthzLines(cfg) { const L = cfg.aaa && cfg.aaa.authExec; return L ? Object.keys(L).map(k => 'aaa authorization exec ' + k + ' ' + L[k].join(' ')) : []; }
+function runTailLines(cfg) {
+  const o = [];
+  if (cfg.tftp) { for (const t of cfg.tftp) o.push('tftp-server ' + t.file + (t.acl ? ' ' + t.acl : '')); o.push('!'); }
+  if (cfg.kron) for (const k of cfg.kron) { o.push('kron occurrence ' + k.name + ' ' + k.when + ' ' + k.how); for (const p of k.policies || []) o.push(' policy-list ' + p); o.push('!'); }
+  return o;
+}
+function runEemLines(cfg) {
+  const o = [];
+  for (const a of cfg.eem || []) {
+    o.push('event manager applet ' + a.name);
+    if (a.desc) o.push(' description ' + a.desc);
+    if (a.event) o.push(' event ' + a.event);
+    for (const x of a.actions || []) o.push(' action ' + x.label + ' ' + x.text);
+  }
+  if (o.length) o.push('!');
+  return o;
+}
+
+/* ---- wire the commands into the trees ---- */
+(() => {
+  const kid = (list, k) => list.find(n => n.k === k);
+  // global configuration
+  const svc = kid(CONFIG_TREE, 'service');
+  for (const k of ['tcp-keepalives-in', 'tcp-keepalives-out']) kid(svc.c, k).run = cfgSvcFlag;
+  svc.c.push({ k: 'tcp-small-servers', h: 'Enable small TCP servers (e.g., ECHO)', run: cfgSvcFlag }, { k: 'udp-small-servers', h: 'Enable small UDP servers (e.g., ECHO)', run: cfgSvcFlag });
+  const ip = kid(CONFIG_TREE, 'ip');
+  ip.c.push(
+    { k: 'source-route', h: 'Process packets with source routing header options', run: cfgSourceRoute },
+    { k: 'bootp', h: 'Config BOOTP services', c: [{ k: 'server', h: 'Enable BOOTP server', run: cfgBootp }] },
+    { k: 'finger', h: 'finger server', run: cfgFinger });
+  kid(ip.c, 'ssh').c.push({ k: 'rsa', h: 'Configure RSA keypair name for SSH', c: [{ k: 'keypair-name', h: 'Configure RSA keypair name for SSH', inc: true, run: cfgSshKeypair, c: [{ a: 'WORD', h: 'RSA keypair name', run: cfgSshKeypair }] }] });
+  const login = kid(CONFIG_TREE, 'login'), onf = kid(login.c, 'on-failure'), lg = kid(onf.c, 'log');
+  lg.run = cfgLoginFail; lg.c = [{ k: 'every', h: 'Every n failures', inc: true, c: [{ a: 'NUM', min: 1, max: 65535, h: 'Number of login failures', run: cfgLoginFail }] }];
+  login.c.push({ k: 'quiet-mode', h: 'Set quiet-mode options', c: [{ k: 'access-class', h: 'Use access-class for quiet-mode ACL', inc: true, run: cfgQuietAcl, c: [{ a: 'WORD', label: 'WORD', h: 'IP access list number or name', run: cfgQuietAcl }] }] });
+  kid(CONFIG_TREE, 'aaa').c.push({ k: 'authorization', h: 'Authorization configurations parameters.', when: ctx => !!ctx.cfg.aaa, c: [{ k: 'exec', h: 'For starting an exec (shell).', c: [
+    { k: 'default', h: 'The default authorization list.', inc: true, run: cfgAaaAuthz, c: aaaExecMethods(3) },
+    { a: 'WORD', h: 'Named authorization list.', inc: true, run: cfgAaaAuthz, c: aaaExecMethods(3) }] }] });
+  // a crypto key label may come before or after the modulus
+  const gen = kid(kid(kid(kid(CONFIG_TREE, 'crypto').c, 'key').c, 'generate').c, 'rsa'), gk = kid(gen.c, 'general-keys');
+  const MOD = run => ({ k: 'modulus', h: 'Provide number of modulus bits on the command line', c: [{ a: 'NUM', min: 360, max: 4096, h: 'Number of modulus bits', run: run }] });
+  const LBL = run => ({ k: 'label', h: 'Provide a label', c: [{ a: 'WORD', h: 'Key label', run: run }] });
+  for (const list of [gk.c, gen.c]) { kid(list, 'label').c[0].c = [MOD(cfgCryptoGen)]; kid(list, 'modulus').c[0].c = [LBL(cfgCryptoGen)]; }
+  CONFIG_TREE.push(
+    { k: 'vstack', h: 'Config commands for Smart Install', kind: 'switch', run: cfgVstack },
+    { k: 'tftp-server', h: 'Provide TFTP service for netload requests', inc: true, c: [{ a: 'FLASHFILE', label: 'flash:', h: 'Allow URL file TFTP load requests', match: t => /^flash0?:\/?[^\s:]+$/i.test(t), run: cfgTftpServer, c: [{ a: 'NUM', min: 1, max: 99, h: 'IP access list of requesting hosts', run: cfgTftpServer }] },
+      { a: 'NVFILE', label: 'nvram:startup-config', h: 'Allow URL file TFTP load requests', match: t => /^nvram:\/?startup-config$/i.test(t), run: cfgTftpServer, c: [{ a: 'NUM', min: 1, max: 99, h: 'IP access list of requesting hosts', run: cfgTftpServer }] }] },
+    { k: 'event', h: 'Event related configuration commands', kind: 'router', c: [{ k: 'manager', h: 'Event Manager configuration commands', c: [{ k: 'applet', h: 'Register an Event Manager applet', inc: true, c: [{ a: 'WORD', h: 'Name of the Event Manager applet', run: cfgApplet }] }] }] },
+    { k: 'kron', h: 'Kron configuration commands', c: [{ k: 'occurrence', h: 'Define the name of a Kron Occurrence', inc: true, c: [{ a: 'WORD', h: 'Name of kron occurrence', inc: true, run: cfgKronOcc, c: [
+      { k: 'at', h: 'Specify a calendar date and time', c: [{ a: 'TIME', label: 'hh:mm', h: 'Hour and minute', match: t => /^([01]?\d|2[0-3]):[0-5]\d$/.test(t), c: KRON_HOW }] },
+      { k: 'in', h: 'Specify a delta time from the present', c: [{ a: 'DELTA', label: '[[dd:]hh:]mm', h: 'Delta days, hours, and minutes', match: t => /^(\d{1,3}:)?(\d{1,2}:)?\d{1,4}$/.test(t), c: KRON_HOW }] }] }] }] });
+  // privileged EXEC
+  const conf = kid(EXEC_TREE, 'configure');
+  conf.c.push({ k: 'confirm', h: 'Confirm replacement of running-config with a new config file', kind: 'router', run: cmdConfigConfirm });
+  kid(conf.c, 'terminal').c = [{ k: 'revert', h: 'Parameters for reverting the configuration', kind: 'router', c: [{ k: 'timer', h: 'Set timer to revert to the original configuration', inc: true, run: cmdConfigRevert, c: [{ a: 'NUM', min: 1, max: 120, h: 'Revert timer in minutes', run: cmdConfigRevert }] }] }];
+  const FILE = (run, h) => ({ a: 'FILE', label: 'WORD', h: h, match: t => !/^\//.test(t), run: run });
+  EXEC_TREE.push(
+    { k: 'more', h: 'Display the contents of a file', priv: 15, c: [FILE(cmdMore, 'File to display, such as flash:pre-audit.cfg')] },
+    { k: 'verify', h: 'Verify a file', priv: 15, c: [{ k: '/md5', h: 'MD5 signature', c: [FILE(cmdVerifyMd5, 'File to verify')] }, FILE(cmdVerify, 'File to verify')] });
+  // show
+  kid(SHOW_TREE, 'crypto').c.push({ k: 'session', h: 'Crypto session information', priv: 15, kind: 'router', run: showCryptoSession, c: [{ k: 'detail', h: 'Crypto session detailed information', run: showCryptoSession }] });
+  SHOW_TREE.push(
+    { k: 'aaa', h: 'Show AAA values', priv: 15, c: [{ k: 'servers', h: 'All AAA servers known to the system', run: showAaaServers }] },
+    { k: 'archive', h: 'Archive functions', priv: 15, run: showArchive },
+    { k: 'control-plane', h: 'Control Plane information', priv: 15, kind: 'router', c: [{ k: 'host', h: 'Control Plane host information', c: [{ k: 'open-ports', h: 'List of open ports', run: showOpenPorts }] }] },
+    { k: 'event', h: 'Event related information', priv: 15, kind: 'router', c: [{ k: 'manager', h: 'Embedded Event Manager information', c: [{ k: 'policy', h: 'Embedded Event Manager policies', c: [{ k: 'registered', h: 'Registered policies', run: showEemRegistered }] }] }] },
+    { k: 'software', h: 'Show software information', priv: 15, kind: 'router', c: [{ k: 'authenticity', h: 'Show software authenticity information', c: [{ k: 'running', h: 'Show software authenticity running image', run: showAuthenticity }] }] },
+    { k: 'vstack', h: 'Show vstack information', priv: 15, kind: 'switch', c: [{ k: 'config', h: 'Show Smart Install (vstack) configuration', run: showVstackConfig }] });
 })();
 
 /* ---- 80-pc.js ---- */

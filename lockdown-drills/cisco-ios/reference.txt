@@ -107,6 +107,7 @@
   AREA: Secure configuration
   RtrA# copy running-config startup-config
   RtrA# write memory
+  RtrA# terminal length 0
   RtrA# show startup-config
   RtrA# show running-config | include enable|password|hostname|banner|exec-timeout
   RtrA# copy running-config flash:pre-audit.cfg
@@ -115,7 +116,8 @@
         survives a reload. Before an audit, copy running-config
         flash:pre-audit.cfg keeps the starting config as a file in flash (press
         Enter at the Destination filename prompt), so every later change has a
-        copy to compare against.
+        copy to compare against. terminal length 0 prints long output in one
+        piece instead of pausing at --More--, until you log out.
 
 ------------------------------ WATCHMAN ----------------------------------------
  Check the windows. Local user accounts, SSH version 2 only, unneeded services
@@ -153,6 +155,12 @@
   RtrA(config-line)# exit
   RtrA# show ip ssh
   RtrA# show crypto key mypubkey rsa
+      To give SSH a fresh, named key instead of the first key on the device:
+  RtrA(config)# crypto key generate rsa general-keys label SSH-KEY modulus 3072
+  RtrA(config)# ip ssh rsa keypair-name SSH-KEY
+      A Telnet session opened before transport input ssh stays up until you clear its line; leave your own (*) line alone:
+  RtrA# show users
+  RtrA# clear line vty 1
   WHY: Telnet sends passwords in cleartext and SSHv1 is broken. Key generation
        requires a hostname and domain name first, the classic lab trap.
   NOTE: Order matters: hostname, then ip domain-name, then the RSA key (2048
@@ -175,6 +183,14 @@
   RtrA(config)# end
   RtrA# show cdp
   RtrA# show lldp neighbors
+  RtrA# show control-plane host open-ports
+      Find every file the device serves over TFTP without a password, and stop serving it:
+  RtrA# show running-config | include tftp-server
+  RtrA(config)# no tftp-server nvram:startup-config
+      On SwA, turn off Smart Install (TCP 4786), then recheck it after each reload:
+  SwA(config)# no vstack
+  SwA(config)# end
+  SwA# show vstack config
       When the brief keeps CDP and LLDP on links to your own devices, skip no cdp run and no lldp run, and quiet the ISP port instead:
   RtrA(config)# interface gigabitEthernet 0/1
   RtrA(config-if)# no cdp enable
@@ -194,7 +210,12 @@
         PAD, a leftover from X.25 networks. no cdp enable, no lldp transmit, and
         no lldp receive work on one port, for a brief that keeps discovery on
         links between your own devices. ip http authentication local makes web
-        sign-ins check the local usernames.
+        sign-ins check the local usernames. show control-plane host open-ports
+        lists every TCP and UDP port the router itself listens on. Expect SSH
+        (22); Telnet (23), listed while transport input ssh refuses its
+        sessions; UDP 67, while the device serves DHCP and, on many releases,
+        while the DHCP service runs; NTP's UDP 123 once ntp server is set (I-07);
+        and the services the brief keeps. Any other port is a finding.
 
 [I-04] Switch port security and shut unused ports
   AREA: Secure configuration
@@ -363,6 +384,7 @@
   SwA# show mac address-table interface fastEthernet 0/3
   SwA# show cdp neighbors
   SwA# show cdp neighbors detail
+  SwA# show ip arp
       Fa0/3 reads a-half because its PC is set by hand to 100 Mb/s full duplex, so match it:
   SwA(config)# interface fastEthernet 0/3
   SwA(config-if)# speed 100
@@ -377,7 +399,8 @@
         duplex. In show interfaces status, a-full and a-100 are negotiated
         values, and plain full and 100 were set by hand. show cdp neighbors
         lists only devices that still run CDP, so RtrA drops off the list after
-        its no cdp run in I-03.
+        its no cdp run in I-03. show ip arp lists each IP neighbor with its MAC
+        address, its age in minutes, and its interface.
   LEARN IT: Defense Ladder, Sophomore s5, Cisco: configure a switch and a
             router.
             https://freeapp4that.store/defense-ladder/#sophomore/s5
@@ -411,6 +434,9 @@
   RtrA(config)# ip access-list standard 20
   RtrA(config-std-nacl)# no 20
   RtrA(config-std-nacl)# 20 permit 10.2.20.0 0.0.0.255
+      Keep the admin's Teachers PC a way in while a login block (I-06) holds every other source out:
+  RtrA(config)# access-list 21 permit 10.1.20.30
+  RtrA(config)# login quiet-mode access-class 21
   WHY: SSH encrypts; access-class admits only Teachers subnets (Site A and
        Site B); a standard (source-only) ACL suffices. Confirm: SSH from
        Students PCs ends with % Connection refused by remote host.
@@ -523,11 +549,18 @@
   RtrA(config)# snmp-server user viewer ADMINS v3 auth sha AuthPass-2026 priv aes 128 PrivPass-2026
   RtrA(config)# aaa new-model
   RtrA(config)# aaa authentication login default local
+  RtrA(config)# aaa authorization exec default local
+  RtrA# show aaa servers
   WHY: SNMP v1 and v2c with public or private community strings let anyone read,
        or write, the whole config. v3 adds authentication and encryption. AAA
        centralizes accounts.
   NOTE: After aaa new-model, lines use the default method list. Create a local
-        user first so a way back in always exists.
+        user first so a way back in always exists. aaa authorization exec
+        default local applies each user's privilege level at sign-in, so
+        netadmin lands at RtrA# over SSH. show aaa servers lists RADIUS
+        servers on classic IOS such as RtrA; show running-config | include
+        tacacs|radius finds both kinds. Any server the brief leaves out is a
+        finding: once a method list names it, it sees every admin sign-in.
 
 [A-06] Protect the config itself
   AREA: Secure configuration
@@ -538,12 +571,23 @@
   RtrA(config)# secure boot-image
   RtrA(config)# secure boot-config
   RtrA(config)# archive
+  RtrA(config-archive)# path flash:archive
   RtrA(config-archive)# log config
   RtrA(config-archive-log-cfg)# logging enable
   RtrA(config-archive-log-cfg)# hidekeys
   RtrA(config-archive-log-cfg)# end
+  RtrA# show archive
   RtrA# show version | include image|register
+  RtrA# verify /sha512 flash0:c2900-universalk9-mz.SPA.154-3.M2.bin
+  RtrA# show software authenticity running
   RtrA(config)# config-register 0x2102
+      Before a change that could lock you out, set a rollback that restores the archived config in 10 minutes:
+  RtrA# configure terminal revert timer 10
+      Make the change, end, then keep it from a fresh SSH session:
+  RtrA# configure confirm
+      The backstop on any platform while the change stays unsaved: restart into the startup-config in 10 minutes (decline the save prompt), and cancel once the change works:
+  RtrA# reload in 10
+  RtrA# reload cancel
   WHY: Keepalives drop dead sessions and free VTY lines. Resilient configuration
        stops an attacker from erasing the IOS image or startup config. The
        archive log records who changed what.
@@ -553,7 +597,12 @@
         configuration register. 0x2102 boots IOS from flash with the saved
         startup-config. A router left at 0x2142, the password-recovery setting,
         skips the startup-config at its next reload and comes up with an empty
-        config.
+        config. path flash:archive names the numbered copies (archive-1,
+        archive-2) that show archive lists. The /sha512 hash of the image show
+        version names must match the vendor's published hash (releases without
+        /sha512 take /md5); show software authenticity running checks its
+        signature. Once a risky change works, save it with copy running-config
+        startup-config.
 
 [A-07] Audit a given config fast
   RtrA# show running-config | include password|secret
@@ -570,12 +619,23 @@
   RtrA# show ip route
   RtrA# ping 10.2.20.1 source 10.1.20.1
   RtrA# show users
+  RtrA# dir flash:
+  RtrA# more flash:pre-audit.cfg
+  RtrA# show crypto session
+  RtrA# show event manager policy registered
+      Save each applet's and schedule's commands as evidence, then remove the ones the brief leaves out:
+  RtrA# show running-config | section event manager|kron
+  RtrA(config)# no event manager applet UPDATE-CHECK
+  RtrA(config)# no kron occurrence NIGHTLY
   WHY: Flag plaintext passwords, VTY lacking login local or SSH, open
        services, and missing routes. Ping 10.2.20.1 source 10.1.20.1 (Site B's
        Teachers gateway from Site A's); success proves two-way Teachers
        routing.
   NOTE: Flag VLAN 1 anywhere, including a trunk's native VLAN, and any trunk
-        missing a VLAN. Flag unused ports left up as well.
+        missing a VLAN. Flag unused ports left up as well. Flag any file in dir
+        flash: the baseline leaves out (a .tcl, .py, .pcap, or .cfg file, or an
+        extra image), any IPsec session in show crypto session, and any Embedded
+        Event Manager (EEM) applet or kron schedule outside the brief.
 
 [A-08] Router-on-a-stick with a native subinterface
   AREA: Secure configuration

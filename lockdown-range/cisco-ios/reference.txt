@@ -1662,6 +1662,15 @@ Moving around
   ping A.B.C.D / traceroute A.B.C.D / ssh -l user A.B.C.D / telnet A.B.C.D
   copy running-config startup-config / write [memory] / reload
   clear line vty N / clock set hh:mm:ss day month year / terminal length 0
+  more flash:FILE | nvram:startup-config | system:running-config
+  verify /md5 flash:FILE   verify flash:IMAGE (routers: hash and signature)
+  show archive   show aaa servers   show crypto session [detail] (routers)
+  show control-plane host open-ports (routers)
+  show event manager policy registered (routers)
+  show software authenticity running (routers)
+  show vstack config  (switches)
+  configure terminal revert timer M (routers; needs archive path)
+  configure confirm (routers; keeps the change and stops the revert timer)
 Global configuration
   hostname NAME                      enable secret SECRET
   no enable password                 service password-encryption
@@ -1701,6 +1710,19 @@ Global configuration
   ip http authentication local|enable|aaa   config-register 0xHHHH
   secure boot-image   secure boot-config
   archive / log config / logging enable / hidekeys / notify syslog
+  archive / path flash:NAME / write-memory  (write memory then saves a copy)
+  service tcp-keepalives-in   service tcp-keepalives-out
+  [no] service tcp-small-servers   [no] service udp-small-servers
+  [no] ip finger   [no] ip source-route   [no] ip bootp server
+  [no] vstack  (switches)
+  [no] tftp-server flash:FILE|nvram:startup-config [ACL]
+  login on-failure log [every N]   login quiet-mode access-class ACL
+  aaa authorization exec default|NAME local (after aaa new-model)
+  crypto key generate rsa general-keys label NAME modulus N
+  ip ssh rsa keypair-name NAME   crypto key zeroize rsa [NAME]
+  event manager applet NAME (routers; then description, event, action)
+  kron occurrence NAME at hh:mm|in MM oneshot|recurring|system-startup
+    (then policy-list NAME)
   spanning-tree portfast default    spanning-tree portfast bpduguard default
   interface X | interface range fa0/3 - 24 , gi0/2
   router ospf N                      (routers; enters (config-router)#)
@@ -1857,6 +1879,10 @@ PC command prompt
   lease, LLDP advertises every 30 seconds, and CDP every 60.
 - secure boot-image and secure boot-config print their %IOS_RESILIENCE
   messages; show secure bootset sits outside the lab.
+- AAA privilege: after aaa new-model, an SSH or Telnet sign-in keeps the
+  user's privilege level once aaa authorization exec default local is set,
+  as on IOS, and starts at user EXEC (>) until then. The lab's console keeps
+  the level either way; a real device needs aaa authorization console too.
 - Numbered ACLs: on a real device "no access-list 10 permit host X"
   deletes all of access list 10, and a VTY access-class that points at a
   missing list no longer filters anything. Edit single entries through

@@ -131,7 +131,7 @@
       "icon": "path",
       "category": "cyber",
       "section": "learning",
-      "sha256": "c68b05fd7d0b53ab761cadc25c2b041d733edf37a94a6134ea699b7ca7edf0c0",
+      "sha256": "7e93532c15d0ad1632985e42c1de11c54666bb2edafa9e70965a66fef475c22a",
       "updated": "2026-11-24",
       "download_menu": true,
       "download_label": "Everything (all four grades)",
@@ -140,28 +140,28 @@
           "label": "Freshman only",
           "file": "defense-ladder/freshman.html",
           "download_as": "defense-ladder-freshman.html",
-          "sha256": "0d7880955f3a607c74a2dd0a716024ea926d7b0a588d3847c19bc31facb84f6c",
+          "sha256": "a06ee5ae7c292cced5502c6ecd1f245c4e80edc3daf40253f3799d724ee546c1",
           "updated": "2026-11-24"
         },
         {
           "label": "Sophomore only",
           "file": "defense-ladder/sophomore.html",
           "download_as": "defense-ladder-sophomore.html",
-          "sha256": "3b90cf9c117ed029b8f41bebfca21e2a24608c86644acdf033851d736e6e773b",
+          "sha256": "cbc14308db894cdc0d1bdf4cacdbf5d8b7f51848bb85bb3e1f74c506ae30c25a",
           "updated": "2026-11-24"
         },
         {
           "label": "Junior only",
           "file": "defense-ladder/junior.html",
           "download_as": "defense-ladder-junior.html",
-          "sha256": "dbf0db6c18055ef612fe066f365c58de6f5de4280689ad6f1598ad2dcdd22882",
+          "sha256": "26e21e375f1deefe7cb1ce08c362c4956f50ef3a321318a696a41e79c2bc5a90",
           "updated": "2026-11-24"
         },
         {
           "label": "Senior only",
           "file": "defense-ladder/senior.html",
           "download_as": "defense-ladder-senior.html",
-          "sha256": "1262785b83aa640de8933cc3575c71b786ae27cd353bd0d5e9b50b0a00f3f060",
+          "sha256": "458ef876d1d927836fb9c98d1a422733b5e97d9338b1c89cb7bcdf3b59e0f3ee",
           "updated": "2026-11-24"
         }
       ],
@@ -201,8 +201,8 @@
       "download_as": "ios-cli-lab.html",
       "icon": "terminal",
       "category": "cyber",
-      "sha256": "e19068efcbff136560ead3a806bdd2f378729f4c00357b77115085033e92b7f8",
-      "updated": "2026-11-23",
+      "sha256": "f4350ebab44efac296154d720f607d1d98e7ae9f092ce101f6e12d2f81241c01",
+      "updated": "2026-11-24",
       "series": "net-drills"
     },
     {
@@ -266,7 +266,7 @@
           "download_as": "windows-11-lockdown-reference.txt"
         }
       ],
-      "sha256": "bac7275ab67cc34cf9a9c46e4c0f2b2bb08fde8bcfca9b2fdec16a1836cf2085",
+      "sha256": "22b1962d3b779e0c67ea7737df6390171207ea6c93b7368323de51c7b2ab7c7d",
       "updated": "2026-11-24"
     },
     {
@@ -292,7 +292,7 @@
           "download_as": "windows-server-lockdown-reference.txt"
         }
       ],
-      "sha256": "c7a2a4c1f319b1f2bb4738e502805324f0629f9e7fcd28199cbcfecfcef1fcde",
+      "sha256": "593516d5ad7456209c9e197fd22d177421b0e06948da7c7ddc727c8bfb9ba710",
       "updated": "2026-11-24"
     },
     {
@@ -318,7 +318,7 @@
           "download_as": "debian-family-lockdown-reference.txt"
         }
       ],
-      "sha256": "2847151a46fda4a3263ce3b8914262c5e8ad0aad8b47be360eccae15cd5d5bfa",
+      "sha256": "92aac7b0100c9eb83240e9bd452a14c8ac9ab8f72d654306d53067b373d751ae",
       "updated": "2026-11-24"
     },
     {
@@ -344,8 +344,8 @@
           "download_as": "freebsd-lockdown-reference.txt"
         }
       ],
-      "sha256": "517b95cdaef36dc4a215573e60471e941c383c75073aaaa85b2185d1a6fcdde6",
-      "updated": "2026-11-23"
+      "sha256": "7d60728ca78e1f5a3fd88407a5de509b29e6c6852e8daff18221d6cd68e46e8a",
+      "updated": "2026-11-24"
     },
     {
       "slug": "lockdown-drills/cisco-ios",
@@ -363,8 +363,8 @@
       "icon": "lock",
       "category": "cyber",
       "series": "lockdown-drills",
-      "sha256": "c3e88cd6d1e619b1c23f8e858efa6a80b4bbb1a4dba52704386630398cc9003f",
-      "updated": "2026-11-23",
+      "sha256": "c005512aad7cf8b81db5d625ed323cddad59822d25fa4bea00d5bb7e949831ab",
+      "updated": "2026-11-24",
       "extras": [
         {
           "label": "Reference .txt",
@@ -448,8 +448,8 @@
           "download_as": "cisco-range-walkthrough.txt"
         }
       ],
-      "sha256": "46c188b62b0ee8d6eed6607b162a138a4584d67de84ebc52b718645d9ae3392a",
-      "updated": "2026-11-23"
+      "sha256": "1075fb177590a9df8dc823e12a7a5e8adf63b44133bcda5f491baf8ba093a48e",
+      "updated": "2026-11-24"
     },
     {
       "slug": "study-map",
@@ -467,7 +467,7 @@
       "icon": "map",
       "category": "cyber",
       "section": "learning",
-      "sha256": "f240c3fb470261c10e0a1008713c7e5205a1bfd75fbc8fa89c658d70418f167f",
+      "sha256": "67b9687b25e7bcb8a45a98a0e2d0e20775104eb4259d73c5e79e064a4b6ab243",
       "updated": "2026-11-24"
     },
     {
@@ -486,7 +486,7 @@
       "icon": "terminal",
       "category": "cyber",
       "section": "learning",
-      "sha256": "1302f8063d22a2ce1c2251ffd9dc34016d46de37c1bcc8a55c432f3e518e4bc7",
+      "sha256": "d3173537b06fcbc1fa63be02c20e4e9828448da9b8e1fbb55729e4401fc6fe8b",
       "updated": "2026-11-24"
     },
     {

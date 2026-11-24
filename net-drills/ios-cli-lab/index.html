@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-DJno8Yrm39Yvdbm/nyo/h23rLXg/Uz1isbar8fXb9FA=' 'sha256-p0pbjIq1nSQlVmgQNAVMPbBUWHGQ9NdBLFlb2bwl7m4=' 'sha256-zemAD5/arFjAro6sXwq2Z7nTMUarKnPRssazdBd1P9U='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Af4Vx8rWtIujLNqPMr4xuIe+ZHSn6n+732VWB8j64po=' 'sha256-DJno8Yrm39Yvdbm/nyo/h23rLXg/Uz1isbar8fXb9FA=' 'sha256-p0pbjIq1nSQlVmgQNAVMPbBUWHGQ9NdBLFlb2bwl7m4='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Configure a simulated router and switch from their consoles, then prove it from two PCs. Timed missions, from the basics to VLAN trunks, router-on-a-stick, a Telnet filter, DHCP snooping, logging, time, and SSH access for the Teachers VLAN only.">
 <link rel="canonical" href="https://freeapp4that.store/net-drills/ios-cli-lab/">
@@ -244,7 +244,7 @@ footer{margin-top:40px;font-size:13px;color:var(--muted)}
 </div>
 
 <p class="tips">Type <code>?</code> for help and Tab to finish a word. Abbreviations work: <code>conf t</code>, <code>int g0/0.10</code>, <code>int range f0/1 - 4</code>, <code>sh run</code>, <code>copy run start</code>. Filters work on show commands: <code>sh run | section line vty</code>, <code>sh run | include access-list</code>, <code>sh ip int br | include Vlan</code>. PCs use <code>ipconfig /renew</code> for DHCP. The simulator covers the commands the missions and the Defense Ladder's Cisco units use; anything else gets an IOS-style error. Output follows classic IOS 15 on a 2960 switch and a 2911 router, as in Packet Tracer; the tips say where IOS XE differs.</p>
-<details><summary>What the simulator covers</summary><p>Device basics; passwords, SSH, and AAA with local logins; VLANs, trunks, VTP, and spanning tree; port security; router-on-a-stick; DHCP, DHCP snooping, and ARP inspection; static routes; standard and extended ACLs, numbered and named, on interfaces and VTY lines, with the ICMP unreachables and log messages their drops produce; login banners; CDP and LLDP neighbors; SPAN sessions; logging, NTP, SNMP, and web-server settings; and OSPF at the configuration level. Show commands take the <code>| include</code>, <code>| exclude</code>, <code>| begin</code>, and <code>| section</code> filters.</p></details>
+<details><summary>What the simulator covers</summary><p>Device basics; passwords, SSH, and AAA with local logins; VLANs, trunks, VTP, and spanning tree; port security; router-on-a-stick; DHCP, DHCP snooping, and ARP inspection; static routes; standard and extended ACLs, numbered and named, on interfaces and VTY lines, with the ICMP unreachables and log messages their drops produce; login banners; CDP and LLDP neighbors; SPAN sessions; logging, NTP, SNMP, and web-server settings; device services and Smart Install; the configuration archive, its change log, and the rollback timer; kron and EEM schedules; and OSPF at the configuration level. Show commands take the <code>| include</code>, <code>| exclude</code>, <code>| begin</code>, and <code>| section</code> filters.</p></details>
 <footer>Unofficial training, independent of and unendorsed by the makers of the systems it names. The router, switch, and PCs are simulated; output is modeled on Cisco IOS. Completed missions are remembered in this browser only.</footer>
 </div>
 
@@ -521,12 +521,55 @@ function userText(d) {
     L.push(u.type === 'secret' ? `username ${n}${pv} secret 5 ${u.hash}` : `username ${n}${pv} password ${u.enc7 ? '7 ' + u.enc7 : '0 ' + u.plain}`);
   }
   if (d.blockFor) L.push(`login block-for ${d.blockFor.sec} attempts ${d.blockFor.attempts} within ${d.blockFor.within}`);
+  if (d.quietAcl) L.push('login quiet-mode access-class ' + d.quietAcl);
+  if (d.loginFailLog) L.push('login on-failure log');
+  return L;
+}
+/* the RSA key SSH runs on: the key ip ssh rsa keypair-name names (the hostname.domain key counts as a named key too), else the hostname.domain key, else the first labeled key */
+const keyBits = (d, k) => (d.rsaLabels || {})[k] || (d.rsaBits && d.domainName && k === `${d.hostname}.${d.domainName}` ? d.rsaBits : 0);
+function sshBits(d) {
+  const lb = d.rsaLabels || {};
+  if (d.sshKeyName) return keyBits(d, d.sshKeyName);
+  return d.rsaBits || Object.values(lb)[0] || 0;
+}
+/* service lines: keepalives sit above the timestamps lines, the small servers below password-encryption */
+const svcOn = (d, k) => !!(d.svc && d.svc[k]);
+const keepText = d => ['tcp-keepalives-in', 'tcp-keepalives-out'].filter(k => svcOn(d, k)).map(k => 'service ' + k);
+const smallText = d => ['udp-small-servers', 'tcp-small-servers'].filter(k => svcOn(d, k)).map(k => 'service ' + k);
+/* IP services that differ from their defaults: BOOTP and source routing start on, finger starts off */
+const IPSVC_DEF = { 'source-route': true, finger: false, 'bootp server': true };
+const ipSvcOn = (d, k) => (d.ipsvc && k in d.ipsvc ? d.ipsvc[k] : IPSVC_DEF[k]);
+const ipSvcText = d => Object.keys(IPSVC_DEF).filter(k => d.ipsvc && k in d.ipsvc).map(k => (d.ipsvc[k] ? 'ip ' : 'no ip ') + k);
+const tzText = d => (d.tz ? [`clock timezone ${d.tz.name} ${d.tz.h} ${d.tz.m}`] : []);
+function archiveText(d) {
+  const a = d.archive;
+  if (!a) return [];
+  const L = ['archive'];
+  if (a.log) { L.push(' log config'); if (a.log.enable) L.push('  logging enable'); if (a.log.size) L.push('  logging size ' + a.log.size); if (a.log.hidekeys) L.push('  hidekeys'); }
+  if (a.path) L.push(' path ' + a.path);
+  if (a.wm) L.push(' write-memory');
+  L.push('!');
+  return L;
+}
+const quoted = t => (/^".*"$/.test(t) ? t : `"${t}"`);
+/* kron schedules and EEM applets close the configuration, after the ntp lines */
+function schedText(d) {
+  const L = [];
+  Object.entries(d.kronOcc || {}).forEach(([n, o]) => { L.push(`kron occurrence ${n} ${o.when} ${o.kind}`); o.pols.forEach(p => L.push(' policy-list ' + p)); L.push('!'); });
+  Object.entries(d.kronPol || {}).forEach(([n, cl]) => { L.push('kron policy-list ' + n); cl.forEach(c => L.push(' cli ' + c)); L.push('!'); });
+  Object.entries(d.applets || {}).forEach(([n, ap]) => {
+    L.push('event manager applet ' + n);
+    if (ap.desc) L.push(' description ' + ap.desc);
+    if (ap.event) L.push(' event ' + ap.event.kind + (ap.event.kind === 'syslog' ? ' pattern ' + quoted(ap.event.arg) : ap.event.kind === 'timer' ? ' watchdog time ' + ap.event.arg : ''));
+    ap.actions.forEach(x => L.push(` action ${x.label} ${x.kind === 'cli' ? 'cli command' : 'syslog msg'} ${quoted(x.text)}`));
+  });
   return L;
 }
 function sshText(d) {
   const L = [];
   if (d.sshTimeout !== 120) L.push('ip ssh time-out ' + d.sshTimeout);
   if (d.sshRetries !== 3) L.push('ip ssh authentication-retries ' + d.sshRetries);
+  if (d.sshKeyName) L.push('ip ssh rsa keypair-name ' + d.sshKeyName);
   if (d.sshVersion) L.push('ip ssh version ' + d.sshVersion);
   if (!d.domainLookup) L.push('no ip domain-lookup');
   if (d.domainName) L.push('ip domain-name ' + d.domainName);
@@ -543,12 +586,13 @@ function tailText(d) {
   L.push('!', '!');
   if (d.confReg && d.confReg !== '0x2102') L.push('config-register ' + d.confReg);
   (d.ntp || []).forEach(ip => L.push('ntp server ' + ip));
+  L.push(...schedText(d));
   L.push('!', 'end');
   return L;
 }
 function aaaText(d) {
   if (!d.aaa) return [];
-  return ['!', 'aaa new-model', '!', ...(d.aaa.login ? ['aaa authentication login default local', '!'] : []), 'aaa session-id common'];
+  return ['!', 'aaa new-model', '!', ...(d.aaa.login || d.aaa.exec ? [...(d.aaa.login ? ['aaa authentication login default local'] : []), ...(d.aaa.exec ? ['aaa authorization exec default local'] : []), '!'] : []), 'aaa session-id common'];
 }
 /* named lists first, then logging hosts, then the numbered access-list lines */
 function aclText(d) {
@@ -626,8 +670,8 @@ function ospfText(d) {
 /* a service timestamps line: true is the factory datetime msec, a string the options typed after the type */
 const tsText = (v, k) => (v ? `service timestamps ${k} ${v === true ? 'datetime msec' : v}` : `no service timestamps ${k} datetime msec`);
 function runRouter(d) {
-  const L = ['!', 'version 15.1', ...(d.pad === false ? ['no service pad'] : []), tsText(d.tsLog, 'log'), tsText(d.tsDebug, 'debug'),
-    d.spe ? 'service password-encryption' : 'no service password-encryption', '!', 'hostname ' + d.hostname, '!', '!', '!', '!', ...headText(d), ...aaaText(d), '!', '!', '!', '!', '!'];
+  const L = ['!', 'version 15.1', ...(d.pad === false ? ['no service pad'] : []), ...keepText(d), tsText(d.tsLog, 'log'), tsText(d.tsDebug, 'debug'),
+    d.spe ? 'service password-encryption' : 'no service password-encryption', ...smallText(d), '!', 'hostname ' + d.hostname, '!', '!', '!', '!', ...headText(d), ...aaaText(d), ...tzText(d), '!', '!', '!', '!', '!'];
   d.dhcp.excluded.forEach(([a, b]) => L.push(`ip dhcp excluded-address ${a}${b && b !== a ? ' ' + b : ''}`));
   if (d.dhcp.excluded.length) L.push('!');
   for (const [name, p] of Object.entries(d.dhcp.pools)) {
@@ -638,13 +682,14 @@ function runRouter(d) {
     if (p.domain) L.push(' domain-name ' + p.domain);
     L.push('!');
   }
-  L.push('!', '!', ...(d.noRouting ? ['no ip routing'] : []), 'no ip cef', 'no ipv6 cef', '!', '!', '!', ...userText(d), '!', '!', 'license udi pid CISCO2911/K9 sn FTX1524Z0P3-', '!', '!', '!', '!', ...sshText(d), '!', '!', 'spanning-tree mode pvst', '!', '!', '!', '!', '!', '!');
+  L.push('!', '!', ...ipSvcText(d), ...(d.noRouting ? ['no ip routing'] : []), 'no ip cef', 'no ipv6 cef', '!', '!', '!', ...userText(d), '!', '!', 'license udi pid CISCO2911/K9 sn FTX1524Z0P3-', '!', '!', ...archiveText(d), '!', '!', ...sshText(d), '!', '!', 'spanning-tree mode pvst', '!', '!', '!', '!', '!', '!');
   for (const n of R_IF) {
     L.push(...rIfText(d, n));
     for (const sn of subifs(d, n)) L.push(...rIfText(d, sn));
   }
   L.push('interface Vlan1', ' no ip address', ' shutdown', '!', ...ospfText(d), ...httpText(d), 'ip classless');
   d.routes.forEach(r => L.push(`ip route ${r.net} ${r.mask} ${r.via}`));
+  (d.tftp || []).forEach(t => L.push(`tftp-server ${t.f}${t.acl ? ' ' + t.acl : ''}`));
   L.push('!', 'ip flow-export version 9', '!', '!', ...aclText(d), ...snmpText(d), '!');
   if (!d.cdp) L.push('no cdp run', '!');
   if (d.lldp) L.push('lldp run', '!');
@@ -728,8 +773,8 @@ function portText(p, n) {
   return o;
 }
 function runSwitch(d) {
-  const L = ['!', 'version 15.0', ...(d.pad === false ? ['no service pad'] : []), tsText(d.tsDebug, 'debug'), tsText(d.tsLog, 'log'),
-    d.spe ? 'service password-encryption' : 'no service password-encryption', '!', 'hostname ' + d.hostname, '!', ...headText(d), ...aaaText(d), '!', ...userText(d), '!', '!', ...sshText(d), ...swGlobalText(d), '!',
+  const L = ['!', 'version 15.0', ...(d.pad === false ? ['no service pad'] : []), ...keepText(d), tsText(d.tsDebug, 'debug'), tsText(d.tsLog, 'log'),
+    d.spe ? 'service password-encryption' : 'no service password-encryption', ...smallText(d), '!', 'hostname ' + d.hostname, '!', ...headText(d), ...aaaText(d), ...tzText(d), '!', ...userText(d), '!', ...archiveText(d), '!', ...ipSvcText(d), ...sshText(d), ...swGlobalText(d), ...(d.noVstack ? ['no vstack'] : []), '!',
     ...stpText(d), '!', ...vlanCfgText(d)];
   for (const n of S_PORTS) L.push(...portText(d.ports[n], n));
   Object.keys(d.svis).map(Number).sort((a, b) => a - b).forEach(v => L.push(...sviText(d, v)));
@@ -812,13 +857,16 @@ const MODEH = {
   if: { exit: 'Exit from interface configuration mode', description: 'Interface specific description', ip: 'Interface Internet Protocol config commands' },
   swif: { exit: 'Exit from interface configuration mode', description: 'Interface specific description', access: 'Set access mode characteristics of the interface', vlan: 'Set VLAN when interface is in access mode' },
   svi: { exit: 'Exit from interface configuration mode', description: 'Interface specific description', ip: 'Interface Internet Protocol config commands' },
+  archive: { exit: 'Exit from archive configuration mode' }, archlog: { exit: 'Exit from log config submode' }, applet: { exit: 'Exit from Event Manager applet configuration submode' },
+  kronocc: { exit: 'Exit from kron occurrence configuration mode' }, kronpol: { exit: 'Exit from kron policy-list configuration mode' },
   dhcp: { exit: 'Exit from DHCP pool configuration mode' }, vlan: { exit: 'Exit from VLAN configuration mode' },
   ospf: { exit: 'Exit from routing protocol configuration mode', network: 'Enable routing on an IP network' },
   stdacl: { exit: 'Exit from access-list configuration mode', permit: 'Specify packets to forward', deny: 'Specify packets to reject', remark: 'Access list entry comment' },
   extacl: { exit: 'Exit from access-list configuration mode', permit: 'Specify packets to forward', deny: 'Specify packets to reject', remark: 'Access list entry comment' }
 };
 const PNAME = { WORD: 'WORD', LINE: 'LINE', IP: 'A.B.C.D', MASK: 'A.B.C.D', RIF: 'GigabitEthernet', SIF: 'FastEthernet', RANGE: 'LINE', VLIST: 'WORD',
-  ACL: 'WORD', HEX: '<0x0-0xFFFF>', HTTPPORT: '<80,1025-65535>', HTTPSPORT: '<443,1025-65535>', FLASH: 'flash:', LEVEL: '<0.00 - 100.00>' };
+  ACL: 'WORD', HEX: '<0x0-0xFFFF>', HTTPPORT: '<80,1025-65535>', HTTPSPORT: '<443,1025-65535>', FLASH: 'flash:', LEVEL: '<0.00 - 100.00>',
+  TZH: '<-23 - 23>', KIN: 'WORD', KAT: 'hh:mm' };
 const pname = spec => (spec.startsWith('INT:') ? '<' + spec.slice(4) + '>' : PNAME[spec] || spec);
 function build(mode, defs) {
   const root = { kids: [] }, mh = MODEH[mode] || {};
@@ -895,6 +943,9 @@ function matchParam(spec, toks, i, raw) {
   if (spec === 'HTTPPORT' || spec === 'HTTPSPORT') { if (!/^\d+$/.test(t)) return null; const v = Number(t); return v === (spec === 'HTTPPORT' ? 80 : 443) || (v >= 1025 && v <= 65535) ? { n: 1, val: v } : null; }
   if (spec === 'FLASH') return /^flash0?:\S*$/i.test(t) ? { n: 1, val: t } : null;
   if (spec === 'LEVEL') { if (!/^\d{1,3}(\.\d{1,2})?$/.test(t) || Number(t) > 100) return null; return { n: 1, val: Number(t).toFixed(2) }; }
+  if (spec === 'TZH') return /^-?\d{1,2}$/.test(t) && Math.abs(Number(t)) <= 23 ? { n: 1, val: Number(t) } : null;
+  if (spec === 'KIN') return /^(\d{1,5}:){0,2}\d{1,5}$/.test(t) ? { n: 1, val: t } : null;
+  if (spec === 'KAT') { const m = /^(\d{1,2}):(\d{2})$/.exec(t); return m && Number(m[1]) < 24 && Number(m[2]) < 60 ? { n: 1, val: Number(m[1]) + ':' + m[2] } : null; }
   if (spec === 'RIF' || spec === 'SIF') {
     let s = t, n = 1;
     if (/^[a-z]+$/i.test(t) && toks[i + 1] && /^\d/.test(toks[i + 1].t)) { s = t + toks[i + 1].t; n = 2; }
@@ -937,7 +988,7 @@ function parse(tree, raw) {
 
 /* ---------- shared handler helpers ---------- */
 function linesOf(s) { const t = s.targets; if (!t) return []; return t.kind === 'con' ? [s.d.con] : t.kind === 'aux' ? [s.d.aux] : s.d.vty.slice(t.a, t.b + 1); }
-function lineNos(s) { const t = s.targets, o = []; if (!t) return o; if (t.kind === 'con') return [0]; if (t.kind === 'aux') return [1]; for (let i = t.a; i <= t.b; i++) o.push(2 + i); return o; }
+function lineNos(s) { const t = s.targets, o = []; if (!t) return o; if (t.kind === 'con') return [0]; if (t.kind === 'aux') return [1]; for (let i = t.a; i <= t.b; i++) o.push(vtyBase(s.d) + i); return o; }
 function tooShort(s, pw) { const n = s.d.minLen; if (n && pw.length < n) { s.w(`% Password too short - must be at least ${n} characters. Password configuration failed\n`); return true; } return false; }
 function parsePw(raw) {
   const m = /^([07])\s+(\S+)\s*$/.exec(raw);
@@ -964,16 +1015,16 @@ const swPorts = s => (s.ports || []).map(n => [n, s.d.ports[n]]);
 const X = {
   /* EXEC (both) */
   enable(s) { s.doEnable(); }, noop() {}, disable(s) { s.mode = 'user'; }, logout(s) { s.close(); },
-  conft(s) { s.w('Enter configuration commands, one per line.  End with CNTL/Z.\n'); s.mode = 'global'; },
+  conft(s) { s.w('Enter configuration commands, one per line.  End with CNTL/Z.\n'); s.mode = 'global'; s.cfgSess = s.node.rt.cfgSessN = (s.node.rt.cfgSessN || 0) + 1; },
   ping(s, a) { s.lab.pingFromDevice(s, a[0]); },
   showRun(s) { const t = runText(s.d); s.w(`Building configuration...\n\nCurrent configuration : ${t.length} bytes\n${t}\n\n`); },
   showStart(s) { const st = s.node.startup; if (!st) { s.w('startup-config is not present\n'); return; } const t = runText(st); s.w(`Using ${t.length} out of 262136 bytes\n${t}\n\n`); },
   showBrief(s) { s.w(s.lab.briefText(s.node) + '\n'); },
   showSsh(s) {
     const d = s.d;
-    const vs = d.sshVersion === 2 ? '2.0' : d.sshVersion === 1 || (d.rsaBits && d.rsaBits < 768) ? '1.5' : '1.99';
-    if (!d.rsaBits) s.w(`SSH Disabled - version ${d.sshVersion === 2 ? '2.0' : '1.99'}\n%Please create RSA keys to enable SSH (and of atleast 768 bits for SSH v2).\n`);
-    else if (d.sshVersion === 2 && d.rsaBits < 768) s.w('SSH Disabled - version 2.0\n%Please create RSA keys (of atleast 768 bits size) to enable SSH v2.\n');
+    const kb = sshBits(d), vs = d.sshVersion === 2 ? '2.0' : d.sshVersion === 1 || (kb && kb < 768) ? '1.5' : '1.99';
+    if (!kb) s.w(`SSH Disabled - version ${d.sshVersion === 2 ? '2.0' : '1.99'}\n%Please create RSA keys to enable SSH (and of atleast 768 bits for SSH v2).\n`);
+    else if (d.sshVersion === 2 && kb < 768) s.w('SSH Disabled - version 2.0\n%Please create RSA keys (of atleast 768 bits size) to enable SSH v2.\n');
     else s.w(`SSH Enabled - version ${vs}\n`);
     s.w(`Authentication timeout: ${d.sshTimeout} secs; Authentication retries: ${d.sshRetries}\n`);
   },
@@ -981,14 +1032,15 @@ const X = {
     const n = s.node, rows = ['    Line       User       Host(s)              Idle       Location'];
     const row = (cur, no, name, user, loc) => `${cur ? '*' : ' '}${String(no).padStart(3)} ${name.padEnd(10)} ${(user || '').padEnd(10)} ${'idle'.padEnd(20)} 00:00:00 ${loc || ''}`;
     if (n.con.mode !== 'idle' && n.con.mode !== 'closed') rows.push(row(s === n.con, 0, 'con 0', n.con.user, ''));
-    n.vtySess.forEach(v => { if (v.mode !== 'closed') rows.push(row(s === v, 2 + v.lineNo, 'vty ' + v.lineNo, v.user, v.from)); });
+    n.vtySess.forEach(v => { if (v.mode !== 'closed') rows.push(row(s === v, vtyBase(n.dev) + v.lineNo, 'vty ' + v.lineNo, v.user, v.from)); });
     s.w(rows.join('\n') + '\n\n  Interface    User               Mode         Idle     Peer Address\n\n');
   },
   showLogin(s) {
     const b = s.d.blockFor;
-    if (!b) { s.w('     No login delay has been applied.\n     No Quiet-Mode access list has been configured.\n\n     Router NOT enabled to watch for login Attacks\n'); return; }
+    const qa = s.d.quietAcl ? `     Quiet-Mode access list ${s.d.quietAcl} is applied.` : '     No Quiet-Mode access list has been configured.';
+    if (!b) { s.w(`     No login delay has been applied.\n${qa}\n\n`); s.w('     Router NOT enabled to watch for login Attacks\n'); return; }
     const q = s.lab.quietLeft(s.node);
-    s.w(`     A default login delay of 1 seconds is applied.\n     No Quiet-Mode access list has been configured.\n\n     Router enabled to watch for login Attacks.\n     If more than ${b.attempts} login failures occur in ${b.within} seconds or less,\n     logins will be disabled for ${b.sec} seconds.\n\n     Router presently in ${q > 0 ? `Quiet-Mode, will remain in Quiet-Mode for ${q} seconds.` : 'Normal-Mode.'}\n     Total login failures: ${s.node.rt.totalFails}.\n`);
+    s.w(`     A default login delay of 1 seconds is applied.\n${qa}\n\n     Router enabled to watch for login Attacks.\n     If more than ${b.attempts} login failures occur in ${b.within} seconds or less,\n     logins will be disabled for ${b.sec} seconds.\n\n     Router presently in ${q > 0 ? `Quiet-Mode, will remain in Quiet-Mode for ${q} seconds.` : 'Normal-Mode.'}\n     Total login failures: ${s.node.rt.totalFails}.\n`);
   },
   showCdp(s) { s.w(s.d.cdp ? 'Global CDP information:\n    Sending CDP packets every 60 seconds\n    Sending a holdtime value of 180 seconds\n    Sending CDPv2 advertisements is enabled\n' : '% CDP is not enabled\n'); },
   showVer(s) {
@@ -1047,8 +1099,8 @@ const X = {
   dn(s, a) { s.d.domainName = a[0]; }, noDn(s) { s.d.domainName = null; },
   sshVer(s, a) {
     s.d.sshVersion = a[0];
-    if (a[0] === 2 && s.d.rsaBits < 768) s.w('Please create RSA keys (of atleast 768 bits size) to enable SSH v2.\n');
-    else if (!s.d.rsaBits) s.w('Please create RSA keys to enable SSH.\n');
+    if (a[0] === 2 && sshBits(s.d) < 768) s.w('Please create RSA keys (of atleast 768 bits size) to enable SSH v2.\n');
+    else if (!sshBits(s.d)) s.w('Please create RSA keys to enable SSH.\n');
   },
   noSshVer(s) { s.d.sshVersion = 0; }, sshTo(s, a) { s.d.sshTimeout = a[0]; }, noSshTo(s) { s.d.sshTimeout = 120; },
   sshRet(s, a) { s.d.sshRetries = a[0]; }, noSshRet(s) { s.d.sshRetries = 3; },
@@ -1128,27 +1180,28 @@ const X = {
   cdp(s) { s.d.cdp = true; }, noCdp(s) { s.d.cdp = false; },
   keygen(s, a, path) {
     const d = s.d, def = d.kind === 'router' ? 'Router' : 'Switch';
-    if (d.hostname === def) { s.w(`% Please define a hostname other than ${def}.\n`); return; }
-    if (!d.domainName) { s.w('% Please define a domain-name first.\n'); return; }
-    const bits = path.includes('modulus') ? a[0] : null;
+    const label = path.includes('label') ? a[0] : null, lb = d.rsaLabels || {};
+    if (!label && d.hostname === def) { s.w(`% Please define a hostname other than ${def}.\n`); return; }
+    if (!label && !d.domainName) { s.w('% Please define a domain-name first.\n'); return; }
+    const bits = path.includes('modulus') ? a[a.length - 1] : null, kname = label || `${d.hostname}.${d.domainName}`;
     const run = () => {
-      s.w(`The name for the keys will be: ${d.hostname}.${d.domainName}\n`);
-      if (bits !== null) { s.w(`\n% The key modulus size is ${bits} bits\n`); s.lab.genKeys(s, bits); return; }
+      s.w(`The name for the keys will be: ${kname}\n`);
+      if (bits !== null) { s.w(`\n% The key modulus size is ${bits} bits\n`); s.lab.genKeys(s, bits, label); return; }
       s.w('Choose the size of the key modulus in the range of 360 to 4096 for your\n  General Purpose Keys. Choosing a key modulus greater than 512 may take\n  a few minutes.\n\n');
       const askBits = () => s.ask('How many bits in the modulus [512]: ', v => {
         const t = v.trim(), n = t === '' ? 512 : /^\d+$/.test(t) ? Number(t) : NaN;
         if (!(n >= 360 && n <= 4096)) { s.w('% A decimal number between 360 and 4096.\n'); askBits(); return; }
-        s.lab.genKeys(s, n);
+        s.lab.genKeys(s, n, label);
       });
       askBits();
     };
-    if (d.rsaBits) { s.w(`% You already have RSA keys defined named ${d.hostname}.${d.domainName}.\n`); s.ask('% Do you really want to replace them? [yes/no]: ', v => { if (/^y(es)?$/i.test(v.trim())) run(); }); }
+    if (label ? lb[label] : d.rsaBits) { s.w(`% You already have RSA keys defined named ${kname}.\n`); s.ask('% Do you really want to replace them? [yes/no]: ', v => { if (/^y(es)?$/i.test(v.trim())) run(); }); }
     else run();
   },
   zeroize(s) {
-    if (!s.d.rsaBits) { s.w('% No Signature RSA Keys found in configuration.\n'); return; }
+    if (!s.d.rsaBits && !Object.keys(s.d.rsaLabels || {}).length) { s.w('% No Signature RSA Keys found in configuration.\n'); return; }
     s.w('% All keys will be removed.\n% All router certs issued using these keys will also be removed.\n');
-    s.ask('Do you really want to remove these keys? [yes/no]: ', v => { if (/^y(es)?$/i.test(v.trim())) { s.d.rsaBits = 0; s.lab.log(s.node, '%SSH-5-DISABLED: SSH 1.99 has been disabled'); } });
+    s.ask('Do you really want to remove these keys? [yes/no]: ', v => { if (/^y(es)?$/i.test(v.trim())) { s.d.rsaBits = 0; delete s.d.rsaLabels; s.lab.log(s.node, '%SSH-5-DISABLED: SSH 1.99 has been disabled'); } });
   },
   lineCon(s) { s.enter('line'); s.targets = { kind: 'con' }; },
   lineVty(s, a) {
@@ -1181,7 +1234,7 @@ const X = {
     if (set.includes('all')) v = 'all'; else if (set.includes('none')) v = 'none';
     else if (set.includes('ssh') && set.includes('telnet')) v = 'ssh telnet'; else v = set.includes('ssh') ? 'ssh' : 'telnet';
     linesOf(s).forEach(L => { L.transport = v; });
-    if (v === 'ssh' && !s.d.rsaBits) s.hint("SSH isn't running yet (no RSA keys), so remote access stays closed until you generate keys.");
+    if (v === 'ssh' && !sshBits(s.d)) s.hint("SSH isn't running yet (no RSA keys), so remote access stays closed until you generate keys.");
   },
   lNoTransport(s) { linesOf(s).forEach(L => { L.transport = 'all'; }); },
   lAccessClass(s, a) { linesOf(s).forEach(L => { L.accessClass = a[0]; }); if (!s.d.acls[a[0]]) s.hint(`Access list ${a[0]} is still undefined, and IOS lets every source through an undefined list. Create it next: ${aclNumbered(a[0]) ? `access-list ${a[0]} permit ...` : `ip access-list standard ${a[0]}, then permit ...`}`); },
@@ -1645,7 +1698,7 @@ const X = {
     const def = a[0].replace(/^flash0?:/i, '');
     s.ask(`Destination filename [${def || 'running-config'}]? `, v => {
       const f = v.trim() || def || 'running-config', t = runText(s.d);
-      s.node.flash[f] = { size: t.length, at: s.lab.io.now() };
+      s.node.flash[f] = { size: t.length, at: s.lab.io.now(), text: t };
       s.w(`\n${t.length} bytes copied in 0.452 secs (${Math.round(t.length / 0.452)} bytes/sec)\n`);
     });
   },
@@ -1654,7 +1707,7 @@ const X = {
   showCdpNbr(s, a, path) { s.w(s.lab.cdpText(s.node, path.includes('detail'))); },
   showLldp(s) { s.w(s.d.lldp ? '\nGlobal LLDP Information:\n    Status: ACTIVE\n    LLDP advertisements are sent every 30 seconds\n    LLDP hold time advertised is 120 seconds\n    LLDP interface reinitialisation delay is 2 seconds\n' : '% LLDP is not enabled\n'); },
   showLldpNbr(s) { s.w(s.lab.lldpText(s.node)); },
-  showClock(s) { s.w('*' + s.lab.clock(true) + '\n'); },
+  showClock(s) { s.w('*' + s.lab.clock(true, s.d) + '\n'); },
   showNtpAssoc(s) {
     const l = s.d.ntp || [];
     if (!l.length) { s.w('%NTP is not enabled.\n'); return; }
@@ -1696,37 +1749,264 @@ const X = {
   showDai(s, a) { s.w(s.lab.daiText(a[0]) + '\n'); },
   showMon(s, a) { const t = s.lab.monText(a.length ? a[0] : null); if (t) s.w(t + '\n'); }
 };
+/* device services, change control, and schedules: the Defense Ladder's s5, j4, and se6 Cisco rows */
+const unq = t => String(t).replace(/^"(.*)"$/, '$1');
+const dropEmpty = (o, k) => { if (o[k] && !Object.keys(o[k]).length) delete o[k]; };
+Object.assign(X, {
+  svc(s, a, path) {
+    const d = s.d, on = path[0] !== 'no', k = path[path.length - 1];
+    d.svc = d.svc || {}; setOpt(d.svc, k, on, false); dropEmpty(d, 'svc');
+    if (on && /small-servers/.test(k)) s.hint(`This opens the ${k === 'tcp-small-servers' ? 'echo, discard, daytime, and chargen test services on TCP (ports 7, 9, 13, and 19)' : 'echo, discard, and chargen test services on UDP (ports 7, 9, and 19)'}, which an attacker can turn into a flood; no service ${k} closes them.`);
+  },
+  ipSvc(s, a, path) {
+    const d = s.d, on = path[0] !== 'no', k = path.slice(on ? 1 : 2).join(' ');
+    d.ipsvc = d.ipsvc || {}; setOpt(d.ipsvc, k, on, IPSVC_DEF[k]); dropEmpty(d, 'ipsvc');
+    if (on && k === 'finger') s.hint('Finger (TCP 79) now hands anyone the list show users prints; no ip finger closes it.');
+  },
+  tftp(s, a, path) {
+    const d = s.d, f = a[0], l = (d.tftp || []).filter(t => t.f !== f);
+    if (path[0] !== 'no') { const acl = a.length > 1 ? a[1] : null; l.push({ f, acl }); s.hint(`${d.hostname} now hands ${f} ${acl ? `to the hosts access list ${acl} permits` : 'to anyone who asks'} over TFTP (UDP 69), without a password; no tftp-server ${f} stops it.`); }
+    if (l.length) d.tftp = l; else delete d.tftp;
+  },
+  sshKey(s, a, path) {
+    if (path[0] === 'no') { delete s.d.sshKeyName; return; }
+    s.d.sshKeyName = a[0];
+    if (!keyBits(s.d, a[0])) s.hint(`SSH now waits for a key named ${a[0]}: crypto key generate rsa general-keys label ${a[0]} modulus 2048 creates it.`);
+  },
+  tz(s, a, path) { if (path[0] === 'no') delete s.d.tz; else s.d.tz = { name: a[0], h: a[1], m: a.length > 2 ? a[2] : 0 }; },
+  loginFail(s, a, path) { if (path[0] === 'no') delete s.d.loginFailLog; else s.d.loginFailLog = true; },
+  quiet(s, a, path) {
+    if (path[0] === 'no') { delete s.d.quietAcl; return; }
+    s.d.quietAcl = String(a[0]);
+    if (!s.d.blockFor) s.hint('Quiet mode starts only under login block-for, so set that line first; this list applies once a quiet period begins.');
+    else if (!s.d.acls[a[0]]) s.hint(`Access list ${a[0]} is still undefined, so every source passes it during a quiet period. Create it with the admin host alone.`);
+  },
+  aaaExec(s, a, path, line) {
+    if (!s.d.aaa) { s.badTok(line, path[0] === 'no' ? 2 : 1); return; }
+    if (path[0] === 'no') delete s.d.aaa.exec; else s.d.aaa.exec = 'local';
+  },
+  /* clear line N uses the absolute numbers show users prints; clear line vty N and clear line console 0 name the line */
+  clearLine(s, a, path, line) {
+    const n = s.node, d = s.d, base = vtyBase(d);
+    let t;
+    if (path.includes('console')) t = 'con';
+    else if (path.includes('vty')) { if (a[0] >= d.vty.length) { s.badTok(line, 3); return; } t = a[0]; }
+    else if (a[0] === 0) t = 'con';
+    else if (a[0] >= base && a[0] - base < d.vty.length) t = a[0] - base;
+    else if (d.kind === 'router' && a[0] === 1) t = 'aux';
+    else { s.badTok(line, 2); return; }
+    s.ask('[confirm]', v => {
+      if (!/^(y|yes)?$/i.test(v.trim())) return;
+      s.w(' [OK]\n');
+      if (t === 'con') { if (n.con.mode !== 'idle') n.con.close(); return; }
+      if (t !== 'aux') n.vtySess.filter(x => x.lineNo === t && x.mode !== 'closed').forEach(x => x.close());
+    });
+  },
+  termLen(s, a) { s.termLen = a[0]; if (a[0] !== 0) s.hint(`This lab prints long output in one piece, as terminal length 0 does; a real device pauses at --More-- every ${a[0]} lines.`); },
+  /* archive, its change log, and the rollback timer */
+  archive(s, a, path) { if (path[0] === 'no') { delete s.d.archive; return; } if (!s.d.archive) s.d.archive = {}; s.enter('archive'); },
+  arLog(s, a, path) { const ar = s.d.archive; if (path[0] === 'no') { delete ar.log; return; } if (!ar.log) ar.log = {}; s.enter('archlog'); },
+  arPath(s, a, path) { if (path[0] === 'no') delete s.d.archive.path; else s.d.archive.path = a[0]; },
+  arWm(s, a, path) { if (path[0] === 'no') delete s.d.archive.wm; else s.d.archive.wm = true; },
+  alSet(s, a, path) {
+    const L = s.d.archive.log, on = path[0] !== 'no', k = path.includes('hidekeys') ? 'hidekeys' : path.includes('size') ? 'size' : 'enable';
+    if (on) L[k] = k === 'size' ? a[0] : true; else delete L[k];
+  },
+  alExit(s) { s.enter('archive'); },
+  arConfig(s) { if (!s.lab.archiveOn(s)) return; s.lab.archiveNow(s.node); },
+  showArchive(s) {
+    const ar = s.d.archive, A = s.node.arch || { n: 0, files: [] };
+    if (!ar || !ar.path) { s.w('Archive feature not enabled\n'); return; }
+    const L = ['The maximum archive configurations allowed is 10.', `There are currently ${A.files.length} archive configurations saved.`, `The next archive file will be named ${ar.path}-${A.n + 1}`, ' Archive #  Name'];
+    for (let i = 0; i < 10; i++) { const f = A.files[i]; L.push(('   ' + String(i + 1).padEnd(9) + (f ? f + (i === A.files.length - 1 ? ' <- Most Recent' : '') : '')).replace(/\s+$/, '')); }
+    s.w(L.join('\n') + '\n');
+  },
+  showArchiveLog(s) {
+    const L = [' idx   sess           user@line      Logged command'];
+    (s.node.rt.cfgLog || []).forEach(e => L.push(String(e.idx).padStart(5) + String(e.sess).padStart(6) + e.who.padStart(23) + '  |' + e.text));
+    s.w(L.join('\n') + '\n');
+  },
+  confRevert(s, a) {
+    const n = s.node;
+    if (!s.lab.archiveOn(s)) { s.hint('The rollback timer restores an archived copy, so it needs archive and path flash:archive first.'); return; }
+    const f = s.lab.archiveNow(n), back = clone(s.d), tok = {};
+    s.w(`Rollback Confirmed Change: Backing up current running config to ${f}\n`);
+    X.conft(s);
+    n.rt.revert = { tok, file: f };
+    s.lab.log(n, `%ARCHIVE_DIFF-5-ROLLBK_CNFMD_CHG_START_ABSTIMER: User: ${s.who()}: Scheduled to rollback to config ${f} in ${a[0]} minutes`);
+    s.lab.later(a[0] * 60000, () => {
+      if (!n.rt.revert || n.rt.revert.tok !== tok) return;
+      delete n.rt.revert;
+      s.lab.log(n, `%ARCHIVE_DIFF-5-ROLLBK_CNFMD_CHG_ROLLBACK_START: Timed Rollback: Attempting to rollback to: ${f}`);
+      n.dev = clone(back);
+      [n.con, ...n.vtySess].forEach(x => { if (x.modeGone()) { x.enter('global'); x.hint(`The timed rollback restored ${f}, which removed what this mode was editing, so this session is back in global configuration mode.`); } });
+      s.lab.clearArp(); s.lab.refreshVty(); s.lab.io.refresh(n.id);
+    });
+  },
+  confConfirm(s) {
+    const n = s.node;
+    if (!n.rt.revert) { s.w('%No Rollback Confirmed Change pending\n'); return; }
+    delete n.rt.revert;
+    s.lab.log(n, `%ARCHIVE_DIFF-5-ROLLBK_CNFMD_CHG_CONFIRM: User: ${s.who()}: Confirm the configuration change`);
+  },
+  /* Smart Install (S1) */
+  vstack(s, a, path) { if (path[0] === 'no') s.d.noVstack = true; else delete s.d.noVstack; },
+  showVstack(s) { s.w(` Role: Client (SmartInstall ${s.d.noVstack ? 'disabled' : 'enabled'})\n Vstack Director IP address: 0.0.0.0\n`); },
+  /* Embedded Event Manager applets (R1): registered and listed; the lab leaves their actions unrun */
+  applet(s, a, path) {
+    const d = s.d;
+    if (path[0] === 'no') { if (d.applets) { delete d.applets[a[0]]; dropEmpty(d, 'applets'); } return; }
+    d.applets = d.applets || {};
+    if (!d.applets[a[0]]) d.applets[a[0]] = { desc: null, event: null, actions: [] };
+    s.enter('applet'); s.applet = a[0];
+  },
+  apEvent(s, a, path) {
+    const ap = s.d.applets[s.applet];
+    if (path[0] === 'no') { ap.event = null; return; }
+    const kind = path.includes('none') ? 'none' : path.includes('syslog') ? 'syslog' : 'timer';
+    ap.event = { kind, arg: kind === 'none' ? null : unq(a[0]) };
+    (s.node.rt.eemReg || (s.node.rt.eemReg = {}))[s.applet] = s.lab.io.now();
+    s.hint('This lab registers the applet and lists it under show event manager policy registered; it leaves the actions unrun.');
+  },
+  apAction(s, a, path) {
+    const ap = s.d.applets[s.applet], label = String(a[0]);
+    ap.actions = ap.actions.filter(x => x.label !== label);
+    if (path[0] !== 'no') ap.actions.push({ label, kind: path.includes('cli') ? 'cli' : 'syslog', text: unq(a[1]) });
+    ap.actions.sort((x, y) => (x.label < y.label ? -1 : x.label > y.label ? 1 : 0));
+  },
+  apDesc(s, a, path) { s.d.applets[s.applet].desc = path[0] === 'no' ? null : a[0]; },
+  showEem(s) {
+    const rt = s.node.rt, ps = Object.entries(s.d.applets || {}).filter(([, ap]) => ap.event);
+    if (!ps.length) return;
+    const L = ['No.  Class     Type    Event Type          Trap  Time Registered           Name'];
+    ps.forEach(([name, ap], i) => {
+      const ev = ap.event, et = ev.kind === 'timer' ? 'timer watchdog' : ev.kind;
+      L.push(String(i + 1).padEnd(5) + 'applet'.padEnd(10) + 'user'.padEnd(8) + et.padEnd(20) + 'Off'.padEnd(6) + s.lab.ctime((rt.eemReg || {})[name] || s.node.boot, s.d).padEnd(26) + name);
+      if (ev.kind === 'syslog') L.push(` pattern {${ev.arg}}`);
+      if (ev.kind === 'timer') L.push(` name {} time ${Number(ev.arg).toFixed(3)}`);
+      L.push(' maxrun 20.000');
+      ap.actions.forEach(x => L.push(` action ${x.label} ${x.kind === 'cli' ? 'cli command' : 'syslog msg'} "${x.text}"`));
+      L.push('');
+    });
+    s.w(L.join('\n') + '\n');
+  },
+  /* kron, IOS's timed command runner: the schedule lives in the configuration; the lab leaves its commands unrun */
+  kronOcc(s, a, path) {
+    const d = s.d, name = a[0];
+    if (path[0] === 'no') { if (d.kronOcc) { delete d.kronOcc[name]; dropEmpty(d, 'kronOcc'); } return; }
+    d.kronOcc = d.kronOcc || {};
+    const o = d.kronOcc[name] || (d.kronOcc[name] = { when: '', kind: '', pols: [] });
+    o.when = (path.includes('at') ? 'at ' : 'in ') + a[1]; o.kind = path[path.length - 1];
+    s.enter('kronocc'); s.kron = name;
+  },
+  kronOccPol(s, a, path) { const o = s.d.kronOcc[s.kron]; o.pols = o.pols.filter(p => p !== a[0]); if (path[0] !== 'no') o.pols.push(a[0]); },
+  kronPol(s, a, path) {
+    const d = s.d, name = a[0];
+    if (path[0] === 'no') { if (d.kronPol) { delete d.kronPol[name]; dropEmpty(d, 'kronPol'); } return; }
+    d.kronPol = d.kronPol || {};
+    if (!d.kronPol[name]) d.kronPol[name] = [];
+    s.enter('kronpol'); s.kron = name;
+  },
+  kronCli(s, a, path) { const d = s.d, l = d.kronPol[s.kron].filter(c => c !== a[0]); if (path[0] !== 'no') l.push(a[0]); d.kronPol[s.kron] = l; },
+  /* R1's open ports: what it listens on now, from its own settings and sessions */
+  showOpenPorts(s) {
+    const d = s.d, n = s.node, row = (p, l, f, sv, st) => ` ${p}${l.padStart(28)}${f.padStart(28)}${sv.padStart(25)} ${st.padStart(8)}`;
+    const L = ['Active internet connections (servers and established)', 'Prot               Local Address             Foreign Address                  Service    State'];
+    const small = p => (svcOn(d, p + '-small-servers') ? [['7', 'Echo'], ['9', 'Discard'], ...(p === 'tcp' ? [['13', 'Daytime']] : []), ['19', 'Chargen']].forEach(([n, sv]) => L.push(row(p, '*:' + n, '*:0', sv, 'LISTEN'))) : 0);
+    small('tcp');
+    if (sshBits(d)) L.push(row('tcp', '*:22', '*:0', 'SSH-Server', 'LISTEN'));
+    if (d.vty.some(l => l.transport === 'all' || l.transport.split(' ').includes('telnet'))) L.push(row('tcp', '*:23', '*:0', 'Telnet', 'LISTEN'));
+    if (ipSvcOn(d, 'finger')) L.push(row('tcp', '*:79', '*:0', 'Finger', 'LISTEN'));
+    if (d.http.server) L.push(row('tcp', '*:80', '*:0', 'HTTP CORE', 'LISTEN'));
+    if (d.http.secure) L.push(row('tcp', '*:443', '*:0', 'HTTP CORE', 'LISTEN'));
+    n.vtySess.filter(v => v.mode !== 'closed' && v.from).forEach(v => L.push(row('tcp', v.proto === 'ssh' ? '*:22' : '*:23', `${v.from}:${49152 + v.lineNo}`, v.proto === 'ssh' ? 'SSH-Server' : 'Telnet', 'ESTABLIS')));
+    small('udp');
+    if (ipSvcOn(d, 'bootp server') || Object.keys(d.dhcp.pools).length) L.push(row('udp', '*:67', '*:0', 'DHCPD Receive', 'LISTEN'));
+    if ((d.tftp || []).length) L.push(row('udp', '*:69', '*:0', 'TFTP', 'LISTEN'));
+    if ((d.ntp || []).length) L.push(row('udp', '*:123', '*:0', 'NTP', 'LISTEN'));
+    const sn = d.snmp; if (Object.keys(sn.comm).length || Object.keys(sn.users).length || Object.keys(sn.groups).length) L.push(row('udp', '*:161', '*:0', 'IP SNMP', 'LISTEN'), row('udp', '*:162', '*:0', 'IP SNMP', 'LISTEN'));
+    s.w(L.join('\n') + '\n');
+  },
+  showSoftAuth(s) {
+    s.w(['SYSTEM IMAGE', '-------------------', 'Image type                : Production', '    Signer Information', '        Common Name       : CiscoSystems', '        Organization Unit : C2900', '        Organization Name : CiscoSystems',
+      '    Certificate Serial Number : 509AC949', '    Hash Algorithm            : SHA512', '    Signature Algorithm       : 2048-bit RSA', '    Key Version               : A', '    Verifier Information', '        Verifier Name         : ROMMON 1',
+      '        Verifier Version      : System Bootstrap, Version 15.1(4)M4, RELEASE SOFTWARE (fc1)'].join('\n') + '\n');
+  },
+  showCrypto(s) { s.w('Crypto session current status\n\n'); },
+  showAaaServers(s) { s.hint(s.d.aaa ? 'This device checks sign-ins against its local usernames, so the server list is empty. On a real network, a server here that the brief leaves out is a finding.' : 'AAA is off until aaa new-model, so this device checks every sign-in itself and the server list is empty.'); },
+  /* files in flash: verify hashes one, more prints a text one */
+  verifyMd5(s, a) {
+    const f = s.lab.flashFile(s.node, a[0]);
+    if (!f) { s.w(`%Error opening ${a[0]} (File not found)\n`); return; }
+    s.w('.'.repeat(Math.max(1, Math.min(70, Math.round(f.size / 1000000)))) + 'Done!\n' + `verify /md5 (${a[0]}) = ${f.md5}\n`);
+    if (f.image) s.hint("This image is simulated, so its hash is the lab's own. On a real device, compare it with the hash the vendor lists for the release.");
+  },
+  verifySig(s, a) {
+    const f = s.lab.flashFile(s.node, a[0]);
+    if (!f) { s.w(`%Error opening ${a[0]} (File not found)\n`); return; }
+    if (!f.image) { s.w(`Verifying file integrity of ${a[0]}\nSignature not found in file ${a[0]}.\n`); return; }
+    const emb = fakeHash('embedded:' + f.name).toUpperCase();
+    s.w(`Verifying file integrity of ${a[0]}${'.'.repeat(40)}\nEmbedded Hash   MD5 : ${emb}\nComputed Hash   MD5 : ${emb}\nCCO Hash        MD5 : ${f.md5.toUpperCase()}\nSignature Verified\n`);
+  },
+  more(s, a) {
+    const f = s.lab.flashFile(s.node, a[0]);
+    if (!f) { s.w(`%Error opening ${a[0]} (File not found)\n`); return; }
+    if (f.text === undefined) { s.hint(`${a[0]} is a binary file, which more prints as unreadable characters; verify /md5 ${a[0]} checks it instead.`); return; }
+    s.w(f.text + '\n');
+  }
+});
+/* a stable 32-digit hex digest for simulated files (two FNV-1a passes per quarter) */
+function fakeHash(str) {
+  let out = '';
+  for (let k = 0; k < 4; k++) { let h = 0x811c9dc5 ^ (k * 0x9e3779b1); for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } out += (h >>> 0).toString(16).padStart(8, '0'); }
+  return out;
+}
+/* minutes east of UTC that clock timezone sets, in milliseconds */
+const tzOff = d => (d && d.tz ? (d.tz.h * 60 + (d.tz.h < 0 ? -d.tz.m : d.tz.m)) * 60000 : 0);
+/* absolute line numbers: the console is 0, a router's AUX is 1, and the VTY lines follow */
+const vtyBase = d => (d.kind === 'router' ? 2 : 1);
 
 /* ---------- trees ---------- */
 const EXEC_COMMON = [
   ['exit', X.logout], ['logout', X.logout], ['ping <IP>', X.ping, { IP: 'Ping destination address' }],
   ['show ip interface brief', X.showBrief], ['show ip ssh', X.showSsh], ['show users', X.showUsers], ['show cdp', X.showCdp],
   ['show version', X.showVer], ['show login', X.showLogin], ['show interfaces description', X.showDesc],
-  ['show access-lists', X.showAcl], ['show ip access-lists', X.showAcl, { 'kw:access-lists': 'List IP access lists' }],
+  ['show access-lists', X.showAcl, { pref: 'access-lists' }], ['show ip access-lists', X.showAcl, { 'kw:access-lists': 'List IP access lists' }],
   ['show access-lists <INT:1-199>', X.showAcl, { 'INT:1-199': 'ACL number' }], ['show access-lists <ACL>', X.showAcl, { ACL: 'ACL name' }],
   ['show ip access-lists <INT:1-199>', X.showAcl, { 'INT:1-199': 'ACL number' }], ['show ip access-lists <ACL>', X.showAcl, { ACL: 'ACL name' }],
   ['show cdp neighbors', X.showCdpNbr, { 'kw:neighbors': 'CDP neighbor entries' }], ['show cdp neighbors detail', X.showCdpNbr],
   ['show lldp', X.showLldp], ['show lldp neighbors', X.showLldpNbr, { 'kw:neighbors': 'LLDP neighbor entries' }],
-  ['show clock', X.showClock], ['show ntp associations', X.showNtpAssoc, { 'kw:ntp': 'Network time protocol' }], ['show ntp status', X.showNtpStatus, { 'kw:status': 'NTP status' }]
+  ['show clock', X.showClock], ['show ntp associations', X.showNtpAssoc, { 'kw:ntp': 'Network time protocol' }], ['show ntp status', X.showNtpStatus, { 'kw:status': 'NTP status' }],
+  ['terminal length <INT:0-512>', X.termLen, { 'kw:terminal': 'Set terminal line parameters', 'kw:length': 'Set number of lines on a screen', 'INT:0-512': 'Number of lines on screen (0 for no pausing)' }]
 ];
+/* clear line ranges follow each device's lines: R1 has con 0, aux 1, and vty 0-4 (lines 2-6); S1 has con 0 and vty 0-15 (lines 1-16) */
+const clearLineRows = (last, vty) => [['clear line <INT:0-' + last + '>', X.clearLine, { 'kw:line': 'Reset a terminal line', ['INT:0-' + last]: 'Line number' }], ['clear line console <INT:0-0>', X.clearLine, { 'kw:line': 'Reset a terminal line', 'INT:0-0': 'Line number' }],
+  ['clear line vty <INT:0-' + vty + '>', X.clearLine, { 'kw:line': 'Reset a terminal line', ['INT:0-' + vty]: 'Line number' }]];
 const PRIV_COMMON = [
   ['enable', X.noop], ['disable', X.disable], ['configure terminal', X.conft], ...EXEC_COMMON,
   ['show running-config', X.showRun], ['show startup-config', X.showStart],
   ['show logging', X.showLogging, { pref: 'logging', 'kw:logging': 'Show the contents of logging buffers' }], ['show snmp user', X.showSnmpUser, { 'kw:user': 'snmp users' }],
   ['copy running-config startup-config', X.copyRS], ['copy running-config <FLASH>', X.copyFlash, { FLASH: 'Copy to flash: file system' }],
   ['dir', X.dir], ['dir <FLASH>', X.dir, { FLASH: 'Directory or file name' }],
+  ['more <FLASH>', X.more, { 'kw:more': 'Display the contents of a file', FLASH: 'File to display' }],
+  ['verify /md5 <FLASH>', X.verifyMd5, { 'kw:verify': 'Verify a file', 'kw:/md5': 'Compute an MD5 signature for a file', FLASH: 'File to verify' }],
+  ['configure terminal revert timer <INT:1-120>', X.confRevert, { 'kw:revert': 'Parameters for reverting the configuration', 'kw:timer': 'Minutes before the configuration reverts', 'INT:1-120': 'Minutes' }],
+  ['configure confirm', X.confConfirm, { 'kw:confirm': 'Confirm the configuration change and stop the rollback timer' }],
+  ['archive config', X.arConfig, { 'kw:archive': 'Manage archive files', 'kw:config': 'Archive the running configuration' }],
+  ['show archive', X.showArchive, { 'kw:archive': 'Archive functions' }], ['show archive log config all', X.showArchiveLog, { 'kw:log': 'Archive log information', 'kw:config': 'Configuration change log', 'kw:all': 'List every logged command' }],
+  ['show aaa servers', X.showAaaServers, { 'kw:aaa': 'Show AAA values', 'kw:servers': 'All AAA servers as seen by the AAA Server MIB' }],
   ['write', X.wr], ['write memory', X.wr], ['erase startup-config', X.erase], ['reload', X.reload]
 ];
 const GLOBAL_COMMON = [
   ['hostname <WORD>', X.hostname, { WORD: "This system's network name" }], ['no hostname', X.noHostname],
   ['enable secret <LINE>', X.enSecret, { LINE: "The UNENCRYPTED (cleartext) 'enable' secret" }],
   ['enable secret 0 <LINE>', X.enSecret, { 'kw:0': 'Specifies an UNENCRYPTED password will follow' }], ['enable secret 5 <WORD>', X.enSecret, { 'kw:5': 'Specifies an ENCRYPTED secret will follow', WORD: "The ENCRYPTED 'enable' secret string" }], ['enable password <LINE>', X.enPass, { LINE: "The UNENCRYPTED (cleartext) 'enable' password" }],
-  ['no enable secret', X.noEnSecret], ['no enable password', X.noEnPass],
+  ['no enable secret', X.noEnSecret, { pref: 'enable' }], ['no enable password', X.noEnPass, { pref: 'enable' }],
   ['service password-encryption', X.spe], ['no service password-encryption', X.noSpe],
   ['ip domain-lookup', X.dl], ['no ip domain-lookup', X.noDl], ['ip domain-name <WORD>', X.dn, { WORD: 'Default domain name' }], ['no ip domain-name', X.noDn],
-  ['ip ssh version <INT:1-2>', X.sshVer, { 'INT:1-2': 'Protocol version' }], ['no ip ssh version', X.noSshVer],
-  ['ip ssh time-out <INT:1-120>', X.sshTo, { 'INT:1-120': 'SSH time-out interval (secs)' }], ['no ip ssh time-out', X.noSshTo],
-  ['ip ssh authentication-retries <INT:0-5>', X.sshRet, { 'INT:0-5': 'Number of authentication retries' }], ['no ip ssh authentication-retries', X.noSshRet],
+  ['ip ssh version <INT:1-2>', X.sshVer, { 'INT:1-2': 'Protocol version', pref: 'ssh' }], ['no ip ssh version', X.noSshVer, { pref: 'ssh' }],
+  ['ip ssh time-out <INT:1-120>', X.sshTo, { 'INT:1-120': 'SSH time-out interval (secs)' }], ['no ip ssh time-out', X.noSshTo, { pref: 'ssh' }],
+  ['ip ssh authentication-retries <INT:0-5>', X.sshRet, { 'INT:0-5': 'Number of authentication retries' }], ['no ip ssh authentication-retries', X.noSshRet, { pref: 'ssh' }],
   ['banner motd <LINE>', X.banner, { LINE: "c banner-text c, where 'c' is a delimiting character" }], ['no banner motd', X.noBanner],
   ['banner login <LINE>', X.banner, { 'kw:login': 'Set login banner', LINE: "c banner-text c, where 'c' is a delimiting character" }], ['no banner login', X.noBannerLogin, { 'kw:login': 'Set login banner' }],
   ['access-list <INT:1-99> permit <IP> <MASK>', X.aclAdd, { 'INT:1-99': 'IP standard access list', IP: 'Address to match', MASK: 'Wildcard bits' }],
@@ -1740,8 +2020,8 @@ const GLOBAL_COMMON = [
   ['ip access-list standard <ACL>', X.aclMode, { ACL: 'Access-list name' }], ['ip access-list extended <ACL>', X.aclMode, { ACL: 'Access-list name' }],
   ['no ip access-list standard <INT:1-99>', X.noAclNamed, { 'kw:access-list': 'Named access-list' }], ['no ip access-list standard <ACL>', X.noAclNamed], ['no ip access-list extended <ACL>', X.noAclNamed],
   ['aaa new-model', X.aaaOn], ['no aaa new-model', X.aaaOff],
-  ['aaa authentication login default local', X.aaaLogin, { 'kw:login': 'Set authentication lists for logins.', 'kw:local': 'Use local username authentication.' }],
-  ['no aaa authentication login default', X.aaaLogin, { 'kw:login': 'Set authentication lists for logins.' }],
+  ['aaa authentication login default local', X.aaaLogin, { 'kw:login': 'Set authentication lists for logins.', 'kw:local': 'Use local username authentication.', pref: 'authentication' }],
+  ['no aaa authentication login default', X.aaaLogin, { 'kw:login': 'Set authentication lists for logins.', pref: 'authentication' }],
   ['ip http server', X.http, { 'kw:server': 'Enable HTTP server' }], ['no ip http server', X.http, { 'kw:server': 'Enable HTTP server' }],
   ['ip http secure-server', X.http], ['no ip http secure-server', X.http],
   ['ip http authentication local', X.http, { 'kw:authentication': 'Set http server authentication method', 'kw:local': 'Local username database' }], ['no ip http authentication', X.http],
@@ -1753,9 +2033,9 @@ const GLOBAL_COMMON = [
   ['logging <IP>', X.logHost, { IP: 'IP address of the logging host' }], ['no logging <IP>', X.logHost],
   ...['log', 'debug'].flatMap(k => ['', ' msec', ' msec localtime', ' msec localtime show-timezone', ' msec show-timezone', ' localtime', ' localtime show-timezone', ' show-timezone']
     .flatMap(o => [o, o + ' year'])
-    .map(o => ['service timestamps ' + k + ' datetime' + o, X.stamps, { 'kw:log': 'Timestamp log messages', 'kw:debug': 'Timestamp debug messages', 'kw:msec': 'Include milliseconds in timestamp', 'kw:localtime': 'Use local time zone for timestamps', 'kw:show-timezone': 'Add time zone information to timestamp', 'kw:year': 'Include year in timestamp' }])),
-  ['no service timestamps', X.stamps], ['no service timestamps log', X.stamps, { 'kw:log': 'Timestamp log messages' }], ['no service timestamps debug', X.stamps],
-  ['no service timestamps log datetime msec', X.stamps], ['no service timestamps debug datetime msec', X.stamps],
+    .map(o => ['service timestamps ' + k + ' datetime' + o, X.stamps, { pref: 'timestamps', 'kw:log': 'Timestamp log messages', 'kw:debug': 'Timestamp debug messages', 'kw:msec': 'Include milliseconds in timestamp', 'kw:localtime': 'Use local time zone for timestamps', 'kw:show-timezone': 'Add time zone information to timestamp', 'kw:year': 'Include year in timestamp' }])),
+  ['no service timestamps', X.stamps, { pref: 'timestamps' }], ['no service timestamps log', X.stamps, { 'kw:log': 'Timestamp log messages', pref: 'timestamps' }], ['no service timestamps debug', X.stamps, { pref: 'timestamps' }],
+  ['no service timestamps log datetime msec', X.stamps, { pref: 'timestamps' }], ['no service timestamps debug datetime msec', X.stamps, { pref: 'timestamps' }],
   ['service pad', X.pad], ['no service pad', X.pad],
   ['ntp server <IP>', X.ntp, { 'kw:server': 'Configure NTP server', IP: 'IP address of peer' }], ['no ntp server <IP>', X.ntp, { 'kw:server': 'Configure NTP server' }],
   ['snmp-server community <WORD>', X.snmpComm, { WORD: 'SNMP community string' }], ['snmp-server community <WORD> RO', X.snmpComm], ['snmp-server community <WORD> RW', X.snmpComm],
@@ -1775,10 +2055,30 @@ const GLOBAL_COMMON = [
   ['username <WORD> privilege <INT:0-15> password <LINE>', X.user], ['no username <WORD>', X.noUser, { WORD: 'User name' }],
   ['security passwords min-length <INT:0-16>', X.minLen, { 'INT:0-16': 'Minimum length of a valid password' }], ['no security passwords min-length', X.noMinLen],
   ['login block-for <INT:1-65535> attempts <INT:1-65535> within <INT:1-65535>', X.blockFor, { 'INT:1-65535': 'Number of seconds or attempts' }], ['no login block-for', X.noBlockFor],
-  ['cdp run', X.cdp], ['no cdp run', X.noCdp],
+  ['cdp run', X.cdp], ['no cdp run', X.noCdp, { pref: 'cdp' }],
   ['crypto key generate rsa', X.keygen], ['crypto key generate rsa general-keys', X.keygen],
   ['crypto key generate rsa general-keys modulus <INT:360-4096>', X.keygen, { 'INT:360-4096': 'size of the key modulus' }],
   ['crypto key generate rsa modulus <INT:360-4096>', X.keygen], ['crypto key zeroize rsa', X.zeroize],
+  ...[['tcp-keepalives-in', 'Generate keepalives on idle incoming network connections'], ['tcp-keepalives-out', 'Generate keepalives on idle outgoing network connections'],
+    ['tcp-small-servers', 'Enable small TCP servers (e.g., ECHO)'], ['udp-small-servers', 'Enable small UDP servers (e.g., ECHO)']]
+    .flatMap(([k, h]) => [['service ' + k, X.svc, { ['kw:' + k]: h }], ['no service ' + k, X.svc, { ['kw:' + k]: h }]]),
+  ...[['bootp server', { 'kw:bootp': 'Config BOOTP services', 'kw:server': 'Enable BOOTP server' }], ['finger', { 'kw:finger': 'finger server' }], ['source-route', { 'kw:source-route': 'Process packets with source routing header options' }]]
+    .flatMap(([k, ph]) => [['ip ' + k, X.ipSvc, ph], ['no ip ' + k, X.ipSvc, ph]]),
+  ['ip ssh rsa keypair-name <WORD>', X.sshKey, { 'kw:rsa': 'Configure RSA keypair name for SSH', 'kw:keypair-name': 'Name of the RSA key pair SSH uses', WORD: 'RSA key pair name' }], ['no ip ssh rsa keypair-name', X.sshKey],
+  ['crypto key generate rsa general-keys label <WORD>', X.keygen, { 'kw:label': 'Provide a label', WORD: 'RSA key pair label' }], ['crypto key generate rsa general-keys label <WORD> modulus <INT:360-4096>', X.keygen, { 'INT:360-4096': 'size of the key modulus' }],
+  ['crypto key generate rsa label <WORD>', X.keygen, { 'kw:label': 'Provide a label', WORD: 'RSA key pair label' }], ['crypto key generate rsa label <WORD> modulus <INT:360-4096>', X.keygen, { 'INT:360-4096': 'size of the key modulus' }],
+  ['clock timezone <WORD> <TZH>', X.tz, { 'kw:clock': 'Configure time-of-day clock', 'kw:timezone': 'Configure time zone', WORD: 'name of time zone', TZH: 'Hours offset from UTC' }], ['clock timezone <WORD> <TZH> <INT:0-59>', X.tz, { 'INT:0-59': 'Minutes offset from UTC' }],
+  ['no clock timezone', X.tz, { 'kw:clock': 'Configure time-of-day clock', 'kw:timezone': 'Configure time zone' }],
+  ['login on-failure log', X.loginFail, { 'kw:on-failure': 'Set options for failed login attempt', 'kw:log': 'Generate syslogs on failure logins' }], ['no login on-failure', X.loginFail, { 'kw:on-failure': 'Set options for failed login attempt' }],
+  ['login quiet-mode access-class <INT:1-99>', X.quiet, { 'kw:quiet-mode': 'Set quiet-mode options', 'kw:access-class': 'Define an access-list for quiet-mode', 'INT:1-99': 'IP access list' }], ['login quiet-mode access-class <ACL>', X.quiet, { ACL: 'IP access-list name' }],
+  ['no login quiet-mode access-class', X.quiet, { 'kw:quiet-mode': 'Set quiet-mode options' }],
+  ['aaa authorization exec default local', X.aaaExec, { 'kw:authorization': 'Authorization configurations parameters.', 'kw:exec': 'For starting an exec (shell).', 'kw:default': 'The default authorization list.', 'kw:local': 'Use local database.' }],
+  ['no aaa authorization exec default', X.aaaExec, { 'kw:authorization': 'Authorization configurations parameters.' }],
+  ['archive', X.archive, { 'kw:archive': 'Archive the configuration' }], ['no archive', X.archive],
+  ...['in <KIN>', 'at <KAT>'].flatMap(w => ['oneshot', 'recurring'].map(k => [`kron occurrence <WORD> ${w} ${k}`, X.kronOcc, { 'kw:kron': 'Kron interval Command', 'kw:occurrence': 'Define the time and frequency of a policy list run', WORD: 'Name of the occurrence',
+    'kw:in': 'Delta time to run the policy', KIN: 'Delta time: [[days:]hours:]minutes', 'kw:at': 'Calendar time to run the policy', KAT: 'Time of day, hh:mm', 'kw:oneshot': 'Run the policy once', 'kw:recurring': 'Run the policy again at each interval' }])),
+  ['no kron occurrence <WORD>', X.kronOcc, { 'kw:kron': 'Kron interval Command' }],
+  ['kron policy-list <WORD>', X.kronPol, { 'kw:policy-list': 'Define a policy list of EXEC commands', WORD: 'Name of the policy list' }], ['no kron policy-list <WORD>', X.kronPol],
   ['line console <INT:0-0>', X.lineCon, { 'INT:0-0': 'First Line number' }],
   ['line vty <INT:0-15>', X.lineVty, { 'INT:0-15': 'First Line number' }], ['line vty <INT:0-15> <INT:0-15>', X.lineVty, { 'INT:0-15': 'Last Line number' }],
   ['do <LINE>', X.doCmd, { LINE: 'Exec Command' }], ['exit', X.cfgExit], ['end', X.end]
@@ -1825,15 +2125,37 @@ const SW_SHOW = [['show vlan brief', X.showVlan], ['show interfaces trunk', X.sh
 const R_SHOW = [['show ip route', X.showRoute, { 'kw:route': 'IP routing table' }], ['show ip route <IP>', X.showRouteIp, { IP: 'Network to display information about or host' }],
   ['show ip route static', X.showRouteF], ['show ip route connected', X.showRouteF, { 'kw:connected': 'Connected networks' }], ['show ip route ospf', X.showRouteF, { 'kw:ospf': 'Open Shortest Path First (OSPF)' }],
   ['show ip dhcp binding', X.showBinding], ['show ip protocols', X.showProtocols], ['show ip ospf neighbor', X.showOspfNbr, { 'kw:ospf': 'OSPF information' }]];
-const SW_PRIV = [['clear port-security all', X.clearPsec, { 'kw:port-security': 'Clear secure MAC addresses' }], ['clear port-security sticky', X.clearPsec],
+const SW_PRIV = [...clearLineRows(16, 15), ['show vstack config', X.showVstack, { 'kw:vstack': 'Smart Install show commands', 'kw:config': 'Smart Install configuration' }],['clear port-security all', X.clearPsec, { 'kw:port-security': 'Clear secure MAC addresses' }], ['clear port-security sticky', X.clearPsec],
   ['clear port-security dynamic', X.clearPsec], ['clear port-security configured', X.clearPsec],
   ...['all', 'sticky', 'dynamic', 'configured'].map(t => [`clear port-security ${t} interface <SIF>`, X.clearPsec, { SIF: 'FastEthernet IEEE 802.3' }]),
   ['show running-config interface <SIF>', X.showRunIf, { SIF: 'FastEthernet IEEE 802.3' }]];
-const R_PRIV = [['clear ip ospf process', X.clearOspf, { 'kw:ip': 'IP', 'kw:ospf': 'OSPF clear commands' }], ['show running-config interface <RIF>', X.showRunIf, { RIF: 'GigabitEthernet IEEE 802.3z' }]];
+const R_PRIV = [...clearLineRows(6, 4), ['show control-plane host open-ports', X.showOpenPorts, { 'kw:control-plane': 'Display Control Plane Information', 'kw:host': 'Control-plane host information', 'kw:open-ports': 'Control-plane host open ports' }],
+  ['show software authenticity running', X.showSoftAuth, { 'kw:software': 'Software information', 'kw:authenticity': 'Show authenticity information', 'kw:running': 'Signing information for the running image' }],
+  ['show crypto session', X.showCrypto, { 'kw:crypto': 'Encryption module', 'kw:session': 'Show crypto sessions (tunnels)' }],
+  ['show event manager policy registered', X.showEem, { 'kw:event': 'Show event related information', 'kw:manager': 'Show event manager information', 'kw:policy': 'Show event manager policies', 'kw:registered': 'Registered policies' }],
+  ['verify <FLASH>', X.verifySig, { 'kw:verify': 'Verify a file', FLASH: 'File to verify' }],['clear ip ospf process', X.clearOspf, { 'kw:ip': 'IP', 'kw:ospf': 'OSPF clear commands' }], ['show running-config interface <RIF>', X.showRunIf, { RIF: 'GigabitEthernet IEEE 802.3z' }]];
 const SPEED_DUPLEX = (hs, hd) => [...['10', '100', '1000', 'auto'].map(v => [`speed ${v}`, hs, { ['kw:' + v]: v === 'auto' ? 'Enable AUTO speed configuration' : `Force ${v} Mbps operation` }]), ['no speed', hs],
   ...['auto', 'full', 'half'].map(v => [`duplex ${v}`, hd, { 'kw:auto': 'Enable AUTO duplex configuration' }]), ['no duplex', hd]];
 const LLDP_CDP = (hc, hl) => [['cdp enable', hc, { 'kw:cdp': 'CDP interface subcommands', 'kw:enable': 'Enable CDP on interface' }], ['no cdp enable', hc, { 'kw:cdp': 'CDP interface subcommands', 'kw:enable': 'Enable CDP on interface' }],
   ['lldp transmit', hl, { 'kw:lldp': 'LLDP interface subcommands' }], ['no lldp transmit', hl], ['lldp receive', hl], ['no lldp receive', hl]];
+/* archive and its log config, and the kron sub-modes, on both devices; the EEM applet sub-mode on R1 */
+const CHANGE_TREES = () => ({
+  archive: build('archive', [['log config', X.arLog, { 'kw:log': 'Logging commands', 'kw:config': 'Logging changes to the running configuration' }], ['no log config', X.arLog],
+    ['path <FLASH>', X.arPath, { 'kw:path': 'path for backups', FLASH: 'path for backups, for example flash:archive' }], ['no path', X.arPath],
+    ['write-memory', X.arWm, { 'kw:write-memory': 'Enable automatic backup generation during write memory' }], ['no write-memory', X.arWm], ...SUB]),
+  archlog: build('archlog', [['logging enable', X.alSet, { 'kw:logging': 'Modify config logging parameters', 'kw:enable': 'Enable the config logger' }], ['no logging enable', X.alSet],
+    ['logging size <INT:1-1000>', X.alSet, { 'kw:size': 'Set size of log buffer', 'INT:1-1000': 'Number of entries in the logger' }], ['no logging size', X.alSet],
+    ['hidekeys', X.alSet, { 'kw:hidekeys': 'suppress output (e.g. passwords) when displaying logged commands' }], ['no hidekeys', X.alSet],
+    ['exit', X.alExit, { 'kw:exit': 'Exit from log config submode' }], ['do <LINE>', X.doCmd, { LINE: 'Exec Command' }], ['end', X.end]]),
+  kronocc: build('kronocc', [['policy-list <WORD>', X.kronOccPol, { 'kw:policy-list': 'Policy list to run', WORD: 'Name of the policy list' }], ['no policy-list <WORD>', X.kronOccPol], ...SUB]),
+  kronpol: build('kronpol', [['cli <LINE>', X.kronCli, { 'kw:cli': 'EXEC command to run', LINE: 'The command' }], ['no cli <LINE>', X.kronCli], ...SUB])
+});
+const APPLET_DEFS = [['event none', X.apEvent, { 'kw:event': 'Add or modify event information', 'kw:none': 'Manually run policy event' }],
+  ['event syslog pattern <LINE>', X.apEvent, { 'kw:syslog': 'Syslog event', 'kw:pattern': 'Pattern match string for the entire message', LINE: 'Regular expression' }],
+  ['event timer watchdog time <INT:1-2147483>', X.apEvent, { 'kw:timer': 'Timer event', 'kw:watchdog': 'Watchdog timer', 'kw:time': 'Time to set timer for', 'INT:1-2147483': 'Seconds' }], ['no event', X.apEvent],
+  ['action <WORD> cli command <LINE>', X.apAction, { 'kw:action': 'Add or modify an action statement', WORD: 'Action label', 'kw:cli': 'Execute a CLI command', 'kw:command': 'Specify CLI command', LINE: 'The command, in quotes' }],
+  ['action <WORD> syslog msg <LINE>', X.apAction, { 'kw:syslog': 'Log a syslog message', 'kw:msg': 'Syslog message', LINE: 'The message, in quotes' }], ['no action <WORD>', X.apAction],
+  ['description <LINE>', X.apDesc, { 'kw:description': 'Add or modify an applet description', LINE: 'Description' }], ['no description', X.apDesc], ...SUB];
 const TREES = {
   router: {
     user: build('user', [['enable', X.enable], ...EXEC_COMMON, ...R_SHOW]),
@@ -1845,7 +2167,12 @@ const TREES = {
       ['ip dhcp excluded-address <IP>', X.dhcpEx, { IP: 'Low IP address' }], ['ip dhcp excluded-address <IP> <IP>', X.dhcpEx], ['no ip dhcp excluded-address <IP>', X.noDhcpEx], ['no ip dhcp excluded-address <IP> <IP>', X.noDhcpEx],
       ['ip dhcp pool <WORD>', X.dhcpPool, { WORD: 'Pool name' }], ['no ip dhcp pool <WORD>', X.noDhcpPool],
       ['ip route <IP> <MASK> <IP>', X.route, { IP: 'Destination prefix', MASK: 'Destination prefix mask' }], ['no ip route <IP> <MASK>', X.noRoute], ['no ip route <IP> <MASK> <IP>', X.noRoute],
-      ['router ospf <INT:1-65535>', X.ospfOn, { 'INT:1-65535': 'Process ID' }], ['no router ospf <INT:1-65535>', X.noOspf, { 'INT:1-65535': 'Process ID' }]]),
+      ['router ospf <INT:1-65535>', X.ospfOn, { 'INT:1-65535': 'Process ID' }], ['no router ospf <INT:1-65535>', X.noOspf, { 'INT:1-65535': 'Process ID' }],
+      ['tftp-server <FLASH>', X.tftp, { 'kw:tftp-server': 'Provide TFTP service for netload requests', FLASH: 'File to serve' }], ['tftp-server <FLASH> <INT:1-99>', X.tftp, { 'INT:1-99': 'IP access list of requesting hosts' }],
+      ['no tftp-server <FLASH>', X.tftp, { 'kw:tftp-server': 'Provide TFTP service for netload requests' }],
+      ['event manager applet <WORD>', X.applet, { 'kw:event': 'Event related commands', 'kw:manager': 'Event Manager configuration commands', 'kw:applet': 'Register an Event Manager applet', WORD: 'Name of the Event Manager applet' }],
+      ['no event manager applet <WORD>', X.applet, { 'kw:event': 'Event related commands' }]]),
+    applet: build('applet', APPLET_DEFS),
     line: build('line', LINE_DEFS),
     if: build('if', [['description <LINE>', X.desc, { LINE: 'Up to 240 characters describing this interface' }], ['no description', X.noDesc],
       ['ip address <IP> <MASK>', X.ipAddr, { IP: 'IP address', MASK: 'IP subnet mask' }], ['no ip address', X.noIpAddr],
@@ -1869,14 +2196,15 @@ const TREES = {
       ['default-information originate', X.oDefInfo], ['default-information originate always', X.oDefInfo], ['no default-information originate', X.oDefInfo],
       ['router-id <IP>', X.oRid, { IP: 'OSPF router-id in IP address format' }], ['no router-id', X.oNoRid], ...SUB]),
     stdacl: build('stdacl', STD_ACL),
-    extacl: build('extacl', EXT_ACL)
+    extacl: build('extacl', EXT_ACL),
+    ...CHANGE_TREES()
   },
   switch: {
     user: build('user', [['enable', X.enable], ...EXEC_COMMON, ...SW_SHOW]),
     priv: build('priv', [...PRIV_COMMON, ...SW_SHOW, ...SW_PRIV]),
     global: build('global', [...GLOBAL_COMMON,
-      ['vlan <INT:1-4094>', X.vlan, { 'INT:1-4094': 'ISL VLAN IDs 1-4094' }], ['no vlan <INT:1-4094>', X.noVlan],
-      ['vlan <VLIST>', X.vlan, { VLIST: 'ISL VLAN IDs 1-4094, as a list such as 10,20,30' }], ['no vlan <VLIST>', X.noVlan],
+      ['vlan <INT:1-4094>', X.vlan, { 'INT:1-4094': 'ISL VLAN IDs 1-4094' }], ['no vlan <INT:1-4094>', X.noVlan, { pref: 'vlan' }],
+      ['vlan <VLIST>', X.vlan, { VLIST: 'ISL VLAN IDs 1-4094, as a list such as 10,20,30' }], ['no vlan <VLIST>', X.noVlan, { pref: 'vlan' }],
       ['ip dhcp snooping', X.snoop, { 'kw:dhcp': 'DHCP configuration' }], ['no ip dhcp snooping', X.snoop, { 'kw:dhcp': 'DHCP configuration' }],
       ['ip dhcp snooping vlan <VLIST>', X.snoopVlan, { 'kw:vlan': 'DHCP Snooping vlan', VLIST: 'DHCP Snooping vlan first number or vlan range,example: 1,3-5,7,9-11' }], ['no ip dhcp snooping vlan <VLIST>', X.snoopVlan],
       ['ip dhcp snooping information option', X.snoopOpt], ['no ip dhcp snooping information option', X.snoopOpt],
@@ -1890,7 +2218,8 @@ const TREES = {
       ['no spanning-tree vlan <VLIST> root', X.noStpRoot],
       ...['transparent', 'server', 'client', 'off'].map(m => [`vtp mode ${m}`, X.vtpMode, { 'kw:mode': 'Configure VTP device mode' }]), ['vtp domain <WORD>', X.vtpDomain, { WORD: 'The ascii name for the VTP administrative domain.' }],
       ['interface <SIF>', X.sIface, { SIF: 'FastEthernet IEEE 802.3' }], ['interface range <RANGE>', X.sRange, { RANGE: 'interface range, e.g. f0/1 - 4' }],
-      ['ip default-gateway <IP>', X.defGw, { IP: 'IP address of default gateway' }], ['no ip default-gateway', X.noDefGw]]),
+      ['ip default-gateway <IP>', X.defGw, { IP: 'IP address of default gateway' }], ['no ip default-gateway', X.noDefGw],
+      ['vstack', X.vstack, { 'kw:vstack': 'Configure Smart Install' }], ['no vstack', X.vstack, { 'kw:vstack': 'Configure Smart Install' }]]),
     line: build('line', LINE_DEFS),
     swif: build('swif', [['description <LINE>', X.swDesc, { LINE: 'Up to 240 characters describing this interface' }], ['no description', X.swNoDesc],
       ['switchport mode access', X.swMode], ['switchport mode trunk', X.swMode], ['switchport mode dynamic auto', X.swMode], ['switchport mode dynamic desirable', X.swMode],
@@ -1919,11 +2248,12 @@ const TREES = {
       ['shutdown', X.sviShut], ['no shutdown', X.sviNoShut], ...SUB]),
     vlan: build('vlan', [['name <WORD>', X.vName, { WORD: 'The ascii name for the VLAN' }], ['no name', X.vNoName], ...SUB]),
     stdacl: build('stdacl', STD_ACL),
-    extacl: build('extacl', EXT_ACL)
+    extacl: build('extacl', EXT_ACL),
+    ...CHANGE_TREES()
   }
 };
 /* subif is the router's if tree on a subinterface such as g0/0.10: same commands, its own prompt */
-const PROMPT = { user: '>', priv: '#', global: '(config)#', line: '(config-line)#', if: '(config-if)#', subif: '(config-subif)#', svi: '(config-if)#', swif: '(config-if)#', dhcp: '(config-dhcp)#', vlan: '(config-vlan)#', ospf: '(config-router)#',
+const PROMPT = { archive: '(config-archive)#', archlog: '(config-archive-log-cfg)#', applet: '(config-applet)#', kronocc: '(config-kron-occurrence)#', kronpol: '(config-kron-policy)#', user: '>', priv: '#', global: '(config)#', line: '(config-line)#', if: '(config-if)#', subif: '(config-subif)#', svi: '(config-if)#', swif: '(config-if)#', dhcp: '(config-dhcp)#', vlan: '(config-vlan)#', ospf: '(config-router)#',
   stdacl: '(config-std-nacl)#', extacl: '(config-ext-nacl)#' };
 
 /* ---------- IOS session ---------- */
@@ -1941,7 +2271,37 @@ class IOSSession {
   hint(t) { this.lab.io.hint(this.term, t); }
   curIf() { return this.d.kind === 'router' ? this.d.ifaces[this.iface] : this.d.svis[this.iface]; }
   curProc() { return this.d.ospf[this.proc]; }
-  enter(mode) { this.mode = mode; this.targets = null; this.iface = null; this.ports = null; this.range = false; this.pool = null; this.vlan = null; this.proc = null; this.acl = null; }
+  enter(mode) { this.mode = mode; this.targets = null; this.iface = null; this.ports = null; this.range = false; this.pool = null; this.vlan = null; this.proc = null; this.acl = null; this.applet = null; this.kron = null; }
+  /* a timed rollback or another session's no command can remove what this sub-mode edits; then the session belongs in global */
+  modeGone() {
+    const d = this.d, has = (o, k) => !!o && Object.prototype.hasOwnProperty.call(o, k);
+    switch (this.mode) {
+      case 'if': case 'svi': return !this.curIf();
+      case 'dhcp': return !has(d.dhcp.pools, this.pool);
+      case 'vlan': return (Array.isArray(this.vlan) ? this.vlan : [this.vlan]).some(v => !isDefVlan(v) && !has(d.vlans, v));
+      case 'ospf': return !has(d.ospf, this.proc);
+      case 'applet': return !has(d.applets, this.applet);
+      case 'kronocc': return !has(d.kronOcc, this.kron);
+      case 'kronpol': return !has(d.kronPol, this.kron);
+      case 'archive': return !d.archive;
+      case 'archlog': return !(d.archive && d.archive.log);
+      case 'line': return !!this.targets && this.targets.kind === 'aux' && !d.aux;
+      default: return false;
+    }
+  }
+  /* move to global when the sub-mode's object is gone; true when it moved */
+  settle(why) {
+    if (!this.modeGone()) return false;
+    this.enter('global');
+    if (why) this.hint(why);
+    this.lab.io.refresh(this.term);
+    return true;
+  }
+  /* after this session's command, move every other session whose sub-mode it removed, so their prompts, ?, and Tab match at once */
+  settlePeers() {
+    for (const n of [this.lab.r1, this.lab.s1]) [n.con, ...n.vtySess].forEach(x => { if (x !== this) x.settle(`Another session (${this.kind === 'con' ? 'the console' : 'vty ' + this.lineNo}) removed what this mode was editing, so this session is back in global configuration mode.`); });
+  }
+  who() { return this.user || (this.kind === 'con' ? 'console' : 'unknown'); }
   badTok(line, idx) { const tk = tokenize(line)[idx]; this.showErr({ err: 'invalid', at: tk ? tk.i : 0 }, line, this.lastPromptLen); }
   /* speed, duplex, cdp enable, and lldp belong on the physical port, so a subinterface refuses them */
   physOnly(path, line) { const g = this.curIf(); if (g && g.sub) { this.badTok(line, path[0] === 'no' ? 1 : 0); return true; } return false; }
@@ -1960,11 +2320,22 @@ class IOSSession {
   ask(prompt, fn, mask) { this.pending = { prompt, fn, mask: !!mask }; }
   input(line) {
     if (this.busy) return;
-    if (this.pending) { const p = this.pending; this.pending = null; p.fn(line); return; }
+    if (this.pending) { const p = this.pending; this.pending = null; p.fn(line); this.settlePeers(); return; }
     if (this.mode === 'idle') { this.startLogin(); return; }
     if (this.mode === 'closed') return;
+    let pl = this.prompt().length;
+    const old = this.mode;
+    if (this.modeGone()) {
+      /* fallback: settlePeers and the rollback timer usually move the session first */
+      this.enter('global');
+      const t = this.trees[old], p = t && line.trim() ? parse(t, line) : { err: 'incomplete' }, verb = p.err ? '' : p.path[0];
+      if (verb !== 'end') this.hint('What this mode was editing is gone, so this session is back in global configuration mode.');
+      if (verb === 'exit') return;
+      if (verb !== 'end' && line.trim()) { this.w(this.prompt() + line + '\n'); pl = this.prompt().length; }
+    }
     if (/\?\s*$/.test(line)) { const h = this.help(line); if (h) { this.w(h.text); return; } }
-    this.exec(line, this.prompt().length);
+    this.exec(line, pl);
+    this.settlePeers();
   }
   startLogin() {
     const L = this.lineCfg(), d = this.d;
@@ -1982,7 +2353,7 @@ class IOSSession {
     this.w('\nUser Access Verification\n\n');
     this.tries = 0;
     if (!aaaUser && L.login === 'line') { this.askLinePw(); return; }
-    if (!Object.keys(d.users).length) this.hint(aaaUser ? 'Every login here fails: AAA checks local usernames, and the list is empty. Use Reset to recover, and create the user before aaa new-model next time.' : "Nobody can log in here: 'login local' is set but no usernames exist. Use Reset to recover, and create the user first next time.");
+    if (!Object.keys(d.users).length) this.hint(aaaUser ? 'Every login here fails: AAA checks local usernames, and the list is empty. Use Reset to recover, and create the user before aaa new-model next time.' : "Every login here fails: 'login local' checks local usernames, and the list is empty. Use Reset to recover, and create the user first next time.");
     this.askUser();
   }
   askLinePw() {
@@ -2006,7 +2377,11 @@ class IOSSession {
   }
   loginOK() { this.tries = 0; if (this.kind === 'vty' && this.proto === 'telnet') this.lab.ev['telnetLogin:' + this.node.id] = true; this.enterUser(); }
   failed(user) { if (this.kind === 'vty') this.lab.loginFailure(this.node, user, this.from, this.proto); }
-  enterUser() { this.mode = 'user'; this.w('\n'); }
+  enterUser() {
+    const d = this.d, u = this.user && d.users[this.user];
+    this.mode = this.kind === 'vty' && d.aaa && d.aaa.exec === 'local' && u && u.priv === 15 ? 'priv' : 'user';
+    this.w('\n');
+  }
   close() {
     this.pending = null; this.user = null; this.enter(this.mode);
     if (this.kind === 'con') { this.mode = 'idle'; this.w(`\n${this.d.hostname} con0 is now available\n\n\n\n\n\nPress RETURN to get started.\n\n`); }
@@ -2038,11 +2413,11 @@ class IOSSession {
     const T = this.trees, execMode = this.mode === 'user' || this.mode === 'priv', pipe = line.indexOf('|');
     if (execMode && pipe >= 0) { this.execPiped(line, pipe, pl, T[this.mode]); return; }
     const res = parse(T[this.mode], line);
-    if (!res.err) { this.noteShow(res.path); res.node.run(this, res.args, res.path, line); return; }
+    if (!res.err) { this.noteShow(res.path); res.node.run(this, res.args, res.path, line); if (!execMode) this.lab.cfgLogged(this, line); return; }
     const sub = !execMode && this.mode !== 'global';
     if (sub && res.err !== 'ambig') {
       const g = parse(T.global, line);
-      if (!g.err) { this.enter('global'); this.noteShow(g.path); g.node.run(this, g.args, g.path, line); return; }
+      if (!g.err) { this.enter('global'); this.noteShow(g.path); g.node.run(this, g.args, g.path, line); this.lab.cfgLogged(this, line); return; }
     }
     if (execMode && res.err === 'invalid' && res.i === 0 && res.toks.length === 1) { this.translate(res.toks[0].t); return; }
     this.showErr(res, line, pl);
@@ -2109,6 +2484,7 @@ class IOSSession {
   help(line) {
     const T = this.trees;
     if (this.pending || this.busy || !T[this.mode]) return null;
+    this.settle('What this mode was editing is gone, so this session is back in global configuration mode.');
     const body = line.replace(/\?\s*$/, ''), toks = tokenize(body), partial = body.length > 0 && !/\s$/.test(body), walk = partial ? toks.length - 1 : toks.length;
     const pipe = body.indexOf('|');
     if (pipe >= 0 && (this.mode === 'user' || this.mode === 'priv')) {
@@ -2141,6 +2517,7 @@ class IOSSession {
   complete(line) {
     const T = this.trees;
     if (this.pending || this.busy || !T[this.mode]) return null;
+    this.settle('What this mode was editing is gone, so this session is back in global configuration mode.');
     const toks = tokenize(line);
     if (!toks.length || /\s$/.test(line)) return null;
     let node = T[this.mode];
@@ -2322,41 +2699,78 @@ class Lab {
   /* a log message: timestamped when service timestamps log is on (after a typed service timestamps command on S1), kept in the buffer and counted for each syslog host, shown on the console unless no logging console */
   log(node, msg) {
     const d = node.dev, g = d.logging || { console: true, hosts: [] }, rt = node.rt;
-    const lines = msg.split('\n').map(m => (d.tsLog && !d.tsFactory ? this.stamp(d.tsLog) : '') + m);
+    const lines = msg.split('\n').map(m => (d.tsLog && !d.tsFactory ? this.stamp(d.tsLog, d) : '') + m);
     rt.logCount += lines.length;
     if (g.buffered) { rt.logBuf.push(...lines); rt.logBufCount += lines.length; if (rt.logBuf.length > 50) rt.logBuf.splice(0, rt.logBuf.length - 50); }
     (g.hosts || []).forEach(h => { rt.hostCount[h] = (rt.hostCount[h] || 0) + lines.length; });
     if (g.console !== false) this.io.write(node.id, lines.join('\n') + '\n');
   }
   clearArp() { this.arp = {}; }
-  save(node) { node.startup = clone(node.dev); }
+  save(node) { node.startup = clone(node.dev); const ar = node.dev.archive; if (ar && ar.wm && ar.path) this.archiveNow(node); }
+  /* archive copies: path flash:archive names them flash:archive-1, flash:archive-2, and so on; the last 10 stay */
+  archiveOn(s) { const ar = s.d.archive; if (ar && ar.path) return true; s.w('Archive feature not enabled\n'); return false; }
+  archiveNow(node) {
+    const ar = node.dev.archive, A = node.arch || (node.arch = { n: 0, files: [] }), name = `${ar.path}-${++A.n}`, t = runText(node.dev), key = f => f.replace(/^flash0?:\/?/i, '');
+    node.flash[key(name)] = { size: t.length, at: this.io.now(), text: t };
+    A.files.push(name);
+    if (A.files.length > 10) delete node.flash[key(A.files.shift())];
+    return name;
+  }
+  /* a file in flash by name: the IOS image, vlan.dat and config.text on S1, and the copies saved there */
+  flashFile(node, spec) {
+    const name = spec.replace(/^flash0?:\/?/i, ''), isR = node.dev.kind === 'router';
+    const img = isR ? ['c2900-universalk9-mz.SPA.151-4.M4.bin', 68831808] : ['c2960-lanbasek9-mz.150-2.SE4.bin', 11832064];
+    if (name === img[0]) return { name, size: img[1], image: true, md5: fakeHash('image:' + name) };
+    if (!isR && name === 'vlan.dat') return { name, size: 736, md5: fakeHash('vlan.dat:' + JSON.stringify(node.dev.vlans)) };
+    if (!isR && name === 'config.text' && node.startup) { const t = runText(node.startup); return { name, size: t.length, text: t, md5: fakeHash(t) }; }
+    const f = node.flash[name];
+    return f ? { name, size: f.size, text: f.text, md5: fakeHash(f.text || name) } : null;
+  }
+  /* log config with logging enable: each configuration command, who typed it, and on which line; hidekeys masks secrets */
+  cfgLogged(s, line) {
+    const L = s.d.archive && s.d.archive.log;
+    if (!L || !L.enable) return;
+    let text = line.trim();
+    if (/^(do\s|end$|exit$)/i.test(text)) return;
+    if (L.hidekeys) text = text.replace(/\b(secret|password)(\s+[057])?\s+\S.*$/i, (m, k, t) => k + (t || '') + ' *****');
+    const rt = s.node.rt, log = rt.cfgLog || (rt.cfgLog = []);
+    rt.cfgIdx = (rt.cfgIdx || 0) + 1;
+    log.push({ idx: rt.cfgIdx, sess: s.cfgSess || 1, who: s.who() + '@' + (s.kind === 'con' ? 'console' : 'vty' + s.lineNo), text });
+    if (log.length > (L.size || 100)) log.splice(0, log.length - (L.size || 100));
+  }
+  /* Mon Nov  3 09:14:07 2026, in the device's time zone */
+  ctime(t, d) {
+    const z = new Date(t + tzOff(d)), p = n => String(n).padStart(2, '0');
+    return `${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][z.getUTCDay()]} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][z.getUTCMonth()]} ${String(z.getUTCDate()).padStart(2)} ${p(z.getUTCHours())}:${p(z.getUTCMinutes())}:${p(z.getUTCSeconds())} ${z.getUTCFullYear()}`;
+  }
   saved(node) { return !!node.startup && JSON.stringify(node.startup) === JSON.stringify(node.dev); }
   configured(s) { this.log(s.node, `%SYS-5-CONFIG_I: Configured from console by ${s.kind === 'con' ? 'console' : `${s.user ? s.user + ' on ' : ''}vty${s.lineNo} (${s.from})`}`); }
-  clock(ms) {
-    const t = new Date(this.io.now()), p = n => String(n).padStart(2, '0');
+  clock(ms, d) {
+    const t = new Date(this.io.now() + tzOff(d)), p = n => String(n).padStart(2, '0');
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], mons = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${p(t.getUTCHours())}:${p(t.getUTCMinutes())}:${p(t.getUTCSeconds())}${ms ? '.' + String(t.getUTCMilliseconds()).padStart(3, '0') : ''} UTC ${days[t.getUTCDay()]} ${mons[t.getUTCMonth()]} ${t.getUTCDate()} ${t.getUTCFullYear()}`;
+    return `${p(t.getUTCHours())}:${p(t.getUTCMinutes())}:${p(t.getUTCSeconds())}${ms ? '.' + String(t.getUTCMilliseconds()).padStart(3, '0') : ''} ${d && d.tz ? d.tz.name : 'UTC'} ${days[t.getUTCDay()]} ${mons[t.getUTCMonth()]} ${t.getUTCDate()} ${t.getUTCFullYear()}`;
   }
   /* *Nov  4 09:14:07.123: (the * marks a clock that no time server has set) */
-  /* opt: the service timestamps options (true is datetime msec). The lab keeps UTC, so localtime reads the same time
-     here; year adds the year after the date, and show-timezone adds UTC after the time */
-  stamp(opt) {
-    const o = opt === true || opt === undefined ? 'datetime msec' : String(opt);
-    const t = new Date(this.io.now()), p = n => String(n).padStart(2, '0'), mons = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `*${mons[t.getUTCMonth()]} ${String(t.getUTCDate()).padStart(2, ' ')}${/year/.test(o) ? ' ' + t.getUTCFullYear() : ''} ${p(t.getUTCHours())}:${p(t.getUTCMinutes())}:${p(t.getUTCSeconds())}${/msec/.test(o) ? '.' + String(t.getUTCMilliseconds()).padStart(3, '0') : ''}${/show-timezone/.test(o) ? ' UTC' : ''}: `;
+  /* opt: the service timestamps options (true is datetime msec). The clock runs in UTC; localtime moves the stamp to the
+     clock timezone the device sets (UTC without one); year adds the year after the date, and show-timezone adds the zone name after the time */
+  stamp(opt, d) {
+    const o = opt === true || opt === undefined ? 'datetime msec' : String(opt), lt = /localtime/.test(o);
+    const t = new Date(this.io.now() + (lt ? tzOff(d) : 0)), p = n => String(n).padStart(2, '0'), mons = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `*${mons[t.getUTCMonth()]} ${String(t.getUTCDate()).padStart(2, ' ')}${/year/.test(o) ? ' ' + t.getUTCFullYear() : ''} ${p(t.getUTCHours())}:${p(t.getUTCMinutes())}:${p(t.getUTCSeconds())}${/msec/.test(o) ? '.' + String(t.getUTCMilliseconds()).padStart(3, '0') : ''}${/show-timezone/.test(o) ? ' ' + (lt && d && d.tz ? d.tz.name : 'UTC') : ''}: `;
   }
   quietLeft(node) { return Math.max(0, Math.ceil((node.rt.quietUntil - this.io.now()) / 1000)); }
   loginFailure(node, user, from, proto) {
     const rt = node.rt, b = node.dev.blockFor, now = this.io.now();
     rt.totalFails++;
+    if (node.dev.loginFailLog) this.log(node, `%SEC_LOGIN-4-LOGIN_FAILED: Login failed [user: ${user || ''}] [Source: ${from}] [localport: ${proto === 'ssh' ? 22 : 23}] [Reason: Login Authentication Failed] at ${this.clock(false, node.dev)}`);
     if (!b || rt.quietUntil > now) return;
     rt.fails = rt.fails.filter(t => now - t < b.within * 1000);
     rt.fails.push(now);
     if (rt.fails.length < b.attempts) return;
     rt.quietUntil = now + b.sec * 1000; rt.fails = [];
-    this.log(node, `%SEC_LOGIN-1-QUIET_MODE_ON: Still timeleft for watching failures is ${b.within} secs, [user: ${user}] [Source: ${from}] [localport: ${proto === 'ssh' ? 22 : 23}] [Reason: Login Authentication Failed] [ACL: sl_def_acl] at ${this.clock()}`);
+    this.log(node, `%SEC_LOGIN-1-QUIET_MODE_ON: Still timeleft for watching failures is ${b.within} secs, [user: ${user}] [Source: ${from}] [localport: ${proto === 'ssh' ? 22 : 23}] [Reason: Login Authentication Failed] [ACL: sl_def_acl] at ${this.clock(false, node.dev)}`);
     const token = rt.quietUntil;
-    this.later(b.sec * 1000, () => { if (node.rt.quietUntil !== token) return; this.log(node, `%SEC_LOGIN-5-QUIET_MODE_OFF: Quiet Mode is OFF, because block period timed out at ${this.clock()}`); this.io.refresh(node.id); });
+    this.later(b.sec * 1000, () => { if (node.rt.quietUntil !== token) return; this.log(node, `%SEC_LOGIN-5-QUIET_MODE_OFF: Quiet Mode is OFF, because block period timed out at ${this.clock(false, node.dev)}`); this.io.refresh(node.id); });
   }
   /* ---- layer 1/2 ---- */
   pcAt(port) { for (const [id, p] of Object.entries(this.cables)) if (p === port) return id; return null; }
@@ -2383,14 +2797,14 @@ class Lab {
     if (!this.daiOn(v)) return true;
     const pc = this.pcs[id], port = this.cables[id], p = this.s1.dev.ports[port], b = this.snoopBind[pc.mac];
     if (p.daiTrust || (b && b.ip === pc.ip && b.vlan === v && b.port === port)) return true;
-    this.log(this.s1, `%SW_DAI-4-DHCP_SNOOPING_DENY: 1 Invalid ARPs (Req) on ${shortIf(port)}, vlan ${v}.([${pc.mac.toLowerCase()}/${pc.ip}/0000.0000.0000/${dst || '0.0.0.0'}/${this.clock()}])`);
+    this.log(this.s1, `%SW_DAI-4-DHCP_SNOOPING_DENY: 1 Invalid ARPs (Req) on ${shortIf(port)}, vlan ${v}.([${pc.mac.toLowerCase()}/${pc.ip}/0000.0000.0000/${dst || '0.0.0.0'}/${this.clock(false, this.s1.dev)}])`);
     this.dropWhy = `S1 inspects ARP in VLAN ${v} and drops ${pc.name}'s ARP on ${shortIf(port)}, since the DHCP snooping bindings lack ${pc.ip}. A DHCP lease (with snooping on) or a trusted port lets it through.`;
     return false;
   }
   daiR1(v) {
     if (!this.daiOn(v) || this.s1.dev.ports[S_UPLINK].daiTrust) return true;
     const rif = this.r1IngressFor(v), ip = rif ? this.r1.dev.ifaces[rif].ip : null;
-    this.log(this.s1, `%SW_DAI-4-DHCP_SNOOPING_DENY: 1 Invalid ARPs (Res) on Gi0/1, vlan ${v}.([${R_MAC.toLowerCase()}/${ip || '0.0.0.0'}/0000.0000.0000/0.0.0.0/${this.clock()}])`);
+    this.log(this.s1, `%SW_DAI-4-DHCP_SNOOPING_DENY: 1 Invalid ARPs (Res) on Gi0/1, vlan ${v}.([${R_MAC.toLowerCase()}/${ip || '0.0.0.0'}/0000.0000.0000/0.0.0.0/${this.clock(false, this.s1.dev)}])`);
     this.dropWhy = `S1 inspects ARP in VLAN ${v} and drops R1's ARP on the untrusted G0/1 uplink, since R1 holds a static address outside the DHCP snooping bindings. Trust the uplink: interface g0/1, then ip arp inspection trust.`;
     return false;
   }
@@ -2680,7 +3094,7 @@ class Lab {
     else if ((r.via === 'l2' || r.via === 'route') && r.target.kind === 'svi') node = this.s1;
     else if ((r.via === 'l2' || r.via === 'route') && r.target.kind === 'r1') node = this.r1;
     if (!node) return { r: 'notserver' };
-    if (this.quietLeft(node) > 0) return { r: 'quiet', node };
+    if (this.quietLeft(node) > 0 && !(node.dev.quietAcl && this.aclPermits(node, node.dev.quietAcl, pcIp, ip, port))) return { r: 'quiet', node };
     const idx = this.freeVty(node);
     if (idx < 0) return { r: 'busy', node };
     const ac = node.dev.vty[idx].accessClass;
@@ -2689,7 +3103,7 @@ class Lab {
     const t = node.dev.vty[idx].transport;
     if (!(t === 'all' || t.split(' ').includes(proto))) return { r: 'transport', node };
     if (proto === 'ssh') {
-      const d = node.dev, v2 = d.rsaBits >= 768 && d.sshVersion !== 1, v1 = d.rsaBits >= 512 && d.sshVersion !== 2;
+      const d = node.dev, kb = sshBits(d), v2 = kb >= 768 && d.sshVersion !== 1, v1 = kb >= 512 && d.sshVersion !== 2;
       if (!v1 && !v2) return { r: 'nossh', node };
       if ((ver === 2 && !v2) || (ver === 1 && !v1)) return { r: 'sshver', node };
     }
@@ -2717,18 +3131,21 @@ class Lab {
       if (!sh || !sh.pc.ip || this.pcReach(sh.id, sh.target) === false) { v.pending = null; v.mode = 'closed'; this.vtyClosed(v); }
     });
   }
-  genKeys(s, n) {
+  genKeys(s, n, label) {
     s.w(`% Generating ${n} bit RSA keys, keys will be non-exportable...`);
     s.busy = true;
     const node = s.node;
     this.later(n >= 2048 ? 1400 : 700, () => {
       s.busy = false;
-      const had = node.dev.rsaBits > 0;
-      node.dev.rsaBits = n;
+      const had = sshBits(node.dev) > 0;
+      if (label) (node.dev.rsaLabels || (node.dev.rsaLabels = {}))[label] = n; else node.dev.rsaBits = n;
+      const keyTip = () => { if (label) s.hint('Mission checks for RSA keys read the default key, which crypto key generate rsa general-keys modulus 2048 makes.'); };
+      if (!had && !sshBits(node.dev)) { s.w(`[OK] (elapsed time was ${n >= 2048 ? 2 : 1} seconds)\n`); keyTip(); this.io.refresh(s.term); return; }
       s.w(`[OK] (elapsed time was ${n >= 2048 ? 2 : 1} seconds)\n`);
       if (!had) this.log(node, '%SSH-5-ENABLED: SSH 1.99 has been enabled');
       if (n < 768) s.hint('SSH version 2 needs a modulus of at least 768 bits. Use 2048.');
       else if (n < 2048) s.hint('Use 2048 bits, the size this course and Lockdown Range expect.');
+      keyTip();
       this.io.refresh(s.term);
     });
   }

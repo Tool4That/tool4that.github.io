@@ -48,12 +48,18 @@
       Read the scenario brief (the documented requirements for this machine): authorized users, wheel members, required services, anything forbidden
   # freebsd-version -kru; uname -a
   # cat /etc/rc.conf
+  # jls     (running jails: each is its own FreeBSD with its own accounts, packages, and services)
+  # jexec 1 sh     (a root shell inside jail 1: run the audit again there)
+  # bectl create pre-takeover; bectl list     (ZFS: a bootable copy of the system before the first fix; /home stays outside it)
+  # zfs list -t snapshot -o name,creation -s creation | tail     (ZFS snapshots, newest last)
   WHY: Authorized users, wheel members, and required services decide what is a
        fix and what breaks the business. rc.conf is the service list on FreeBSD;
-       read it before touching anything.
-  NOTE: Answer investigation questions before any change. Unfamiliar differs
-        from unauthorized: trace an agent and ask before removing it. Keep a
-        second root shell open before editing pam, login.conf, or sshd_config.
+       read it before touching anything. Each jail needs the same audit, and on
+       ZFS a boot environment is the way back from a bad change.
+  NOTE: Answer investigation questions before the first fix; the boot
+        environment only adds a way back. Unfamiliar differs from unauthorized:
+        trace an agent and ask before removing it. Keep a second root shell open
+        before editing pam, login.conf, or sshd_config.
 
 [B-01] List users, UID 0 accounts, and the wheel group
   AREA: Account management
@@ -177,7 +183,9 @@
   AREA: Patching
   # pkg which /bin/sh            (names a FreeBSD- base package only on a pkgbase install)
   # freebsd-update fetch install            (classic install: base system and kernel)
+  # freebsd-update cron     (classic install: the job an @daily root freebsd-update cron line in /etc/crontab runs; it waits up to an hour, fetches base patches, and mails root when it finds some)
   # pkg update && pkg upgrade -y            (packages; on a pkgbase install, the base system too)
+  # freebsd-update -j 1 fetch install     (from the host: patches jail 1's base system; pkg -j 1 upgrade patches its packages)
   # pkg upgrade -r FreeBSD-base     (pkgbase: the base system only; reboot for a new kernel)
   # pkg audit -F
   # freebsd-version -kru
@@ -272,11 +280,13 @@
   # pkg info sudo doas 2>/dev/null
   # grep -R -nE 'NOPASSWD|!authenticate|ALL=\(ALL' /usr/local/etc/sudoers /usr/local/etc/sudoers.d/ 2>/dev/null
   # visudo
+  # kldstat -q -m mac_do && sysctl security.mac.do.rules     (FreeBSD 15: mac_do lets the users and groups its rules name become root through mdo)
   # cat /usr/local/etc/doas.conf 2>/dev/null
       permit persist :wheel          (sane)   |   permit nopass ikaika   (backdoor)
   WHY: sudo and doas live under /usr/local/etc on FreeBSD, not /etc. A NOPASSWD
        line or a nopass doas rule is a silent root backdoor. visudo checks
-       syntax; vi does not.
+       syntax; vi does not. A loaded mac_do is a fourth door, so each of its
+       rules names an approved admin.
 
 [I-03] Cron, at and periodic
   AREA: Malware defenses
@@ -293,10 +303,12 @@
   AREA: Malware defenses
   # cat /etc/rc.conf /etc/rc.conf.d/* /etc/rc.local 2>/dev/null
   # ls -la /etc/rc.d/ /usr/local/etc/rc.d/
+  # kldstat     (every loaded kernel module traces to the base system, /boot/loader.conf, or kld_list in rc.conf)
   # grep -nE 'alias|nc |ncat|socat|/dev/tcp|curl .*\| *sh|fetch .*\| *sh' /etc/csh.cshrc /etc/profile /root/.cshrc /root/.profile /root/.shrc /home/*/.cshrc /home/*/.profile /home/*/.shrc 2>/dev/null
   WHY: A rogue script in /usr/local/etc/rc.d with an _enable line in rc.conf
-       runs at every boot. Root's or another user's shell may be sh or csh, so
-       check both startup-file families.
+       runs at every boot, and so does a kernel module named in
+       /boot/loader.conf or kld_list. Root's or another user's shell may be sh
+       or csh, so check both startup-file families.
   NOTE: fetch is FreeBSD's curl; look for it in the same places.
 
 [I-05] Password database permissions, world-writable, SUID
@@ -347,21 +359,26 @@
   AREA: Secure configuration
   # cat /etc/hosts
   # cat /etc/resolv.conf
+  # netstat -rn     (routes in numbers: the default line names the gateway)
+  # arp -an; ndp -an     (IPv4 and IPv6 neighbors, each with the MAC it answered with)
   WHY: Redirecting update.freebsd.org or pkg.freebsd.org to 127.0.0.1 breaks
-       updates silently.
+       updates silently. A wrong default route, or a gateway address answering
+       with another host's MAC, puts an attacker on-path.
 
 [I-09] Logging and the audit daemon
   AREA: Audit logging
   # tail -40 /var/log/auth.log; tail /var/log/messages; tail /var/log/security
   # last | head; lastlogin; w
   # cat /etc/syslog.conf
+  # ntpq -pn     (* marks the time server the clock follows; sysrc ntpd_enable=YES ntpd_sync_on_start=YES keeps ntpd on at every boot)
   # sysrc auditd_enable=YES; service auditd start
   # vi /etc/security/audit_control
       flags:lo,aa,ad,ex
   # praudit /var/audit/current | tail -20
   WHY: auth.log answers who logged in and who used su. OpenBSM auditd (built in)
        records logins, authentication, administrative actions and, with ex,
-       every exec. praudit makes the trail readable.
+       every exec. praudit makes the trail readable. Timestamps hold up as
+       evidence while ntpd follows a real time server.
 
 [I-10] Account hygiene: shells, classes, operator group, SSH keys
   AREA: Account management
@@ -490,11 +507,14 @@
       /etc/login.defs -> ?     pam_faillock -> ?
       ss -tulpn -> ?           /etc/sudoers -> ?        md5sum -> ?
       journalctl -> ?          auditd (Linux) -> ?      useradd/userdel -> ?
+      ip route -> ?            ip neigh -> ?            chronyc sources -> ?
+      Timeshift -> ?
   WHY: Linux concepts transfer; file paths and command names change. Say each
        FreeBSD equivalent from memory, then check it against Defense Ladder
-       se1 and items B-02, I-02, I-06, I-09, and A-04.
-  NOTE: Check three se1 tables: 'Linux habit, FreeBSD equivalent'; 'su, sudo,
-        and doas on FreeBSD'; and 'Hunting on any Unix'.
+       se1 and items B-00, B-02, I-02, I-06, I-08, I-09, and A-04.
+  NOTE: Check four se1 tables: 'Linux habit, FreeBSD equivalent'; 'su, sudo,
+        and doas on FreeBSD'; 'FreeBSD network, time, and snapshots'; and
+        'Hunting on any Unix'.
 
 [A-07] Verify loop, every thirty minutes
   # sockstat -46l; pw groupshow wheel; awk -F: '$3==0' /etc/passwd
