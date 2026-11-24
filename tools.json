@@ -131,7 +131,7 @@
       "icon": "path",
       "category": "cyber",
       "section": "learning",
-      "sha256": "01b48509b28690a0dbd7fb6d5511f588ebea9a9a5768b7c012d8d53a1a745996",
+      "sha256": "b0f4a305844b52e470e4b217dc1b51a07fa095e7e8effe3f4a9642ada77f1f86",
       "updated": "2026-11-23",
       "download_menu": true,
       "download_label": "Everything (all four grades)",
@@ -140,28 +140,28 @@
           "label": "Freshman only",
           "file": "defense-ladder/freshman.html",
           "download_as": "defense-ladder-freshman.html",
-          "sha256": "c2e3450e222ba6f62f88e7eadbdade913a2293ab768cea794e52cc7dc2b5715f",
+          "sha256": "3920f133670f69f09e506be0c49bd85f35662b5fda7c5f0a02c6b8715ade67a5",
           "updated": "2026-11-23"
         },
         {
           "label": "Sophomore only",
           "file": "defense-ladder/sophomore.html",
           "download_as": "defense-ladder-sophomore.html",
-          "sha256": "a057350a2426029f09728c436d23392452b7a45e6577f83be74c699d4229a411",
+          "sha256": "82f62c580e15a835595717ffcf96397bf9a50464e54177a914ac168ca487ab79",
           "updated": "2026-11-23"
         },
         {
           "label": "Junior only",
           "file": "defense-ladder/junior.html",
           "download_as": "defense-ladder-junior.html",
-          "sha256": "d5f0c4cf3b069cd4f2addc9bb4d2b95a5fadd16bff9e51d1613b311c987afb9b",
+          "sha256": "0ba86860b4746cfb04275f7e18fa374a48f3bfbb098817f14c08732412238ec7",
           "updated": "2026-11-23"
         },
         {
           "label": "Senior only",
           "file": "defense-ladder/senior.html",
           "download_as": "defense-ladder-senior.html",
-          "sha256": "6c6dd0f39723518c8404784756f76484d7dce489abedf7484ee00c7fb92e9384",
+          "sha256": "8e5685bac9bfd814e4ed4b58c2a7aec48d8673f094d68edea4f7896287ffe9b2",
           "updated": "2026-11-23"
         }
       ],
@@ -190,7 +190,7 @@
       "slug": "net-drills/ios-cli-lab",
       "name": "IOS CLI Lab",
       "tagline": "Configure it. Then prove it.",
-      "description": "Configure a simulated router and switch from their consoles, then prove it from two PCs. Timed missions, from the basics to VLAN trunks, router-on-a-stick, and SSH access for the Teachers VLAN only.",
+      "description": "Configure a simulated router and switch from their consoles, then prove it from two PCs. Timed missions, from the basics to VLAN trunks, router-on-a-stick, a Telnet filter, DHCP snooping, logging, time, and SSH access for the Teachers VLAN only.",
       "badges": [
         "Networking",
         "Cisco IOS",
@@ -201,7 +201,7 @@
       "download_as": "ios-cli-lab.html",
       "icon": "terminal",
       "category": "cyber",
-      "sha256": "a165ca35d77c4aa20c61f901e08e70c04a06713b465cbb700f77f6062ea077b4",
+      "sha256": "e19068efcbff136560ead3a806bdd2f378729f4c00357b77115085033e92b7f8",
       "updated": "2026-11-23",
       "series": "net-drills"
     },
@@ -228,7 +228,7 @@
       "slug": "net-drills/trouble-tickets",
       "name": "Trouble Tickets",
       "tagline": "Read the output. Find the fault.",
-      "description": "Study the complaint and real device output, then pick the root cause. Every ticket ends with the fix and the configuration habits that prevent it.",
+      "description": "Study the complaint and real device output, then pick the root cause; every ticket ends with the fix. Log tickets add Windows, Linux, and Cisco logs: name what happened, then pick the command that surfaces it.",
       "badges": [
         "Networking",
         "Cisco IOS",
@@ -239,7 +239,7 @@
       "download_as": "trouble-tickets.html",
       "icon": "wrench",
       "category": "cyber",
-      "sha256": "1fa719f1479324bc23411f5937b11debbc1eb971d8583b83b55225466bc1b6ac",
+      "sha256": "7fc183a4046db768e3f39da4d1d4de67bbf3bcb9104ced91299457cfad359e2b",
       "updated": "2026-11-23",
       "series": "net-drills"
     },
@@ -344,7 +344,7 @@
           "download_as": "freebsd-lockdown-reference.txt"
         }
       ],
-      "sha256": "95979698e56761bbc9b3597b7772433a3964e80603c455e3c22d0aa5c60a267e",
+      "sha256": "517b95cdaef36dc4a215573e60471e941c383c75073aaaa85b2185d1a6fcdde6",
       "updated": "2026-11-23"
     },
     {
@@ -467,7 +467,7 @@
       "icon": "map",
       "category": "cyber",
       "section": "learning",
-      "sha256": "29ba4cf6de1414f4721f71104f0ea8bcb8d1ab4c1813b937288ef943f0d8146f",
+      "sha256": "521709509c2d923bd8f7b69a16bee6c689c65a26f60dbb4390866e556a41e1ba",
       "updated": "2026-11-23"
     },
     {
@@ -486,7 +486,7 @@
       "icon": "terminal",
       "category": "cyber",
       "section": "learning",
-      "sha256": "8e6b63bf216aa167f43cf9d99dceac4ac6773f42bc392b087d091586e390acfe",
+      "sha256": "6440bf00cb2286877c6ea6e2aa34de1c5aa659624e54e1c8c497ceeeaf6a53ae",
       "updated": "2026-11-23"
     },
     {

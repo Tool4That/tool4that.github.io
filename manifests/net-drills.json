@@ -34,7 +34,7 @@
       "slug": "net-drills/ios-cli-lab",
       "name": "IOS CLI Lab",
       "tagline": "Configure it. Then prove it.",
-      "description": "Configure a simulated router and switch from their consoles, then prove it from two PCs. Timed missions, from the basics to VLAN trunks, router-on-a-stick, and SSH access for the Teachers VLAN only.",
+      "description": "Configure a simulated router and switch from their consoles, then prove it from two PCs. Timed missions, from the basics to VLAN trunks, router-on-a-stick, a Telnet filter, DHCP snooping, logging, time, and SSH access for the Teachers VLAN only.",
       "badges": [
         "Networking",
         "Cisco IOS",
@@ -78,7 +78,7 @@
       "slug": "net-drills/trouble-tickets",
       "name": "Trouble Tickets",
       "tagline": "Read the output. Find the fault.",
-      "description": "Study the complaint and real device output, then pick the root cause. Every ticket ends with the fix and the configuration habits that prevent it.",
+      "description": "Study the complaint and real device output, then pick the root cause; every ticket ends with the fix. Log tickets add Windows, Linux, and Cisco logs: name what happened, then pick the command that surfaces it.",
       "badges": [
         "Networking",
         "Cisco IOS",

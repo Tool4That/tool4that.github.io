@@ -15,7 +15,7 @@ Live at https://freeapp4that.store/ (primary) and https://tool4that.github.io/ (
 | [Subnet Sprint](https://freeapp4that.store/net-drills/subnet-sprint/) | Net Drills: subnet sandbox; network, broadcast, and host ranges; VLSM planning; IPv6. |
 | [IOS CLI Lab](https://freeapp4that.store/net-drills/ios-cli-lab/) | Net Drills: configure a simulated router and switch, then prove it from two PCs. |
 | [Config Audit](https://freeapp4that.store/net-drills/config-audit/) | Net Drills: find risky config lines, choose fixes, name what's missing. |
-| [Trouble Tickets](https://freeapp4that.store/net-drills/trouble-tickets/) | Net Drills: diagnose the root cause from real device output. |
+| [Trouble Tickets](https://freeapp4that.store/net-drills/trouble-tickets/) | Net Drills: diagnose the root cause from real device output, or find what happened in Windows, Linux, and Cisco logs. |
 | [Windows 11 Lockdown](https://freeapp4that.store/lockdown-drills/windows-11/) | Lockdown Drills: Windows 11 baseline hardening, beginner to advanced, with a command reference (.txt). |
 | [Windows Server Lockdown](https://freeapp4that.store/lockdown-drills/windows-server/) | Lockdown Drills: Windows Server baseline hardening, beginner to advanced, with a command reference (.txt). |
 | [Debian Family Lockdown](https://freeapp4that.store/lockdown-drills/debian-family/) | Lockdown Drills: Ubuntu and Linux Mint baseline hardening in one trainer with a distribution switch, beginner to advanced, with a command reference (.txt). |

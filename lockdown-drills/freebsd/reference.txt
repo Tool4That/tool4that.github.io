@@ -253,7 +253,7 @@
   # vi /etc/ssh/sshd_config
       PermitRootLogin no        PermitEmptyPasswords no     MaxAuthTries 3
       LoginGraceTime 30         X11Forwarding no            UseBlocklist yes
-      PasswordAuthentication yes or no per the brief      AllowUsers keoni koa
+      PasswordAuthentication per the brief (keys only: KbdInteractiveAuthentication no too)      AllowUsers keoni koa
   # sysrc sshd_enable=YES; service sshd start; service sshd status     (SSH required but off)
   # service sshd onestart     (instead: runs until reboot; sshd_enable stays NO)
   # sshd -t && service sshd restart
@@ -448,7 +448,9 @@
   # grep -n pam_group /etc/pam.d/su
   WHY: auth sufficient pam_permit.so near the top of system or sshd lets any
        password in. pam_group in su restricts su to wheel; with that line
-       gone, anyone can su.
+       gone, anyone can su. Stock hits: pam_permit on session lines,
+       pam_rootok in su, and nullok in system and passwd (remove it from the
+       auth line in system).
   NOTE: Control flags: required, requisite, sufficient, optional, same meaning
         as on Linux.
 

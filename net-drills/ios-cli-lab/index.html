@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-DWG4sCnfo2VEGUw4OiKPN7K9iejijD63+eAQJ/4v6O8=' 'sha256-qnl/rfnEVH2ZPmLIS+MiPptxpcvzdqBgqZmV2qnQTdg=' 'sha256-qztxMnJoUe6DrFfKPnwPEtQGKx4jG6O7ImEXtEmeW28='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-DJno8Yrm39Yvdbm/nyo/h23rLXg/Uz1isbar8fXb9FA=' 'sha256-p0pbjIq1nSQlVmgQNAVMPbBUWHGQ9NdBLFlb2bwl7m4=' 'sha256-zemAD5/arFjAro6sXwq2Z7nTMUarKnPRssazdBd1P9U='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
-<meta name="description" content="Configure a simulated router and switch from their consoles, then prove it from two PCs. Timed missions, from the basics to VLAN trunks, router-on-a-stick, and SSH access for the Teachers VLAN only.">
+<meta name="description" content="Configure a simulated router and switch from their consoles, then prove it from two PCs. Timed missions, from the basics to VLAN trunks, router-on-a-stick, a Telnet filter, DHCP snooping, logging, time, and SSH access for the Teachers VLAN only.">
 <link rel="canonical" href="https://freeapp4that.store/net-drills/ios-cli-lab/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%92%BB%3C%2Ftext%3E%3C%2Fsvg%3E">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Tool4That">
 <meta property="og:title" content="IOS CLI Lab">
-<meta property="og:description" content="Configure a simulated router and switch from their consoles, then prove it from two PCs. Timed missions, from the basics to VLAN trunks, router-on-a-stick, and SSH access for the Teachers VLAN only.">
+<meta property="og:description" content="Configure a simulated router and switch from their consoles, then prove it from two PCs. Timed missions, from the basics to VLAN trunks, router-on-a-stick, a Telnet filter, DHCP snooping, logging, time, and SSH access for the Teachers VLAN only.">
 <meta property="og:url" content="https://freeapp4that.store/net-drills/ios-cli-lab/">
 <meta property="og:image" content="https://freeapp4that.store/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -2273,6 +2273,7 @@ class PCShell {
           this.remote = this.lab.openVty(node, this, 'ssh', user);
           this.lab.ev['sshLogin:' + node.id] = true;
           this.lab.ev[`ssh:${this.id}:${ip}`] = true;
+          if (c.inAcl) this.lab.ev[`sshAcl:${this.id}:${ip}`] = c.inAcl;
           if (d.banner) this.w('\n' + d.banner + '\n');
           this.remote.enterUser();
           return;
@@ -2668,9 +2669,12 @@ class Lab {
   connectCheck(pcId, ip, proto, ver) {
     const r = this.pcReach(pcId, ip);
     if (!r || r === 'self') return { r: 'timeout' };
-    const pcIp = this.pcs[pcId].ip, port = proto === 'ssh' ? 22 : 23;
-    const blk = this.flowAcl(pcIp, this.portVlan(this.cables[pcId]), ip, r, { proto: 'tcp', sport: 49152, dport: port, reply: true });
+    const pcIp = this.pcs[pcId].ip, port = proto === 'ssh' ? 22 : 23, vIn = this.portVlan(this.cables[pcId]);
+    const blk = this.flowAcl(pcIp, vIn, ip, r, { proto: 'tcp', sport: 49152, dport: port, reply: true });
     if (blk) return { r: 'ifacl', blk };
+    /* the inbound ACL on R1's ingress subinterface this session just passed, for checks that prove a permit entry */
+    const ing = vIn === null || (r.via === 'l2' && (!r.target || r.target.kind !== 'r1')) ? null : this.r1IngressFor(vIn), g = ing && this.r1.dev.ifaces[ing];
+    const inAcl = (g && g.aclIn) || null;
     let node = null;
     if (r.via === 'r1self') node = this.r1;
     else if ((r.via === 'l2' || r.via === 'route') && r.target.kind === 'svi') node = this.s1;
@@ -2689,7 +2693,7 @@ class Lab {
       if (!v1 && !v2) return { r: 'nossh', node };
       if ((ver === 2 && !v2) || (ver === 1 && !v1)) return { r: 'sshver', node };
     }
-    return { r: 'ok', node };
+    return { r: 'ok', node, inAcl };
   }
   openVty(node, shell, proto, user) {
     const s = new IOSSession(this, node, 'vty', shell.id);
@@ -3069,7 +3073,6 @@ const store = {
 };
 const done = Object.assign({}, store.get('netdrills.cli2.done', {}));
 const short = n => n.replace('FastEthernet', 'Fa').replace('GigabitEthernet', 'Gig');
-const hasUsers = d => Object.keys(d.users).length > 0;
 const G0 = 'GigabitEthernet0/0', G1 = 'GigabitEthernet0/1';
 const UNUSED = E.S_PORTS.filter(n => !['FastEthernet0/1', 'FastEthernet0/2', 'GigabitEthernet0/1'].includes(n));
 const PC_STATIC = { pc1: { ip: '192.168.1.11', mask: '255.255.255.0', gw: '192.168.1.1' }, pc2: { ip: '192.168.1.12', mask: '255.255.255.0', gw: '192.168.1.1' } };
@@ -3086,17 +3089,6 @@ function m1Final() {
   d.vty.forEach(l => { l.password = { plain: vp.plain, enc7: vp.enc7 }; l.login = 'line'; l.execTimeout = [5, 0]; });
   d.banner = 'Authorized access only. Activity is monitored.';
   Object.assign(d.ifaces[G0], { desc: 'LAN to S1', ip: '192.168.1.1', mask: '255.255.255.0', shut: false });
-  return d;
-}
-function m3Broken() {
-  const d = E.routerFactory();
-  d.hostname = 'R1'; d.enablePassword = E.mkPass(false, 'cisco');
-  d.con.password = E.mkPass(false, 'cisco'); d.con.execTimeout = [0, 0];
-  d.vty.forEach(l => { l.login = 'none'; l.transport = 'telnet'; });
-  d.banner = 'Welcome to R1! Come on in.';
-  Object.assign(d.ifaces[G0], { desc: 'LAN to S1', ip: '192.168.1.1', mask: '255.255.255.0', shut: true });
-  d.http.server = true; d.http.secure = true;
-  d.snmp.comm.public = 'RW';
   return d;
 }
 /* S1 with its VLAN 1 interface enabled, so moving management off VLAN 1 includes shutting it */
@@ -3154,6 +3146,16 @@ const vtyAcl = d => d.vty.every(l => l.accessClass === 20);
 const edgeOK = S => EDGE.every(n => S.ports[n].portfast && S.ports[n].bpduguard) && !S.ports[G1].portfast;
 const hostRoute = d => d.routes.some(r => r.net === '8.8.8.8' && r.mask === '255.255.255.255' && r.via === '203.0.113.1');
 const ospfOK = d => { const o = d.ospf[1]; return !!o && o.nets.some(x => x.net === '10.1.0.0' && x.wild === '0.0.255.255' && E.areaNum(x.area) === 0) && o.redist.static && o.redist.subnets; };
+/* Guard the branch (m5g): the Teachers-VLAN server the course uses for syslog and NTP, and the Students ACL */
+const SRV = '10.1.20.50', G0_10 = G0 + '.10';
+const isAny = x => x.wild === '255.255.255.255';
+const btEntries = d => ((d.aclKind || {}).BLOCK_TELNET === 'ext' ? d.acls.BLOCK_TELNET || [] : []).filter(e => e.act !== 'remark');
+const btDeny = d => btEntries(d).find(e => e.act === 'deny' && e.proto === 'tcp' && isAny(e.dst) && !!e.dp && e.dp.op === 'eq' && e.dp.a === 23);
+const btPermit = d => btEntries(d).find(e => e.act === 'permit' && e.proto === 'ip' && isAny(e.src) && isAny(e.dst));
+const btOK = d => { const l = btEntries(d), a = btDeny(d), b = btPermit(d); return !!a && !!b && l.indexOf(a) < l.indexOf(b); };
+const btHits = (L, e) => (e ? L.r1.rt.aclHits['BLOCK_TELNET#' + e.seq] || 0 : 0);
+const logOK = d => d.logging.hosts.includes(SRV) && d.logging.buffered > 0 && !!d.tsLog && !d.tsFactory;
+const ntpOK = d => (d.ntp || []).includes(SRV);
 const MGMT_NOTE = 'Larger networks give management its own dedicated VLAN; this network keeps it on Teachers so the Teachers-only ACL and the management subnet are one and the same.';
 const NAT_NOTE = "The simulated ISP routes the school's 10.x ranges back; a real provider needs NAT on R1 first.";
 /* Grade tags and Defense Ladder links for the mission panel */
@@ -3302,7 +3304,7 @@ const MISSIONS = [
       { t: 'Save the configuration', cmd: 'end\ncopy running-config startup-config', ok: savedR1 },
       { t: 'From PC1, Telnet to 192.168.1.1 and log in', cmd: 'PC1 tab:\ntelnet 192.168.1.1', ok: L => !!L.ev['telnetLogin:r1'] }
     ] },
-  { id: 'm2', name: 'SSH only', sub: 'Secure remote access, router', grade: 'Sophomore', learn: [['sophomore/s5', 'Defense Ladder s5, Cisco: configure a switch and a router']], kind: 'list', hintLabel: 'Show command', next: 'Next up: Fix the mess.',
+  { id: 'm2', name: 'SSH only', sub: 'Secure remote access, router', grade: 'Sophomore', learn: [['sophomore/s5', 'Defense Ladder s5, Cisco: configure a switch and a router']], kind: 'list', hintLabel: 'Show command', next: 'Next up: Switch basics.',
     brief: 'R1 already has the Lock the doors basics: console password C0nsole-Pa55, enable secret En@ble-S3cret. Replace Telnet with SSH for a named admin, add password and brute-force policy, save, then test from PC1.',
     init: () => { const d = m1Final(); return { r1: d, r1Startup: d, s1: E.switchFactory(), pcs: PC_STATIC }; },
     tasks: [
@@ -3318,24 +3320,6 @@ const MISSIONS = [
       { t: 'Save the configuration', cmd: 'end\ncopy running-config startup-config', ok: savedR1 },
       { t: 'From PC1, SSH in as netadmin', cmd: 'PC1 tab:\nssh -l netadmin 192.168.1.1', ok: L => !!L.ev['sshLogin:r1'] },
       { t: 'From PC1, confirm Telnet is refused', cmd: 'PC1 tab:\ntelnet 192.168.1.1', ok: L => !!L.ev['telnetRefused:r1'] }
-    ] },
-  { id: 'm3', name: 'Fix the mess', sub: 'Break-fix, router', grade: 'Junior', learn: [['junior/j5', 'Defense Ladder j5, Evaluate a configuration'], ['junior/j4', 'j4, Cisco: VLANs, routing, and ACLs']], kind: 'list', hintLabel: 'Show a fix', next: 'Next up: Switch basics.',
-    brief: 'Someone set up R1 badly and left a sticky note: the enable password is cisco. Each item below is a symptom. Use show commands to find the cause, then fix it.',
-    init: () => { const d = m3Broken(); return { r1: d, r1Startup: d, s1: E.switchFactory(), pcs: PC_STATIC }; },
-    tasks: [
-      { t: 'Anyone at the console gets in without a password', cmd: 'line console 0\nlogin\n(the console already has a password; login makes it ask)', ok: L => { const d = L.r1.dev; return d.con.login === 'line' ? !!d.con.password : d.con.login === 'local' && hasUsers(d); } },
-      { t: 'The console session never times out', cmd: 'line console 0\nexec-timeout 5 0', ok: L => { const s = L.r1.dev.con.execTimeout[0] * 60 + L.r1.dev.con.execTimeout[1]; return s > 0 && s <= 900; } },
-      { t: 'Privileged EXEC is guarded by a plaintext enable password', cmd: 'no enable password\nenable secret En@ble-S3cret', ok: L => !!L.r1.dev.enableSecret && !L.r1.dev.enablePassword },
-      { t: 'Remote (VTY) sessions ask for nothing', cmd: 'username netadmin secret N3tAdmin-2026\nline vty 0 4\nlogin local', ok: L => { const d = L.r1.dev; return d.vty.every(l => (l.login === 'local' ? hasUsers(d) : l.login === 'line' && !!l.password)); } },
-      { t: 'Remote access allows cleartext Telnet', cmd: 'line vty 0 4\ntransport input ssh', ok: L => L.r1.dev.vty.every(l => l.transport === 'ssh' || l.transport === 'none') },
-      { t: 'Admins still need a working SSH way in', cmd: 'ip domain-name phn.k12.lan\ncrypto key generate rsa general-keys modulus 2048\nip ssh version 2\n(then on PC1)\nssh -l netadmin 192.168.1.1', ok: L => !!L.ev['sshLogin:r1'] },
-      { t: 'Passwords appear in plain text in the config', cmd: 'service password-encryption', ok: L => L.r1.dev.spe },
-      { t: 'The LAN interface G0/0 is down', cmd: 'interface g0/0\nno shutdown', ok: L => !L.r1.dev.ifaces[G0].shut },
-      { t: 'The banner welcomes visitors instead of warning them', cmd: 'banner motd #Authorized access only. Activity is monitored.#', ok: L => !!L.r1.dev.banner && !/welcome/i.test(L.r1.dev.banner) && bannerOK(L.r1.dev) },
-      { t: 'Typos freeze the CLI while it tries DNS', cmd: 'no ip domain-lookup', ok: L => !L.r1.dev.domainLookup },
-      { t: 'A web management page answers on R1', cmd: 'no ip http server\nno ip http secure-server\n(show running-config | include http shows both lines)', ok: L => !L.r1.dev.http.server && !L.r1.dev.http.secure },
-      { t: 'Anyone who knows the word public can rewrite R1 over SNMP', cmd: 'no snmp-server community public\n(show running-config | include snmp shows it first)', ok: L => !L.r1.dev.snmp.comm.public },
-      { t: 'None of the fixes would survive a reload', cmd: 'end\ncopy running-config startup-config', ok: savedR1 }
     ] },
   { id: 'm4', name: 'Switch basics', sub: 'Basics, VLAN 20, and SSH, switch', grade: 'Sophomore', learn: [['sophomore/s5', 'Defense Ladder s5, Cisco: configure a switch and a router']], kind: 'list', hintLabel: 'Show command', next: 'Next up: Branch build, a full build from a written spec.',
     brief: `R1 is done (192.168.1.1 on G0/0, the Lock the doors basics). Give S1 its own name and the same locks. Then create VLAN 20 for Teachers and put both PC ports and the G0/1 uplink to R1 in it. Move management off VLAN 1 onto a VLAN 20 interface and shut the VLAN 1 interface (it starts enabled here). Close every unused port and lock the two PC ports. ${MGMT_NOTE}`,
@@ -3359,11 +3343,30 @@ const MISSIONS = [
       { t: 'Find the port PC2 uses with show mac address-table', cmd: "PC2 tab:\nping 192.168.1.11\nS1 tab:\nshow mac address-table\n(S1 learns PC2's MAC when PC2 sends traffic, so ping first; the check passes once the table lists PC2's MAC on its port, F0/2)", ok: L => !!L.ev['macShown:pc2'] },
       { t: 'Save the configuration last: sticky MACs learned by the SSH test and PC2\'s ping change the running-config', cmd: 'end\ncopy running-config startup-config', ok: savedS1 }
     ] },
-  { id: 'm5', name: 'Branch build', sub: 'Written spec, check when ready', grade: 'Junior', learn: [['junior/j4', 'Defense Ladder j4, Cisco: VLANs, routing, and ACLs']], kind: 'pt', hintLabel: 'Show a fix', next: 'Next up: Site A, which adds Principals, Teachers-only access, and the route out.',
+  { id: 'm5', name: 'Branch build', sub: 'Written spec, check when ready', grade: 'Junior', learn: [['junior/j4', 'Defense Ladder j4, Cisco: VLANs, routing, and ACLs']], kind: 'pt', hintLabel: 'Show a fix', next: 'Next up: Guard the branch, which adds a Telnet filter, DHCP snooping, logging, and time.',
     brief: 'Written requirements for Site A on the 10.1.x plan that the later missions share. Press Check results whenever you want a score.',
     init: () => ({ r1: E.routerFactory(), s1: freshSwitch(), pcs: PC_BUILD }),
     instr: M5_INSTR,
     tasks: M5_TASKS },
+  { id: 'm5g', name: 'Guard the branch', sub: 'Extended ACL, DHCP snooping, logging, and time', grade: 'Junior', learn: [['junior/j4', 'Defense Ladder j4, Cisco: VLANs, routing, and ACLs'], ['sophomore/s5', 's5, Cisco: configure a switch and a router']], kind: 'list', hintLabel: 'Show a hint', next: 'Next up: Site A, which starts again from Branch build and adds Principals, Teachers-only access, and the route out.',
+    brief: `Branch build is done: R1 and S1 run Site A. PC1 (Students) takes a DHCP lease on F0/1; PC2 (Teachers) is 10.1.20.12 on F0/2. Stop Telnet from Students with a named extended ACL, let only the uplink answer DHCP, and send logs to and take time from the server at ${SRV}. Prove each one, then save. Each check names an outcome; open a hint for the commands.`,
+    init: () => { const { r, s } = m5Final(); return { r1: r, r1Startup: r, s1: s, s1Startup: s, pcs: PC_BUILD }; },
+    tasks: [
+      { t: 'R1: named extended ACL BLOCK_TELNET denies Telnet (TCP 23) and permits all other IP traffic', cmd: 'ip access-list extended BLOCK_TELNET\ndeny tcp any any eq 23\npermit ip any any\n(the permit line matters: the implicit deny drops everything the list leaves out)', ok: L => btOK(L.r1.dev) },
+      { t: 'R1: BLOCK_TELNET filters traffic arriving from Students on G0/0.10', cmd: 'interface g0/0.10\nip access-group BLOCK_TELNET in', ok: L => L.r1.dev.ifaces[G0_10].aclIn === 'BLOCK_TELNET' },
+      { t: `R1 and S1: timestamped log lines, kept in a buffer and sent to the syslog server ${SRV}`, cmd: `(enter the lines on both devices: this lab's S1 lists the timestamps line from the factory and stamps its log lines once you enter it)\nservice timestamps log datetime msec\nlogging buffered\nlogging host ${SRV}`, ok: L => logOK(L.r1.dev) && logOK(L.s1.dev) },
+      { t: `R1 and S1: clocks set from the NTP server ${SRV}`, cmd: `(enter it on both devices)\nntp server ${SRV}`, ok: L => ntpOK(L.r1.dev) && ntpOK(L.s1.dev) },
+      { t: 'S1: DHCP snooping on, for VLANs 10 and 20', cmd: 'ip dhcp snooping\nip dhcp snooping vlan 10,20', ok: L => { const sn = L.s1.dev.snoop; return sn.on && [10, 20].every(v => sn.vlans.includes(v)); } },
+      { t: 'S1: G0/1, the uplink to R1, is the one port trusted for DHCP answers', cmd: 'interface g0/1\nip dhcp snooping trust', ok: L => E.S_PORTS.every(n => !!L.s1.dev.ports[n].snoopTrust === (n === G1)) },
+      { t: "S1: snooping leaves option 82 out of requests, so R1's own DHCP pool still answers", cmd: 'no ip dhcp snooping information option', ok: L => L.s1.dev.snoop.opt82 === false },
+      { t: 'PC1 leases an address through snooping, and S1 lists the binding', cmd: 'PC1 tab:\nipconfig /renew\nS1 tab:\nend\nshow ip dhcp snooping binding', ok: L => { const b = L.snoopBind[L.pcs.pc1.mac]; return !!b && b.ip === L.pcs.pc1.ip && E.sameNet(b.ip, '10.1.10.0', '255.255.255.0') && !!L.ev['show:s1:ip dhcp snooping binding']; } },
+      { t: "PC1's Telnet to S1 at 10.1.20.2 stops at BLOCK_TELNET, and R1 counts the match", cmd: 'PC1 tab:\ntelnet 10.1.20.2\n(expect a timeout: R1 drops the packet before routing it)\nR1 tab:\nend\nshow access-lists', ok: L => btHits(L, btDeny(L.r1.dev)) > 0 && !!L.ev['show:r1:access-lists'] },
+      { t: 'PC1 still reaches S1 by SSH, through the permit line', cmd: 'PC1 tab:\nssh -l netadmin 10.1.20.2', ok: L => L.ev['sshAcl:pc1:10.1.20.2'] === 'BLOCK_TELNET' && btHits(L, btPermit(L.r1.dev)) > 0 },
+      { t: `R1 and S1: show logging counts lines sent to ${SRV}`, cmd: `(on each device)\nshow logging\n(each exit from configuration mode logs %SYS-5-CONFIG_I; the count sits under Logging to ${SRV})`, ok: L => [L.r1, L.s1].every(n => (n.rt.hostCount[SRV] || 0) > 0) && !!L.ev['show:r1:logging'] && !!L.ev['show:s1:logging'] },
+      { t: `R1 and S1: show ntp associations lists ${SRV}`, cmd: '(on each device)\nshow ntp associations', ok: L => ntpOK(L.r1.dev) && ntpOK(L.s1.dev) && !!L.ev['show:r1:ntp associations'] && !!L.ev['show:s1:ntp associations'] },
+      { t: 'R1 configuration saved', cmd: 'R1 tab:\nend\ncopy running-config startup-config', ok: savedR1 },
+      { t: 'S1 configuration saved last: sticky MACs from the PC tests change the running-config', cmd: 'S1 tab:\nend\ncopy running-config startup-config', ok: savedS1 }
+    ] },
   { id: 'm6', name: 'Site A', sub: 'Principals, Teachers-only access, and the route out', grade: 'Senior', learn: [['senior/se6', 'Defense Ladder se6, Cisco: audit and extend the two-site network']], kind: 'list', hintLabel: 'Show a hint', next: 'Next up: Site A from scratch, the whole build from a written spec.',
     brief: `Branch build is done: R1 and S1 run Site A of the two-site school network (the other Site A tools call them RtrA and SwA). PC1 is in Students at 10.1.10.11, PC2 in Teachers at 10.1.20.12. Add VLAN 30 for Principals and repair a rushed PortFast pass (G0/1 carries PortFast, and the PC ports lack BPDU guard). Then limit remote management to Teachers, give 8.8.8.8 its own route, and write the OSPF process that shares it with Site B. Each check names an outcome; open a hint for the commands. ${MGMT_NOTE}`,
     init: m6Start,
@@ -3382,6 +3385,8 @@ const MISSIONS = [
     brief: 'Nothing is checked. Build anything you like, move cables, break things on purpose, and use show commands to see what changed.',
     init: () => ({ r1: E.routerFactory(), s1: E.switchFactory(), pcs: PC_STATIC }), tasks: [] }
 ];
+/* completions saved under a retired mission id (such as m3) drop out at the next save */
+Object.keys(done).forEach(k => { if (!MISSIONS.some(m => m.id === k)) delete done[k]; });
 
 /* ---------- terminals ---------- */
 const TERMS = ['r1', 's1', 'pc1', 'pc2'];
@@ -3645,7 +3650,7 @@ loadMission('m1');
 <script>
 /* Reading support (panel review, UDL): text size, read aloud, terms, and (Drills) a shared-computer banner. Same code in every practice page. */
 (function(){
-  const C={"key": "netdrills.ios-cli-lab", "read": [".panel"], "gloss": [["802.1Q tag", "A 4-byte field in a frame on a trunk whose 12-bit VLAN ID names the frame’s VLAN."], ["Access port", "A switch port in one VLAN that passes untagged frames to one end device."], ["access-class", "The line command that filters which source addresses may open a session to the device itself."], ["APIPA", "A self-assigned 169.254.x.x address that a Windows host takes when its DHCP request goes unanswered."], ["ARP", "The protocol that finds the MAC address for an IPv4 address on the local network."], ["Baseline", "A record of how a system looks before you change it: its users, services, ports, software, and settings."], ["BPDU", "The message switches exchange to run spanning tree."], ["BPDU guard", "A setting that err-disables an edge port the moment a BPDU arrives."], ["CDP", "Cisco Discovery Protocol, which announces a device’s model, IOS version, and addresses to its neighbors."], ["Command Prompt", "cmd.exe, the older Windows command line, where commands such as dir and del, and tools such as sc.exe, netsh, and reg, take their own options (such as /s or start= disabled) in place of PowerShell parameters."], ["Compliance", "Meeting the laws, standards, and contracts that apply to an organization, and proving it with evidence."], ["Default gateway", "The router a host sends traffic to when the destination sits on another network."], ["Default route", "The 0.0.0.0/0 route that catches every destination missing from the routing table."], ["DHCP", "The service that hands hosts an address, mask, gateway, and DNS server automatically."], ["DNS", "The service that turns names into IP addresses."], ["DTP", "Dynamic Trunking Protocol, which lets a switch port negotiate becoming a trunk."], ["enable secret", "The IOS line that guards privileged mode with a hashed password; enable password keeps it in clear text."], ["Encapsulation", "Wrapping data from the layer above in each layer’s own header on the way down the stack."], ["Encryption", "Scrambling data so that only holders of the key can read it."], ["Err-disabled", "A port state in which the switch has shut the port for a violation until an admin removes the cause and cycles the port."], ["Gateway of last resort", "The show ip route line that names the default route’s next hop."], ["Host route", "A /32 route that matches exactly one address."], ["HTTPS", "HTTP inside TLS on port 443: private and protected against tampering."], ["ICMP", "The IP helper protocol that carries error and test messages, such as ping."], ["Implicit deny", "The hidden last line of every ACL that drops every packet no earlier line matched."], ["JSON", "A data format of braces, brackets, and quoted keys, used in API answers, cloud policies, and audit events."], ["Key pair", "A public key anyone may hold and a matching private key only its owner keeps."], ["LAN", "Local area network: devices in one building or campus, joined by links the owner controls."], ["MAC address", "A 48-bit hardware address that carries a frame to the next device on the local link."], ["NAT", "Address translation that swaps a private source address for a public one at the network edge."], ["Native VLAN", "The one VLAN that crosses a trunk untagged; both ends must agree on it."], ["OSPF", "A link-state routing protocol in which neighbors share routes inside areas; area 0 is the backbone."], ["Passphrase", "A password made of several random words: long, easy to type, and hard to guess."], ["periodic", "FreeBSD’s daily, weekly, and monthly script runner, started from /etc/crontab."], ["Port security", "A switch feature that limits which, and how many, MAC addresses may use an access port."], ["PortFast", "A setting that moves an edge port straight to forwarding, for ports with one end device."], ["Privilege level", "An IOS access level from 0 to 15, where 1 is user EXEC and 15 is full privileged EXEC."], ["Process", "A running program with its own memory, PID, and security identity; its threads share its rights."], ["RADIUS", "The server that answers 802.1X and VPN sign-in requests, assigns a VLAN, and logs each decision."], ["root", "The Linux superuser, UID 0, with full control of the system."], ["Router-on-a-stick", "One router port, split into subinterfaces, that routes between VLANs over a single trunk."], ["Script", "A text file of commands that an interpreter reads and runs. Read every line before you run one."], ["Shell", "The program that reads the commands you type and runs them. Bash is the usual shell on Linux."], ["SSH", "Secure Shell, the encrypted remote-login service on TCP port 22."], ["Subinterface", "A logical slice of a router port (such as g0/0.10) bound to one VLAN by encapsulation dot1Q."], ["Subnet mask", "The number that marks the network part of an address, such as 255.255.255.0 for /24."], ["Trunk", "A link that carries many VLANs, tagging each frame with its VLAN ID."], ["TTL", "A packet counter each router lowers by one, so a looping packet eventually dies."], ["Type 7", "A reversible IOS password encoding that service password-encryption produces."], ["Verification", "Checking that a change worked and that every required service and authorized user still works."], ["VLAN", "A group of switch ports that forms its own broadcast domain, usually with its own IP subnet."], ["Voice VLAN", "A separate VLAN for IP phones on an access port: the phone’s traffic crosses tagged in it while the PC behind the phone stays in the access VLAN."], ["VTY line", "A virtual terminal line that a remote Telnet or SSH session signs in through."], ["WAN", "Wide area network: links that join distant sites, rented from a provider or run over the internet."]]};
+  const C={"key": "netdrills.ios-cli-lab", "read": [".panel"], "gloss": [["802.1Q tag", "A 4-byte field in a frame on a trunk whose 12-bit VLAN ID names the frame’s VLAN."], ["Access port", "A switch port in one VLAN that passes untagged frames to one end device."], ["access-class", "The line command that filters which source addresses may open a session to the device itself."], ["APIPA", "A self-assigned 169.254.x.x address that a Windows host takes when its DHCP request goes unanswered."], ["ARP", "The protocol that finds the MAC address for an IPv4 address on the local network."], ["Baseline", "A record of how a system looks before you change it: its users, services, ports, software, and settings."], ["BPDU", "The message switches exchange to run spanning tree."], ["BPDU guard", "A setting that err-disables an edge port the moment a BPDU arrives."], ["CDP", "Cisco Discovery Protocol, which announces a device’s model, IOS version, and addresses to its neighbors."], ["Command Prompt", "cmd.exe, the older Windows command line, where commands such as dir and del, and tools such as sc.exe, netsh, and reg, take their own options (such as /s or start= disabled) in place of PowerShell parameters."], ["Compliance", "Meeting the laws, standards, and contracts that apply to an organization, and proving it with evidence."], ["Default gateway", "The router a host sends traffic to when the destination sits on another network."], ["Default route", "The 0.0.0.0/0 route that catches every destination missing from the routing table."], ["DHCP", "The service that hands hosts an address, mask, gateway, and DNS server automatically."], ["DHCP snooping", "A switch feature that lets DHCP server replies in only on trusted ports."], ["DNS", "The service that turns names into IP addresses."], ["DTP", "Dynamic Trunking Protocol, which lets a switch port negotiate becoming a trunk."], ["enable secret", "The IOS line that guards privileged mode with a hashed password; enable password keeps it in clear text."], ["Encapsulation", "Wrapping data from the layer above in each layer’s own header on the way down the stack."], ["Encryption", "Scrambling data so that only holders of the key can read it."], ["Err-disabled", "A port state in which the switch has shut the port for a violation until an admin removes the cause and cycles the port."], ["Gateway of last resort", "The show ip route line that names the default route’s next hop."], ["Host route", "A /32 route that matches exactly one address."], ["HTTPS", "HTTP inside TLS on port 443: private and protected against tampering."], ["ICMP", "The IP helper protocol that carries error and test messages, such as ping."], ["Implicit deny", "The hidden last line of every ACL that drops every packet no earlier line matched."], ["JSON", "A data format of braces, brackets, and quoted keys, used in API answers, cloud policies, and audit events."], ["Key pair", "A public key anyone may hold and a matching private key only its owner keeps."], ["LAN", "Local area network: devices in one building or campus, joined by links the owner controls."], ["MAC address", "A 48-bit hardware address that carries a frame to the next device on the local link."], ["NAT", "Address translation that swaps a private source address for a public one at the network edge."], ["Native VLAN", "The one VLAN that crosses a trunk untagged; both ends must agree on it."], ["NTP", "The protocol that synchronizes device clocks so logs line up."], ["OSPF", "A link-state routing protocol in which neighbors share routes inside areas; area 0 is the backbone."], ["Passphrase", "A password made of several random words: long, easy to type, and hard to guess."], ["periodic", "FreeBSD’s daily, weekly, and monthly script runner, started from /etc/crontab."], ["Port security", "A switch feature that limits which, and how many, MAC addresses may use an access port."], ["PortFast", "A setting that moves an edge port straight to forwarding, for ports with one end device."], ["Privilege level", "An IOS access level from 0 to 15, where 1 is user EXEC and 15 is full privileged EXEC."], ["Process", "A running program with its own memory, PID, and security identity; its threads share its rights."], ["RADIUS", "The server that answers 802.1X and VPN sign-in requests, assigns a VLAN, and logs each decision."], ["root", "The Linux superuser, UID 0, with full control of the system."], ["Router-on-a-stick", "One router port, split into subinterfaces, that routes between VLANs over a single trunk."], ["Script", "A text file of commands that an interpreter reads and runs. Read every line before you run one."], ["Shell", "The program that reads the commands you type and runs them. Bash is the usual shell on Linux."], ["SSH", "Secure Shell, the encrypted remote-login service on TCP port 22."], ["Subinterface", "A logical slice of a router port (such as g0/0.10) bound to one VLAN by encapsulation dot1Q."], ["Subnet mask", "The number that marks the network part of an address, such as 255.255.255.0 for /24."], ["Syslog", "The standard for sending log messages to a central log server."], ["Trunk", "A link that carries many VLANs, tagging each frame with its VLAN ID."], ["TTL", "A packet counter each router lowers by one, so a looping packet eventually dies."], ["Type 7", "A reversible IOS password encoding that service password-encryption produces."], ["Verification", "Checking that a change worked and that every required service and authorized user still works."], ["VLAN", "A group of switch ports that forms its own broadcast domain, usually with its own IP subnet."], ["Voice VLAN", "A separate VLAN for IP phones on an access port: the phone’s traffic crosses tagged in it while the PC behind the phone stays in the access VLAN."], ["VTY line", "A virtual terminal line that a remote Telnet or SSH session signs in through."], ["WAN", "Wide area network: links that join distant sites, rented from a provider or run over the internet."]]};
   const $=s=>document.querySelector(s);
   const lsGet=k=>{try{return localStorage.getItem(k);}catch(e){return null;}};
   const lsSet=(k,v)=>{try{localStorage.setItem(k,v);}catch(e){}};

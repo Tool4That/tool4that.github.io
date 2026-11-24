@@ -330,7 +330,8 @@
       "summary": "Only trusted ports may answer DHCP requests, so a rogue server can't hand clients a malicious gateway or DNS server.",
       "prereqs": ["dhcp", "switching"],
       "locations": [
-        {"tool": "net-drills/config-audit", "kind": "fix", "where": "What's missing?", "find": ["DHCP snooping"]}
+        {"tool": "net-drills/config-audit", "kind": "fix", "where": "What's missing?", "find": ["DHCP snooping"]},
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Guard the branch", "find": ["leases an address through snooping"]}
       ],
       "refs": []
     },
@@ -437,6 +438,7 @@
         {"tool": "lockdown-range/cisco-ios", "kind": "lab", "find": ["access-class", "access-list"]},
         {"tool": "defense-ladder", "kind": "learn", "find": ["access-class"]},
         {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Site A", "find": ["access-class"], "note": "ACL 20 and access-class 20 in: SSH for the Teachers VLAN only."},
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Guard the branch", "find": ["BLOCK_TELNET"], "note": "A named extended ACL on the Students subinterface stops Telnet and lets SSH through."},
         {"tool": "net-drills/trouble-tickets", "kind": "fix", "where": "Remote access › Teachers refused, Students let in"},
         {"tool": "net-drills/config-audit", "kind": "fix", "where": "Site B switch", "find": ["access-class"]}
       ],
@@ -451,7 +453,6 @@
       "prereqs": ["ios-modes"],
       "locations": [
         {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Lock the doors"},
-        {"tool": "net-drills/ios-cli-lab", "kind": "fix", "where": "Mission › Fix the mess"},
         {"tool": "net-drills/config-audit", "kind": "fix", "where": "R1 edge router", "find": ["Privileged EXEC is guarded by"]},
         {"tool": "lockdown-drills/cisco-ios", "kind": ["learn", "drill"], "find": ["enable secret"]},
         {"tool": "lockdown-range/cisco-ios", "kind": "lab", "find": ["enable secret"]}
@@ -516,7 +517,9 @@
       "locations": [
         {"tool": "net-drills/config-audit", "kind": "fix", "where": "R1 edge router", "find": ["Log messages carry no timestamps"]},
         {"tool": "net-drills/config-audit", "kind": "fix", "where": "What's missing?", "find": ["syslog server", "NTP server"]},
-        {"tool": "lockdown-drills/cisco-ios", "kind": ["learn", "drill"], "find": ["service timestamps", "logging host", "ntp server"]}
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Guard the branch", "find": ["show ntp associations"]},
+        {"tool": "lockdown-drills/cisco-ios", "kind": ["learn", "drill"], "find": ["service timestamps", "logging host", "ntp server"]},
+        {"tool": "net-drills/trouble-tickets", "kind": "drill", "where": "Log tickets › Cisco logs", "find": ["show logging"]}
       ],
       "refs": [
         {"title": "RFC 5424: The Syslog protocol", "url": "https://www.rfc-editor.org/rfc/rfc5424", "src": "standard"},
@@ -542,7 +545,7 @@
       "prereqs": ["ios-modes"],
       "locations": [
         {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Lock the doors", "find": ["Save the configuration"]},
-        {"tool": "net-drills/ios-cli-lab", "kind": "fix", "where": "Mission › Fix the mess", "find": ["survive a reload"]},
+        {"tool": "net-drills/ios-cli-lab", "kind": "build", "where": "Mission › Guard the branch", "find": ["saved last"]},
         {"tool": "lockdown-range/cisco-ios", "kind": "lab", "find": ["startup-config"]}
       ],
       "refs": []
@@ -910,8 +913,7 @@
       "summary": "Start from the symptom, test layer by layer (link, address, gateway, name), and fix the root cause instead of the symptom.",
       "prereqs": ["osi-model"],
       "locations": [
-        {"tool": "net-drills/trouble-tickets", "kind": "fix", "find": ["root cause"], "note": "Each ticket: the complaint, real device output, the root cause, then the fix."},
-        {"tool": "net-drills/ios-cli-lab", "kind": "fix", "where": "Mission › Fix the mess"}
+        {"tool": "net-drills/trouble-tickets", "kind": "fix", "find": ["root cause"], "note": "Each ticket: the complaint, real device output, the root cause, then the fix."}
       ],
       "refs": []
     },
@@ -1291,7 +1293,8 @@
       "summary": "Windows numbers its security events: 4624 a successful logon, 4625 a failed one, 4688 a new process. The logon type in each logon event says how the user arrived: at the keyboard (2), over the network (3), or by Remote Desktop (10).",
       "prereqs": ["audit-policy"],
       "locations": [
-        {"tool": "defense-ladder", "kind": "learn", "find": ["logon type", "4624", "4625", "Event Viewer"]}
+        {"tool": "defense-ladder", "kind": "learn", "find": ["logon type", "4624", "4625", "Event Viewer"]},
+        {"tool": "net-drills/trouble-tickets", "kind": "drill", "where": "Log tickets › Windows logs", "find": ["4625"], "note": "Name what happened from the events, then pick the Get-WinEvent filter that surfaces it."}
       ],
       "refs": [
         {"title": "Microsoft Learn: Events to monitor in Active Directory", "url": "https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/appendix-l--events-to-monitor", "src": "vendor"}
@@ -1303,7 +1306,8 @@
       "summary": "Linux and FreeBSD log through syslog into files under /var/log, such as auth.log for sign-ins and sudo; systemd systems also keep a journal you read with journalctl.",
       "prereqs": ["audit-policy", "bash"],
       "locations": [
-        {"tool": "defense-ladder", "kind": "learn", "find": ["auth.log", "journalctl", "syslog"]}
+        {"tool": "defense-ladder", "kind": "learn", "find": ["auth.log", "journalctl", "syslog"]},
+        {"tool": "net-drills/trouble-tickets", "kind": "drill", "where": "Log tickets › Linux logs", "find": ["auth.log", "journalctl"]}
       ],
       "refs": [
         {"title": "NIST SP 800-92 (log management)", "url": "https://csrc.nist.gov/pubs/sp/800/92/final", "src": "standard"},
@@ -1316,7 +1320,8 @@
       "summary": "A firewall log line records a decision: the time, the action (allow or drop), the protocol, the source and destination addresses, and the ports. Read them for scans, blocked probes, and traffic that should never have been allowed.",
       "prereqs": ["host-firewall"],
       "locations": [
-        {"tool": "defense-ladder", "kind": "learn", "find": ["UFW BLOCK", "pfirewall.log"]}
+        {"tool": "defense-ladder", "kind": "learn", "find": ["UFW BLOCK", "pfirewall.log"]},
+        {"tool": "net-drills/trouble-tickets", "kind": "drill", "where": "Log tickets › Linux logs", "find": ["ufw.log"]}
       ],
       "refs": []
     },
