@@ -499,7 +499,8 @@
   $ sudo find / -xdev -type d -perm -0002 ! -perm -1000 2>/dev/null
   $ sudo find / -xdev -type f \( -perm -4000 -o -perm -2000 \) 2>/dev/null
   $ sudo chmod u-s /path/to/evil
-  $ sudo getcap -r / 2>/dev/null   (cap_net_raw or cap_net_admin on a packaged network tool is normal; cap_setuid on python3 or perl gives root to anyone who runs it: sudo setcap -r <file>)
+  $ sudo getcap -r / 2>/dev/null   (cap_net_raw or cap_net_admin on a packaged network tool is normal; cap_setuid on python3 or perl gives root to anyone who runs it)
+  $ sudo setcap -r /usr/bin/python3.12   (removes every capability on the file, cap_setuid included; getcap /usr/bin/python3.12 then prints nothing)
   $ sudo getfacl /etc/shadow /etc/sudoers   (a + after the mode in ls -l means extra entries; sudo setfacl -x u:<user> <file> removes one, and sudo setfacl -b <file> removes them all)
   WHY: Readable /etc/shadow allows offline cracking. Writable /etc/passwd
        gives root, as does SUID on bash, nmap, find, or vim (GTFOBins).

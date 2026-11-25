@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-80NIzU7voOix5yST1n1jj3p6MvuE6OTegBZfq//FGUs='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-gxqjD9yLjpfPgfG0zefMffgAmgOkGc507C2SzhEZG74='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/lockdown-range/windows/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%96%A5%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -3824,7 +3824,7 @@ function termComplete(t) {
   const head = i < 0 ? '' : v.slice(0, i + 1), word = i < 0 ? v : v.slice(i + 1);
   if (!word) return;
   let cands = [];
-  if (!head) cands = (t.kind === 'cmd' ? CMD_NAMES : PS_NAMES.concat(CMD_NAMES)).filter(n => n.toLowerCase().startsWith(word.toLowerCase()));
+  if (!head) cands = (t.kind === 'cmd' ? CMD_NAMES : psNamesHere().concat(CMD_NAMES)).filter(n => n.toLowerCase().startsWith(word.toLowerCase()));
   else {
     const dir = word.includes('\\') ? fsResolve(t.cwd, word.slice(0, word.lastIndexOf('\\') + 1)) : t.cwd;
     const pre = word.includes('\\') ? word.slice(0, word.lastIndexOf('\\') + 1) : '';
@@ -5094,8 +5094,9 @@ const PS_CMDS = {
   },
   // simulated cmdlets with the module each ships in; NAME.exe lists the program
   'get-command': (ctx, a, seg) => {
-    const p = psParams(a), names = String(p.name != null && p.name !== true ? p.name : p._.join(',') || '*').split(',').map(s => s.trim()).filter(Boolean), M = [[/LocalUser|LocalGroup/, 'Cmdlet', '1.0.0.0', 'Microsoft.PowerShell.LocalAccounts'], [/NetFirewall/, 'Function', '2.0.0.0', 'NetSecurity'], [/-Mp/, 'Function', '1.0', 'ConfigDefender'], [/ScheduledTask/, 'Function', '1.0.0.0', 'ScheduledTasks'], [/Smb/, 'Function', '2.0.0.0', 'SmbShare'], [/OptionalFeature|Capability/, 'Cmdlet', '3.0', 'Dism'], [/BitLocker/, 'Function', '1.0.0.0', 'BitLocker'], [/-Tpm/, 'Cmdlet', '2.0.0.0', 'TrustedPlatformModule'], [/SecureBoot/, 'Cmdlet', '2.0.0.0', 'SecureBoot'], [/CimInstance/, 'Cmdlet', '1.0.0.0', 'CimCmdlets'], [/WinEvent/, 'Cmdlet', '3.0.0.0', 'Microsoft.PowerShell.Diagnostics'], [/Authenticode/, 'Cmdlet', '3.0.0.0', 'Microsoft.PowerShell.Security'], [/FileHash|Format-Hex/, 'Function', '3.1.0.0', 'Microsoft.PowerShell.Utility'], [/Select-String/, 'Cmdlet', '3.1.0.0', 'Microsoft.PowerShell.Utility'], [/WindowsFeature/, 'Cmdlet', '2.0.0.0', 'ServerManager'], [/NetTCP|NetUDP|NetConnection|NetIPAddress|NetRoute|NetNeighbor/, 'Function', '1.0.0.0', 'NetTCPIP'], [/NetAdapter/, 'Function', '2.0.0.0', 'NetAdapter'], [/DnsName/, 'Cmdlet', '1.0.0.0', 'DnsClient'], [/DnsClient/, 'Function', '1.0.0.0', 'DnsClient'], [/Transcript/, 'Cmdlet', '3.0.0.0', 'Microsoft.PowerShell.Host'], [/-Csv$|Read-Host/, 'Cmdlet', '3.1.0.0', 'Microsoft.PowerShell.Utility'], [/Where-|Get-Help|Get-Command|Get-History/, 'Cmdlet', '3.0.0.0', 'Microsoft.PowerShell.Core'], [/ExecutionPolicy|SecureString/, 'Cmdlet', '3.0.0.0', 'Microsoft.PowerShell.Security'], [/-Object|-List|-Table|-Output|-Alias|-Host/, 'Cmdlet', '3.1.0.0', 'Microsoft.PowerShell.Utility'], [/./, 'Cmdlet', '3.1.0.0', 'Microsoft.PowerShell.Management']];
-    const find = n => PS_NAMES.filter(x => globRe(n).test(x)).map(x => [M.find(m => m[0].test(x))[1], x, ...M.find(m => m[0].test(x)).slice(2)]).concat(CMD_NAMES.map(x => x + '.exe').filter(x => globRe(n).test(x) && fsGet('C:\\Windows\\System32\\' + x)).map(x => fsGet('C:\\Windows\\System32\\' + x).n).map(x => ['Application', x, '10.0.' + osBuild().split('.')[0] + '.1', 'C:\\Windows\\system32\\' + x]));
+    const p = psParams(a), names = String(p.name != null && p.name !== true ? p.name : p._.join(',') || '*').split(',').map(s => s.trim()).filter(Boolean), M = [[/LocalUser|LocalGroup/, 'Cmdlet', '1.0.0.0', 'Microsoft.PowerShell.LocalAccounts'], [/NetFirewall/, 'Function', '2.0.0.0', 'NetSecurity'], [/-Mp/, 'Function', '1.0', 'ConfigDefender'], [/ScheduledTask/, 'Function', '1.0.0.0', 'ScheduledTasks'], [/Smb/, 'Function', '2.0.0.0', 'SmbShare'], [/OptionalFeature|Capability/, 'Cmdlet', '3.0', 'Dism'], [/BitLocker/, 'Function', '1.0.0.0', 'BitLocker'], [/-Tpm/, 'Cmdlet', '2.0.0.0', 'TrustedPlatformModule'], [/SecureBoot/, 'Cmdlet', '2.0.0.0', 'SecureBoot'], [/CimInstance/, 'Cmdlet', '1.0.0.0', 'CimCmdlets'], [/WinEvent/, 'Cmdlet', '3.0.0.0', 'Microsoft.PowerShell.Diagnostics'], [/Authenticode/, 'Cmdlet', '3.0.0.0', 'Microsoft.PowerShell.Security'], [/FileHash|Format-Hex/, 'Function', '3.1.0.0', 'Microsoft.PowerShell.Utility'], [/Select-String/, 'Cmdlet', '3.1.0.0', 'Microsoft.PowerShell.Utility'], [/WindowsFeature/, 'Cmdlet', '2.0.0.0', 'ServerManager'], [/NetTCP|NetUDP|NetConnection|NetIPAddress|NetRoute|NetNeighbor/, 'Function', '1.0.0.0', 'NetTCPIP'], [/NetAdapter/, 'Function', '2.0.0.0', 'NetAdapter'], [/DnsName/, 'Cmdlet', '1.0.0.0', 'DnsClient'], [/DnsClient/, 'Function', '1.0.0.0', 'DnsClient'], [/Transcript/, 'Cmdlet', '3.0.0.0', 'Microsoft.PowerShell.Host'], [/-Csv$|Read-Host/, 'Cmdlet', '3.1.0.0', 'Microsoft.PowerShell.Utility'], [/Where-|Get-Help|Get-Command|Get-History/, 'Cmdlet', '3.0.0.0', 'Microsoft.PowerShell.Core'], [/ExecutionPolicy|SecureString/, 'Cmdlet', '3.0.0.0', 'Microsoft.PowerShell.Security'], [/-Object|-List|-Table|-Output|-Alias|-Host/, 'Cmdlet', '3.1.0.0', 'Microsoft.PowerShell.Utility'], [/-Website$/, 'Cmdlet', '1.0.0.0', 'WebAdministration'], [/./, 'Cmdlet', '3.1.0.0', 'Microsoft.PowerShell.Management']];
+    // Get-Website lists only where IIS's Web Management Tools install its module (psNamesHere, 80-cmds-web)
+    const find = n => psNamesHere().filter(x => globRe(n).test(x)).map(x => [M.find(m => m[0].test(x))[1], x, ...M.find(m => m[0].test(x)).slice(2)]).concat(CMD_NAMES.map(x => x + '.exe').filter(x => globRe(n).test(x) && fsGet('C:\\Windows\\System32\\' + x)).map(x => fsGet('C:\\Windows\\System32\\' + x).n).map(x => ['Application', x, '10.0.' + osBuild().split('.')[0] + '.1', 'C:\\Windows\\system32\\' + x]));
     // -Name takes a list (Get-Command A,B); an unmatched name prints Get-Command's own error, and the rest still list
     const errs = [], rows = [];
     names.forEach(n => { const hit = find(n); if (!hit.length && !/[*?]/.test(n)) errs.push(psErrX('Get-Command', "The term '" + n + "' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.", seg, 'ObjectNotFound', n + ':String', 'CommandNotFoundException', 'CommandNotFoundException,Microsoft.PowerShell.Commands.GetCommandCommand').text); hit.forEach(r => { if (!rows.some(x => x[1] === r[1])) rows.push(r); }); });
@@ -6041,8 +6042,8 @@ const HELP = {
 };
 function getHelp(ctx, a, seg) {
   const p = psParams(a), n = String(p.name || p._[0] || '');
-  if (!n) return { text: '[Range] Get-Help is abbreviated here. Simulated cmdlets: ' + PS_NAMES.join(', ') + '. Every Command Prompt command (net, sc.exe, schtasks, netsh, auditpol, ...) also works in this PowerShell. Type sc.exe here, since plain sc runs Set-Content.' };
-  const name = PS_NAMES.find(x => sameName(x, n)), hp = HELP[n.toLowerCase()];
+  if (!n) return { text: '[Range] Get-Help is abbreviated here. Simulated cmdlets: ' + psNamesHere().join(', ') + '. Every Command Prompt command (net, sc.exe, schtasks, netsh, auditpol, ...) also works in this PowerShell. Type sc.exe here, since plain sc runs Set-Content.' };
+  const name = psNamesHere().find(x => sameName(x, n)), hp = HELP[n.toLowerCase()];
   if (!name) return psErrX('Get-Help', 'Get-Help could not find ' + n + ' in a help file in this session. To download updated help topics type: "Update-Help". To get help online, search for the help topic in the TechNet library at https:/go.microsoft.com/fwlink/?LinkID=107116.', seg, 'ResourceUnavailable', n + ':String', 'HelpNotFoundException', 'HelpNotFound,Microsoft.PowerShell.Commands.GetHelpCommand');
   if (!hp) return { text: '\nNAME\n    ' + name + '\n\n[Range] The trainer carries help topics for: ' + Object.keys(HELP).map(k => PS_NAMES.find(x => sameName(x, k))).filter(Boolean).join(', ') + '.' };
   const ex = p.examples != null;
@@ -6504,7 +6505,7 @@ function psBindCheck(name, a, seg, cmd, ctx) {
   const n = /\.exe$/.test(name) ? null : PS_ALIAS[name] || name;
   if (!n || PS_CMDS[n] !== cmd) return null;
   // a module this edition lacks: the cmdlet answers "is not recognized" itself
-  if (/windowsfeature$/.test(n) && S.edition !== 'server' || /bitlocker/.test(n) && S.edition === 'server') return null;
+  if (/windowsfeature$/.test(n) && S.edition !== 'server' || /bitlocker/.test(n) && S.edition === 'server' || n === 'get-website' && !webAdminOn()) return null;
   const sig = psSig(n), cmdlet = psCmdletName(n), cls = CMDLET_FQ[cmdlet] || CMDLET_CLS(cmdlet), low = seg.toLowerCase();
   const args = psArgSplit(seg), named = {}, posArgs = []; let at = (tokenize(seg)[0] || '').length;
   const isSw = k => PS_SWITCHES_ALL.test(k.toLowerCase()) || (sig && sig.sw.some(x => sameName(x, k))) || (PS_ARG[n] && PS_ARG[n][Object.keys(PS_ARG[n]).find(x => sameName(x, k))] === null);
@@ -7039,10 +7040,10 @@ function smbAccess(cmdlet, ctx, a, seg, op) {
 }
 
 /* ---------- Import-Module, Update-Help, and Read-Host ---------- */
-const PS_MODULES = ['appx', 'bitlocker', 'cimcmdlets', 'defender', 'dism', 'dnsclient', 'microsoft.powershell.localaccounts', 'microsoft.powershell.management', 'microsoft.powershell.security', 'microsoft.powershell.utility', 'netsecurity', 'nettcpip', 'scheduledtasks', 'smbshare', 'servermanager', 'laps', 'trustedplatformmodule', 'secureboot'];
+const PS_MODULES = ['appx', 'bitlocker', 'cimcmdlets', 'defender', 'dism', 'dnsclient', 'microsoft.powershell.localaccounts', 'microsoft.powershell.management', 'microsoft.powershell.security', 'microsoft.powershell.utility', 'netsecurity', 'nettcpip', 'scheduledtasks', 'smbshare', 'servermanager', 'laps', 'trustedplatformmodule', 'secureboot', 'webadministration'];
 function importModule(ctx, a, seg) {
   const p = psParams(a), L = String(p.name != null && p.name !== true ? p.name : p._[0] || '').split(',').map(s => s.trim()).filter(Boolean);
-  for (const n of L) if (!PS_MODULES.includes(n.toLowerCase()) || n.toLowerCase() === 'servermanager' && S.edition !== 'server' || n.toLowerCase() === 'bitlocker' && S.edition === 'server') return psErrX('Import-Module', "The specified module '" + n + "' was not loaded because no valid module file was found in any module directory.", seg, 'ResourceUnavailable', n + ':String', 'FileNotFoundException', 'Modules_ModuleNotFound,Microsoft.PowerShell.Commands.ImportModuleCommand');
+  for (const n of L) if (!PS_MODULES.includes(n.toLowerCase()) || n.toLowerCase() === 'servermanager' && S.edition !== 'server' || n.toLowerCase() === 'bitlocker' && S.edition === 'server' || n.toLowerCase() === 'webadministration' && !webAdminOn()) return psErrX('Import-Module', "The specified module '" + n + "' was not loaded because no valid module file was found in any module directory.", seg, 'ResourceUnavailable', n + ':String', 'FileNotFoundException', 'Modules_ModuleNotFound,Microsoft.PowerShell.Commands.ImportModuleCommand');
   return null;
 }
 function updateHelp(ctx, a, seg) {
@@ -7992,6 +7993,49 @@ Object.assign(PS_ARG, { 'export-csv': { InputObject: 'System.Management.Automati
 ['Get-NetIPAddress', 'Get-NetAdapter', 'Get-DnsClientServerAddress', 'Get-NetRoute', 'Get-NetNeighbor', 'Get-SmbSession', 'Close-SmbSession'].forEach(n => { CMDLET_FQ[n] = n; });
 CMD_NAMES.push('logoff');
 PS_NAMES.push('Get-NetIPAddress', 'Get-NetAdapter', 'Get-DnsClientServerAddress', 'Get-NetRoute', 'Get-NetNeighbor', 'Start-Transcript', 'Stop-Transcript', 'Export-Csv', 'Import-Csv', 'Compare-Object', 'Get-SmbSession', 'Close-SmbSession', 'ConvertFrom-SecureString');
+
+/* ===== 80-cmds-web: the web server's sites (Get-Website, from the WebAdministration module that IIS's Web Management
+   Tools install). The sites follow the lab's IIS state, as Server Manager's IIS page shows it: Default Web Site while
+   World Wide Web Services is installed, Started while W3SVC runs, and Default FTP Site while FTP Server is installed. A
+   site's State reads its HTTP protocol, so the FTP-only site leaves State blank, as IIS does (its FTP state lives on
+   ftpServer). A machine without the Web Management Tools lacks the module, so the name is not recognized, as on Windows. ===== */
+function webAdminOn() { return featOn('IIS-WebServerManagementTools'); }
+// the cmdlet names this machine offers to Tab completion, Get-Help, and Get-Command: Get-Website only where its module is
+function psNamesHere() { return PS_NAMES.filter(x => x !== 'Get-Website' || webAdminOn()); }
+const WEB_TYPE = 'Microsoft.IIs.PowerShell.Framework.ConfigurationElement';
+// a site's properties carry the configuration's own names (name, physicalPath), so Select-Object prints them that way
+function webSites() {
+  const w3 = S.services.W3SVC && S.services.W3SVC.status === 'Running' ? 'Started' : 'Stopped';
+  const site = (name, id, state, dir, bind) => ({ name, id, serverAutoStart: 'True', state, bindings: WEB_TYPE, applicationPool: 'DefaultAppPool', enabledProtocols: 'http', physicalPath: '%SystemDrive%\\inetpub\\' + dir, userName: '', _bind: bind });
+  const L = [];
+  if (featOn('IIS-WebServer')) L.push(site('Default Web Site', 1, w3, 'wwwroot', 'http *:80:'));
+  if (featOn('IIS-FTPServer')) L.push(site('Default FTP Site', 2, '', 'ftproot', 'ftp *:21:'));
+  return L;
+}
+// the module's own table view: fixed columns, and a value too long for its column ends in "..."
+function webRender(r) {
+  const W = [16, 4, 10, 30], fit = (v, w) => { v = String(v == null ? '' : v); return v.length > w ? v.slice(0, w - 3) + '...' : v; };
+  const line = vals => vals.map((v, i) => (i < W.length ? padR(fit(v, W[i]), W[i]) : String(v))).join(' ').replace(/\s+$/, '');
+  const head = ['Name', 'ID', 'State', 'Physical Path', 'Bindings'];
+  return ['', line(head), line(head.map(h => '-'.repeat(h.length)))].concat(r.objs.map(o => line([o.name, o.id, o.state, o.physicalPath, o._bind || '']))).concat(['']).join('\n');
+}
+function getWebsite(ctx, a, seg) {
+  const C = 'Get-Website';
+  if (!webAdminOn()) return unknownCommand(ctx, tokenize(seg)[0], seg);
+  const p = nlArgs(C, seg, { vals: ['Name:System.String'], pos: ['Name'] }, ctx); if (p.err) return p.err;
+  // IIS reads its configuration only for an elevated window
+  if (!ctx.admin) return psErrX(C, 'Filename: redirection.config\nError: Cannot read configuration file due to insufficient permissions\n', seg, 'NotSpecified', ':', 'FileLoadException', 'System.IO.FileLoadException,' + CMDLET_FQ[C]);
+  // -Name matches a site's name whole (any case), since the cmdlet takes no wildcards
+  const n = p.v.Name != null ? String(nlVal(p.v.Name)).toLowerCase() : null, L = webSites().filter(s => n == null || s.name.toLowerCase() === n);
+  const keys = ['name', 'id', 'serverAutoStart', 'state', 'bindings', 'applicationPool', 'enabledProtocols', 'physicalPath', 'userName'];
+  return L.length ? { objs: L, cols: ['name', 'id', 'state', 'physicalPath', 'bindings'], lcols: keys, render: webRender, type: WEB_TYPE + '#site' } : null;
+}
+
+/* ---------- registration ---------- */
+Object.assign(PS_CMDS, { 'get-website': getWebsite });
+CMDLET_FQ['Get-Website'] = 'Microsoft.IIs.PowerShell.Provider.GetWebsiteCommand';
+PS_ARG['get-website'] = { Name: T_STR };
+PS_NAMES.push('Get-Website');
 
 /* ===== 85-scenarios: the three practice labs (state builders, scenario brief, investigation questions, checks, availability checks) ===== */
 function investigationFile(n, q) { return 'Investigation ' + n + '\r\n\r\n' + q.text.replace(/(.{1,72})(\s+|$)/g, '$1\r\n') + '\r\n' + (q.hint ? ('(' + q.hint + ')').replace(/(.{1,72})(\s+|$)/g, '$1\r\n') + '\r\n' : '\r\n') + 'ANSWER: \r\n'; }

@@ -2,7 +2,7 @@
 <html lang="en">
 <head><meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-XB8c7yI10SgQNJwRfv1FkmT6cf7ugyLjqNr+vYVnLFw='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-N3JcIfUF7sUpVO4vGFlJ04VwU9dfYg9GAz41+FlzCOs='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/lockdown-range/linux/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%96%A5%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -1446,7 +1446,7 @@ async function dispatch(c) {
     if (st.node.t === 'd') { c.err('bash: ' + name + ': Is a directory\n'); return 126; }
     if (!FS.canExec(st.node, c.ctx)) { c.err('bash: ' + name + ': Permission denied\n'); return 126; }
     const base = FS.base(st.path);
-    if (CMDS[base] && st.node.bin) { c.argv[0] = base; name = base; }
+    if (CMDS[base] && st.node.bin) { c.invoked = c.argv[0]; c.argv[0] = base; name = base; } // c.invoked keeps the path as typed
     else if (st.node.bin) { c.out('[Range] This trainer does not run ' + name + '.\n'); return 0; }
     else { c.out('[Range] This trainer does not run scripts (' + name + '). Read it with cat instead.\n'); return 0; }
   }
@@ -6632,6 +6632,81 @@ def('gsettings', c => {
   else { if (!/^(true|false)$/.test(v)) { c.err('0-' + v.length + ':invalid boolean value “' + v + '”\n'); return 1; } nv = v; }
   (mine[schema] = mine[schema] || {})[key] = nv; return 0;
 }, { pkg: 'libglib2.0-bin' });
+/* lightdm 1.30 (Linux Mint): --show-config merges /etc/lightdm/lightdm.conf.d/*.conf in name order, then
+   /etc/lightdm/lightdm.conf last (the same files guestAllowed() and autoLoginUser() read), and prints the result on
+   stderr: each [group], then key=value lines led by the letter of the file that set the key last, then Sources, which
+   maps each letter to its file. A drop-in that fails to load prints its error by bare file name and is skipped; only the
+   main file stops the run. -c FILE reads FILE alone, without /etc/lightdm/lightdm.conf.d. Starting the daemon stays with
+   systemctl, so a bare run prints the lab note the other service daemons give. */
+const LIGHTDM_HELP = 'Usage:\n  lightdm [OPTION…] - Display Manager\n\nHelp Options:\n  -h, --help                  Show help options\n\nApplication Options:\n' +
+  '  -c, --config=FILE           Use configuration file\n  -d, --debug                 Print debugging messages\n  --test-mode                 Run as unprivileged user, skipping things that require root access\n' +
+  '  --pid-file=FILE             File to write PID into\n  --log-dir=DIRECTORY         Directory to write logs to\n  --run-dir=DIRECTORY         Directory to store running state\n' +
+  '  --cache-dir=DIRECTORY       Directory to cache information\n  --show-config               Show combined configuration\n  -v, --version               Show release version\n\n';
+/* one key file as GKeyFile reads it: # comments, [group] headers, and key=value pairs; [SeatDefaults] is read as [Seat:*] */
+function lightdmKeyFile(text) {
+  const pairs = []; let grp = null;
+  for (const raw of String(text).split('\n')) {
+    const l = raw.trim(); if (!l || l[0] === '#') continue;
+    const g = /^\[([^[\]]+)\]$/.exec(l); if (g) { grp = g[1] === 'SeatDefaults' ? 'Seat:*' : g[1]; continue; }
+    const kv = /^([^=]*[^=\s])\s*=\s*(.*)$/.exec(l);
+    if (!kv) return { err: 'Key file contains line “' + l + '” which is not a key-value pair, group, or comment' };
+    if (grp == null) return { err: 'Key file does not start with a group' };
+    pairs.push([grp, kv[1], kv[2]]);
+  }
+  return { pairs };
+}
+function lightdmShowConfig(c, cfg) {
+  const main = cfg ? FS.norm(cfg, c.cwd) : '/etc/lightdm/lightdm.conf', dropDir = '/etc/lightdm/lightdm.conf.d';
+  const files = [];
+  const dn = cfg ? null : FS.get(dropDir);
+  if (dn && dn.t === 'd') for (const f of FS.list(dropDir).slice().sort(cmpStr)) { const p = FS.join(dropDir, f), n = FS.get(p); if (f.endsWith('.conf') && n && n.t === 'f') files.push(p); }
+  files.push(main);
+  const groups = new Map(), sources = [];
+  for (const p of files) {
+    const r = FS.readText(p, c.ctx), kf = r.ok ? lightdmKeyFile(r.text) : { err: r.err };
+    if (kf.err) {
+      // a drop-in that fails is named by its bare file name and skipped; the main file (or the -c file) stops the run
+      if (p !== main) { if (kf.err !== 'No such file or directory') c.err('Failed to load configuration from ' + FS.base(p) + ': ' + kf.err + '\n'); continue; }
+      if (!cfg && kf.err === 'No such file or directory') continue;
+      c.err('Failed to load configuration from ' + p + ': ' + kf.err + '\n'); return 1;
+    }
+    const id = sources.length < 26 ? String.fromCharCode(65 + sources.length) : String(sources.length); sources.push([id, p]);
+    for (const [g, k, v] of kf.pairs) { if (!groups.has(g)) groups.set(g, new Map()); groups.get(g).set(k, { v, id }); } // a later file keeps the key's place
+  }
+  // the group header is indented by spaces as wide as the last source id, then two more, as lightdm prints it
+  const pad = ' '.repeat(sources.length ? sources[sources.length - 1][0].length : 0) + '  ';
+  let out = '';
+  [...groups].forEach(([g, keys], i) => { out += (i ? '\n' : '') + pad + '[' + g + ']\n'; for (const [k, x] of keys) out += x.id + '  ' + k + '=' + x.v + '\n'; });
+  c.err(out + '\nSources:\n' + sources.map(([id, p]) => id + '  ' + p + '\n').join(''));
+  return 0;
+}
+def('lightdm', c => {
+  const longs = ['--config', '--debug', '--test-mode', '--pid-file', '--log-dir', '--run-dir', '--cache-dir', '--show-config', '--version', '--help'];
+  const takesArg = ['--config', '--pid-file', '--log-dir', '--run-dir', '--cache-dir'], SHORT = { c: '--config', d: '--debug', v: '--version', h: '--help', '?': '--help' };
+  const set = {}, a = c.args;
+  const shown = c.invoked && FS.base(c.invoked) === 'lightdm' ? c.invoked : c.argv[0]; // the name as typed, path and all
+  const bad = msg => { c.err(msg + '\nRun \'' + shown + ' --help\' to see a full list of available command line options.\n'); return 1; };
+  for (let i = 0; i < a.length; i++) {
+    const w = a[i]; if (w === '--') break;
+    if (w.startsWith('--')) {
+      const eq = w.indexOf('='), name = eq > 0 ? w.slice(0, eq) : w;
+      if (!longs.includes(name) || (eq > 0 && !takesArg.includes(name))) return bad('Unknown option ' + w);
+      if (takesArg.includes(name)) { if (eq > 0) set[name] = w.slice(eq + 1); else if (i + 1 < a.length) set[name] = a[++i]; else return bad('Missing argument for ' + name); } else set[name] = true;
+    } else if (w.length > 1 && w[0] === '-') {
+      for (let j = 1; j < w.length; j++) {
+        const lo = SHORT[w[j]]; if (!lo) return bad('Unknown option -' + w[j]);
+        if (takesArg.includes(lo)) { if (j + 1 < w.length) set[lo] = w.slice(j + 1); else if (i + 1 < a.length) set[lo] = a[++i]; else return bad('Missing argument for -' + w[j]); break; }
+        set[lo] = true;
+      }
+    }
+  }
+  if (set['--help']) { c.out(LIGHTDM_HELP); return 0; }
+  if (set['--show-config']) return lightdmShowConfig(c, set['--config']);
+  if (set['--version']) { c.err('lightdm ' + PKG.lightdm.v.split('-')[0] + '\n'); return 0; }
+  if (c.uid !== 0 && !set['--test-mode']) { c.err('Only root can run Light Display Manager.  To run as a regular user for testing run with the --test-mode flag.\n'); return 1; }
+  c.out('[Range] lightdm is a service daemon; control it with systemctl (e.g. systemctl status lightdm).\n'); return 0;
+});
+manp('lightdm', 1, 'a display manager', ['lightdm [OPTION...]'], ['Starts the display manager, which runs the login screen; systemd starts it at boot as lightdm.service.', '--show-config  print the combined settings from every configuration file, then exit; each line starts with', '               the letter of the file that set it, and Sources maps each letter to its file', '-c, --config=FILE  use FILE in place of /etc/lightdm/lightdm.conf', '-v, --version  print the release version', 'The output goes to standard error, so pipe it with 2>&1.']);
 
 /* ---------------- process investigation: /proc/PID, strace, ltrace, ldd, fuser, pmap, inotifywait, unhide ----------------
    Every view reads S.procs. A process may carry: exe (its program file when the command line was renamed), ppid, env (extra
@@ -7672,13 +7747,15 @@ const M = {
 };
 function clockText() { const d = new Date(); return two(d.getHours()) + ':' + two(d.getMinutes()); }
 function dateClockText() { const d = new Date(); return MONTHS[d.getMonth()] + ' ' + d.getDate() + '  ' + two(d.getHours()) + ':' + two(d.getMinutes()); }
+/* the drop-ins lightdm reads, as lightdmShowConfig does: regular *.conf files in name order, later ones winning */
+function lightdmDropIns() { const d = '/etc/lightdm/lightdm.conf.d', n = FS.get(d); if (!n || n.t !== 'd') return []; return FS.list(d).slice().sort(cmpStr).map(f => FS.join(d, f)).filter(p => { const x = FS.get(p); return p.endsWith('.conf') && x && x.t === 'f'; }); }
 function autoLoginUser() {
-  if (S.flavor === 'mint') { const v = iniValue(FS.text('/etc/lightdm/lightdm.conf'), 'autologin-user', 'Seat'); const confd = FS.list('/etc/lightdm/lightdm.conf.d').map(f => iniValue(FS.text('/etc/lightdm/lightdm.conf.d/' + f), 'autologin-user', 'Seat')).filter(x => x != null).pop(); const name = v != null ? v : confd; return name && U.user(name) && U.hasShell(U.user(name)) ? name : null; }
+  if (S.flavor === 'mint') { const v = iniValue(FS.text('/etc/lightdm/lightdm.conf'), 'autologin-user', 'Seat'); const confd = lightdmDropIns().map(p => iniValue(FS.text(p), 'autologin-user', 'Seat')).filter(x => x != null).pop(); const name = v != null ? v : confd; return name && U.user(name) && U.hasShell(U.user(name)) ? name : null; }
   const t = FS.text('/etc/gdm3/custom.conf'); if (/^\s*AutomaticLoginEnable\s*=\s*true/im.test(t.split('\n').filter(l => !/^\s*#/.test(l)).join('\n'))) { const name = iniValue(t, 'AutomaticLogin', 'daemon'); return name && U.user(name) ? name : null; }
   return null;
 }
 function timedLoginInfo() { const t = FS.text('/etc/gdm3/custom.conf'); const en = iniValue(t, 'TimedLoginEnable', 'daemon'); if (!en || !/^true$/i.test(en)) return null; const user = iniValue(t, 'TimedLogin', 'daemon'); const delay = parseInt(iniValue(t, 'TimedLoginDelay', 'daemon') || '30', 10); return user ? { user, delay: isNaN(delay) ? 30 : delay } : null; }
-function guestAllowed() { let v = null; for (const f of FS.list('/etc/lightdm/lightdm.conf.d')) { const x = iniValue(FS.text('/etc/lightdm/lightdm.conf.d/' + f), 'allow-guest', 'Seat'); if (x != null) v = x; } const main = iniValue(FS.text('/etc/lightdm/lightdm.conf'), 'allow-guest', 'Seat'); if (main != null) v = main; return v == null ? true : /^true$/i.test(v); }
+function guestAllowed() { let v = null; for (const p of lightdmDropIns()) { const x = iniValue(FS.text(p), 'allow-guest', 'Seat'); if (x != null) v = x; } const main = iniValue(FS.text('/etc/lightdm/lightdm.conf'), 'allow-guest', 'Seat'); if (main != null) v = main; return v == null ? true : /^true$/i.test(v); }
 function updatesPending() { return S.updates.pending.length > 0 && !S.updates.upgraded; }
 function motd(ll) { // ll: sshd's Last login line, empty at an account's first sign-in
   const F = FLAVORS[S.flavor]; const up = S.updates.pending.length;
