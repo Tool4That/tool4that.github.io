@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/X3+kdvW9NIw4IS0xpUvKdshcspuIO0pDWUO0WlOMns=' 'sha256-EJUo6x7FMJBCtLbdASMoHTewo5O+8qSveS6aF0fMm8o=' 'sha256-qigSYeDRHxxv/ajhO1u+Pk1RbZpbbegyOuaN2jsvi8Y=' 'sha256-vvupNOdurWeXQeDiyzHmiufX6Sy5JRpCbek45co3P9g=' 'sha256-wZzTzExic9eeCwrUEsjX3yvbR7Z8eTxTje4qZuDFOBQ='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/X3+kdvW9NIw4IS0xpUvKdshcspuIO0pDWUO0WlOMns=' 'sha256-BvNYEn2dZpEkITAtDQ4Utks/ieVXNRCJJ4J+afSvb/Y=' 'sha256-EJUo6x7FMJBCtLbdASMoHTewo5O+8qSveS6aF0fMm8o=' 'sha256-qEzh62+X/EzmGCRf6fBKv9VVM4Y2jVGUADPqrKzMq1A=' 'sha256-vvupNOdurWeXQeDiyzHmiufX6Sy5JRpCbek45co3P9g=' 'sha256-wZzTzExic9eeCwrUEsjX3yvbR7Z8eTxTje4qZuDFOBQ='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <link rel="canonical" href="https://freeapp4that.store/defense-ladder/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%8E%93%3C%2Ftext%3E%3C%2Fsvg%3E">
@@ -783,9 +783,26 @@ details.uterms .tcount{font-weight:400;color:var(--ink-2)}
 .rnote{margin:6px 0 0;font-size:.85rem;color:var(--ink-2)}
 .shm{display:inline-flex;align-items:center;gap:8px;min-height:44px;font-weight:600;cursor:pointer}
 .shm input{width:22px;height:22px;margin:0}
-/* Read aloud */
-.ra-row{display:flex;justify-content:flex-end;margin-top:10px}
-@media print{.sxnav,.sxpos,.cmp-tg,.v-rows,.fdock,.ra-row,.mnote,dialog.fdlg{display:none !important}}
+/* Read aloud: the button sits at the top right of its card's heading row, and under the heading on phones (it comes
+   right after the heading, so screen readers meet it before the content). While it reads, "Stop reading" stays in view
+   as its card scrolls by (sticky inside the card, below the phone bar) */
+.ra-row{display:flex;justify-content:flex-end;margin:0 0 8px}
+.ra-row.on{position:sticky;top:calc(var(--railh) + 8px);z-index:4}
+.rail.hid~.main .ra-row.on{top:8px}
+.ra-row.on .ra{box-shadow:0 2px 10px rgba(0,0,0,.28)}
+.card.ra-c{display:flow-root}
+@media (min-width:600px){
+  .card>.ra-h{float:left;max-width:calc(100% - 9.5rem)}
+  .card>.ra-row{float:right;margin:0 0 8px 12px}
+  .card>.ra-row~*{clear:both}
+}
+@media print{.sxnav,.sxpos,.cmp-tg,.v-rows,.fdock,.ra-row,.mnote,dialog.fdlg{display:none !important}.card>.ra-h{float:none;max-width:none}}
+/* results carried from another device (a code added on My Cyber progress): a line under a quiz's title, a chip on an activity */
+.dcar{margin:0 0 8px;font-size:.9rem;color:var(--ink-2)}
+.dcar .dchip{font-size:.8rem}
+details.mv-old{margin:14px 0 0;border-top:1px solid var(--line);padding-top:6px}
+details.mv-old>summary{cursor:pointer;font-weight:600;padding:8px 0}
+@media (pointer:coarse){details.mv-old>summary{min-height:44px;display:flex;align-items:center}}
 /* ---- the path (mobile round, 2026-10-24): "Unit N of M" beside a square per unit of the grade ---- */
 .upos{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:0 0 2px}
 .upos .unum{margin:0;flex:0 1 auto;min-width:0}
@@ -968,7 +985,38 @@ h2[tabindex="-1"]:focus:not(:focus-visible){outline:none}
 .sc-auto{margin:0;padding-left:1.1em;font-size:.92rem;list-style:none}.sc-auto li{margin:3px 0}.sc-auto li.ok{color:var(--ok)}.sc-item{display:block;margin:4px 0;font-size:.95rem}
 </style>
 </head>
-<body>
+<body><!-- tool4that:nav --><div class="t4t-nav" id="t4t-nav" data-t4t-nav-base="https://freeapp4that.store/defense-ladder/"><style>#t4t-nav,#t4t-nav *,#t4t-nav *::before,#t4t-nav *::after{all:revert;box-sizing:border-box}#t4t-nav{--t4t-nav-bg:#F4F6F8;--t4t-nav-panel:#FFFFFF;--t4t-nav-ink:#17212B;--t4t-nav-muted:#4A5868;--t4t-nav-line:#B9C4CF;--t4t-nav-link:#1F5C9E;--t4t-nav-hover:#EBF0F5;--t4t-nav-cur:#DFE9F5;color-scheme:light;display:block;position:relative;z-index:1;margin:0;padding:0;background:var(--t4t-nav-bg);color:var(--t4t-nav-ink);border-bottom:1px solid var(--t4t-nav-line);font:400 .875rem/1.4 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;text-align:left;letter-spacing:normal;text-transform:none;user-select:auto;-webkit-user-select:auto}#t4t-nav.t4t-nav-open{z-index:90}#t4t-nav:has(details[open]){z-index:90}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #t4t-nav{--t4t-nav-bg:#121A23;--t4t-nav-panel:#18222D;--t4t-nav-ink:#E2E9F0;--t4t-nav-muted:#A3B1C0;--t4t-nav-line:#3A4B5D;--t4t-nav-link:#8CC4F2;--t4t-nav-hover:#202D3B;--t4t-nav-cur:#26384B;color-scheme:dark}}:root[data-theme="dark"] #t4t-nav{--t4t-nav-bg:#121A23;--t4t-nav-panel:#18222D;--t4t-nav-ink:#E2E9F0;--t4t-nav-muted:#A3B1C0;--t4t-nav-line:#3A4B5D;--t4t-nav-link:#8CC4F2;--t4t-nav-hover:#202D3B;--t4t-nav-cur:#26384B;color-scheme:dark}#t4t-nav .t4t-nav-in{display:flex;align-items:center;gap:12px;min-height:44px;padding:6px 16px}#t4t-nav .t4t-nav-trail{display:block;flex:1 1 auto;min-width:0}#t4t-nav .t4t-nav-trail ol{display:flex;align-items:center;min-width:0;margin:0;padding:0;list-style:none}#t4t-nav .t4t-nav-trail li{display:flex;align-items:center;min-width:0;white-space:nowrap}#t4t-nav .t4t-nav-trail li+li::before{content:"\203A";content:"\203A"/"";margin:0 8px;color:var(--t4t-nav-muted)}#t4t-nav .t4t-nav-trail a{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;padding:5px 2px}#t4t-nav a{color:var(--t4t-nav-link);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px;border-radius:3px}#t4t-nav a:hover{text-decoration-thickness:2px}#t4t-nav a:focus-visible,#t4t-nav summary:focus-visible,#t4t-nav button:focus-visible,#t4t-nav textarea:focus-visible{outline:3px solid var(--t4t-nav-link);outline-offset:2px}#t4t-nav details{display:block;flex:none;margin:0 0 0 auto}#t4t-nav summary{display:flex;align-items:center;gap:6px;min-height:32px;padding:4px 12px;border:1px solid var(--t4t-nav-line);border-radius:6px;background:var(--t4t-nav-panel);color:var(--t4t-nav-ink);font-weight:600;cursor:pointer;list-style:none}#t4t-nav summary::-webkit-details-marker{display:none}#t4t-nav summary::after{content:"\25BE";content:"\25BE"/"";font-size:.8em}#t4t-nav details[open]>summary::after{content:"\25B4";content:"\25B4"/""}#t4t-nav .t4t-nav-panel{display:block;position:absolute;top:calc(100% - 2px);right:8px;width:max-content;min-width:14rem;max-width:min(22rem,calc(100vw - 16px));max-height:calc(100vh - 64px);max-height:calc(100dvh - 64px);overflow:auto;overscroll-behavior:contain;margin:0;padding:6px;background:var(--t4t-nav-panel);color:var(--t4t-nav-ink);border:1px solid var(--t4t-nav-line);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.2)}#t4t-nav .t4t-nav-panel ul{display:block;margin:0;padding:0;list-style:none}#t4t-nav .t4t-nav-panel li{display:block;margin:0;padding:0}#t4t-nav .t4t-nav-panel a,#t4t-nav .t4t-nav-panel button{display:block;width:100%;margin:0;padding:6px 10px;border:0;border-radius:5px;background:none;color:var(--t4t-nav-ink);font:inherit;text-align:left;text-decoration:none;cursor:pointer}#t4t-nav .t4t-nav-panel a:hover,#t4t-nav .t4t-nav-panel button:hover{background:var(--t4t-nav-hover);text-decoration:underline}#t4t-nav .t4t-nav-panel a[aria-current]{font-weight:700;background:var(--t4t-nav-cur);box-shadow:inset 3px 0 0 var(--t4t-nav-link)}#t4t-nav .t4t-nav-panel .t4t-nav-all,#t4t-nav .t4t-nav-ser>a{font-weight:600}#t4t-nav .t4t-nav-h{display:block;margin:10px 10px 2px;font-size:.8em;font-weight:700;color:var(--t4t-nav-muted)}#t4t-nav .t4t-nav-ser ul a{padding-left:24px}#t4t-nav .t4t-nav-more{margin-top:6px;padding-top:6px;border-top:1px solid var(--t4t-nav-line)}#t4t-nav .t4t-nav-say:not(:empty){display:block;width:0;min-width:100%;padding:2px 10px 6px;font-size:.8125rem;line-height:1.4;color:var(--t4t-nav-muted)}#t4t-nav .t4t-nav-code{display:block;width:0;min-width:100%;margin:2px 0 4px;padding:6px 8px;border:1px solid var(--t4t-nav-line);border-radius:5px;background:var(--t4t-nav-bg);color:var(--t4t-nav-ink);font:400 .8125rem/1.5 ui-monospace,"SF Mono",Consolas,"DejaVu Sans Mono",monospace;white-space:pre-wrap;overflow-wrap:normal;word-break:normal;resize:none}#t4t-nav .t4t-nav-code[hidden]{display:none}@media (max-width:480px){#t4t-nav .t4t-nav-trail li{display:none}#t4t-nav .t4t-nav-trail li:last-child{display:flex}#t4t-nav .t4t-nav-trail li:last-child::before{content:"\2039";content:"\2039"/"";margin:0 6px 0 0;color:var(--t4t-nav-muted)}}body[data-doc="pug"]>#t4t-nav{margin:-20px -16px 20px}@media print{#t4t-nav{display:none!important}}</style><div class="t4t-nav-in"><nav class="t4t-nav-trail" aria-label="Cyber"><ol><li><a href="../cyber/">Cyber</a></li></ol></nav><details class="t4t-nav-menu"><summary>Cyber tools</summary><nav class="t4t-nav-panel" aria-label="Cyber tools"><ul><li><a class="t4t-nav-all" href="../cyber/">All Cyber tools</a></li><li><span class="t4t-nav-h">Learning</span><ul><li><a aria-current="page" href="../defense-ladder/">Defense Ladder</a></li><li><a href="../study-map/">Study Map</a></li><li><a href="../command-atlas/">Command Atlas</a></li><li><a href="../cyber-pug/">Cyber PUG</a></li></ul></li><li><span class="t4t-nav-h">Practice</span><ul><li class="t4t-nav-ser"><a href="../net-drills/">Net Drills</a><ul><li><a href="../net-drills/subnet-sprint/">Subnet Sprint</a></li><li><a href="../net-drills/ios-cli-lab/">IOS CLI Lab</a></li><li><a href="../net-drills/config-audit/">Config Audit</a></li><li><a href="../net-drills/trouble-tickets/">Trouble Tickets</a></li></ul></li><li class="t4t-nav-ser"><a href="../lockdown-drills/">Lockdown Drills</a><ul><li><a href="../lockdown-drills/windows-11/">Windows 11 Lockdown</a></li><li><a href="../lockdown-drills/windows-server/">Windows Server Lockdown</a></li><li><a href="../lockdown-drills/debian-family/">Debian Family Lockdown</a></li><li><a href="../lockdown-drills/freebsd/">FreeBSD Lockdown</a></li><li><a href="../lockdown-drills/cisco-ios/">Cisco IOS Lockdown</a></li></ul></li><li class="t4t-nav-ser"><a href="../lockdown-range/">Lockdown Range</a><ul><li><a href="../lockdown-range/windows/">Windows Range</a></li><li><a href="../lockdown-range/linux/">Linux Range</a></li><li><a href="../lockdown-range/cisco-ios/">Cisco Range</a></li></ul></li></ul></li><li class="t4t-nav-more"><ul><li><a href="../my-cyber-progress/">My Cyber progress</a></li><li><button type="button" data-t4t-nav-act="copy-code">Copy my progress code</button></li><li class="t4t-nav-out"><span class="t4t-nav-say" role="status"></span><textarea class="t4t-nav-code" readonly hidden rows="3" aria-label="Your progress code"></textarea></li></ul></li></ul></nav></details></div><script>(function(){var w=document.getElementById('t4t-nav'),d=w&&w.querySelector('details'),s=d&&d.querySelector('summary');if(!s)return;var b=w.getAttribute('data-t4t-nav-base');function online(){var l=document.querySelectorAll('#t4t-nav a[href],a.t4t-nav-home'),i;for(i=0;i<l.length;i++)l[i].href=new URL(l[i].getAttribute('href'),b).href;}if(location.protocol==='file:'&&b){online();document.addEventListener('DOMContentLoaded',online);}var say=w.querySelector('.t4t-nav-say'),box=w.querySelector('.t4t-nav-code');function tell(t){if(say)say.textContent=t;}function sync(){s.setAttribute('aria-expanded',d.open?'true':'false');w.classList.toggle('t4t-nav-open',d.open);if(!d.open){tell('');if(box){box.hidden=true;box.value='';}}}function shut(f){if(d.open){d.open=false;sync();if(f)s.focus();}}sync();d.addEventListener('toggle',sync);w.addEventListener('keydown',function(e){if(e.key==='Escape'&&d.open){e.preventDefault();shut(true);}e.stopPropagation();});w.addEventListener('keyup',function(e){e.stopPropagation();});function away(e){if(d.open&&!d.contains(e.target))shut(false);}document.addEventListener('pointerdown',away,true);document.addEventListener('click',away,true);w.addEventListener('focusout',function(e){if(d.open&&e.relatedTarget&&!d.contains(e.relatedTarget))shut(false);});
+var T4T_CODE=(function(){var A='0123456789ABCDEFGHJKMNPQRSTVWXYZ',has=Object.prototype.hasOwnProperty;
+function mul(x){var r=0,y=30;while(y){if(y&1)r^=x;y>>=1;x<<=1;if(x&32)x^=37;}return r;}
+function check(s){var r=0,i;for(i=0;i<s.length;i++)r=mul(r)^A.indexOf(s.charAt(i));return A.charAt(mul(r));}
+function trim(s){return String(s).replace(/0+$/,'');}
+function seg(g,s){return typeof g==='number'&&g===Math.floor(g)&&g>=1&&g<=63&&typeof s==='string'&&/^[012]*$/.test(s)&&trim(s).length<=4095;}
+function gam(b,v){var s=v.toString(2),i;for(i=1;i<s.length;i++)b.push(0);for(i=0;i<s.length;i++)b.push(s.charAt(i)==='1'?1:0);}
+function dense(s){var b=[],i,c;for(i=0;i<s.length;i++){c=s.charAt(i);b.push(c==='0'?0:1);if(c!=='0')b.push(c==='2'?1:0);}return b;}
+function runs(s){var b=[],i=0,j,c,p=-1;while(i<s.length){c=+s.charAt(i);j=i;while(j<s.length&&+s.charAt(j)===c)j++;if(p<0)b.push(c>>1,c&1);else b.push(c>3-p-c?1:0);gam(b,j-i);p=c;i=j;}return b;}
+function encode(rec){var b=[],gs=[],k,i,s,d,r,p=0,o='';
+for(k in rec)if(has.call(rec,k)&&/^[1-9]\d?$/.test(k)&&seg(+k,rec[k])&&trim(rec[k]))gs.push(+k);
+gs.sort(function(x,y){return x-y;});
+if(gs.length)gam(b,gs.length+1);
+for(i=0;i<gs.length;i++){s=trim(rec[gs[i]]);gam(b,gs[i]-p);p=gs[i];gam(b,s.length);d=dense(s);r=runs(s);b.push(r.length<d.length?1:0);b=b.concat(r.length<d.length?r:d);}
+while(b.length%5)b.push(0);
+for(i=0;i<b.length;i+=5)o+=A.charAt(b[i]*16+b[i+1]*8+b[i+2]*4+b[i+3]*2+b[i+4]);
+return 'CY1-'+o+check('1'+o);}
+function group(c){return c.slice(0,4)+c.slice(4).replace(/(.{5})(?=.)/g,'$1 ');}
+function rec(key,raw){var o;try{o=JSON.parse(raw);}catch(e){return null;}
+return o&&o.v===1&&typeof o.k==='string'&&'t4t.done.'+o.k===key&&seg(o.g,o.s)?{g:o.g,s:trim(o.s)}:null;}
+function held(raw){var o,h,k,out={};try{o=JSON.parse(raw);}catch(e){return out;}h=o&&o.v===1?o.held:null;
+if(h&&typeof h==='object')for(k in h)if(has.call(h,k)&&/^[1-9]\d?$/.test(k)&&seg(+k,h[k])&&trim(h[k]))out[k]=trim(h[k]);return out;}
+function max(a,b){var o='',i,x,y,n=Math.max(a.length,b.length);for(i=0;i<n;i++){x=a.charAt(i)||'0';y=b.charAt(i)||'0';o+=x>y?x:y;}return trim(o);}
+function collect(ls){var r={},by={},bad={},clash=false,i,k,v,h,g,n=ls.length;
+for(i=0;i<n;i++){k=ls.key(i);if(k==null||k==='t4t.done.held'||!/^t4t\.done\.[a-z0-9.-]+$/.test(k))continue;v=rec(k,ls.getItem(k));if(!v)continue;
+if(has.call(by,v.g)){clash=true;bad[v.g]=1;}else{by[v.g]=k;r[v.g]=v.s;}}
+for(g in bad)if(has.call(bad,g))delete r[g];
+h=held(ls.getItem('t4t.done.held'));for(g in h)if(has.call(h,g)&&!has.call(bad,g))r[g]=has.call(r,g)?max(r[g],h[g]):h[g];
+return {rec:r,clash:clash};}
+return {A:A,check:check,trim:trim,encode:encode,group:group,rec:rec,held:held,max:max,collect:collect};})();
+var GATHER={"defense-ladder-v1":"t4t.done.defense-ladder","lockdown-drills-windows11-v1":"t4t.done.lockdown-drills.windows-11","lockdown-drills-windows-server-v1":"t4t.done.lockdown-drills.windows-server","lockdown-drills-debian-family-v1":"t4t.done.lockdown-drills.debian-family","lockdown-drills-ubuntu-v1":"t4t.done.lockdown-drills.debian-family","lockdown-drills-linux-mint-v1":"t4t.done.lockdown-drills.debian-family","lockdown-drills-freebsd-v1":"t4t.done.lockdown-drills.freebsd","lockdown-drills-cisco-v1":"t4t.done.lockdown-drills.cisco-ios","lockdown-range-windows-v3":"t4t.done.lockdown-range.windows","lockdown-range-linux-v3":"t4t.done.lockdown-range.linux","lockdown-range-cisco-v2":"t4t.done.lockdown-range.cisco-ios","netdrills.cli2.done":"t4t.done.net-drills.ios-cli-lab","netdrills.tickets.due":"t4t.done.net-drills.trouble-tickets"};var ACT={};ACT['copy-code']=function(){var ls=null,c,g,s,i,ok=0,mi=0,n=0,gap=false,fix,tail,code,done,cb=navigator.clipboard,own=Object.prototype.hasOwnProperty,off='This window keeps saved work switched off, so your code here starts empty. Open a regular window to copy your full code.';try{ls=window.localStorage;}catch(e){}if(!ls){tell(off);return;}try{c=T4T_CODE.collect(ls);for(g in GATHER)if(own.call(GATHER,g)){s=ls.getItem(g);if(s!==null&&s!=='null'&&ls.getItem(GATHER[g])===null)gap=true;}}catch(e){tell(off);return;}for(g in c.rec)if(own.call(c.rec,g)&&c.rec[g]){n++;s=c.rec[g];for(i=0;i<s.length;i++){if(s.charAt(i)==='2')ok++;else if(s.charAt(i)==='1')mi++;}}code=T4T_CODE.group(T4T_CODE.encode(c.rec));fix=c.clash&&gap?'repair your saved results and gather your earlier work into the code':c.clash?'repair your saved results':gap?'gather your earlier work into the code':'';tail=(fix?' Open My Cyber progress once to '+fix+'.':'')+(location.protocol==='file:'?' This copy keeps its own progress. Paste the code into My Cyber progress (it opens online) to see it there.':'');done=ok+mi?'Copied: '+(ok+mi)+' result'+(ok+mi===1?'':'s')+' from '+n+' tool'+(n===1?'':'s')+' ('+ok+' right, '+mi+' to retry).':'Copied. Your code fills in as you answer questions and pass checks.';function show(){if(!d.open||!box)return;tell('Selected. Press Ctrl+C (Command+C on a Mac) to copy; on a phone, tap and hold, then Copy.'+tail);box.value=code;box.hidden=false;box.removeAttribute('readonly');box.focus();box.select();try{box.setSelectionRange(0,box.value.length);}catch(e){}box.scrollTop=0;box.setAttribute('readonly','');}tell('');if(box)box.hidden=true;if(!cb||!cb.writeText){show();return;}try{cb.writeText(code).then(function(){if(d.open)tell(done+tail);},show);}catch(e){show();}};w.addEventListener('click',function(e){var t=e.target.closest&&e.target.closest('[data-t4t-nav-act]'),f=t&&ACT[t.getAttribute('data-t4t-nav-act')];if(f){e.preventDefault();f(t);}});function place(){var r=document.body.firstElementChild;while(r&&r!==w&&r.matches('a.skip'))r=r.nextElementSibling;if(r!==w)document.body.insertBefore(w,r);}place();new MutationObserver(place).observe(document.body,{childList:true});})();</script></div><!-- /tool4that:nav -->
+
 <div class="app">
   <nav class="rail" aria-label="Course">
     <div class="mbar"><div class="mwho">
@@ -1411,6 +1459,10 @@ const LADDER={
    STORAGE (per-viewer, this browser only; degrades to memory if blocked)
    ===================================================================== */
 const KEY='defense-ladder-v1';
+/*@t4t-done*/
+var T4T_DONE={"g":1,"k":"defense-ladder","ids":["f1cy1.0","f1q.0-3","f2cy1.0-1","f2q.0-3","f3cy1.0","f3m","f3q.0-2","f8cy1.0","f8cy2.0","f8cy3.0","f8m","f8q.0-5","f4c1.0-1","f4q.0-4","f5ck1.0","f5ck2.0","f5ck3.0","f5ck4.0","f5m","f5q.0-4","f6cy.0","f6m","f6q.0-4","f7o1","f7o2","f7o3","f7m1","f7m2","f7m3","f7q.0-5","f7ck1.0","f7m4","f7q2.0-5","f9ck1.0","f9ck2.0","f9m","f9q.0-7","f10cy1.0","f10cy2.0","f10cy3.0","f10m","f10q.0-6","f11sp","f11c1.0-1","f11c2.0","f11m","f11q.0-4","f12cy.0","f12cy2.0","f12m","f12q.0-6","f13ck1.0","f13ck2.0","f13ck3.0","f13m","f13q.0-6","f13q2.0-12","s0q.0-17","s1q.0-6","s1o","s2ck1.0","s2ck2.0","s2sp","s2q.0-8","s3cy.0","s3sp","s3sp2","s3sp3","s3q.0-9","s4ck1.0","s4m","s4q.0-2","s5ck1.0","s5ck2.0","s5ck3.0-3","s5o","s5m","s5q.0-2","s5q2.0-3","s7ck1.0","s7ck2.0","s7o","s7m","s7sp","s7q.0-8","s8c1.0","s8sp","s8c2.0","s8c3.0","s8m","s8sp2","s8q.0-6","s9cy1.0","s9sp","s9sp2","s9cy2.0","s9cy3.0","s9q.0-9","s10ck1.0","s10ck2.0","s10ck3.0","s10m","s10sp","s10o","s10q.0-11","s11cy.0","s11cy2.0","s11cy3.0","s11o","s11t","s11q2.0","s11sp","s11q.0-8","s6ck1.0","s6sp","s6q.0-2","s6q2.0-12","j0q.0-17","j1ck1.0","j1ck2.0","j1ck3.0","j1sp","j1sp2","j1q.0","j2ck1.0","j2ck2.0","j2o","j2q.0-5","j2sp","j2sp2","j3cy.0-2","j3cy2.0","j3sp","j3sp2","j3sp3","j3q.0-5","j4ck1.0-1","j4ck2.0","j4ck3.0","j4sp","j4m","j4o","j4q.0-1","j4q2.0-5","j4q3.0-8","j4m3","j7ck1.0","j7ck2.0","j7sp","j7sp2","j7m","j7q.0-9","j6ck1.0","j6ck2.0","j6sp","j6m","j6q.0-10","j8m","j8ck1.0","j8ck2.0","j8ck3.0","j8sp","j8q.0-6","j9c1.0","j9c2.0-1","j9sp","j9m","j9q.0-6","j10c1.0-1","j10c2.0","j10sp","j10o","j10q.0-9","j11cy1.0","j11m","j11cy2.0","j11sp","j11cy3.0","j11q.0-8","j13ck1.0","j13ck2.0","j13ck3.0","j13o","j13sp","j13q.0-5","j12ck1.0","j12sp","j12ck3.0","j12ck2.0","j12o","j12q.0-8","j5o","j5q.0-3","j5q2.0-3","j5o2","j5q3.0-14","se0q.0-17","se1cy.0","se1q.0-3","se1q2.0-4","se7ck1.0","se7ck2.0","se7ck3.0","se7sp","se7q.0-8","se8ck1.0","se8o","se8ck2.0","se8ck3.0","se8q.0-8","se9cy.0","se9cy2.0","se9cy3.0","se9sp","se9q.0-6","se2c1.0","se2c2.0","se2q.0-4","se2m","se10c1.0","se10c2.0","se10c3.0","se10sp","se10q.0-5","se6ck1.0","se6sp","se6o","se6q.0-11","se11ck1.0","se11ck2.0","se11sp","se11q.0-8","se12cy1.0","se12cy2.0","se12cy3.0","se12sp","se12q.0-6","se13ck1.0","se13sp","se13ck2.0","se13ck3.0","se13q.0-8","se13q2.0-12","se5cy1.0","se5sp","se5q.0-4"]};
+T4T_DONE=(function(D){var G=D.g,K=D.k,KEY='t4t.done.'+K,raw=D.ids||[],ids=[],at={},i,j,m;for(i=0;i<raw.length;i++){if(raw[i]==='~'){ids.push(null);continue;}m=/^(.*)\.(\d+)-(\d+)$/.exec(raw[i]);if(m){for(j=+m[2];j<=+m[3];j++){at[m[1]+'.'+j]=ids.length;ids.push(m[1]+'.'+j);}}else{at[raw[i]]=ids.length;ids.push(raw[i]);}}var api={g:G,k:K,key:KEY,ids:ids,at:at,ok:true,pending:null,unknown:[]};var seenRaw=null,seenS='',seenOk=false;function box(){try{return localStorage||null;}catch(e){return null;}}function read(){var L=box(),v=null,o=null;if(!L){seenRaw=null;seenS='';seenOk=false;return '';}try{v=L.getItem(KEY);}catch(e){return '';}if(v===seenRaw){return seenS;}seenRaw=v;seenS='';seenOk=false;if(v){try{o=JSON.parse(v);}catch(e){o=null;}if(o&&o.v===1&&o.g===G&&o.k===K&&typeof o.s==='string'&&/^[012]*$/.test(o.s)){seenS=o.s;seenOk=true;}}return seenS;}function top(a,b){var n=Math.max(a.length,b.length),s='',x,y,k;for(k=0;k<n;k++){x=a.charAt(k)||'0';y=b.charAt(k)||'0';s+=x>y?x:y;}return s;}function trim(s){return s.replace(/0+$/,'');}function save(want,f){var L=box(),cur,v;if(!L){api.ok=false;api.pending=want;return false;}cur=read();want=trim(top(cur,want));if(seenOk&&want===trim(cur)){api.ok=true;api.pending=null;return true;}if(!want&&!seenRaw&&!f){api.ok=true;api.pending=null;return true;}v=JSON.stringify({v:1,g:G,k:K,s:want});try{L.setItem(KEY,v);api.ok=true;api.pending=null;seenRaw=v;seenS=want;seenOk=true;return true;}catch(e){api.ok=false;api.pending=want;return false;}}function slot(id){var n=at[id];if(n===undefined){if(api.unknown.indexOf(id)<0){api.unknown.push(id);}return -1;}return n;}function apply(list){var s=read(),a,k,n,v,changed=false;if(api.pending){s=top(s,api.pending);}a=s.split('');for(k=0;k<list.length;k++){n=list[k][0];v=list[k][1];while(a.length<=n){a.push('0');}if(+a[n]<v){a[n]=String(v);changed=true;}}if(changed||api.pending){save(a.join(''));}return changed;}function level(n){n=+n;return n>=2?2:(n>=1?1:0);}api.state=function(id){var n=at[id],s;if(n===undefined){return 0;}s=read();if(api.pending){s=top(s,api.pending);}return +(s.charAt(n)||0);};api.mark=function(id,right){var n=slot(id);return n<0?false:apply([[n,right?2:1]]);};api.markMany=function(list){var out=[],k,n;for(k=0;k<list.length;k++){n=slot(list[k][0]);if(n>=0){out.push([n,list[k][1]?2:1]);}}return apply(out);};api.raise=function(id,v){var n=slot(id);v=level(v);return n<0||!v?false:apply([[n,v]]);};api.each=function(fn){var s=read(),k;if(api.pending){s=top(s,api.pending);}for(k=0;k<ids.length;k++){if(ids[k]!==null){fn(ids[k],+(s.charAt(k)||0));}}};api.carried=function(id,own){return api.state(id)===2&&(+own||0)<2;};api.flush=function(){if(api.pending){apply([]);}return api.ok;};api.touch=function(){if(api.pending){return api.flush();}read();return seenRaw!==null||save('',1);};api.clear=function(){var L=box();api.pending=null;api.ok=true;seenRaw=null;seenS='';seenOk=false;if(L){try{L.removeItem(KEY);}catch(e){api.ok=false;}}};return api;})(T4T_DONE);
+/*@/t4t-done*/
 let MEM={};
 /*@engine 2026-10-21 fast-open merge-save tick-merge progress-code progressive ux1 nav2 flow3 fix4*/
 /* progress is keyed by activity id. A save reads what is stored now (another tab may have saved since),
@@ -1425,14 +1477,81 @@ const store={
     const cur=readSaved();
     if(cur){ ids.forEach(id=>{ if(MEM[id]===undefined) delete cur[id]; else cur[id]=MEM[id]; }); MEM=cur; }
     try{ localStorage.setItem(KEY,JSON.stringify(MEM)); store.ok=true; }catch(e){ store.ok=false; }
+    doneSync(ids); if(store.ok) doneEmpty();
     if(store.onHealth) store.onHealth();
   },
   get(id){ return MEM[id]; },
   set(id,v){ MEM[id]=v; this.save([id]); },
   setMany(o){ Object.assign(MEM,o); this.save(Object.keys(o)); },
-  clear(){ MEM={}; try{ localStorage.setItem(KEY,'{}'); store.ok=true; }catch(e){ store.ok=false; } }
+  clear(){ MEM={}; try{ localStorage.setItem(KEY,'{}'); store.ok=true; }catch(e){ store.ok=false; } T4T_DONE.clear(); doneEmpty(); }
 };
 store.load();
+/* ---- the Cyber progress record (t4t.done.defense-ladder, from the T4T_DONE block above): one mark per quiz item and
+   per match, spot, order, and typein activity: 0 untouched, 1 to retry, 2 right. doneSync raises the marks of the ids
+   it is given from this browser's own save (MEM), so a reflection's keystrokes leave the record alone; marks only rise.
+   A 2 that MEM lacks came from another device (a code added on My Cyber progress): doneShow draws it in place, and it
+   never enters MEM, a DL1 code, a saved file, or the Study Map. ---- */
+const DONE_IX={};
+T4T_DONE.ids.forEach(id=>{ if(id===null) return; const m=/^(.+)\.(\d+)$/.exec(id); if(m) (DONE_IX[m[1]]=DONE_IX[m[1]]||{q:[]}).q[+m[2]]=id; else DONE_IX[id]={a:id}; });
+/* [slot id, this browser's own mark] for each slot of an activity: a quiz item is right at result 1 or 2 and to retry
+   at 0; an item without a valid result (an older record, or one pasted from a DL1 code, then answered again here)
+   reads from done, score, and total: all right when finished with every item right, all to retry with zero right;
+   an activity is right once done */
+function doneOwn(id){
+  const x=DONE_IX[id], v=MEM[id], out=[];
+  if(!x) return out;
+  const rec=!!v&&typeof v==='object'&&!Array.isArray(v);
+  if(x.a){ out.push([x.a,rec&&v.done===true?2:0]); return out; }
+  const r=rec&&Array.isArray(v.r)?v.r:null, n=x.q.length;
+  const all=!rec?0:v.done&&v.score===n&&v.total===n?2:v.score===0&&v.total>0?1:0;
+  x.q.forEach((sid,i)=>{
+    if(!sid) return;
+    const e=r&&r[i];
+    out.push([sid,Array.isArray(e)&&Number.isInteger(e[0])&&e[0]>=0?((e[2]|0)>=1?2:1):all]);
+  });
+  return out;
+}
+function doneSync(ids){
+  const list=[];
+  ids.forEach(id=>doneOwn(id).forEach(([sid,s])=>{ if(s) list.push([sid,s===2]); }));
+  if(list.length) T4T_DONE.markMany(list); else T4T_DONE.flush();
+  ids.forEach(id=>{ if(DONE_SHOWN[id]) doneShowFill(id); });
+}
+/* a browser with a Defense Ladder save holds a record too, even an empty one, so the Cyber tools menu reads it as
+   gathered: at boot, after each save (the first save of a first visit creates both), and after a clear */
+function doneEmpty(){ try{ const L=localStorage; if(L.getItem(KEY)!==null&&L.getItem(T4T_DONE.key)===null) L.setItem(T4T_DONE.key,JSON.stringify({v:1,g:T4T_DONE.g,k:T4T_DONE.k,s:''})); }catch(e){} }
+/* the slots of an activity that hold a 2 from another device: [carried, slots] */
+function doneCount(id){ let n=0; const own=doneOwn(id); own.forEach(([sid,s])=>{ if(T4T_DONE.carried(sid,s)) n++; }); return [n,own.length]; }
+/* in place: a quiz shows one line under its title, an activity a chip; the options stay unanswered and open to do */
+const DONE_SHOWN={};
+function doneShow(c,b){
+  if(!b||!DONE_IX[b.id]) return c;
+  const p=el('p','dcar');p.hidden=true;
+  const h=c.querySelector(':scope>h3');
+  if(h) h.after(p); else c.prepend(p);
+  DONE_SHOWN[b.id]=p; doneShowFill(b.id);
+  return c;
+}
+function doneShowFill(id){
+  const p=DONE_SHOWN[id], [n,of]=doneCount(id);
+  p.hidden=!n; p.innerHTML='';
+  if(!n) return;
+  if(DONE_IX[id].a) p.appendChild(el('span','pill dchip','Done on another device'));
+  else p.textContent=`Right on another device: ${n} of ${of}. Answer them here to add them to this device.`;
+}
+/* how many marks from another device the grades on this page hold (a download holds one grade) */
+function doneCarried(){
+  let n=0;
+  LEVELS.forEach(l=>l.units.forEach(u=>u.blocks.forEach(b=>{ if(b.id&&DONE_IX[b.id]) n+=doneCount(b.id)[0]; })));
+  return n;
+}
+doneSync(Object.keys(MEM)); doneEmpty();
+/* a code added on My Cyber progress in another tab: redraw the lines and chips on this view */
+window.addEventListener('storage',e=>{
+  if(e.key!==T4T_DONE.key) return;
+  Object.keys(DONE_SHOWN).forEach(id=>{ if(DONE_SHOWN[id].isConnected) doneShowFill(id); else delete DONE_SHOWN[id]; });
+  if(current.page==='progress'&&progressRedraw) progressRedraw();
+});
 /* another tab saved: take its progress, so this tab's unit dots stay current */
 window.addEventListener('storage',e=>{
   if(e.key!==KEY&&e.key!==null) return;
@@ -1944,13 +2063,13 @@ function renderBlock(b,L,inCard){
     case 'note': return el('div','note'+(b.warn?' warn':''),b.html);
     case 'areas': return renderAreas();
     case 'flash': return renderFlash(b);
-    case 'quiz': return renderQuiz(b);
-    case 'match': return renderMatch(b);
-    case 'spot': return renderSpot(b);
-    case 'order': return renderOrder(b);
+    case 'quiz': return doneShow(renderQuiz(b),b);
+    case 'match': return doneShow(renderMatch(b),b);
+    case 'spot': return doneShow(renderSpot(b),b);
+    case 'order': return doneShow(renderOrder(b),b);
     case 'lab': return renderLab(b);
     case 'reflect': return renderReflect(b);
-    case 'typein': return renderTypein(b);
+    case 'typein': return doneShow(renderTypein(b),b);
     case 'builder': return renderBuilder(b);
     case 'planner': return renderPlanner(b);
     case 'timer': return renderTimer(b);
@@ -2545,7 +2664,7 @@ function renderQuiz(b,fresh){
     if(was&&!fresh){ shown[qi]=was; labs[was[0]].querySelector('input').checked=true; showChecked(was,was[2],null); }
     c.appendChild(q1);
   });
-  again.addEventListener('click',()=>{ const n=renderQuiz(b,true); renderReplace(c,n); const f=n.querySelector('input[type=radio]'); if(f) f.focus(); });
+  again.addEventListener('click',()=>{ const n=doneShow(renderQuiz(b,true),b); renderReplace(c,n); const f=n.querySelector('input[type=radio]'); if(f) f.focus(); });
   foot.append(score,again);
   c.append(foot,invest);
   function drawFoot(){
@@ -2687,7 +2806,7 @@ function renderSpot(b){
     say(`Found ${hits} of ${total} findings`+(falses?`; ${falses} safe line${falses>1?'s':''} flagged`:''),hits===total&&!falses?'ok':'');
     if(hits===total&&!falses){ store.set(b.id,{done:true}); refreshChrome(); }
   });
-  reset.addEventListener('click',()=>{ const n=renderSpot(b); renderReplace(c,n); const f=n.querySelector('.sl'); if(f) f.focus(); });
+  reset.addEventListener('click',()=>{ const n=doneShow(renderSpot(b),b); renderReplace(c,n); const f=n.querySelector('.sl'); if(f) f.focus(); });
   if(isDone(b.id)) say('Completed before.','ok');
   return c;
 }
@@ -3312,7 +3431,7 @@ function renderProgress(){
   document.documentElement.style.setProperty('--accent','var(--l1)');
   const h=el('div','lvhead');h.style.setProperty('--accent','var(--l1)');
   h.innerHTML=`<div class="grade">My progress</div><div class="range">Saved in this browser only</div>`;
-  h.appendChild(el('p','intro','Every quiz, drill, flashcard set, lab, and reflection you complete is counted here. Everything stays on this device, and clearing your browser data clears it. To carry your progress to another browser or device, use a progress code below.'));
+  h.appendChild(el('p','intro','Every quiz, drill, flashcard set, lab, and reflection you complete is counted here. Everything stays on this device, and clearing your browser data clears it. To carry your progress to another browser or device, see Move your progress below.'));
   main.appendChild(h);
   const totals=el('div');
   function drawTotals(){
@@ -3341,6 +3460,9 @@ function renderProgress(){
     const o=el('div','card');
     o.innerHTML=`<div class="prow"><b>Overall</b><small>${ad} / ${all.length} activities (${apct}%)</small></div><div class="pbar"><i></i></div>`;
     const obar=o.querySelector('.pbar i'); if(obar)obar.style.width=apct+'%';
+    /* marks carried from another device stay out of these counts: one line names them */
+    const nc=doneCarried();
+    if(nc){ const p=el('p','dcar'); p.append(`Plus ${nc} result${nc===1?'':'s'} from another device: see `, cyberLink()); p.append('.'); o.appendChild(p); }
     totals.appendChild(o);
     progressMap(totals);
   }
@@ -3362,7 +3484,12 @@ function renderProgress(){
   main.appendChild(row);
 }
 
-/* ---- Move your progress: a progress code carries completed activities between browsers, devices, and saved copies.
+/* ---- Move your progress: learners move their results with the one Cyber progress code (the Cyber tools menu's Copy
+   my progress code, added on My Cyber progress), and everything else with Save everything to a file (the full backup).
+   DL1_SCREENS is the one switch for Defense Ladder's own DL1 code: false retires it from these screens (Move your
+   progress and the Finish on this computer steps make none), while a DL1 code pasted into Move your progress still
+   loads, so earlier codes keep working. true brings back Show my progress code and the code in the Finish steps.
+   The DL1 format, below, stays unchanged.
    Code: DL1-<entries>-<check>. Entries are the activity ids in sorted order, joined by ".", each written as one
    base-36 digit (how many leading characters it shares with the previous id) and the rest of the id; then
    *score/total for a quiz, +steps (base-36 step numbers) for a lab, and ~ for an activity still in progress.
@@ -3370,6 +3497,13 @@ function renderProgress(){
    quiz scores, and lab steps only: reflections, checklists, plans, and the scorecard stay in this browser. ---- */
 /* My progress redraws its totals when another tab saves (the storage listener calls it while that page is open) */
 let progressRedraw=null;
+const DL1_SCREENS=false;
+/* My Cyber progress on this site (a copy opened from a file links to the online site) */
+function cyberLink(text){
+  const a=el('a',null,esc(text||'My Cyber progress'));
+  a.href=location.protocol==='file:'?HUB+'my-cyber-progress/':'../my-cyber-progress/';
+  return a;
+}
 const PCODE_V=1;
 const PCODE_ID=/^[a-z][a-z0-9]{0,30}$/;
 function pcodeCheck(s){let h=0x811c9dc5;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0;}return (h%2176782336).toString(36).padStart(6,'0');}
@@ -3399,13 +3533,15 @@ function makeProgressCode(){
 }
 function readProgressCode(text){
   const s=String(text||'').replace(/\s+/g,'');
-  if(!s) return {error:'Paste a progress code first.'};
+  if(!s) return {error:DL1_SCREENS?'Paste a progress code first.':'Paste a Defense Ladder code first.'};
   const damaged={error:'This code is incomplete or changed. Copy the whole code again, from DL1- to its last character.'};
   /* the code is found inside whatever was pasted (quotes or a "Code:" label from a chat or email are fine);
      text that starts like a code but ends early counts as a damaged code. A code is lower case after DL; a paste
      that changed the case still reads, and the checksum still guards it */
   const m=/DL(\d+)-([a-z0-9.*\/+~]*)-([a-z0-9]{6})(?![a-z0-9])/i.exec(s);
-  if(!m) return /DL\d+-/i.test(s)?damaged:{error:'This text reads differently from a progress code. A code starts with DL1- and comes from My progress on Defense Ladder.'};
+  /* a Cyber progress code (CY1-) belongs on My Cyber progress: the box says where it goes */
+  if(!m&&!/DL\d+-/i.test(s)&&/CY\d+-/i.test(s)) return {error:'This is a Cyber progress code. It goes into My Cyber progress, in the Cyber hub’s Learning section.',cyber:true};
+  if(!m) return /DL\d+-/i.test(s)?damaged:{error:'This box reads Defense Ladder codes, which start with DL1-. Your Cyber progress code, which starts with CY1-, goes into My Cyber progress.',cyber:true};
   if(+m[1]>PCODE_V) return {error:'This code comes from a newer Defense Ladder. Open the newest copy of the page and paste the code there.'};
   if(+m[1]!==PCODE_V) return {error:'This code uses an older format this page reads differently. Make a fresh code on the other browser and paste that one.'};
   m[2]=m[2].toLowerCase();m[3]=m[3].toLowerCase();
@@ -3523,7 +3659,7 @@ function fileSave(pill){
     const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fileName();
     document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
   }catch(e){ ok=false; }
-  if(pill){ pill.textContent=ok?'Saved to '+fileName()+' in your downloads':'This browser blocked the download. Try again, or use the progress code.'; pill.className='pill'+(ok?' ok':' bad'); }
+  if(pill){ pill.textContent=ok?'Saved to '+fileName()+' in your downloads':'This browser blocked the download. Try again; your progress code still carries your results.'; pill.className='pill'+(ok?' ok':' bad'); }
 }
 /* the shape check: plain objects all the way down (at most 8 levels), safe keys, and the right type for each field
    the course reads */
@@ -3668,7 +3804,7 @@ function filePreviewHtml(data,plan){
 let fileMergedNote='';
 function fileCard(c){
   c.appendChild(el('h4',null,'Save everything to a file'));
-  c.appendChild(el('p','sum','The progress code leaves your writing behind; a file keeps all of it. It holds everything this browser saved for Defense Ladder: activities, quiz results, lab steps, reflections, checklists, plans, the scorecard, notes, your reading place, and your settings. Load it here or in any other browser to bring it all back.'));
+  c.appendChild(el('p','sum',(DL1_SCREENS?'The progress code leaves your writing behind; a file keeps all of it. It':'A file')+' holds everything this browser saved for Defense Ladder: activities, quiz results, lab steps, reflections, checklists, plans, the scorecard, notes, your reading place, and your settings. Load it here or in any other browser to bring it all back.'));
   c.appendChild(el('p','note','Keep this file somewhere private, such as your own folder or drive: it holds your reflections and notes.'));
   const row=el('div','row');
   const save=el('button','btn sm','Save everything to a file');save.type='button';
@@ -3719,30 +3855,20 @@ function fileCard(c){
 function renderMove(onMerged){
   const c=el('div','card mv');
   c.appendChild(el('h3',null,'Move your progress'));
-  c.appendChild(el('p','sum','Your progress lives in this browser. A progress code carries it to another browser, another device, or a saved copy of this page: make the code here, then paste it into My progress there. The code lists completed activities, quiz scores, and lab steps only; your reflections, checklists, and notes stay here.'));
-  // export
-  c.appendChild(el('h4',null,'Take your progress with you'));
-  const outRow=el('div','row');
-  const make=el('button','btn sm','Show my progress code');
-  const copy=el('button','btn sec sm','Copy code');copy.hidden=true;
-  const outPill=el('span','pill');outPill.setAttribute('role','status');outPill.hidden=true;
-  outRow.append(make,copy,outPill);
-  const out=el('textarea','mv-code');out.readOnly=true;out.hidden=true;out.setAttribute('aria-label','Your progress code');out.spellcheck=false;
-  make.addEventListener('click',()=>{
-    store.load();
-    const r=makeProgressCode();
-    outPill.hidden=false;
-    if(!r.count){out.hidden=true;copy.hidden=true;outPill.textContent='Complete an activity first; the code then carries it.';outPill.className='pill';return;}
-    out.value=r.code;out.hidden=false;copy.hidden=false;
-    outPill.textContent=`${r.count} activit${r.count===1?'y':'ies'} in this code`;outPill.className='pill ok';
-    make.textContent='Refresh my progress code';
-  });
-  copy.addEventListener('click',()=>copyFromBox(out,outPill));
-  c.append(outRow,out);
-  // import
-  c.appendChild(el('h4',null,'Bring progress here'));
-  c.appendChild(el('p','sum','Paste a code from another browser or device. You see what it adds before anything changes, and merging keeps everything already saved here.'));
-  const inp=el('textarea','mv-code');inp.placeholder='DL1-...';inp.setAttribute('aria-label','Progress code to bring here');inp.spellcheck=false;
+  /* DL1_SCREENS false: the Cyber progress code and the file; an earlier DL1 code still loads, in a closed panel */
+  let box=c;
+  if(!DL1_SCREENS){
+    const p=el('p','sum','Your progress lives in this browser. Your progress code carries your results to another browser or device: choose Copy my progress code in the Cyber tools menu at the top of the page, then add the code on ');
+    p.append(cyberLink(),' there. Save everything to a file, below, for the full backup: it keeps your labs, steps, and reflections too.');
+    c.appendChild(p);
+    fileCard(c);
+    box=el('details','mv-old');
+    box.appendChild(el('summary',null,'Paste an earlier Defense Ladder code'));
+    box.appendChild(el('p','sum','A code that starts with DL1- still loads here. You see what it adds before anything changes, and merging keeps everything already saved here.'));
+    c.appendChild(box);
+  }
+  else moveCodeOut(c);
+  const inp=el('textarea','mv-code');inp.placeholder='DL1-...';inp.setAttribute('aria-label','Defense Ladder code to bring here');inp.spellcheck=false;
   const inRow=el('div','row');
   const check=el('button','btn sm','Check this code');
   const merge=el('button','btn sm','Merge into this browser');merge.hidden=true;
@@ -3756,7 +3882,7 @@ function renderMove(onMerged){
   check.addEventListener('click',()=>{
     plan=null;entries=null;merge.hidden=true;
     const r=readProgressCode(inp.value);
-    if(r.error){say(esc(r.error),true);return;}
+    if(r.error){ say(esc(r.error),true); if(r.cyber) prev.append(' ',cyberLink('Open My Cyber progress')); return; }
     entries=r.entries;
     plan=planProgressMerge(r.entries);
     const n=Object.keys(plan.changes).length;
@@ -3779,9 +3905,34 @@ function renderMove(onMerged){
     if(onMerged) onMerged();
     refreshChrome();
   });
-  c.append(inp,inRow,prev);
-  fileCard(c);
+  box.append(inp,inRow,prev);
+  if(DL1_SCREENS) fileCard(c);
   return c;
+}
+/* DL1_SCREENS true: Show my progress code (DL1) and the heading for pasting one */
+function moveCodeOut(c){
+  c.appendChild(el('p','sum','Your progress lives in this browser. A progress code carries it to another browser, another device, or a saved copy of this page: make the code here, then paste it into My progress there. The code lists completed activities, quiz scores, and lab steps only; your reflections, checklists, and notes stay here.'));
+  c.appendChild(el('h4',null,'Take your progress with you'));
+  const outRow=el('div','row');
+  const make=el('button','btn sm','Show my progress code');
+  const copy=el('button','btn sec sm','Copy code');copy.hidden=true;
+  const outPill=el('span','pill');outPill.setAttribute('role','status');outPill.hidden=true;
+  outRow.append(make,copy,outPill);
+  const out=el('textarea','mv-code');out.readOnly=true;out.hidden=true;out.setAttribute('aria-label','Your progress code');out.spellcheck=false;
+  make.addEventListener('click',()=>{
+    store.load();
+    const r=makeProgressCode();
+    outPill.hidden=false;
+    if(!r.count){out.hidden=true;copy.hidden=true;outPill.textContent='Complete an activity first; the code then carries it.';outPill.className='pill';return;}
+    out.value=r.code;out.hidden=false;copy.hidden=false;
+    outPill.textContent=`${r.count} activit${r.count===1?'y':'ies'} in this code`;outPill.className='pill ok';
+    make.textContent='Refresh my progress code';
+  });
+  copy.addEventListener('click',()=>copyFromBox(out,outPill));
+  c.append(outRow,out);
+  // import
+  c.appendChild(el('h4',null,'Bring progress here'));
+  c.appendChild(el('p','sum','Paste a code from another browser or device. You see what it adds before anything changes, and merging keeps everything already saved here.'));
 }
 
 function renderGlossary(){
@@ -4394,7 +4545,7 @@ function navBoot(){
    COMPARE on phones (below 600 px) offers "Compare by row": each attribute with its values from every column.
    "Terms in this unit" lists the glossary entries whose "at" names the unit, once the glossary has arrived.
    Shared computers: a banner on a new visit (a sessionStorage flag) when saved progress exists; Start fresh and
-   "Finish on this computer" show the progress code with Copy, then clear after a confirming second tap. Shared
+   "Finish on this computer" offer Save everything to a file, then clear after a confirming second tap. Shared
    computer mode keeps reflections in sessionStorage only. When a write to localStorage fails, a calm notice
    appears, and reflections and builders say "Not saved". Read aloud uses speechSynthesis where it exists.
    ===================================================================== */
@@ -4761,30 +4912,34 @@ function flowClearAll(){
   const bn=document.getElementById('flowBanner'); if(bn){ bn.remove(); flowDockFit(); }
   render();
 }
-/* the progress code with Copy first, then Clear (a second tap confirms) or Keep everything */
+/* the way to every Cyber tool at once, then Save everything to a file, then Clear (a second tap confirms) or Keep
+   everything; with DL1_SCREENS true, the DL1 code with Copy leads */
 function flowFinishPanel(host,done){
   host.innerHTML=''; host.hidden=false;
   store.load();
-  const r=makeProgressCode();
+  const r=DL1_SCREENS?makeProgressCode():{count:0};
   let first=null;
-  if(r.count){
+  if(!DL1_SCREENS){ const p=el('p','fin-s','For every Cyber tool at once, copy your progress code and finish on '); p.append(cyberLink(),'.'); host.appendChild(p); }
+  if(!DL1_SCREENS) host.appendChild(el('p','fin-s','Step 1: save everything to a file and store it somewhere private. It holds your results, labs, steps, and reflections, and it loads in any browser.'));
+  else if(r.count){
     host.appendChild(el('p','fin-s','Step 1: copy your progress code. Paste it into My progress in any browser to bring your activities back.'));
     const box=el('textarea','mv-code fin-code');box.readOnly=true;box.spellcheck=false;box.value=r.code;box.setAttribute('aria-label','Your progress code');
     const row=el('div','row'), cp=el('button','btn sm','Copy code'), pill=el('span','pill');pill.setAttribute('role','status');
     cp.type='button';cp.addEventListener('click',()=>copyFromBox(box,pill));
     row.append(cp,pill);host.append(box,row);first=box;
   } else host.appendChild(el('p','fin-s','This browser holds zero completed activities, so a progress code has nothing to carry yet.'));
-  host.appendChild(el('p','fin-s',(r.count?'Step 2':'Step 1')+': keep your reflections and notes too. The progress code leaves them out, and a file keeps them, so save everything to a file and store it somewhere private.'));
+  if(DL1_SCREENS) host.appendChild(el('p','fin-s',(r.count?'Step 2':'Step 1')+': keep your reflections and notes too. The progress code leaves them out, and a file keeps them, so save everything to a file and store it somewhere private.'));
   const frow=el('div','row'), fsave=el('button','btn sec sm','Save everything to a file'), fpill=el('span','pill');
   fsave.type='button';fpill.setAttribute('role','status');fsave.addEventListener('click',()=>fileSave(fpill));
   frow.append(fsave,fpill);host.appendChild(frow);
+  if(!DL1_SCREENS) first=fsave;
   host.appendChild(el('p','fin-s','On a shared computer, move the file to your own drive or a USB stick, then delete it from this computer\'s Downloads folder.'));
-  host.appendChild(el('p','fin-s',(r.count?'Step 3':'Step 2')+': clear this browser for the next person.'));
-  const row2=el('div','row'), clr=el('button','btn sm fin-clear','Clear this browser'), keep=el('button','btn sec sm','Keep everything'), p2=el('span','pill');
+  host.appendChild(el('p','fin-s',(r.count?'Step 3':'Step 2')+(DL1_SCREENS?': clear this browser for the next person.':': clear Defense Ladder on this browser for the next person.')));
+  const row2=el('div','row'), clr=el('button','btn sm fin-clear',DL1_SCREENS?'Clear this browser':'Clear Defense Ladder'), keep=el('button','btn sec sm','Keep everything'), p2=el('span','pill');
   clr.type='button';keep.type='button';p2.setAttribute('role','status');
   let armed=false;
   clr.addEventListener('click',()=>{
-    if(!armed){ armed=true; clr.textContent='Confirm: clear everything'; p2.textContent='This clears your progress, reflections, and reading place in this browser.'; p2.className='pill bad'; return; }
+    if(!armed){ armed=true; clr.textContent=DL1_SCREENS?'Confirm: clear everything':'Confirm: clear Defense Ladder'; p2.textContent=DL1_SCREENS?'This clears your progress, reflections, and reading place in this browser.':'This clears your Defense Ladder progress, reflections, and reading place on this browser.'; p2.className='pill bad'; return; }
     flowClearAll(); if(done) done('cleared');
   });
   keep.addEventListener('click',()=>{ if(done) done('kept'); });
@@ -4792,7 +4947,7 @@ function flowFinishPanel(host,done){
   flowDockFit();
   const f=first||clr; try{ f.focus({preventScroll:true}); }catch(e){} if(host.closest('.fdock')) f.scrollIntoView({block:'nearest'});
 }
-/* Start fresh and Finish on this computer run in a modal dialog: the progress code with Copy first, then Clear (a
+/* Start fresh and Finish on this computer run in a modal dialog: the steps of flowFinishPanel, then Clear (a
    second tap confirms) or Keep everything; Escape keeps everything, and focus returns to the button that opened it.
    Where <dialog> is missing, the same steps show in place (host), as before. after(result) runs on close. */
 function flowFinish(title,opener,host,after){
@@ -4822,7 +4977,7 @@ function flowFinish(title,opener,host,after){
     res='cleared';
     body.innerHTML='';
     const p=el('p','fin-s fin-done');p.setAttribute('role','status');body.appendChild(p);
-    flowSay(p,'This browser is clear and ready for you.');
+    flowSay(p,DL1_SCREENS?'This browser is clear and ready for you.':opener&&opener.textContent==='Finish on this computer'?'Defense Ladder is clear on this browser and ready for the next person.':'Defense Ladder is clear on this browser and ready for you.');
     const r2=el('div','row'), ok=el('button','btn sm','OK');ok.type='button';r2.appendChild(ok);body.appendChild(r2);
     ok.addEventListener('click',end);
     try{ ok.focus(); }catch(e){}
@@ -4832,7 +4987,7 @@ function flowSharedCard(){
   const c=el('div','card shc');
   c.appendChild(el('h3',null,'On a shared computer'));
   c.appendChild(el('p','sum','On a school loaner or a family computer, the next person on this browser can see your progress and your reflections. These two tools keep your work yours.'));
-  if(flowJustCleared){ flowJustCleared=false; const p=el('p','note','This browser is clear. The next person starts fresh.');p.setAttribute('role','status');c.appendChild(p); }
+  if(flowJustCleared){ flowJustCleared=false; const p=el('p','note',DL1_SCREENS?'This browser is clear. The next person starts fresh.':'Defense Ladder is clear on this browser. The next person starts fresh.');p.setAttribute('role','status');c.appendChild(p); }
   c.appendChild(el('h4',null,'Shared computer mode'));
   const lab=el('label','shm'), cb=el('input');cb.type='checkbox';cb.id='sharedMode';cb.checked=flowShared;
   lab.append(cb,document.createTextNode('Keep my reflections in this tab only'));
@@ -4846,7 +5001,7 @@ function flowSharedCard(){
   });
   const r=el('div','row');r.append(lab,pill);c.append(r,note);
   c.appendChild(el('h4',null,'Finish on this computer'));
-  c.appendChild(el('p','sum','Take your progress code, or a file with everything, with you; then clear this browser for the next person.'));
+  c.appendChild(el('p','sum',DL1_SCREENS?'Take your progress code, or a file with everything, with you; then clear this browser for the next person.':'Copy your progress code from the Cyber tools menu, or save a file with everything; then clear Defense Ladder on this browser for the next person.'));
   const row=el('div','row'), go=el('button','btn sm','Finish on this computer');go.type='button';row.appendChild(go);c.appendChild(row);
   const panel=el('div','fin');panel.hidden=true;c.appendChild(panel);
   go.addEventListener('click',()=>flowFinish('Finish on this computer',go,panel));
@@ -4885,7 +5040,7 @@ function flowNotice(){
   const row=el('div','row'), ok=el('button','btn sec sm','OK');ok.type='button';row.appendChild(ok);
   n.append(t,row);
   flowDockAdd(n);
-  flowSay(t,'Saving is paused in this browser, so your work lasts for this visit only. Copy any reflection you want to keep, and make a progress code on My progress to carry your activities.');
+  flowSay(t,'Saving is paused in this browser, so your work lasts for this visit only. Copy any reflection you want to keep, and save everything to a file on My progress to carry your activities.');
   ok.addEventListener('click',()=>flowDockClose(n));
 }
 function flowHealth(){ if(store.ok===false) flowNotice(); }
@@ -4895,13 +5050,17 @@ const flowSpeech=typeof speechSynthesis!=='undefined'&&typeof SpeechSynthesisUtt
 let flowRaBtn=null;
 /* a card's name for its Read aloud button: its heading, without the thinking-level badge */
 function flowRaTitle(nd){ const h=nd.querySelector(':scope>h3,:scope>h4'); if(!h) return ''; const k=h.cloneNode(true); k.querySelectorAll('.blm,.imp,.sr').forEach(x=>x.remove()); return k.textContent.replace(/\s+/g,' ').trim(); }
-function flowRaName(b,stop){ b.textContent=stop?'Stop reading':'Read aloud'; if(b.dataset.t) b.setAttribute('aria-label',(stop?'Stop reading: ':'Read aloud: ')+b.dataset.t); }
+function flowRaName(b,stop){ b.textContent=stop?'Stop reading':'Read aloud'; if(b.dataset.t) b.setAttribute('aria-label',(stop?'Stop reading: ':'Read aloud: ')+b.dataset.t); if(b.parentNode) b.parentNode.classList.toggle('on',!!stop); }
+/* the button goes right after the heading that opens the card (first in the card when a heading leads nothing) */
 function flowRaAdd(nd){
   if(!flowSpeech||!nd.classList||!nd.classList.contains('card')||nd.querySelector(':scope>.ra-row')) return;
   const r=el('div','ra-row'), b=el('button','tbtn ra','Read aloud');b.type='button';
+  r.appendChild(b);
   b.dataset.t=flowRaTitle(nd); flowRaName(b,false);
   b.addEventListener('click',()=>flowRaToggle(nd,b));
-  r.appendChild(b);nd.appendChild(r);
+  const h=nd.firstElementChild;
+  if(h&&/^H[34]$/.test(h.tagName)){ h.classList.add('ra-h'); h.after(r); } else nd.prepend(r);
+  nd.classList.add('ra-c');
 }
 function flowRaStop(){
   if(!flowSpeech) return;
@@ -7393,6 +7552,6 @@ LADDER.addGlossary([
   {term:'Zone.Identifier',def:'The hidden stream that carries the Mark of the Web; ZoneId=3 means the file came from the internet, and HostUrl names where.',at:'sophomore/s2'}
 ]);
 </script>
-<!-- tool4that:foot --><p style="text-align:center;margin:28px 0 22px;font:14px/1.4 system-ui,-apple-system,Segoe UI,Arial,sans-serif"><a href="../">More free tools at Tool4That</a></p><!-- /tool4that:foot -->
+<!-- tool4that:foot --><p style="text-align:center;margin:28px 0 22px;font:14px/1.4 system-ui,-apple-system,Segoe UI,Arial,sans-serif"><a class="t4t-nav-home" href="../cyber/">More free Cyber tools</a></p><!-- /tool4that:foot -->
 </body>
 </html>

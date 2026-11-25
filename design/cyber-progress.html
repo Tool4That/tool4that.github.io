@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en" data-cp-site="https://freeapp4that.store/">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Cyber progress</title>
+<style>
+:root{
+  box-sizing:border-box;
+  --bg:#EEF2F5;--face:#FFFFFF;--ink:#17212B;--muted:#4A5868;--rule:#C3CDD7;--accent:#1F5C9E;--focus:#1F5C9E;
+  --ok:#23794A;--retry:#B35A00;--track:#D5DDE5;--warn-bg:#FFF4E5;--warn-line:#B35A00;--sel:#DFE9F5;--on-accent:#FFFFFF;
+  --body:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"Cascadia Mono","SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --t-xs:.8125rem;--t-sm:.875rem;--t-base:1rem;--t-lg:1.125rem;--t-xl:1.375rem;--t-title:2rem;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#111922;--face:#19242F;--ink:#E2E9F0;--muted:#A3B1C0;--rule:#34465A;--accent:#8CC4F2;--focus:#8CC4F2;
+    --ok:#4DBB7F;--retry:#F0A04B;--track:#2A3949;--warn-bg:#2B2216;--warn-line:#F0A04B;--sel:#22344A;--on-accent:#111922;color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111922;--face:#19242F;--ink:#E2E9F0;--muted:#A3B1C0;--rule:#34465A;--accent:#8CC4F2;--focus:#8CC4F2;
+  --ok:#4DBB7F;--retry:#F0A04B;--track:#2A3949;--warn-bg:#2B2216;--warn-line:#F0A04B;--sel:#22344A;--on-accent:#111922;color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 var(--t-base)/1.5 var(--body)}
+a{color:var(--accent);text-underline-offset:2px;overflow-wrap:anywhere}
+button,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+[tabindex="-1"]:focus{outline:none}
+.skip{position:absolute;left:-999px;top:.5rem;z-index:9;padding:.5rem .8rem;border-radius:6px;background:var(--face);color:var(--ink)}
+.skip:focus{left:.5rem}
+.wrap{max-width:60rem;margin:0 auto;padding:0 16px 2rem}
+header.top{padding:1.4rem 0 .4rem}
+h1{margin:0 0 .3rem;font:700 var(--t-title)/1.15 var(--body)}
+h2{margin:0 0 .5rem;font:700 var(--t-xl)/1.25 var(--body)}
+h3{margin:1.2rem 0 .4rem;font:700 var(--t-lg)/1.3 var(--body)}
+h4{margin:.9rem 0 .3rem;font:700 var(--t-base)/1.35 var(--body)}
+h5{margin:.8rem 0 .2rem;font:700 var(--t-base)/1.35 var(--body)}
+h6{margin:.6rem 0 .1rem;font:700 var(--t-sm)/1.35 var(--body)}
+p{margin:0 0 .6rem}
+.lede{font-size:var(--t-lg);color:var(--muted);max-width:44rem}
+.card{margin:1rem 0;padding:1rem 1.1rem;border:1px solid var(--rule);border-radius:10px;background:var(--face)}
+.note,.meta{font-size:var(--t-sm);color:var(--muted)}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:.45rem 1rem;border:2px solid var(--accent);
+  border-radius:8px;background:var(--accent);color:var(--on-accent);font-weight:650;cursor:pointer;text-align:center}
+.btn.sec{background:var(--face);color:var(--accent)}
+.btn:hover{text-decoration:underline;text-underline-offset:3px}
+.btn[hidden]{display:none}
+.btn.armed{background:var(--warn-bg);border-color:var(--warn-line);color:var(--ink)}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem .8rem;margin:.5rem 0 .7rem}
+.say{font-size:var(--t-sm);color:var(--ink)}
+textarea{display:block;width:100%;margin:.3rem 0;padding:.55rem .7rem;border:2px solid var(--rule);border-radius:8px;background:var(--bg);
+  font:400 var(--t-base)/1.55 var(--mono);white-space:pre-wrap;overflow-wrap:normal;word-break:normal;resize:vertical}
+textarea:focus-visible{border-color:var(--focus)}
+textarea[aria-invalid="true"]{border-color:var(--warn-line)}
+#code{min-height:5.5rem}
+label{display:block;font-weight:650}
+.banner{display:block;margin:1rem 0 0;padding:.8rem 1rem;border:2px solid var(--warn-line);border-radius:10px;background:var(--warn-bg)}
+.banner[hidden]{display:none}
+.banner p{margin:0 0 .3rem;font-weight:600}
+.msg{margin:.6rem 0;padding:.6rem .8rem;border-left:4px solid var(--accent);border-radius:4px;background:var(--sel)}
+.msg.bad{border-left-color:var(--warn-line);background:var(--warn-bg)}
+/* an empty status line stays rendered (so it is in the accessibility tree from load) and takes no space */
+.msg:empty{margin:0;padding:0;border:0;background:none}
+.msg p:last-child{margin:0}
+.print-code{display:none}
+/* By tool */
+.tool{padding:.7rem 0;border-top:1px solid var(--rule)}
+h4+.tool,h3+.tool{border-top:0}
+.tool-h{margin:0 0 .15rem;font-weight:700;font-size:var(--t-lg)}
+.tool-n{margin:0 0 .35rem}
+.meter{display:flex;height:.55rem;max-width:28rem;margin:.1rem 0 .45rem;border-radius:4px;background:var(--track);overflow:hidden;forced-color-adjust:none}
+.meter span{display:block;height:100%}
+.meter .m-ok{background:var(--ok)}
+.meter .m-re{background:var(--retry)}
+details{margin:.2rem 0 0}
+summary{display:inline-flex;align-items:center;min-height:44px;cursor:pointer;color:var(--accent);font-weight:600}
+summary:hover{text-decoration:underline;text-underline-offset:3px}
+.lines{margin:.1rem 0 .5rem;padding-left:1.2rem}
+.lines li{margin:.2rem 0}
+.scope{margin-top:.8rem}
+/* Worth another look */
+.grp{margin:.2rem 0 .8rem}
+.grp h4,.grp h5,.grp h6{margin-bottom:.1rem}
+.items{margin:.2rem 0 .3rem;padding-left:1.2rem}
+.items li{margin:.25rem 0;overflow-wrap:anywhere}
+.items li[hidden]{display:none}
+.tag{display:inline-block;margin-left:.4rem;padding:0 .4rem;border:1px solid var(--muted);border-radius:4px;font-size:var(--t-xs);font-weight:650;color:var(--ink);white-space:nowrap}
+.go{display:inline-flex;align-items:center;min-height:2rem}
+.more{min-height:44px;padding:.3rem .2rem;border:0;background:none;color:var(--accent);font-weight:600;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.look{margin:.8rem 0 0;padding:.8rem 1rem;border:1px dashed var(--rule);border-radius:10px}
+.look[hidden],.js .nojs{display:none}
+#preview .lines{margin-bottom:.4rem}
+.steps{margin:.4rem 0 0;padding-left:1.3rem}
+.steps>li{margin:.3rem 0 .6rem}
+.steps>li::marker{font-weight:700}
+footer.foot{margin-top:1.6rem;padding-top:.8rem;border-top:1px solid var(--rule);font-size:var(--t-sm);color:var(--muted)}
+#app{display:none}
+.js #app{display:block}
+@media (pointer:coarse){#app a,.skip{display:inline-flex;align-items:center;min-height:44px}}
+@media (max-width:520px){h1{font-size:1.7rem}.card{padding:.85rem .8rem}}
+@media (forced-colors:active){
+  .meter{border:1px solid CanvasText;background:Canvas}.meter .m-ok{background:Highlight}.meter .m-re{background:LinkText}
+  .btn,.more,summary{forced-color-adjust:auto}
+}
+@media (prefers-reduced-motion:no-preference){.btn,.more{transition:background-color .12s}}
+@media print{
+  body{background:#fff;color:#000}
+  .skip,.btn,.more,#open,#finish,.banner,.row,#code,#paste{display:none!important}
+  .print-code{display:block;margin:.3rem 0 .6rem;font:400 var(--t-base)/1.55 var(--mono);white-space:pre-wrap}
+  .items li[hidden]{display:list-item!important}
+  .card{border:0;padding:0}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to your progress</a>
+<main id="main" class="wrap" tabindex="-1">
+<header class="top">
+  <h1>My Cyber progress</h1>
+  <p class="lede">Every question you check, every Range check you pass, and every task, finding, and ticket you solve shows up here.</p>
+</header>
+<p class="nojs">This page reads your saved results with JavaScript. Switch JavaScript on to see them here, or open each Cyber tool to see its own progress.</p>
+<div id="app">
+  <section class="banner" id="banner" aria-labelledby="banner-t" hidden>
+    <p id="banner-t">Results from an earlier visit are on this browser. Are they yours?</p>
+    <div class="row"><button class="btn" type="button" id="keep">Keep my progress</button><button class="btn sec" type="button" id="to-finish">Finish on this computer</button></div>
+  </section>
+
+  <section class="card" id="code-card" aria-labelledby="h-code">
+    <h2 id="h-code">Your progress code</h2>
+    <p>Your progress code is your own record: keep it, move it to another device, or share it with a teacher, who can look at it on My Cyber progress without saving it.</p>
+    <textarea id="code" readonly rows="4" spellcheck="false" aria-label="Your progress code" aria-describedby="code-len"></textarea>
+    <p class="print-code" id="code-print"></p>
+    <div class="row"><button class="btn" type="button" id="copy">Copy code</button><span class="meta" id="code-len"></span><span class="say" id="copy-say" role="status"></span></div>
+    <div class="msg bad" id="code-warn" role="status"></div>
+    <p class="note">Copy and paste is the way to move a code. Typing works for short codes.</p>
+    <p class="note">The code carries right and to-retry results. Your machines, notes, and reflections stay in each tool on this browser.</p>
+    <p class="note" id="reads"></p>
+    <p class="note">freeapp4that.store, tool4that.github.io, and copies opened from your computer each keep their own progress. Your code carries it between them.</p>
+  </section>
+
+  <section class="card" id="tools" aria-labelledby="h-tools">
+    <h2 id="h-tools">By tool</h2>
+    <div id="tools-body"></div>
+    <p class="note scope">These counts follow questions and checks with a right answer. Each tool’s own page also counts labs, reflections, and second-day reviews, so its numbers can differ.</p>
+  </section>
+
+  <section class="card" id="again" aria-labelledby="h-again">
+    <h2 id="h-again">Worth another look</h2>
+    <div id="again-body"></div>
+  </section>
+
+  <section class="card" id="open" aria-labelledby="h-open">
+    <h2 id="h-open">Open a code</h2>
+    <label for="paste">Paste a progress code</label>
+    <textarea id="paste" rows="3" spellcheck="false" autocomplete="off" autocapitalize="characters" aria-describedby="paste-say"></textarea>
+    <div class="row"><button class="btn" type="button" id="look">Look at this code</button></div>
+    <div class="msg" id="paste-say" role="status" tabindex="-1"></div>
+    <div class="look" id="look-out" hidden>
+      <h3 id="h-look">This code shows</h3>
+      <div id="look-body"></div>
+      <div class="row"><button class="btn sec" type="button" id="add">Add these results to this browser</button></div>
+      <div class="msg" id="preview" role="status"></div>
+      <div class="row" id="preview-act" hidden><button class="btn" type="button" id="add-go">Add them</button><button class="btn sec" type="button" id="add-no">Cancel</button></div>
+    </div>
+    <div class="msg" id="added" role="status" tabindex="-1"></div>
+    <div class="row"><button class="btn sec" type="button" id="undo" hidden>Undo</button></div>
+  </section>
+
+  <section class="card" id="finish" aria-labelledby="h-finish" tabindex="-1">
+    <h2 id="h-finish">Finish on this computer</h2>
+    <p>Done on a shared computer? Take your code with you, then clear this browser for the next learner.</p>
+    <ol class="steps">
+      <li>Copy your progress code.
+        <div class="row"><button class="btn sec" type="button" id="fin-copy">Copy code</button><span class="say" id="fin-copy-say" role="status"></span></div></li>
+      <li>Clear Cyber progress on this browser.
+        <div class="row"><button class="btn" type="button" id="fin-clear">Clear Cyber progress on this browser</button></div>
+        <div class="msg bad" id="fin-say" role="status"></div></li>
+    </ol>
+  </section>
+</div>
+<footer class="foot">
+  <p>Subnet Sprint makes new problems every time you play, so it keeps its best results on its own page. Study Map, Command Atlas, and Cyber PUG keep your ratings, settings, and team notes on this browser.</p>
+  <p>Unofficial training, independent of and unendorsed by the makers of the systems it names.</p>
+</footer>
+</main>
+<script type="application/json" id="cp-data">{"cyber_progress":"no data yet"}</script>
+<script>
+/*@progress-code*//*@/progress-code*/
+(function () {
+  'use strict';
+  /* everything waits for the first task after the page is parsed, so a slow device paints the page first */
+  setTimeout(main, 0);
+  function main() {
+    var C = T4T_CODE, doc = document, root = doc.documentElement, has = Object.prototype.hasOwnProperty;
+    function $(id) { return doc.getElementById(id); }
+    function el(tag, cls, text) { var e = doc.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+    function add(p) { for (var i = 1; i < arguments.length; i++) { var c = arguments[i]; if (c != null && c !== false) p.appendChild(typeof c === 'string' ? doc.createTextNode(c) : c); } return p; }
+    function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+    function and(a) { return a.length < 3 ? a.join(' and ') : a.slice(0, -1).join(', ') + ', and ' + a[a.length - 1]; }
+    function cut(t, n) { t = String(t || ''); if (t.length <= n) return t; var s = t.slice(0, n), sp = s.lastIndexOf(' '); return (sp > n * 0.6 ? s.slice(0, sp) : s).replace(/[\s,.;:]+$/, '') + '…'; }
+    function pct(n, d) { return d ? Math.floor(n * 1000 / d + 0.5) / 10 : 0; }
+
+    var D = null;
+    try { D = JSON.parse($('cp-data').textContent); } catch (e) { D = null; }
+    if (!D || !D.segments || !C || !C.read) return;
+    root.classList.add('js');
+
+    /* ---- the registry this page carries: one segment per tool, one slot per right-or-wrong item ---- */
+    var SEGS = D.segments, BY_G = {}, BY_KEY = {}, KNOWN = {}, SAVE_OF = {};
+    var VERB = {questions: 'right', checks: 'passed', tasks: 'done', findings: 'fixed', tickets: 'solved'};
+    var BY_WHAT = {dl: 'By grade', drill: 'By level', range: 'By scenario', cli: 'By mission', audit: 'By configuration', tickets: 'By ticket type'};
+    SEGS.forEach(function (s) {
+      var k = s.k;
+      s.type = k === 'defense-ladder' ? 'dl' : /^lockdown-drills\./.test(k) ? 'drill' : /^lockdown-range\./.test(k) ? 'range'
+        : k === 'net-drills.ios-cli-lab' ? 'cli' : k === 'net-drills.config-audit' ? 'audit' : k === 'net-drills.trouble-tickets' ? 'tickets' : 'other';
+      s.family = s.type === 'drill' ? 'Lockdown Drills' : s.type === 'range' ? 'Lockdown Range' : s.name;
+      s.carried = s.type === 'dl' || s.type === 'drill' || s.type === 'cli' || s.type === 'audit';
+      s.one = s.noun.replace(/s$/, '');
+      s.grp = {};
+      s.groups.forEach(function (x) { s.grp[x.id] = x; });
+      s.quizzes = {};
+      if (s.type === 'dl') s.slots.forEach(function (r) { if (r[1] === 'quiz') s.quizzes[r[0].slice(0, r[0].lastIndexOf('.'))] = 1; });
+      BY_G[s.g] = s; BY_KEY[s.key] = s; KNOWN[s.g] = s.slots.length;
+      (s.save || []).forEach(function (key) { (SAVE_OF[key] = SAVE_OF[key] || []).push(s); });
+    });
+    function retired(r) { return !!(r[4] && r[4].retired); }
+    /* Level 1 to 3 checks make a Range's total; Level 4 (generated layouts, and Cisco's original two-site layout) is extra credit */
+    function core(s, r) { var x = s.grp[r[3]]; return s.type !== 'range' || !!(x && !x.l4 && (x.level || 0) <= 3); }
+
+    /* ---- where links go: beside this page online; at the site from a copy opened from a file ---- */
+    var FILE = location.protocol === 'file:';
+    var SITE = root.getAttribute('data-cp-site') || D.site;
+    function href(rel) { return FILE ? new URL(rel, SITE + 'my-cyber-progress/').href : rel; }
+    function link(rel, text, cls) { var a = el('a', cls || null, text); a.href = href(rel); return a; }
+    function item(id) { return encodeURIComponent(id).replace(/%2F/g, '/').replace(/%3A/g, ':'); }
+
+    /* ---- storage: every read and write in try/catch; a blocked store leaves the page in look-only mode ---- */
+    var LS = null;
+    try { LS = window.localStorage || null; if (LS) LS.getItem('t4t.progress.seen'); } catch (e) { LS = null; }
+    function get(k) { if (!LS) return null; try { return LS.getItem(k); } catch (e) { return null; } }
+    function put(k, v) { if (!LS) return false; try { LS.setItem(k, v); return LS.getItem(k) === v; } catch (e) { return false; } }
+    function del(k) { if (!LS) return; try { LS.removeItem(k); } catch (e) { /* stays */ } }
+    function json(k) { var v = get(k); if (v == null) return null; try { return JSON.parse(v); } catch (e) { return null; } }
+    function keys() { var out = [], i, n, k; if (!LS) return out; try { n = LS.length; for (i = 0; i < n; i++) { k = LS.key(i); if (k != null) out.push(k); } } catch (e) { /* none */ } return out; }
+    function sget(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }
+    function sset(k, v) { try { sessionStorage.setItem(k, v); } catch (e) { /* this visit only */ } }
+
+    var HELD = 't4t.done.held', REC_KEY = /^t4t\.done\.[a-z0-9.-]+$/, SEEN = 't4t.progress.seen', KEEP = 't4t.progress.keep';
+    var VISIT_GAP = 30 * 60 * 1000; /* Defense Ladder's new-visit gap */
+    function at(d, i) { return d.charAt(i) || '0'; }
+    function recText(s, d) { return JSON.stringify({v: 1, g: s.g, k: s.k, s: C.trim(d)}); }
+    function own(s) { var raw = get(s.key), r = raw == null ? null : C.rec(s.key, raw), ok = !!(r && r.g === s.g); return {raw: raw, s: ok ? r.s : '', ok: raw == null || ok}; }
+    function above(a, b) { var n = 0, i; for (i = 0; i < a.length; i++) if (at(a, i) > at(b, i)) n++; return n; }
+    function hasSave(s) { return (s.save || []).some(function (k) { var v = get(k); return v != null && v !== 'null'; }); }
+    /* Defense Ladder's oldest quiz records (a finished quiz without its per-item r list): only Defense Ladder itself reads
+       them, the next time it opens, so until then this page leaves its record unwritten and the menu's gather line shows */
+    function dlOld(s) {
+      var o = s.type === 'dl' ? json(s.save[0]) : null, u, x;
+      if (!o || typeof o !== 'object') return false;
+      for (u in s.quizzes) if (has.call(s.quizzes, u)) { x = o[u]; if (x && typeof x === 'object' && !Array.isArray(x.r) && x.total > 0) return true; }
+      return false;
+    }
+
+    /* ---- marks from each tool's own save, by the tool's own rules (never its quiz-count field) ---- */
+    function derive(s) {
+      var d = [], o, x, i, r, n, src, ids;
+      if (s.type === 'dl') {
+        o = json(s.save[0]);
+        if (!o || typeof o !== 'object') return '';
+        for (i = 0; i < s.slots.length; i++) {
+          r = s.slots[i];
+          if (retired(r)) continue;
+          if (r[1] === 'quiz') {
+            n = r[0].lastIndexOf('.'); x = o[r[0].slice(0, n)];
+            x = x && Array.isArray(x.r) ? x.r[+r[0].slice(n + 1)] : null;
+            if (Array.isArray(x) && typeof x[2] === 'number') d[i] = x[2] >= 1 ? 2 : 1;
+          } else if (o[r[0]] && o[r[0]].done === true) d[i] = 2;
+        }
+      } else if (s.type === 'drill') {
+        src = [];
+        o = json(s.save[0]);
+        if (o && typeof o === 'object') src.push(o);
+        else if (s.distros && get(s.save[0]) == null && !get(s.save[0] + '-adopted')) {
+          /* the Debian drill adopts the Ubuntu and Linux Mint drills' saves on its first visit; until then, read them the same way */
+          for (i = 1; i < s.save.length; i++) { x = json(s.save[i]); if (x && typeof x === 'object') src.push(x); }
+        }
+        if (!src.length) return '';
+        for (i = 0; i < s.slots.length; i++) {
+          r = s.slots[i];
+          if (r[1] !== 'step' || retired(r)) continue;
+          if (src.some(function (S) { return (S.drilled && S.drilled[r[0]] > 0) || (S.days && Array.isArray(S.days[r[0]]) && S.days[r[0]].length > 0); })) d[i] = 2;
+        }
+      } else if (s.type === 'cli') {
+        o = json(s.save[0]);
+        if (!o || typeof o !== 'object') return '';
+        for (i = 0; i < s.slots.length; i++) if (!retired(s.slots[i]) && o[s.slots[i][3]] === true) d[i] = 2;
+      } else if (s.type === 'tickets') {
+        o = json(s.save[0]);
+        if (!o || !Array.isArray(o.ids)) return '';
+        ids = {};
+        o.ids.forEach(function (id) { ids[id] = 1; });
+        for (i = 0; i < s.slots.length; i++) if (!retired(s.slots[i]) && has.call(ids, s.slots[i][0])) d[i] = 1;
+      }
+      for (i = 0; i < d.length; i++) d[i] = d[i] || 0;
+      return C.trim(d.join(''));
+    }
+    /* the Debian drill's distributions this learner has used: the drill's own choice and runs, a legacy save, or a touched entry */
+    function used(s, dg, live) {
+      var u = {}, o, i;
+      if (!s.distros) return null;
+      if (live) {
+        o = json(s.save[0]);
+        if (o && typeof o === 'object') { u[o.distro === 'm' ? 'm' : 'u'] = 1; (Array.isArray(o.runs) ? o.runs : []).forEach(function (r) { if (Array.isArray(r) && typeof r[0] === 'string') u[r[0]] = 1; }); }
+        else for (i = 1; i < s.save.length && i <= s.distros.length; i++) if (get(s.save[i]) != null) u[s.distros[i - 1][0]] = 1;
+      }
+      s.slots.forEach(function (r, j) { if (r[4] && r[4].only && at(dg, j) !== '0') u[r[4].only] = 1; });
+      if (!Object.keys(u).length) u[s.distros[0][0]] = 1;
+      return u;
+    }
+
+    /* ---- this browser's results: each tool's record, raised by its own save and by t4t.done.held, written back only when raised ---- */
+    var M = {}, OTHER = {}, RANGE = {}, finished = false;
+    /* results this browser could not store (its storage is full), per tool, from the last try */
+    function short() { return SEGS.reduce(function (n, s) { return n + (s.short || 0); }, 0); }
+    function gather(s, heldDigits) {
+      var o = own(s), m = C.max(C.max(o.s, heldDigits || ''), derive(s));
+      if (!o.ok) console.warn('My Cyber progress: ' + s.key + ' held a damaged record; it now holds this browser\'s results again.');
+      M[s.g] = m;
+      s.short = 0;
+      s.old = o.raw == null && !heldDigits && dlOld(s);
+      if (s.old) return true;
+      if (LS && (!o.ok || m !== o.s || heldDigits || (o.raw == null && hasSave(s)))) {
+        if (put(s.key, recText(s, m))) return true;
+        s.short = above(m, o.s);
+        return false;
+      }
+      return true;
+    }
+    function loadAll() {
+      var H, moved = [], g, rest = {}, n = 0;
+      M = {}; OTHER = {};
+      if (!LS) return;
+      H = C.held(get(HELD));
+      keys().forEach(function (k) {
+        var r;
+        if (k === HELD || !REC_KEY.test(k) || has.call(BY_KEY, k)) return;
+        r = C.rec(k, get(k));
+        if (!r) return;
+        if (has.call(BY_G, r.g)) { console.warn('My Cyber progress: removed ' + k + ', which claimed ' + BY_G[r.g].name + '\'s results.'); del(k); return; }
+        OTHER[r.g] = C.max(OTHER[r.g] || '', r.s);
+      });
+      SEGS.forEach(function (s) { if (gather(s, H[s.g]) && has.call(H, String(s.g))) moved.push(String(s.g)); });
+      for (g in H) if (has.call(H, g)) {
+        if (moved.indexOf(g) >= 0) continue;
+        if (!has.call(BY_G, g)) OTHER[g] = C.max(OTHER[g] || '', H[g]);
+        rest[g] = H[g]; n++;
+      }
+      if (moved.length) { if (n) put(HELD, JSON.stringify({v: 1, held: rest})); else del(HELD); }
+    }
+    function refresh(list) { list.forEach(function (s) { gather(s, null); }); }
+    function rangeLoad(s) {
+      var o = json(s.save[0]), sc = o && (o.scen || o.scenarios), out = {}, id, x;
+      if (sc && typeof sc === 'object') for (id in sc) if (has.call(sc, id) && sc[id] && typeof sc[id] === 'object') {
+        x = sc[id];
+        out[id] = {best: typeof x.best === 'number' ? x.best : 0, code: typeof x.bestCode === 'string' ? x.bestCode : ''};
+      }
+      RANGE[s.g] = out;
+    }
+    function rangesLoad() { SEGS.forEach(function (s) { if (s.type === 'range') rangeLoad(s); }); }
+    /* a Range group's saved scenario: Level 4 sits under "advanced" (Cisco: s4, shared with the original layout) */
+    function rangeRec(s, gid) {
+      var R = RANGE[s.g] || {}, cisco = s.k === 'lockdown-range.cisco-ios', x;
+      if (gid !== 'L4') { x = R[gid]; return x && cisco && gid === 's4' && x.code && x.code !== 'CLASSIC' ? null : x || null; }
+      x = R[cisco ? 's4' : 'advanced'];
+      return x && cisco && (!x.code || x.code === 'CLASSIC') ? null : x || null;
+    }
+    function records(src) { var r = {}, g; for (g in src.M) if (has.call(src.M, g) && src.M[g]) r[g] = src.M[g]; for (g in src.O) if (has.call(src.O, g) && src.O[g] && !has.call(r, g)) r[g] = src.O[g]; return r; }
+    function tally(rec) { var t = {ok: 0, mi: 0, n: 0}, g, s, i; for (g in rec) if (has.call(rec, g) && rec[g]) { t.n++; s = rec[g]; for (i = 0; i < s.length; i++) { if (s.charAt(i) === '2') t.ok++; else if (s.charAt(i) === '1') t.mi++; } } return t; }
+
+    /* ---- counting ---- */
+    function count(s, dg, use, pick) {
+      var c = {right: 0, retry: 0, todo: 0}, i, r, v;
+      for (i = 0; i < s.slots.length; i++) {
+        r = s.slots[i];
+        if (retired(r) || (pick && !pick(r)) || (use && r[4] && r[4].only && !use[r[4].only])) continue;
+        v = at(dg, i);
+        if (v === '2') c.right++; else if (v === '1') c.retry++; else c.todo++;
+      }
+      return c;
+    }
+    function words(s, c, o) {
+      o = o || {};
+      return plural(c.right, s.one, s.noun) + ' ' + (VERB[s.noun] || 'right') + (o.hints ? ' (with or without hints)' : '') + ', ' + c.retry + ' to retry'
+        + (o.open ? '' : ', ' + c.todo + ' still to try');
+    }
+    function meter(c) {
+      var m = el('div', 'meter'), t = c.right + c.retry + c.todo, a = el('span', 'm-ok'), b = el('span', 'm-re');
+      m.setAttribute('aria-hidden', 'true');
+      a.style.width = pct(c.right, t) + '%'; b.style.width = pct(c.retry, t) + '%';
+      return add(m, a, b);
+    }
+    /* Level 4 holds checks (the faults to fix, and Cisco's reach and save) and investigation questions: each in its own words */
+    function l4Words(s, dg) {
+      function part(gen) {
+        var q = function (r) { return /question$/.test(r[1]); }, inL4 = function (r) { var x = s.grp[r[3]]; return !!(x && (gen ? x.l4 : !x.l4 && x.level === 4)); };
+        var c = count(s, dg, null, function (r) { return inL4(r) && !q(r); }), n = count(s, dg, null, function (r) { return inL4(r) && q(r); });
+        return plural(c.right, 'check', 'checks') + ' passed' + (n.right + n.retry + n.todo ? ' and ' + plural(n.right, 'question', 'questions') + ' right' : '');
+      }
+      var t = 'Level 4, extra credit: ' + part(true);
+      if (s.groups.some(function (x) { return !x.l4 && x.level === 4; })) t += '; on the original layout, ' + part(false);
+      return t;
+    }
+
+    /* ---- By tool ---- */
+    function groupLines(s, dg, use, live) {
+      var ul = el('ul', 'lines'), grades = [], by = {};
+      if (s.type === 'dl') {
+        s.groups.forEach(function (x) { if (!has.call(by, x.gradeName)) { by[x.gradeName] = {}; grades.push(x.gradeName); } by[x.gradeName][x.id] = 1; });
+        grades.forEach(function (gn) { add(ul, el('li', null, gn + ': ' + words(s, count(s, dg, use, function (r) { return !!by[gn][r[3]]; })))); });
+        return ul;
+      }
+      s.groups.forEach(function (x) {
+        var c = count(s, dg, use, function (r) { return r[3] === x.id; }), extra = !!(x.l4 || x.level === 4), t, rr;
+        if (!(c.right + c.retry + c.todo)) return;
+        /* a group named as a question ("Who is the imposter?") drops its question mark before the colon */
+        t = (s.type === 'range' && x.title ? x.name + ' (' + x.title + ')' : x.name.replace(/\?$/, '')) + ': ' + words(s, c, {open: extra});
+        if (live && s.type === 'range') { rr = rangeRec(s, x.id); if (rr && rr.best > 0) t += '; best ' + rr.best + ' of 100 points'; }
+        if (live && s.type === 'audit') { var a = json(s.save[0]); if (a && a[x.id] === true) t += ' (audited)'; }
+        add(ul, el('li', null, t));
+      });
+      if (s.distros) s.distros.forEach(function (d) {
+        var untouched = s.slots.every(function (r, j) { return !(r[4] && r[4].only === d[0]) || at(dg, j) === '0'; });
+        if (use && !use[d[0]] && untouched) add(ul, el('li', null, d[1] + ' entries: switch the drill to ' + d[1] + ' to try them.'));
+      });
+      return ul;
+    }
+    function toRevisit(s, dg) {
+      return s.groups.filter(function (x) {
+        var rr = rangeRec(s, x.id);
+        return rr && rr.best > 0 && !s.slots.some(function (r, j) { return r[3] === x.id && at(dg, j) !== '0'; });
+      });
+    }
+    function toolRow(s, dg, live) {
+      var row = el('div', 'tool'), use = used(s, dg, live), c = count(s, dg, use, function (r) { return core(s, r); }), d, sm, x, open;
+      row.setAttribute('data-g', s.g);
+      add(row, add(el('p', 'tool-h'), link('../' + s.href, s.name)));
+      var any = c.right + c.retry > 0 || (dg && /[12]/.test(dg)), audited = live && s.type === 'audit' ? json(s.save[0]) : null;
+      audited = !!(audited && s.groups.some(function (x) { return audited[x.id] === true; }));
+      open = live && s.type === 'range' ? toRevisit(s, dg) : [];
+      if (!any && !audited && !open.length && live && !s.old) add(row, el('p', 'tool-n', 'Ready when you are: open ' + s.name + ' to start.'));
+      else add(row, el('p', 'tool-n', words(s, c, {hints: s.type === 'range'})), meter(c));
+      if (live && s.old) add(row, el('p', 'meta', 'Open ' + s.name + ' once to add your earlier quiz results to your code.'));
+      if (s.type === 'range' && (any || open.length)) add(row, el('p', 'meta', l4Words(s, dg)));
+      if (any || audited || open.length) {
+        d = el('details'); d.setAttribute('data-keep', 'd' + s.g + (live ? 'l' : 'c'));
+        sm = el('summary', null, BY_WHAT[s.type] || 'Details');
+        add(d, sm, groupLines(s, dg, use, live));
+        if (s.type === 'range') add(d, el('p', 'note', 'Your Debrief counts a pass without hints on a fresh attempt as Strong.'));
+        if (open.length) {
+          x = el('p', 'note', 'Scenarios with saved points: open each once to add its checks to your code. ');
+          open.forEach(function (gr, i) { if (i) add(x, ', '); add(x, link('../' + s.href + '#item=' + (gr.id === 'L4' ? 'L4/' : item(gr.id) + '/'), gr.id === 'L4' ? 'Level 4' : gr.name)); });
+          add(d, x);
+        }
+        add(row, d);
+      }
+      return {row: row, any: any};
+    }
+    function drawTools(host, dg, live) {
+      host.textContent = '';
+      var none = [];
+      (D.layout || []).forEach(function (sec) {
+        var shown = false, h3 = el(live ? 'h3' : 'h4', null, sec.title), part = doc.createDocumentFragment();
+        sec.series.forEach(function (grp) {
+          var block = doc.createDocumentFragment(), n = 0;
+          grp.gs.forEach(function (g) {
+            var s = BY_G[g], r = toolRow(s, dg(g), live);
+            if (!live && !r.any) { none.push(s.name); return; }
+            add(block, r.row); n++;
+          });
+          if (!n) return;
+          if (grp.title) add(part, el(live ? 'h4' : 'h5', null, grp.title));
+          add(part, block); shown = true;
+        });
+        if (shown) add(host, h3, part);
+      });
+      if (!live && none.length) add(host, el('p', 'note', 'Tools without results in this code: ' + and(none) + '.'));
+    }
+
+    /* ---- Worth another look: to-retry items under their unit, level, scenario, mission, configuration, or ticket type ---- */
+    var MAX = 8;
+    function drawAgain(host, dg, live, lvl) {
+      host.textContent = '';
+      var total = 0;
+      (D.layout || []).forEach(function (sec) { sec.series.forEach(function (grp) { grp.gs.forEach(function (g) {
+        var s = BY_G[g], d = dg(g), by = {}, order = [], i, r, box;
+        for (i = 0; i < s.slots.length; i++) {
+          r = s.slots[i];
+          if (retired(r) || at(d, i) !== '1') continue;
+          if (!has.call(by, r[3])) { by[r[3]] = []; order.push(r[3]); }
+          by[r[3]].push(r);
+        }
+        if (!order.length) return;
+        if (s.type === 'dl') {
+          /* Core skills first, inside each unit and across units */
+          var isCore = function (r) { return !!(r[4] && r[4].core); };
+          order.forEach(function (id) { by[id] = by[id].filter(isCore).concat(by[id].filter(function (r) { return !isCore(r); })); });
+          order = order.filter(function (id) { return by[id].some(isCore); }).concat(order.filter(function (id) { return !by[id].some(isCore); }));
+        }
+        var n = order.reduce(function (a, id) { return a + by[id].length; }, 0);
+        total += n;
+        box = add(el('div', 'tool-again'), el('h' + lvl, null, s.name + ': ' + n + ' to retry'));
+        if (s.type === 'tickets') add(box, add(el('p'), link('../' + s.href, live ? 'Open Trouble Tickets: your review deck holds the tickets to retry on this device' : 'Open Trouble Tickets', 'go')));
+        order.forEach(function (id) { add(box, group(s, s.grp[id] || {id: id, name: s.name}, by[id], lvl + 1)); });
+        add(host, box);
+      }); }); });
+      if (!total) add(host, el('p', 'note', live ? 'Items you miss show up here, each with a link back to it.' : 'This code lists zero items to retry.'));
+      return total;
+    }
+    function group(s, x, rows, lvl) {
+      var box = el('div', 'grp'), h = el('h' + lvl), meta = [], ul = el('ul', 'items'), base = '../' + s.href, first = rows[0][0], extra = rows.length - MAX;
+      if (s.type === 'dl') { add(h, link(base + '#' + x.grade + '/' + x.id, 'Review: ' + x.name)); meta.push(x.gradeName); }
+      else if (s.type === 'range') { add(h, link(base + '#item=' + item(first), 'Open ' + s.name + ', ' + (x.l4 ? 'Level 4' : x.name))); if (x.title) meta.push(x.title); }
+      else if (s.type === 'cli') { add(h, link(base + '#item=' + item(first), 'Open the mission ' + x.name)); if (x.grade) meta.push(x.grade); }
+      else if (s.type === 'audit') { add(h, link(base + '#item=' + item(first), 'Open the configuration ' + x.name)); if (x.grade) meta.push(x.grade); }
+      else add(h, x.name || s.name);
+      meta.push(plural(rows.length, 'item', 'items') + ' to retry');
+      add(box, h, el('p', 'meta', meta.join(', ')));
+      rows.forEach(function (r, i) {
+        var li = el('li'), lab = r[2] || x.name || '';
+        if (s.type === 'drill') {
+          if (r[1] === 'step') add(li, link(base + '#item=' + item(r[0]), 'Open the Learn card: ' + lab));
+          else if (r[1] === 'judge') add(li, link(base + '#item=' + item(r[0]), 'Open Fix or break: ' + lab));
+          else if (r[1] === 'imp') add(li, link(base + '#item=' + item(r[0]), 'Open Who is the imposter: ' + lab.replace(/^Who is the imposter\?\s*/, '')));
+          else add(li, lab + ' ', link(base + '#item=' + item(r[0]), 'Open the ' + (x.name || '') + ' drill: spot the finding questions come up there'));
+        } else add(li, s.type === 'dl' ? cut(lab, 100) : lab);
+        if (r[4] && r[4].core) add(li, el('span', 'tag', 'Core skill'));
+        if (i >= MAX) li.hidden = true;
+        add(ul, li);
+      });
+      add(box, ul);
+      if (extra > 0) {
+        var b = el('button', 'more', 'Show all ' + rows.length);
+        b.type = 'button';
+        b.addEventListener('click', function () {
+          [].forEach.call(ul.children, function (li) { li.hidden = false; });
+          var f = ul.children[MAX], a = f && f.querySelector('a');
+          if (!a && f) f.tabIndex = -1;
+          b.remove();
+          try { (a || f).focus(); } catch (e) { /* stays */ }
+        });
+        add(box, b);
+      }
+      return box;
+    }
+
+    /* ---- the code card ---- */
+    function code() { return C.group(C.encode(records({M: M, O: OTHER}))); }
+    function drawCode() {
+      var c = code();
+      $('code').value = c;
+      $('code-print').textContent = c;
+      $('code-len').textContent = plural(c.replace(/ /g, '').length, 'character', 'characters');
+      var w = $('code-warn');
+      w.textContent = !LS ? 'This window is set to forget saved work (a private window can do that), so this page starts empty here. Open a regular window to see and keep your results.'
+        : short() ? 'This browser’s storage for this site is full, so ' + plural(short(), 'result stays', 'results stay') + ' only in your code. Keep your code: it holds them.' : '';
+    }
+    function copy(say) {
+      var c = code(), t = tally(records({M: M, O: OTHER})), cb = navigator.clipboard;
+      var done = t.ok + t.mi ? 'Copied: ' + plural(t.ok + t.mi, 'result', 'results') + ' from ' + plural(t.n, 'tool', 'tools') + ' (' + t.ok + ' right, ' + t.mi + ' to retry).'
+        : 'Copied. Your code fills in as you answer questions and pass checks.';
+      function fallback() {
+        var b = $('code');
+        b.value = c; b.removeAttribute('readonly'); b.focus(); b.select();
+        try { b.setSelectionRange(0, b.value.length); } catch (e) { /* select() did it */ }
+        b.setAttribute('readonly', '');
+        say.textContent = 'Selected. Press Ctrl+C (Command+C on a Mac) to copy; on a phone, tap and hold, then Copy.';
+      }
+      say.textContent = '';
+      if (!cb || !cb.writeText) { fallback(); return; }
+      try { cb.writeText(c).then(function () { say.textContent = done; }, fallback); } catch (e) { fallback(); }
+    }
+
+    /* ---- drawing, keeping open panels and focus across redraws ---- */
+    function draw() {
+      var open = {}, f = doc.activeElement, fk = f && f.closest && f.closest('[data-g]');
+      [].forEach.call(doc.querySelectorAll('details[data-keep]'), function (d) { if (d.open) open[d.getAttribute('data-keep')] = 1; });
+      var dg = function (g) { return M[g] || ''; };
+      drawCode();
+      drawTools($('tools-body'), dg, true);
+      drawAgain($('again-body'), dg, true, 3);
+      [].forEach.call(doc.querySelectorAll('details[data-keep]'), function (d) { if (open[d.getAttribute('data-keep')]) d.open = true; });
+      if (fk && !doc.contains(f)) { var again = doc.querySelector('#tools-body [data-g="' + fk.getAttribute('data-g') + '"] summary'); if (again) again.focus(); }
+    }
+    $('reads').textContent = FILE
+      ? 'Opened from a file, this page shows the progress this browser shares between files you opened from your computer. Its tool links open the site.'
+      : 'This page reads the results this browser keeps for ' + location.hostname + '.';
+
+    /* ---- Open a code: look first (nothing saved), then add with a preview, then Undo ---- */
+    /* Defense Ladder's own DL1- code (owner choice: retired from Defense Ladder's screens; a pasted DL1- code still loads
+       there, so this message sends it to Defense Ladder) */
+    var DL_CODE = {text: 'This is an earlier Defense Ladder code. Paste it in Defense Ladder: My progress, Move your progress, then Paste an earlier Defense Ladder code.', link: 'Open Defense Ladder', href: '../defense-ladder/'};
+    var MSG = {
+      damaged: 'This code has a typo or a missing piece. Copy the whole code again, from CY1- to its last character, and paste it here.',
+      other: 'A progress code starts with CY1-. Copy it from Copy my progress code in the Cyber tools menu, or from this page.',
+      newer: 'This code comes from a newer version of the course. Load it on freeapp4that.store, or download a fresh copy of My Cyber progress.',
+      blocked: 'This window is set to forget saved work (a private window can do that). Your code still holds every result: open a regular window and add it there.',
+      same: 'This browser already holds every result in this code.'
+    };
+    var LOOKED = null, UNDO = null;
+    var paste = $('paste'), say = $('paste-say');
+    function tell(box, text, bad, extra) {
+      box.textContent = '';
+      box.classList.toggle('bad', !!bad);
+      if (text) add(box, add(el('p'), text, extra ? ' ' : null, extra || null));
+    }
+    function invalid(on) { if (on) paste.setAttribute('aria-invalid', 'true'); else paste.removeAttribute('aria-invalid'); }
+    function hidePreview() { $('preview').textContent = ''; $('preview-act').hidden = true; }
+    function look() {
+      var t = paste.value, r = C.read(t, KNOWN);
+      if (r.kind === 'long') r = {kind: /CY\s*1/i.test(t) ? 'damaged' : 'other'};
+      hidePreview();
+      if (r.kind !== 'ok') {
+        LOOKED = null; $('look-out').hidden = true; invalid(true);
+        if (r.kind === 'dl') tell(say, DL_CODE.text, true, link(DL_CODE.href, DL_CODE.link));
+        else tell(say, MSG[r.kind] || MSG.other, true);
+        return;
+      }
+      invalid(false);
+      LOOKED = r.records;
+      var t2 = tally(LOOKED), held = heldOf(LOOKED);
+      tell(say, t2.ok + t2.mi ? 'This code shows ' + plural(t2.ok + t2.mi, 'result', 'results') + ' from ' + plural(t2.n, 'tool', 'tools') + ' (' + t2.ok + ' right, ' + t2.mi + ' to retry).'
+        : 'This code is empty: its results fill in as its owner answers questions and passes checks.');
+      var body = $('look-body'), dg = function (g) { return LOOKED[g] || ''; };
+      body.textContent = '';
+      drawTools(add(body, el('div')).lastChild, dg, false);
+      if (held) add(body, el('p', 'note', plural(held, 'result', 'results') + ' for a tool this page learns about in a later update.'));
+      add(body, el('h4', null, 'Worth another look'));
+      drawAgain(add(body, el('div')).lastChild, dg, false, 5);
+      $('look-out').hidden = false;
+      $('add').hidden = !(t2.ok + t2.mi);
+    }
+    function heldOf(rec) { var n = 0, g, i; for (g in rec) if (has.call(rec, g) && !has.call(BY_G, g)) for (i = 0; i < rec[g].length; i++) if (rec[g].charAt(i) !== '0') n++; return n; }
+    function plan() {
+      var out = {segs: [], held: null, total: 0}, g, s, cur, n, H = C.held(get(HELD)), hn = 0, ht = 0;
+      for (g in LOOKED) if (has.call(LOOKED, g)) {
+        if (has.call(BY_G, g)) {
+          s = BY_G[g]; cur = own(s);
+          n = above(LOOKED[g], cur.s);
+          out.segs.push({s: s, cur: cur, add: n, touched: LOOKED[g].replace(/0/g, '').length});
+          out.total += n;
+        } else { n = above(LOOKED[g], H[g] || ''); hn += n; ht += LOOKED[g].replace(/0/g, '').length; }
+      }
+      if (ht) { out.held = {add: hn, touched: ht, H: H}; out.total += hn; }
+      out.segs.sort(function (a, b) { return a.s.g - b.s.g; });
+      return out;
+    }
+    function preview() {
+      var p, box = $('preview'), ul;
+      if (!LOOKED) return;
+      if (!LS) { hidePreview(); tell(box, MSG.blocked, true); return; }
+      p = plan();
+      if (!p.total) { $('preview-act').hidden = true; tell(box, MSG.same); return; }
+      box.textContent = ''; box.classList.remove('bad');
+      ul = el('ul', 'lines');
+      p.segs.forEach(function (x) { add(ul, el('li', null, x.s.name + ': ' + plural(x.touched, x.s.one, x.s.noun) + ' (adds ' + x.add + ' here)')); });
+      if (p.held) add(ul, el('li', null, plural(p.held.touched, 'result', 'results') + ' for a tool this page learns about in a later update (adds ' + p.held.add + ' here)'));
+      add(box, ul, el('p', null, 'Adding keeps every result already on this browser.'));
+      $('preview-act').hidden = false;
+      $('add-go').focus();
+    }
+    function apply() {
+      var p = plan(), undo = [], want = 0, got = 0, fams = {}, carried = [], stays = [], heldGot = 0;
+      p.segs.forEach(function (x) {
+        if (!x.add) return;
+        var s = x.s, before = x.cur.raw, m = C.max(x.cur.s, LOOKED[s.g]), text = recText(s, m), back, slots = [], i, ok = 0;
+        want += x.add;
+        put(s.key, text);
+        back = own(s).s;
+        for (i = 0; i < m.length; i++) if (at(m, i) > at(x.cur.s, i) && at(back, i) === at(m, i)) { slots.push([i, at(x.cur.s, i), at(m, i)]); ok++; }
+        got += ok;
+        if (ok) { undo.push({key: s.key, s: s, before: before, after: get(s.key), slots: slots}); fams[s.family] = s.carried; }
+      });
+      if (p.held && p.held.add) {
+        var H = p.held.H, nh = {}, g, beforeH = get(HELD), wrote, slotsH = {};
+        for (g in H) if (has.call(H, g)) nh[g] = H[g];
+        for (g in LOOKED) if (has.call(LOOKED, g) && !has.call(BY_G, g)) nh[g] = C.max(nh[g] || '', LOOKED[g]);
+        want += p.held.add;
+        put(HELD, JSON.stringify({v: 1, held: nh}));
+        wrote = C.held(get(HELD));
+        for (g in LOOKED) if (has.call(LOOKED, g) && !has.call(BY_G, g)) {
+          var was = H[g] || '', now = wrote[g] || '', i2;
+          slotsH[g] = [];
+          for (i2 = 0; i2 < now.length; i2++) if (at(now, i2) > at(was, i2)) { slotsH[g].push([i2, at(was, i2), at(now, i2)]); heldGot++; }
+        }
+        got += heldGot;
+        if (heldGot) undo.push({key: HELD, held: true, before: beforeH, after: get(HELD), slots: slotsH});
+      }
+      UNDO = undo.length ? undo : null;
+      loadAll(); rangesLoad(); draw();
+      hidePreview();
+      Object.keys(fams).forEach(function (f) { (fams[f] ? carried : stays).push(f); });
+      var parts = [];
+      if (got) {
+        parts.push('Added ' + plural(got, 'result', 'results') + '.');
+        if (carried.length) parts.push(and(carried) + (carried.length === 1 ? ' shows' : ' show') + ' them, marked as from another device, the next time you open ' + (carried.length === 1 ? 'it.' : 'them.'));
+        if (stays.length) parts.push(and(stays) + ' results stay here and in your code.');
+        if (heldGot) parts.push('Results for a tool this page learns about in a later update stay here and in your code.');
+      }
+      if (want > got) parts.push('This browser’s storage for this site is full, so ' + plural(want - got, 'result stays', 'results stay') + ' only in your code. Keep your code: it holds them.');
+      tell($('added'), parts.join(' '), want > got);
+      $('undo').hidden = !UNDO;
+      try { $('added').focus(); } catch (e) { /* stays */ }
+    }
+    function undo() {
+      if (!UNDO) return;
+      UNDO.forEach(function (u) {
+        var cur = get(u.key);
+        if (cur === u.after) { if (u.before == null) del(u.key); else put(u.key, u.before); return; }
+        if (u.held) {
+          var H = C.held(cur), g;
+          for (g in u.slots) if (has.call(u.slots, g) && H[g]) u.slots[g].forEach(function (x) { if (at(H[g], x[0]) === x[2]) H[g] = H[g].slice(0, x[0]) + x[1] + H[g].slice(x[0] + 1); });
+          for (g in H) if (has.call(H, g)) { H[g] = C.trim(H[g]); if (!H[g]) delete H[g]; }
+          if (Object.keys(H).length) put(HELD, JSON.stringify({v: 1, held: H})); else del(HELD);
+          return;
+        }
+        var d = own(u.s).s;
+        u.slots.forEach(function (x) { if (at(d, x[0]) === x[2]) { while (d.length <= x[0]) d += '0'; d = d.slice(0, x[0]) + x[1] + d.slice(x[0] + 1); } });
+        put(u.key, recText(u.s, d));
+      });
+      UNDO = null;
+      $('undo').hidden = true;
+      loadAll(); rangesLoad(); draw();
+      tell($('added'), 'Undone. This browser holds the results it held before you added the code.');
+      try { $('added').focus(); } catch (e) { /* stays */ }
+    }
+    $('look').addEventListener('click', look);
+    paste.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); look(); } });
+    paste.addEventListener('input', function () { if (paste.hasAttribute('aria-invalid')) invalid(false); });
+    $('add').addEventListener('click', preview);
+    $('add-go').addEventListener('click', apply);
+    $('add-no').addEventListener('click', function () { hidePreview(); $('add').focus(); });
+    $('undo').addEventListener('click', undo);
+    $('copy').addEventListener('click', function () { copy($('copy-say')); });
+    $('fin-copy').addEventListener('click', function () { copy($('fin-copy-say')); });
+
+    /* ---- Finish on this computer: a second tap within 5 seconds clears every Cyber tool's progress save ---- */
+    var F = D.finish || {prefix: 't4t.done.', clear: [], set: {}}, armed = null, clr = $('fin-clear'), fsay = $('fin-say');
+    function disarm() { armed = null; clr.textContent = 'Clear Cyber progress on this browser'; clr.classList.remove('armed'); }
+    clr.addEventListener('click', function () {
+      if (!LS) { tell(fsay, MSG.blocked, true); return; }
+      if (!armed) {
+        armed = setTimeout(function () { disarm(); tell(fsay, ''); }, 5000);
+        clr.textContent = 'Tap again to clear'; clr.classList.add('armed');
+        tell(fsay, 'This clears your Cyber results, saved Range machines, Defense Ladder reflections, and Study Map ratings on this browser. Close other Cyber tool tabs first: an open tool saves its work again when it closes. It keeps your theme, text size, and width settings, Command Atlas and Study Map view settings, and Cyber PUG’s team checklists (Cyber PUG has its own controls for those).', true);
+        return;
+      }
+      clearTimeout(armed); disarm();
+      keys().forEach(function (k) { if (k.indexOf(F.prefix) === 0) del(k); });
+      F.clear.forEach(del);
+      Object.keys(F.set || {}).forEach(function (k) { put(k, F.set[k]); });
+      finished = true;
+      UNDO = null; $('undo').hidden = true; tell($('added'), '');
+      loadAll(); rangesLoad(); draw();
+      $('banner').hidden = true;
+      tell(fsay, 'Cleared. This browser is ready for the next learner.');
+    });
+
+    /* ---- a new visit: results on this browser, the last visit long ago, and this tab not yet asked ---- */
+    function anyResults() { return SEGS.some(function (s) { return /[12]/.test(M[s.g] || '') || hasSave(s); }) || Object.keys(OTHER).length > 0; }
+    function seen() { if (LS && !finished) put(SEEN, String(Date.now())); }
+    $('keep').addEventListener('click', function () { sset(KEEP, '1'); $('banner').hidden = true; try { $('code').focus(); } catch (e) { /* stays */ } });
+    $('to-finish').addEventListener('click', function () { $('banner').hidden = true; sset(KEEP, '1'); var f = $('finish'); f.scrollIntoView({block: 'start'}); f.focus({preventScroll: true}); });
+
+    /* ---- staying current: storage events re-read only the tool whose key changed; Range saves only on focus ---- */
+    var due = {}, all = false, timer = null, rtimer = null;
+    function queue(list) { list.forEach(function (s) { due[s.g] = s; }); if (!timer) timer = setTimeout(flush, 500); }
+    /* redraw only when something shown changed, so typing in another tab never moves focus or folds lists here */
+    function flush() {
+      var state = function () { return JSON.stringify([M, OTHER, short(), SEGS.map(function (s) { return !!s.old; })]); };
+      var before = state(), audit = Object.keys(due).some(function (g) { return due[g].type === 'audit'; });
+      timer = null;
+      if (all) { all = false; due = {}; loadAll(); }
+      else { refresh(Object.keys(due).map(function (g) { return due[g]; })); due = {}; }
+      if (audit || state() !== before) draw();
+    }
+    addEventListener('storage', function (e) {
+      if (!LS || (e.storageArea && e.storageArea !== LS)) return;
+      var k = e.key, s;
+      if (k === null || k === HELD) { all = true; queue([]); return; }
+      if (REC_KEY.test(k)) { s = BY_KEY[k]; if (s) queue([s]); else { all = true; queue([]); } return; }
+      /* a Range save changes on every autosave and can run to megabytes: it is read on focus instead (ranges, below) */
+      s = has.call(SAVE_OF, k) ? SAVE_OF[k] : /-adopted$/.test(k) && has.call(SAVE_OF, k.replace(/-adopted$/, '')) ? SAVE_OF[k.replace(/-adopted$/, '')] : [];
+      s = s.filter(function (x) { return x.type !== 'range'; });
+      if (s.length) queue(s);
+    });
+    function ranges() { clearTimeout(rtimer); rtimer = setTimeout(function () { var before = JSON.stringify(RANGE); rangesLoad(); if (JSON.stringify(RANGE) !== before) draw(); }, 300); }
+    addEventListener('focus', ranges);
+    doc.addEventListener('visibilitychange', function () { if (doc.visibilityState === 'visible') ranges(); else seen(); });
+    addEventListener('pagehide', seen);
+    var printOpened = [];
+    addEventListener('beforeprint', function () { printOpened = [].filter.call(doc.querySelectorAll('details:not([open])'), function (d) { d.open = true; return true; }); });
+    addEventListener('afterprint', function () { printOpened.forEach(function (d) { d.open = false; }); printOpened = []; });
+
+    /* ---- boot, in short tasks so a slow device keeps responding: the records and lists first, then the Range saves
+       (up to a few MB each), which add best points and the scenarios to open ---- */
+    setTimeout(function () {
+      loadAll();
+      draw();
+      var last = +(get(SEEN) || 0) || 0;
+      if (LS && anyResults() && Date.now() - last >= VISIT_GAP && !sget(KEEP)) $('banner').hidden = false;
+      seen();
+      setTimeout(function () {
+        rangesLoad();
+        if (SEGS.some(function (s) { return s.type === 'range' && Object.keys(RANGE[s.g] || {}).length; })) draw();
+        root.setAttribute('data-cp-ready', '1');
+      }, 0);
+    }, 0);
+  }
+})();
+</script>
+</body>
+</html>

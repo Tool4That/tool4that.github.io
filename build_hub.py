@@ -7,12 +7,20 @@ An extra that is a second .html download (e.g. an offline edition) gets its own 
 A series (tools.json "series") groups tools inside a category and gets its own page at /<series-slug>/.
 Standard library only.
 """
-import datetime, hashlib, html, json, sys
+import datetime, hashlib, html, importlib.util, json, sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 CFG_PATH = ROOT / "tools.json"
 cfg = json.loads(CFG_PATH.read_text(encoding="utf-8"))
+# The site bar (a category with a "nav_label", e.g. Cybersecurity's "Cyber") comes from prepare_tool.py's nav_block,
+# the one place that builds it for tool pages and hub pages alike; hub pages get it without its script. Loaded by
+# path, so this runs the same with python -I.
+_spec = importlib.util.spec_from_file_location("prepare_tool", ROOT / "prepare_tool.py")
+prep = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(prep)
+def hub_nav(cat, here, current):
+    return prep.nav_block(cfg, cat, here, current) if prep.nav_category(cfg, cat) else ""
 SITE = cfg["site"].rstrip("/")
 TODAY = datetime.date.today().isoformat()
 e = html.escape
@@ -224,6 +232,29 @@ for s in SERIES:
     if sectioned_cat(s.get("category")) and not s.get("section"): problems.append(f'series "{s["slug"]}": category "{s.get("category")}" uses sections, so this series needs a "section"')
 if problems:
     sys.exit("tools.json problems, nothing written:\n  " + "\n  ".join(problems))
+# Each tool page with the site bar carries its Menu as it was when the page was prepared, so after a tool of that
+# category is added, renamed, or moved (or a tool leaves the category), its pages need prepare_tool.py --refresh-nav.
+stale = []
+for f, t in prep.tool_files(cfg):
+    text = (ROOT / f).read_text(encoding="utf-8")
+    try:
+        if prep.nav_refresh(cfg, t, text) != text:
+            stale.append(f)
+    except ValueError as err:
+        stale.append(f"{f} ({err})")
+if stale:
+    sys.exit("Site bar out of date, nothing written. Run py prepare_tool.py --refresh-nav, then build_hub.py again:\n  " + "\n  ".join(stale))
+# Once tools.json lists My Cyber progress, its code reader and slot lists must match the Cyber tools': every segment
+# of its page data has a published tool page (Defense Ladder's grade downloads included) whose /*@t4t-done*/ block
+# carries the same g, k, and slot list, no other Cyber page carries a block, design/progress-code.js's encode part
+# equals CODE_ENC, and the page's encoder and decoder equal CODE_ENC and design/progress-code.js's decode part
+# (prepare_tool.progress_problems has the rules).
+out_of_step = prep.progress_problems(cfg)
+if out_of_step:
+    sys.exit("My Cyber progress is out of step with the Cyber tools, nothing written. Run "
+             "py -I ..\\tool4that-src-dlbackup\\curriculum\\build_progress_items.py --write --repo ., then "
+             "py -I ..\\tool4that-src-dlbackup\\curriculum\\build_progress_page.py --repo ., "
+             "prepare the changed pages again, then build_hub.py:\n  " + "\n  ".join(out_of_step))
 for t in cfg["tools"]:
     refresh(t)
     for x in html_extras(t):
@@ -310,7 +341,7 @@ def listing(c, base, lvl=2, sectioned=False):
             out += series_block(s, base, lvl + 1)
     return out
 for c in CATS:
-    page = head(f"{c['title']} | {cfg['name']}", c["description"], f"{SITE}/{c['slug']}/", SITE + "/og-image.png") + f"""<body>
+    page = head(f"{c['title']} | {cfg['name']}", c["description"], f"{SITE}/{c['slug']}/", SITE + "/og-image.png") + f"""<body>{hub_nav(c["slug"], c["slug"] + "/", ("category", c["slug"]))}
 <header class="hero small">
   <div class="wrap">
     {LOGO("../")}
@@ -330,11 +361,12 @@ for s in SERIES:
     if not in_series(s["slug"]):
         continue
     c = next(c for c in CATS if c["slug"] == s["category"])
-    page = head(f"{s['title']} | {cfg['name']}", s["description"], f"{SITE}/{s['slug']}/", SITE + "/og-image.png") + f"""<body>
+    # the site bar's trail already links up to the category page, so a series page with the bar skips the back link
+    crumb = "" if prep.nav_category(cfg, c["slug"]) else f'\n    <p class="crumb"><a href="../{e(c["slug"])}/">&larr; {e(c["title"])}</a></p>'
+    page = head(f"{s['title']} | {cfg['name']}", s["description"], f"{SITE}/{s['slug']}/", SITE + "/og-image.png") + f"""<body>{hub_nav(c["slug"], s["slug"] + "/", ("series", s["slug"]))}
 <header class="hero small">
   <div class="wrap">
-    {LOGO("../")}
-    <p class="crumb"><a href="../{e(c['slug'])}/">&larr; {e(c['title'])}</a></p>
+    {LOGO("../")}{crumb}
     <h1>{e(s['title'])}</h1>
     <p class="lede">{e(s['description'])}</p>
   </div>

@@ -17,7 +17,8 @@
       "tagline": "Learn cyber defense, then drill it.",
       "icon": "terminal",
       "description": "Two ways in. Learning builds the concepts, from your first command to confident defender. Practice is hands-on reps: Net Drills for subnetting and Cisco IOS, Lockdown Drills for hardening Windows, Linux, FreeBSD, and Cisco IOS, and Lockdown Range for full hardening labs in your browser.",
-      "note": "Unofficial training, independent of and unendorsed by the makers of the systems it names. Defensive skills only: practice on machines you own or are authorized to use. Progress stays in your browser."
+      "note": "Unofficial training, independent of and unendorsed by the makers of the systems it names. Defensive skills only: practice on machines you own or are authorized to use. Progress stays in your browser.",
+      "nav_label": "Cyber"
     },
     {
       "slug": "imagination-land",
@@ -33,7 +34,7 @@
       "slug": "learning",
       "title": "Learning",
       "category": "cyber",
-      "intro": "Build the concepts and vocabulary, from your first terminal command to confident defender. New to cybersecurity? Start with Defense Ladder, the course. Know what you need? The Study Map finds any concept as you type and shows where to learn and practice it. Command Atlas looks up any command in the course and shows what it does and where you use it. Cyber PUG gives a team experimental checklists for taking over a network, coordinated from a shared Collab Tab, with a Map that draws the network from pasted command output."
+      "intro": "Build the concepts and vocabulary, from your first terminal command to confident defender. New to cybersecurity? Start with Defense Ladder, the course. Know what you need? The Study Map finds any concept as you type and shows where to learn and practice it. Command Atlas looks up any command in the course and shows what it does and where you use it. My Cyber progress shows your results from every tool and the progress code that carries them. Cyber PUG gives a team experimental checklists for taking over a network, coordinated from a shared Collab Tab, with a Map that draws the network from pasted command output."
     },
     {
       "slug": "practice",
@@ -131,7 +132,7 @@
       "icon": "path",
       "category": "cyber",
       "section": "learning",
-      "sha256": "0e7d98259c4f0d904a78ba2a1bf7ac749a702839f3a0937ca92025c1dc67bb34",
+      "sha256": "eaca71f372f2e7fd69df50e6db3d3f18971683de2712260d53c6a3b096185bb7",
       "updated": "2026-11-24",
       "download_menu": true,
       "download_label": "Everything (all four grades)",
@@ -140,28 +141,28 @@
           "label": "Freshman only",
           "file": "defense-ladder/freshman.html",
           "download_as": "defense-ladder-freshman.html",
-          "sha256": "aaa38c16dccd0fbdbe67365a0fbd65a354f5fa9bcafb9d8fbf360f58ec400d83",
+          "sha256": "8328df521b529b3ceae5d7d7bdfc831a894f026e256b0cba086a548d1649991f",
           "updated": "2026-11-24"
         },
         {
           "label": "Sophomore only",
           "file": "defense-ladder/sophomore.html",
           "download_as": "defense-ladder-sophomore.html",
-          "sha256": "e44682dd625dc238d6e600c52bd9f2fae28750e6a140bb67bdd1343e71d80ae3",
+          "sha256": "15920846b6fbd505a1308a9af22274533a62948879507cf415d387ecb3f98bf9",
           "updated": "2026-11-24"
         },
         {
           "label": "Junior only",
           "file": "defense-ladder/junior.html",
           "download_as": "defense-ladder-junior.html",
-          "sha256": "95f2f1774dc3b38704a7a4810daf8fa78f68622cf98e83381a8271c2b6680af1",
+          "sha256": "6782a8ee8db3850a5ce3ce082deeae3c44f228da38e76a1c5aab5d57182ed33d",
           "updated": "2026-11-24"
         },
         {
           "label": "Senior only",
           "file": "defense-ladder/senior.html",
           "download_as": "defense-ladder-senior.html",
-          "sha256": "d661764c2f14cc7d900e24c3709ca39438f7ed660c5d2f278a528eee7d40b6f2",
+          "sha256": "13c57ab98be64b9ae16d75eddb8ae17f6672cec4bb0338bc214f2f63e0630d5b",
           "updated": "2026-11-24"
         }
       ],
@@ -182,8 +183,8 @@
       "download_as": "subnet-sprint.html",
       "icon": "subnet",
       "category": "cyber",
-      "sha256": "15c320cea4c0e6dd4b6c31b7ab69f082f1827b1cf855bf444396f700065e58ef",
-      "updated": "2026-11-23",
+      "sha256": "10f5c4ab844d6bd120e24a05074258164dc234265129d78c3b659ad292f34bc6",
+      "updated": "2026-11-24",
       "series": "net-drills"
     },
     {
@@ -201,7 +202,7 @@
       "download_as": "ios-cli-lab.html",
       "icon": "terminal",
       "category": "cyber",
-      "sha256": "f4350ebab44efac296154d720f607d1d98e7ae9f092ce101f6e12d2f81241c01",
+      "sha256": "15bb6f81837718e550349b78149bad0eaec3114cfd9e3d1aae36867ee35c926e",
       "updated": "2026-11-24",
       "series": "net-drills"
     },
@@ -220,8 +221,8 @@
       "download_as": "config-audit.html",
       "icon": "search",
       "category": "cyber",
-      "sha256": "92512d0f21d375010951a32a6bff8c3ec91d6b43ffee3c1cd7a77583a01493e5",
-      "updated": "2026-11-23",
+      "sha256": "11a6288d58956c4805f0a433c7fa333f17b6026333103d0bb5e8ad11bc40b08e",
+      "updated": "2026-11-24",
       "series": "net-drills"
     },
     {
@@ -239,8 +240,8 @@
       "download_as": "trouble-tickets.html",
       "icon": "wrench",
       "category": "cyber",
-      "sha256": "7fc183a4046db768e3f39da4d1d4de67bbf3bcb9104ced91299457cfad359e2b",
-      "updated": "2026-11-23",
+      "sha256": "4ad46d9df6db07cff8e199246e2b371cbd66a72be3a8726976f1abe71fa9a809",
+      "updated": "2026-11-24",
       "series": "net-drills"
     },
     {
@@ -266,7 +267,7 @@
           "download_as": "windows-11-lockdown-reference.txt"
         }
       ],
-      "sha256": "22b1962d3b779e0c67ea7737df6390171207ea6c93b7368323de51c7b2ab7c7d",
+      "sha256": "2b7185a1e450a449af70f0cc886c78238e5935b389c0337122e16956071fc28d",
       "updated": "2026-11-24"
     },
     {
@@ -292,7 +293,7 @@
           "download_as": "windows-server-lockdown-reference.txt"
         }
       ],
-      "sha256": "ce92ad50dcfe8459c5dc8274007031cc69ffde6af8d29c07f6a1d36dd77ffda8",
+      "sha256": "6d126e1f76df1a26fbbe96c194ad49f8620df452fb2e592fbb2108fb046ae0b9",
       "updated": "2026-11-24"
     },
     {
@@ -318,7 +319,7 @@
           "download_as": "debian-family-lockdown-reference.txt"
         }
       ],
-      "sha256": "563262958e74ebfeb444e3447c9a9052d27b37deb8294a2ccae71319bd3a3a3f",
+      "sha256": "3b6c93a1a48a58b5fb9d462a23b2d739e86b9e7c85fd60a7d05c2fd1cac6b305",
       "updated": "2026-11-24"
     },
     {
@@ -344,7 +345,7 @@
           "download_as": "freebsd-lockdown-reference.txt"
         }
       ],
-      "sha256": "7d60728ca78e1f5a3fd88407a5de509b29e6c6852e8daff18221d6cd68e46e8a",
+      "sha256": "5eb8e4f071d868782c1ce62ec63c2637ae8c7ac27bc7b42ca1d8f99c3acd78d9",
       "updated": "2026-11-24"
     },
     {
@@ -363,7 +364,7 @@
       "icon": "lock",
       "category": "cyber",
       "series": "lockdown-drills",
-      "sha256": "c005512aad7cf8b81db5d625ed323cddad59822d25fa4bea00d5bb7e949831ab",
+      "sha256": "c03efbd62a0da087fc6c9840eab13eaa808fd140b52628f28edcb6f40c2766cd",
       "updated": "2026-11-24",
       "extras": [
         {
@@ -396,7 +397,7 @@
           "download_as": "windows-range-walkthrough.txt"
         }
       ],
-      "sha256": "254717bb827b87929c459b5c4a50eb2f597b9286538e094d76fc06a1273706c3",
+      "sha256": "dcb7f73c6a2b5817b6dcb078a0635b00f9ef64998d7200c81638d987d06793f7",
       "updated": "2026-11-24"
     },
     {
@@ -422,7 +423,7 @@
           "download_as": "linux-range-walkthrough.txt"
         }
       ],
-      "sha256": "93b6c271fb9a074dbadc9595c895cc96a7242aea3493cb4d485aee2a952a7244",
+      "sha256": "3a7f258719a9af27a2c9c745bf7e194a3e44369c8113ce3d98dc0b6f7e817ceb",
       "updated": "2026-11-24"
     },
     {
@@ -448,7 +449,7 @@
           "download_as": "cisco-range-walkthrough.txt"
         }
       ],
-      "sha256": "1075fb177590a9df8dc823e12a7a5e8adf63b44133bcda5f491baf8ba093a48e",
+      "sha256": "4ea127ed17ba664fdf1e1447e0f8db87269bfaaf2ddcf5bab0ceac5903610f2d",
       "updated": "2026-11-24"
     },
     {
@@ -467,7 +468,7 @@
       "icon": "map",
       "category": "cyber",
       "section": "learning",
-      "sha256": "67b9687b25e7bcb8a45a98a0e2d0e20775104eb4259d73c5e79e064a4b6ab243",
+      "sha256": "b7a37b3ae8614715742bf3ea12dc8c9052d5137f82f5f41cf16d988dc8b1cd01",
       "updated": "2026-11-24"
     },
     {
@@ -486,7 +487,26 @@
       "icon": "terminal",
       "category": "cyber",
       "section": "learning",
-      "sha256": "7b5a8c8d5c52d0412d19c6772f61f1843fa476024d4b14d2d6dbca65be9eca57",
+      "sha256": "dd920efd75b89d6dda8e372fad03dc0bc35a71cd4a73772f1a9a38550a2fafcb",
+      "updated": "2026-11-24"
+    },
+    {
+      "slug": "my-cyber-progress",
+      "name": "My Cyber progress",
+      "tagline": "Your results from every Cyber tool, and the code that carries them.",
+      "description": "Your right and to-retry results from Defense Ladder, the Lockdown Drills, Lockdown Range, and Net Drills in one place, with links to the questions, checks, and tasks worth another look. Copy your progress code to keep your record or move it to another device, let a teacher look at a code without saving it, and clear a shared computer for the next learner in one step.",
+      "badges": [
+        "Cybersecurity",
+        "Study",
+        "Offline",
+        "Private"
+      ],
+      "file": "my-cyber-progress/index.html",
+      "download_as": "my-cyber-progress.html",
+      "icon": "chart",
+      "category": "cyber",
+      "section": "learning",
+      "sha256": "0a2a8271ecb37bd6d79fb7fca86b7fbb424d4c92d973d9d0f2e0ddec2b7ce4fa",
       "updated": "2026-11-24"
     },
     {
@@ -505,7 +525,7 @@
       "icon": "terminal",
       "category": "cyber",
       "section": "learning",
-      "sha256": "6afa10cb7b53460de4a6421c9346399171ecc156df1da2a4a75b73dc626947c7",
+      "sha256": "1c58b092edc61286b6d6def7c08ad278a9a4631b3d241a26399fce7c4ec5fb76",
       "updated": "2026-11-24",
       "download_note": "Open with photo reading (about 12 MB) also turns a photo or a screenshot of a terminal into text, right on your device. Both editions keep the same save on this site. Each download is the full page.",
       "extras": [
@@ -513,7 +533,7 @@
           "label": "Download with photo reading",
           "file": "cyber-pug/cyber-pug-photo.html",
           "download_as": "cyber-pug-photo.html",
-          "sha256": "da6e407014d5ab3eeea81d907d1a49c0e8c1d6ddc694436303e99a38586232a0",
+          "sha256": "d5f49130399a76bfca818a7b12998b5135733e4f67165eb59678496fac5c3f46",
           "updated": "2026-11-24",
           "open_label": "Open with photo reading"
         }

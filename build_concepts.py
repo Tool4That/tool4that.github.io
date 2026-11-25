@@ -30,6 +30,7 @@ PLATFORMS = ("general", "windows", "linux", "freebsd", "cisco")
 BADGES = (("Cisco IOS", "cisco"), ("FreeBSD", "freebsd"), ("Linux", "linux"), ("Windows Server", "windows"), ("Windows", "windows"))
 SEP = "\u203a"
 ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+SITE_BLOCKS = re.compile(r"<!-- tool4that:(nav|foot) -->[\s\S]*?<!-- /tool4that:\1 -->")
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 except Exception:
@@ -136,7 +137,8 @@ def confirm(data, cfg, keep):
         if slug not in cache:
             t = tools[slug]
             files = [t["file"]] + [x["file"] for x in t.get("extras", [])]
-            parts = [(ROOT / f).read_text(encoding="utf-8", errors="replace") for f in files if (ROOT / f).is_file()]
+            # the site bar and the footer link that prepare_tool.py adds list other tools, so only the tool's own text counts
+            parts = [SITE_BLOCKS.sub("", (ROOT / f).read_text(encoding="utf-8", errors="replace")) for f in files if (ROOT / f).is_file()]
             cache[slug] = norm("\n".join(parts)) if parts else None
         return cache[slug]
 

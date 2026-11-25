@@ -70,6 +70,9 @@ def prep_cmd(staged, s, prep, out=None):
     for h in prep.get("pin_blocks", []):
         cmd += ["--pin-block", h]
     cmd += ["--out", out] if out else []
+    # where the tool sits, so a tool new to tools.json (written only after preparing) still gets its category's site bar
+    for k in ("category", "series", "section"):
+        cmd += [f"--{k}", s[k]] if s.get(k) else []
     return cmd
 
 

@@ -43,6 +43,27 @@
       "prep": {
         "strip_google_fonts": true
       }
+    },
+    {
+      "slug": "my-cyber-progress",
+      "name": "My Cyber progress",
+      "tagline": "Your results from every Cyber tool, and the code that carries them.",
+      "description": "Your right and to-retry results from Defense Ladder, the Lockdown Drills, Lockdown Range, and Net Drills in one place, with links to the questions, checks, and tasks worth another look. Copy your progress code to keep your record or move it to another device, let a teacher look at a code without saving it, and clear a shared computer for the next learner in one step.",
+      "badges": [
+        "Cybersecurity",
+        "Study",
+        "Offline",
+        "Private"
+      ],
+      "icon": "chart",
+      "emoji": "📈",
+      "match": [
+        "cyber[ _-]?progress"
+      ],
+      "reference": false,
+      "prep": {
+        "strip_google_fonts": true
+      }
     }
   ]
 }

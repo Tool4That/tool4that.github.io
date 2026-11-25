@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- tool4that:head -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-K5OupLYl+8XODqF+hH5J88mQR0jiKGvpuyCF1WzcFqE=' 'sha256-hL+YSL0rqprWaSz7EqMCFZK6od+RrcbsTCIjKXIMTyY='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-FH29087FWljVd5OBSeTBv7Lp8NqdlVh1opfdJ0wF0UU=' 'sha256-K5OupLYl+8XODqF+hH5J88mQR0jiKGvpuyCF1WzcFqE=' 'sha256-qEzh62+X/EzmGCRf6fBKv9VVM4Y2jVGUADPqrKzMq1A='; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Flag every risky line in a running-config, choose the best fix, and name the protections that are missing entirely. Four configs, including a Site B switch and router.">
 <link rel="canonical" href="https://freeapp4that.store/net-drills/config-audit/">
@@ -67,6 +67,7 @@ h1{font:700 clamp(38px,8vw,60px)/.95 var(--head);letter-spacing:-.01em;margin:0 
 .sbtn[aria-checked="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1.5px var(--accent)}
 .led{display:inline-block;flex:none;width:10px;height:10px;border-radius:50%;background:var(--rule)}
 .led.ok{background:var(--ok)}
+.led.away{background:transparent;box-shadow:inset 0 0 0 2px var(--ok)}
 .board{position:sticky;top:env(safe-area-inset-top,0px);z-index:2;background:var(--bg);padding:10px 0 8px;border-bottom:1.5px solid var(--rule);margin-bottom:10px}
 .stats{display:flex;flex-wrap:wrap;gap:6px 26px;margin:0}
 .stats div{display:flex;flex-direction:column-reverse}
@@ -144,7 +145,38 @@ footer{margin-top:40px;font-size:13px;color:var(--muted)}
 </style>
 <style>a.jack{color:inherit;text-decoration:none}a.jack:hover,a.jack:focus-visible{color:var(--ink);text-decoration:underline;text-underline-offset:3px}</style>
 </head>
-<body>
+<body><!-- tool4that:nav --><div class="t4t-nav" id="t4t-nav" data-t4t-nav-base="https://freeapp4that.store/net-drills/config-audit/"><style>#t4t-nav,#t4t-nav *,#t4t-nav *::before,#t4t-nav *::after{all:revert;box-sizing:border-box}#t4t-nav{--t4t-nav-bg:#F4F6F8;--t4t-nav-panel:#FFFFFF;--t4t-nav-ink:#17212B;--t4t-nav-muted:#4A5868;--t4t-nav-line:#B9C4CF;--t4t-nav-link:#1F5C9E;--t4t-nav-hover:#EBF0F5;--t4t-nav-cur:#DFE9F5;color-scheme:light;display:block;position:relative;z-index:1;margin:0;padding:0;background:var(--t4t-nav-bg);color:var(--t4t-nav-ink);border-bottom:1px solid var(--t4t-nav-line);font:400 .875rem/1.4 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;text-align:left;letter-spacing:normal;text-transform:none;user-select:auto;-webkit-user-select:auto}#t4t-nav.t4t-nav-open{z-index:90}#t4t-nav:has(details[open]){z-index:90}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #t4t-nav{--t4t-nav-bg:#121A23;--t4t-nav-panel:#18222D;--t4t-nav-ink:#E2E9F0;--t4t-nav-muted:#A3B1C0;--t4t-nav-line:#3A4B5D;--t4t-nav-link:#8CC4F2;--t4t-nav-hover:#202D3B;--t4t-nav-cur:#26384B;color-scheme:dark}}:root[data-theme="dark"] #t4t-nav{--t4t-nav-bg:#121A23;--t4t-nav-panel:#18222D;--t4t-nav-ink:#E2E9F0;--t4t-nav-muted:#A3B1C0;--t4t-nav-line:#3A4B5D;--t4t-nav-link:#8CC4F2;--t4t-nav-hover:#202D3B;--t4t-nav-cur:#26384B;color-scheme:dark}#t4t-nav .t4t-nav-in{display:flex;align-items:center;gap:12px;min-height:44px;padding:6px 16px}#t4t-nav .t4t-nav-trail{display:block;flex:1 1 auto;min-width:0}#t4t-nav .t4t-nav-trail ol{display:flex;align-items:center;min-width:0;margin:0;padding:0;list-style:none}#t4t-nav .t4t-nav-trail li{display:flex;align-items:center;min-width:0;white-space:nowrap}#t4t-nav .t4t-nav-trail li+li::before{content:"\203A";content:"\203A"/"";margin:0 8px;color:var(--t4t-nav-muted)}#t4t-nav .t4t-nav-trail a{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;padding:5px 2px}#t4t-nav a{color:var(--t4t-nav-link);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px;border-radius:3px}#t4t-nav a:hover{text-decoration-thickness:2px}#t4t-nav a:focus-visible,#t4t-nav summary:focus-visible,#t4t-nav button:focus-visible,#t4t-nav textarea:focus-visible{outline:3px solid var(--t4t-nav-link);outline-offset:2px}#t4t-nav details{display:block;flex:none;margin:0 0 0 auto}#t4t-nav summary{display:flex;align-items:center;gap:6px;min-height:32px;padding:4px 12px;border:1px solid var(--t4t-nav-line);border-radius:6px;background:var(--t4t-nav-panel);color:var(--t4t-nav-ink);font-weight:600;cursor:pointer;list-style:none}#t4t-nav summary::-webkit-details-marker{display:none}#t4t-nav summary::after{content:"\25BE";content:"\25BE"/"";font-size:.8em}#t4t-nav details[open]>summary::after{content:"\25B4";content:"\25B4"/""}#t4t-nav .t4t-nav-panel{display:block;position:absolute;top:calc(100% - 2px);right:8px;width:max-content;min-width:14rem;max-width:min(22rem,calc(100vw - 16px));max-height:calc(100vh - 64px);max-height:calc(100dvh - 64px);overflow:auto;overscroll-behavior:contain;margin:0;padding:6px;background:var(--t4t-nav-panel);color:var(--t4t-nav-ink);border:1px solid var(--t4t-nav-line);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.2)}#t4t-nav .t4t-nav-panel ul{display:block;margin:0;padding:0;list-style:none}#t4t-nav .t4t-nav-panel li{display:block;margin:0;padding:0}#t4t-nav .t4t-nav-panel a,#t4t-nav .t4t-nav-panel button{display:block;width:100%;margin:0;padding:6px 10px;border:0;border-radius:5px;background:none;color:var(--t4t-nav-ink);font:inherit;text-align:left;text-decoration:none;cursor:pointer}#t4t-nav .t4t-nav-panel a:hover,#t4t-nav .t4t-nav-panel button:hover{background:var(--t4t-nav-hover);text-decoration:underline}#t4t-nav .t4t-nav-panel a[aria-current]{font-weight:700;background:var(--t4t-nav-cur);box-shadow:inset 3px 0 0 var(--t4t-nav-link)}#t4t-nav .t4t-nav-panel .t4t-nav-all,#t4t-nav .t4t-nav-ser>a{font-weight:600}#t4t-nav .t4t-nav-h{display:block;margin:10px 10px 2px;font-size:.8em;font-weight:700;color:var(--t4t-nav-muted)}#t4t-nav .t4t-nav-ser ul a{padding-left:24px}#t4t-nav .t4t-nav-more{margin-top:6px;padding-top:6px;border-top:1px solid var(--t4t-nav-line)}#t4t-nav .t4t-nav-say:not(:empty){display:block;width:0;min-width:100%;padding:2px 10px 6px;font-size:.8125rem;line-height:1.4;color:var(--t4t-nav-muted)}#t4t-nav .t4t-nav-code{display:block;width:0;min-width:100%;margin:2px 0 4px;padding:6px 8px;border:1px solid var(--t4t-nav-line);border-radius:5px;background:var(--t4t-nav-bg);color:var(--t4t-nav-ink);font:400 .8125rem/1.5 ui-monospace,"SF Mono",Consolas,"DejaVu Sans Mono",monospace;white-space:pre-wrap;overflow-wrap:normal;word-break:normal;resize:none}#t4t-nav .t4t-nav-code[hidden]{display:none}@media (max-width:480px){#t4t-nav .t4t-nav-trail li{display:none}#t4t-nav .t4t-nav-trail li:last-child{display:flex}#t4t-nav .t4t-nav-trail li:last-child::before{content:"\2039";content:"\2039"/"";margin:0 6px 0 0;color:var(--t4t-nav-muted)}}body[data-doc="pug"]>#t4t-nav{margin:-20px -16px 20px}@media print{#t4t-nav{display:none!important}}</style><div class="t4t-nav-in"><nav class="t4t-nav-trail" aria-label="Cyber"><ol><li><a href="../../cyber/">Cyber</a></li><li><a href="../../net-drills/">Net Drills</a></li></ol></nav><details class="t4t-nav-menu"><summary>Cyber tools</summary><nav class="t4t-nav-panel" aria-label="Cyber tools"><ul><li><a class="t4t-nav-all" href="../../cyber/">All Cyber tools</a></li><li><span class="t4t-nav-h">Learning</span><ul><li><a href="../../defense-ladder/">Defense Ladder</a></li><li><a href="../../study-map/">Study Map</a></li><li><a href="../../command-atlas/">Command Atlas</a></li><li><a href="../../cyber-pug/">Cyber PUG</a></li></ul></li><li><span class="t4t-nav-h">Practice</span><ul><li class="t4t-nav-ser"><a href="../../net-drills/">Net Drills</a><ul><li><a href="../../net-drills/subnet-sprint/">Subnet Sprint</a></li><li><a href="../../net-drills/ios-cli-lab/">IOS CLI Lab</a></li><li><a aria-current="page" href="../../net-drills/config-audit/">Config Audit</a></li><li><a href="../../net-drills/trouble-tickets/">Trouble Tickets</a></li></ul></li><li class="t4t-nav-ser"><a href="../../lockdown-drills/">Lockdown Drills</a><ul><li><a href="../../lockdown-drills/windows-11/">Windows 11 Lockdown</a></li><li><a href="../../lockdown-drills/windows-server/">Windows Server Lockdown</a></li><li><a href="../../lockdown-drills/debian-family/">Debian Family Lockdown</a></li><li><a href="../../lockdown-drills/freebsd/">FreeBSD Lockdown</a></li><li><a href="../../lockdown-drills/cisco-ios/">Cisco IOS Lockdown</a></li></ul></li><li class="t4t-nav-ser"><a href="../../lockdown-range/">Lockdown Range</a><ul><li><a href="../../lockdown-range/windows/">Windows Range</a></li><li><a href="../../lockdown-range/linux/">Linux Range</a></li><li><a href="../../lockdown-range/cisco-ios/">Cisco Range</a></li></ul></li></ul></li><li class="t4t-nav-more"><ul><li><a href="../../my-cyber-progress/">My Cyber progress</a></li><li><button type="button" data-t4t-nav-act="copy-code">Copy my progress code</button></li><li class="t4t-nav-out"><span class="t4t-nav-say" role="status"></span><textarea class="t4t-nav-code" readonly hidden rows="3" aria-label="Your progress code"></textarea></li></ul></li></ul></nav></details></div><script>(function(){var w=document.getElementById('t4t-nav'),d=w&&w.querySelector('details'),s=d&&d.querySelector('summary');if(!s)return;var b=w.getAttribute('data-t4t-nav-base');function online(){var l=document.querySelectorAll('#t4t-nav a[href],a.t4t-nav-home'),i;for(i=0;i<l.length;i++)l[i].href=new URL(l[i].getAttribute('href'),b).href;}if(location.protocol==='file:'&&b){online();document.addEventListener('DOMContentLoaded',online);}var say=w.querySelector('.t4t-nav-say'),box=w.querySelector('.t4t-nav-code');function tell(t){if(say)say.textContent=t;}function sync(){s.setAttribute('aria-expanded',d.open?'true':'false');w.classList.toggle('t4t-nav-open',d.open);if(!d.open){tell('');if(box){box.hidden=true;box.value='';}}}function shut(f){if(d.open){d.open=false;sync();if(f)s.focus();}}sync();d.addEventListener('toggle',sync);w.addEventListener('keydown',function(e){if(e.key==='Escape'&&d.open){e.preventDefault();shut(true);}e.stopPropagation();});w.addEventListener('keyup',function(e){e.stopPropagation();});function away(e){if(d.open&&!d.contains(e.target))shut(false);}document.addEventListener('pointerdown',away,true);document.addEventListener('click',away,true);w.addEventListener('focusout',function(e){if(d.open&&e.relatedTarget&&!d.contains(e.relatedTarget))shut(false);});
+var T4T_CODE=(function(){var A='0123456789ABCDEFGHJKMNPQRSTVWXYZ',has=Object.prototype.hasOwnProperty;
+function mul(x){var r=0,y=30;while(y){if(y&1)r^=x;y>>=1;x<<=1;if(x&32)x^=37;}return r;}
+function check(s){var r=0,i;for(i=0;i<s.length;i++)r=mul(r)^A.indexOf(s.charAt(i));return A.charAt(mul(r));}
+function trim(s){return String(s).replace(/0+$/,'');}
+function seg(g,s){return typeof g==='number'&&g===Math.floor(g)&&g>=1&&g<=63&&typeof s==='string'&&/^[012]*$/.test(s)&&trim(s).length<=4095;}
+function gam(b,v){var s=v.toString(2),i;for(i=1;i<s.length;i++)b.push(0);for(i=0;i<s.length;i++)b.push(s.charAt(i)==='1'?1:0);}
+function dense(s){var b=[],i,c;for(i=0;i<s.length;i++){c=s.charAt(i);b.push(c==='0'?0:1);if(c!=='0')b.push(c==='2'?1:0);}return b;}
+function runs(s){var b=[],i=0,j,c,p=-1;while(i<s.length){c=+s.charAt(i);j=i;while(j<s.length&&+s.charAt(j)===c)j++;if(p<0)b.push(c>>1,c&1);else b.push(c>3-p-c?1:0);gam(b,j-i);p=c;i=j;}return b;}
+function encode(rec){var b=[],gs=[],k,i,s,d,r,p=0,o='';
+for(k in rec)if(has.call(rec,k)&&/^[1-9]\d?$/.test(k)&&seg(+k,rec[k])&&trim(rec[k]))gs.push(+k);
+gs.sort(function(x,y){return x-y;});
+if(gs.length)gam(b,gs.length+1);
+for(i=0;i<gs.length;i++){s=trim(rec[gs[i]]);gam(b,gs[i]-p);p=gs[i];gam(b,s.length);d=dense(s);r=runs(s);b.push(r.length<d.length?1:0);b=b.concat(r.length<d.length?r:d);}
+while(b.length%5)b.push(0);
+for(i=0;i<b.length;i+=5)o+=A.charAt(b[i]*16+b[i+1]*8+b[i+2]*4+b[i+3]*2+b[i+4]);
+return 'CY1-'+o+check('1'+o);}
+function group(c){return c.slice(0,4)+c.slice(4).replace(/(.{5})(?=.)/g,'$1 ');}
+function rec(key,raw){var o;try{o=JSON.parse(raw);}catch(e){return null;}
+return o&&o.v===1&&typeof o.k==='string'&&'t4t.done.'+o.k===key&&seg(o.g,o.s)?{g:o.g,s:trim(o.s)}:null;}
+function held(raw){var o,h,k,out={};try{o=JSON.parse(raw);}catch(e){return out;}h=o&&o.v===1?o.held:null;
+if(h&&typeof h==='object')for(k in h)if(has.call(h,k)&&/^[1-9]\d?$/.test(k)&&seg(+k,h[k])&&trim(h[k]))out[k]=trim(h[k]);return out;}
+function max(a,b){var o='',i,x,y,n=Math.max(a.length,b.length);for(i=0;i<n;i++){x=a.charAt(i)||'0';y=b.charAt(i)||'0';o+=x>y?x:y;}return trim(o);}
+function collect(ls){var r={},by={},bad={},clash=false,i,k,v,h,g,n=ls.length;
+for(i=0;i<n;i++){k=ls.key(i);if(k==null||k==='t4t.done.held'||!/^t4t\.done\.[a-z0-9.-]+$/.test(k))continue;v=rec(k,ls.getItem(k));if(!v)continue;
+if(has.call(by,v.g)){clash=true;bad[v.g]=1;}else{by[v.g]=k;r[v.g]=v.s;}}
+for(g in bad)if(has.call(bad,g))delete r[g];
+h=held(ls.getItem('t4t.done.held'));for(g in h)if(has.call(h,g)&&!has.call(bad,g))r[g]=has.call(r,g)?max(r[g],h[g]):h[g];
+return {rec:r,clash:clash};}
+return {A:A,check:check,trim:trim,encode:encode,group:group,rec:rec,held:held,max:max,collect:collect};})();
+var GATHER={"defense-ladder-v1":"t4t.done.defense-ladder","lockdown-drills-windows11-v1":"t4t.done.lockdown-drills.windows-11","lockdown-drills-windows-server-v1":"t4t.done.lockdown-drills.windows-server","lockdown-drills-debian-family-v1":"t4t.done.lockdown-drills.debian-family","lockdown-drills-ubuntu-v1":"t4t.done.lockdown-drills.debian-family","lockdown-drills-linux-mint-v1":"t4t.done.lockdown-drills.debian-family","lockdown-drills-freebsd-v1":"t4t.done.lockdown-drills.freebsd","lockdown-drills-cisco-v1":"t4t.done.lockdown-drills.cisco-ios","lockdown-range-windows-v3":"t4t.done.lockdown-range.windows","lockdown-range-linux-v3":"t4t.done.lockdown-range.linux","lockdown-range-cisco-v2":"t4t.done.lockdown-range.cisco-ios","netdrills.cli2.done":"t4t.done.net-drills.ios-cli-lab","netdrills.tickets.due":"t4t.done.net-drills.trouble-tickets"};var ACT={};ACT['copy-code']=function(){var ls=null,c,g,s,i,ok=0,mi=0,n=0,gap=false,fix,tail,code,done,cb=navigator.clipboard,own=Object.prototype.hasOwnProperty,off='This window keeps saved work switched off, so your code here starts empty. Open a regular window to copy your full code.';try{ls=window.localStorage;}catch(e){}if(!ls){tell(off);return;}try{c=T4T_CODE.collect(ls);for(g in GATHER)if(own.call(GATHER,g)){s=ls.getItem(g);if(s!==null&&s!=='null'&&ls.getItem(GATHER[g])===null)gap=true;}}catch(e){tell(off);return;}for(g in c.rec)if(own.call(c.rec,g)&&c.rec[g]){n++;s=c.rec[g];for(i=0;i<s.length;i++){if(s.charAt(i)==='2')ok++;else if(s.charAt(i)==='1')mi++;}}code=T4T_CODE.group(T4T_CODE.encode(c.rec));fix=c.clash&&gap?'repair your saved results and gather your earlier work into the code':c.clash?'repair your saved results':gap?'gather your earlier work into the code':'';tail=(fix?' Open My Cyber progress once to '+fix+'.':'')+(location.protocol==='file:'?' This copy keeps its own progress. Paste the code into My Cyber progress (it opens online) to see it there.':'');done=ok+mi?'Copied: '+(ok+mi)+' result'+(ok+mi===1?'':'s')+' from '+n+' tool'+(n===1?'':'s')+' ('+ok+' right, '+mi+' to retry).':'Copied. Your code fills in as you answer questions and pass checks.';function show(){if(!d.open||!box)return;tell('Selected. Press Ctrl+C (Command+C on a Mac) to copy; on a phone, tap and hold, then Copy.'+tail);box.value=code;box.hidden=false;box.removeAttribute('readonly');box.focus();box.select();try{box.setSelectionRange(0,box.value.length);}catch(e){}box.scrollTop=0;box.setAttribute('readonly','');}tell('');if(box)box.hidden=true;if(!cb||!cb.writeText){show();return;}try{cb.writeText(code).then(function(){if(d.open)tell(done+tail);},show);}catch(e){show();}};w.addEventListener('click',function(e){var t=e.target.closest&&e.target.closest('[data-t4t-nav-act]'),f=t&&ACT[t.getAttribute('data-t4t-nav-act')];if(f){e.preventDefault();f(t);}});function place(){var r=document.body.firstElementChild;while(r&&r!==w&&r.matches('a.skip'))r=r.nextElementSibling;if(r!==w)document.body.insertBefore(w,r);}place();new MutationObserver(place).observe(document.body,{childList:true});})();</script></div><!-- /tool4that:nav -->
+
 <div class="wrap">
 <header>
   <p class="series" aria-label="Net Drills series">
@@ -191,6 +223,10 @@ footer{margin-top:40px;font-size:13px;color:var(--muted)}
 </div>
 
 <script>
+/*@t4t-done*/
+var T4T_DONE={"g":11,"k":"net-drills.config-audit","ids":["r1/ts","r1/spe","r1/en","r1/user","r1/http","r1/snmp","r1/banner","r1/timeout","r1/conlogin","r1/aux","r1/telnet","r1/nologin","r1/missing.1-6","s1/dtp","s1/unused","s1/trunk","s1/vlan1","s1/http","s1/snmp","s1/con","s1/t7","s1/telnet","s1/missing.1-2","s1/missing.4-8","swb/bpdu","swb/v1user","swb/nativeuser","swb/allowed","swb/pftrunk","swb/mgmt1","swb/aclwrong","swb/vtygap","swb/telnet","swb/banner","swb/missing.2-5","rtrb/enpw","rtrb/nativetag","rtrb/subnets","rtrb/aclwrong","rtrb/tinall","rtrb/missing.1-7"]};
+T4T_DONE=(function(D){var G=D.g,K=D.k,KEY='t4t.done.'+K,raw=D.ids||[],ids=[],at={},i,j,m;for(i=0;i<raw.length;i++){if(raw[i]==='~'){ids.push(null);continue;}m=/^(.*)\.(\d+)-(\d+)$/.exec(raw[i]);if(m){for(j=+m[2];j<=+m[3];j++){at[m[1]+'.'+j]=ids.length;ids.push(m[1]+'.'+j);}}else{at[raw[i]]=ids.length;ids.push(raw[i]);}}var api={g:G,k:K,key:KEY,ids:ids,at:at,ok:true,pending:null,unknown:[]};var seenRaw=null,seenS='',seenOk=false;function box(){try{return localStorage||null;}catch(e){return null;}}function read(){var L=box(),v=null,o=null;if(!L){seenRaw=null;seenS='';seenOk=false;return '';}try{v=L.getItem(KEY);}catch(e){return '';}if(v===seenRaw){return seenS;}seenRaw=v;seenS='';seenOk=false;if(v){try{o=JSON.parse(v);}catch(e){o=null;}if(o&&o.v===1&&o.g===G&&o.k===K&&typeof o.s==='string'&&/^[012]*$/.test(o.s)){seenS=o.s;seenOk=true;}}return seenS;}function top(a,b){var n=Math.max(a.length,b.length),s='',x,y,k;for(k=0;k<n;k++){x=a.charAt(k)||'0';y=b.charAt(k)||'0';s+=x>y?x:y;}return s;}function trim(s){return s.replace(/0+$/,'');}function save(want,f){var L=box(),cur,v;if(!L){api.ok=false;api.pending=want;return false;}cur=read();want=trim(top(cur,want));if(seenOk&&want===trim(cur)){api.ok=true;api.pending=null;return true;}if(!want&&!seenRaw&&!f){api.ok=true;api.pending=null;return true;}v=JSON.stringify({v:1,g:G,k:K,s:want});try{L.setItem(KEY,v);api.ok=true;api.pending=null;seenRaw=v;seenS=want;seenOk=true;return true;}catch(e){api.ok=false;api.pending=want;return false;}}function slot(id){var n=at[id];if(n===undefined){if(api.unknown.indexOf(id)<0){api.unknown.push(id);}return -1;}return n;}function apply(list){var s=read(),a,k,n,v,changed=false;if(api.pending){s=top(s,api.pending);}a=s.split('');for(k=0;k<list.length;k++){n=list[k][0];v=list[k][1];while(a.length<=n){a.push('0');}if(+a[n]<v){a[n]=String(v);changed=true;}}if(changed||api.pending){save(a.join(''));}return changed;}function level(n){n=+n;return n>=2?2:(n>=1?1:0);}api.state=function(id){var n=at[id],s;if(n===undefined){return 0;}s=read();if(api.pending){s=top(s,api.pending);}return +(s.charAt(n)||0);};api.mark=function(id,right){var n=slot(id);return n<0?false:apply([[n,right?2:1]]);};api.markMany=function(list){var out=[],k,n;for(k=0;k<list.length;k++){n=slot(list[k][0]);if(n>=0){out.push([n,list[k][1]?2:1]);}}return apply(out);};api.raise=function(id,v){var n=slot(id);v=level(v);return n<0||!v?false:apply([[n,v]]);};api.each=function(fn){var s=read(),k;if(api.pending){s=top(s,api.pending);}for(k=0;k<ids.length;k++){if(ids[k]!==null){fn(ids[k],+(s.charAt(k)||0));}}};api.carried=function(id,own){return api.state(id)===2&&(+own||0)<2;};api.flush=function(){if(api.pending){apply([]);}return api.ok;};api.touch=function(){if(api.pending){return api.flush();}read();return seenRaw!==null||save('',1);};api.clear=function(){var L=box();api.pending=null;api.ok=true;seenRaw=null;seenS='';seenOk=false;if(L){try{L.removeItem(KEY);}catch(e){api.ok=false;}}};return api;})(T4T_DONE);
+/*@/t4t-done*/
 (() => {
 'use strict';
 const $ = (s, r = document) => r.querySelector(s);
@@ -302,12 +338,12 @@ const SCEN = {
         note: 'Secure every VTY line. Configuring line vty 0 15 in one go keeps them identical.', clue: 'Are all the remote lines configured the same way?' }
     },
     missing: [
-      { t: 'Minimum password length (security passwords min-length)', present: false, why: 'Not configured, so nothing stops short passwords like cisco.' },
-      { t: 'Brute-force protection (login block-for)', present: false, why: 'Not configured: unlimited password guesses against the VTY lines.' },
-      { t: 'Off-box logging to a syslog server (logging host)', present: false, why: 'Not configured: logs live only on the router, where an intruder can erase them.' },
-      { t: 'Time sync from an NTP server (ntp server)', present: false, why: "Not configured: without synced clocks, logs can't be matched across devices." },
-      { t: 'SSH limited to version 2', present: true, why: 'Present: ip ssh version 2.' },
-      { t: 'The unused interface is disabled', present: true, why: 'Present: G0/2 is shut down.' }
+      { n: 1, t: 'Minimum password length (security passwords min-length)', present: false, why: 'Not configured, so nothing stops short passwords like cisco.' },
+      { n: 2, t: 'Brute-force protection (login block-for)', present: false, why: 'Not configured: unlimited password guesses against the VTY lines.' },
+      { n: 3, t: 'Off-box logging to a syslog server (logging host)', present: false, why: 'Not configured: logs live only on the router, where an intruder can erase them.' },
+      { n: 4, t: 'Time sync from an NTP server (ntp server)', present: false, why: "Not configured: without synced clocks, logs can't be matched across devices." },
+      { n: 5, t: 'SSH limited to version 2', present: true, why: 'Present: ip ssh version 2.' },
+      { n: 6, t: 'The unused interface is disabled', present: true, why: 'Present: G0/2 is shut down.' }
     ]
   },
   s1: {
@@ -366,14 +402,14 @@ const SCEN = {
       telnet: TELNET
     },
     missing: [
-      { t: 'DHCP snooping (ip dhcp snooping)', present: false, why: 'Not configured: a rogue DHCP server on any port could hand out a fake gateway.' },
-      { t: 'BPDU Guard on every PortFast port', present: false, why: 'F0/1 has PortFast without BPDU Guard (F0/3 has both).' },
-      { t: 'Trunk native VLAN moved to an unused VLAN (99)', present: false, covered: 'trunk', coveredName: 'trunk', why: 'G0/1 carries no native VLAN setting, so untagged frames still ride VLAN 1.' },
-      { t: 'VTP mode confirmed as transparent with show vtp status', present: false, why: 'show running-config shows vtp mode only in transparent mode; server and client modes live in vlan.dat, outside the running-config. Without a vtp line here, the switch runs as a VTP server (the default) or client and accepts updates that could overwrite its VLANs. show vtp status confirms the mode, and vtp mode transparent sets it.', learn: ['junior/j4', 'Learn it: Defense Ladder j4, Trunk negotiation and VTP detail panel.'] },
-      { t: 'A legal warning banner (banner motd)', present: false, why: 'There is no banner, so nobody is warned before logging in.' },
-      { t: 'Encryption of plaintext passwords', present: true, why: 'Present: service password-encryption (though type 7 is weak).' },
-      { t: 'A hashed enable secret', present: true, why: 'Present: enable secret 5. Type 5 (MD5) counts as hashed here. Cisco now recommends type 8 (PBKDF2-SHA-256) or type 9 (scrypt) where the IOS release supports them: enable algorithm-type scrypt secret <password>.' },
-      { t: 'Port security on F0/1', present: true, why: 'Present: switchport port-security with sticky MACs.' }
+      { n: 1, t: 'DHCP snooping (ip dhcp snooping)', present: false, why: 'Not configured: a rogue DHCP server on any port could hand out a fake gateway.' },
+      { n: 2, t: 'BPDU Guard on every PortFast port', present: false, why: 'F0/1 has PortFast without BPDU Guard (F0/3 has both).' },
+      { n: 3, t: 'Trunk native VLAN moved to an unused VLAN (99)', present: false, covered: 'trunk', coveredName: 'trunk', why: 'G0/1 carries no native VLAN setting, so untagged frames still ride VLAN 1.' },
+      { n: 4, t: 'VTP mode confirmed as transparent with show vtp status', present: false, why: 'show running-config shows vtp mode only in transparent mode; server and client modes live in vlan.dat, outside the running-config. Without a vtp line here, the switch runs as a VTP server (the default) or client and accepts updates that could overwrite its VLANs. show vtp status confirms the mode, and vtp mode transparent sets it.', learn: ['junior/j4', 'Learn it: Defense Ladder j4, Trunk negotiation and VTP detail panel.'] },
+      { n: 5, t: 'A legal warning banner (banner motd)', present: false, why: 'There is no banner, so nobody is warned before logging in.' },
+      { n: 6, t: 'Encryption of plaintext passwords', present: true, why: 'Present: service password-encryption (though type 7 is weak).' },
+      { n: 7, t: 'A hashed enable secret', present: true, why: 'Present: enable secret 5. Type 5 (MD5) counts as hashed here. Cisco now recommends type 8 (PBKDF2-SHA-256) or type 9 (scrypt) where the IOS release supports them: enable algorithm-type scrypt secret <password>.' },
+      { n: 8, t: 'Port security on F0/1', present: true, why: 'Present: switchport port-security with sticky MACs.' }
     ]
   },
   swb: {
@@ -440,11 +476,11 @@ const SCEN = {
       banner: BANNER
     },
     missing: [
-      { t: 'BPDU Guard on every PortFast port by default (spanning-tree portfast bpduguard default)', present: false, covered: 'bpdu', coveredName: 'BPDU Guard', why: 'Absent: Fa0/9 through 0/21 set BPDU Guard port by port, and Fa0/1 through 0/8 go without it.' },
-      { t: 'Unused ports parked in VLAN 999 and shut down', present: false, why: 'Fa0/22 through 0/24 and G0/2 carry no settings, so they sit in VLAN 1, enabled. VLAN 999 PARKING exists and holds no ports.' },
-      { t: 'SSH limited to version 2', present: true, why: 'Present: ip ssh version 2.' },
-      { t: 'Encryption of plaintext passwords (service password-encryption)', present: true, why: 'Present: service password-encryption, with hashed secrets for enable and netadmin.' },
-      { t: 'A login banner (banner login)', present: false, why: 'Absent: SwB sets only banner motd. banner login shows its warning right before the username prompt, and SSH clients display it before they authenticate.' }
+      { n: 1, t: 'BPDU Guard on every PortFast port by default (spanning-tree portfast bpduguard default)', present: false, covered: 'bpdu', coveredName: 'BPDU Guard', why: 'Absent: Fa0/9 through 0/21 set BPDU Guard port by port, and Fa0/1 through 0/8 go without it.' },
+      { n: 2, t: 'Unused ports parked in VLAN 999 and shut down', present: false, why: 'Fa0/22 through 0/24 and G0/2 carry no settings, so they sit in VLAN 1, enabled. VLAN 999 PARKING exists and holds no ports.' },
+      { n: 3, t: 'SSH limited to version 2', present: true, why: 'Present: ip ssh version 2.' },
+      { n: 4, t: 'Encryption of plaintext passwords (service password-encryption)', present: true, why: 'Present: service password-encryption, with hashed secrets for enable and netadmin.' },
+      { n: 5, t: 'A login banner (banner login)', present: false, why: 'Absent: SwB sets only banner motd. banner login shows its warning right before the username prompt, and SSH clients display it before they authenticate.' }
     ]
   },
   rtrb: {
@@ -491,13 +527,13 @@ const SCEN = {
         note: 'transport input ssh matches lines 5 to 15. transport input none blocks SSH as well and locks out remote admins.', clue: 'Compare the transport settings on the two VTY ranges.' }
     },
     missing: [
-      { t: 'access-class 20 in on every VTY line', present: true, why: 'Present: line vty 0 4 and line vty 5 15 both apply access-class 20 in.' },
-      { t: 'A static host route to 8.8.8.8 through the ISP', present: true, why: 'Present: ip route 8.8.8.8 255.255.255.255 198.51.100.1.' },
-      { t: 'SSH limited to version 2', present: true, why: 'Present: ip ssh version 2.' },
-      { t: 'A login banner (banner login)', present: false, why: 'Absent: RtrB sets only banner motd. banner login shows its warning right before the username prompt, and SSH clients display it before they authenticate.' },
-      { t: 'Brute-force protection (login block-for)', present: false, why: 'Absent: the VTY lines accept unlimited password guesses from any permitted host.' },
-      { t: 'Minimum password length (security passwords min-length)', present: false, why: 'Absent: nothing enforces a minimum length on new passwords.' },
-      { t: 'OSPF hellos kept off the user subnets (passive-interface on g0/0.10, g0/0.20, and g0/0.30)', present: false, why: 'Absent: router ospf 1 runs without passive-interface, so RtrB sends OSPF hellos into Students, Teachers, and Principals. A rogue device there could answer and form an adjacency. passive-interface keeps advertising those subnets and stops the hellos. passive-interface default, then no passive-interface g0/2, does the same and leaves only the link to RtrA talking OSPF.', learn: ['senior/se6', 'Learn it: Defense Ladder se6, Share the route through OSPF and its OSPF behind the scenes detail panel.'] }
+      { n: 1, t: 'access-class 20 in on every VTY line', present: true, why: 'Present: line vty 0 4 and line vty 5 15 both apply access-class 20 in.' },
+      { n: 2, t: 'A static host route to 8.8.8.8 through the ISP', present: true, why: 'Present: ip route 8.8.8.8 255.255.255.255 198.51.100.1.' },
+      { n: 3, t: 'SSH limited to version 2', present: true, why: 'Present: ip ssh version 2.' },
+      { n: 4, t: 'A login banner (banner login)', present: false, why: 'Absent: RtrB sets only banner motd. banner login shows its warning right before the username prompt, and SSH clients display it before they authenticate.' },
+      { n: 5, t: 'Brute-force protection (login block-for)', present: false, why: 'Absent: the VTY lines accept unlimited password guesses from any permitted host.' },
+      { n: 6, t: 'Minimum password length (security passwords min-length)', present: false, why: 'Absent: nothing enforces a minimum length on new passwords.' },
+      { n: 7, t: 'OSPF hellos kept off the user subnets (passive-interface on g0/0.10, g0/0.20, and g0/0.30)', present: false, why: 'Absent: router ospf 1 runs without passive-interface, so RtrB sends OSPF hellos into Students, Teachers, and Principals. A rogue device there could answer and form an adjacency. passive-interface keeps advertising those subnets and stops the hellos. passive-interface default, then no passive-interface g0/2, does the same and leaves only the link to RtrA talking OSPF.', learn: ['senior/se6', 'Learn it: Defense Ladder se6, Share the route through OSPF and its OSPF behind the scenes detail panel.'] }
     ]
   }
 };
@@ -599,8 +635,13 @@ function renderPicker() {
     b.setAttribute('aria-checked', k === key ? 'true' : 'false');
     b.innerHTML = '<span class="t"><i class="led" aria-hidden="true"></i><span></span></span><small></small>';
     b.querySelector('.t span').textContent = sc.name;
+    /* carried: every finding and scored missing protection is touched in the record while this browser's done stays unset */
+    const slots = Object.keys(sc.findings).map(id => k + '/' + id).concat(sc.missing.filter(m => !m.covered).map(m => k + '/missing.' + m.n));
+    const away = !done[k] && slots.every(id => T4T_DONE.state(id) > 0);
     if (done[k]) b.querySelector('.led').classList.add('ok');
+    else if (away) b.querySelector('.led').classList.add('away');
     b.querySelector('small').textContent = sc.sub + ' · ' + sc.grade + (done[k] ? ', completed' : '');
+    if (away) { const s = document.createElement('small'); s.className = 'away'; s.textContent = 'Audited on another device'; b.append(s); }
     b.addEventListener('click', () => { if (k !== key) load(k); });
     p.append(b);
   });
@@ -712,6 +753,8 @@ function findingCard(st) {
     b.addEventListener('click', () => {
       if (st.answered) return;
       st.answered = true; st.right = oi === 0; st.pick = oi;
+      /* Cyber progress: right only when the learner found the line and chose the best fix */
+      T4T_DONE.mark(key + '/' + st.id, st.found && st.right);
       markOpts(fs, st); showResult(); updStats();
     });
     fs.append(b);
@@ -754,18 +797,21 @@ function syncCovered() {
 const scoredMissing = () => S.sc.missing.filter(m => !m.covered).length;
 function checkMissing() {
   let right = 0;
+  const marks = [];
   $$('#miss li').forEach((li, i) => {
     const m = S.sc.missing[i], box = li.querySelector('input'), w = li.querySelector('.why');
     box.disabled = true;
     w.hidden = false;
     if (m.covered) { w.className = 'why'; w.textContent = m.why; return; }
     const ok = box.checked === !m.present;
+    marks.push([key + '/missing.' + m.n, ok]);
     if (ok) right++;
     w.className = 'why ' + (ok ? 'good' : 'nope');
     w.textContent = (ok ? 'Right. ' : m.present ? 'This one is actually there. ' : 'This one is missing. ') + m.why;
     if (m.learn) w.append(' ', learnLink(m.learn[0], m.learn[1]));
   });
   S.missChecked = true; S.missRight = right;
+  T4T_DONE.markMany(marks);
   $('#b-miss').disabled = true;
   maybeSummary();
 }
@@ -802,13 +848,17 @@ $('#b-hint').addEventListener('click', () => {
   updStats();
 });
 $('#b-reveal').addEventListener('click', () => {
+  /* a revealed finding counts as to retry */
+  T4T_DONE.markMany(Object.values(S.F).filter(v => !v.found).map(v => [key + '/' + v.id, false]));
   Object.values(S.F).forEach(v => { if (!v.found) v.missed = true; });
   $('#hintline').textContent = 'Revealed lines are outlined in amber. Tap one to see the problem and pick its fix.';
   paintRows(); updStats();
 });
 $('#b-restart').addEventListener('click', () => { closeCard(); load(key); });
 $('#b-miss').addEventListener('click', checkMissing);
-load('r1');
+/* #item=<scenarioKey>/..., a link from My Cyber progress, opens that configuration */
+const linked = (() => { try { const m = /^#item=([^/]+)/.exec(decodeURIComponent(location.hash || '')); return m && Object.prototype.hasOwnProperty.call(SCEN, m[1]) ? m[1] : ''; } catch (e) { return ''; } })();
+load(linked || 'r1');
 })();
 </script>
 <div id="termsbox" class="termsbox" hidden role="dialog" aria-label="Terms on this page"><h2>Terms on this page</h2><div class="trow"><input id="termsQ" type="search" placeholder="Filter terms" aria-label="Filter terms"><button type="button" id="termsDefine">Define selection</button><button type="button" id="termsClose">Close</button></div><p class="tdef" id="termsDef" role="status">Select a word on the page and press Define selection, or browse the list. Definitions come from the Defense Ladder glossary.</p><dl id="termsList"></dl></div>
@@ -895,6 +945,6 @@ load('r1');
   }
 })();
 </script>
-<!-- tool4that:foot --><p style="text-align:center;margin:28px 0 22px;font:14px/1.4 system-ui,-apple-system,Segoe UI,Arial,sans-serif"><a href="../../">More free tools at Tool4That</a></p><!-- /tool4that:foot -->
+<!-- tool4that:foot --><p style="text-align:center;margin:28px 0 22px;font:14px/1.4 system-ui,-apple-system,Segoe UI,Arial,sans-serif"><a class="t4t-nav-home" href="../../cyber/">More free Cyber tools</a></p><!-- /tool4that:foot -->
 </body>
 </html>
